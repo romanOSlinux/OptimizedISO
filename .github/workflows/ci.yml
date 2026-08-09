@@ -1,0 +1,59 @@
+name: CI - Build and Test Optimized ISO
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PowerShell
+        uses: PowerShell/setup-pwsh@v2
+        with:
+          pwsh-version: '7.3.x'
+
+      - name: Install QEMU (Arch Linux)
+        run: |
+          sudo pacman -Sy --noconfirm qemu
+        shell: bash
+
+      - name: Build ISO
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File "OptimizedISO-Package/ImprovedScripts/New-OptimizedWindowsISO-Improved.ps1" -OutputIso "output.iso"
+        shell: bash
+
+      - name: Run ISO in QEMU and capture logs
+        run: |
+          mkdir -p logs
+          qemu-system-x86_64 \
+            -m 4G \
+            -cdrom output.iso \
+            -serial file:logs/qemu.serial \
+            -display none \
+            -no-reboot \
+            -smp 2 \
+            -no-shutdown
+        shell: bash
+
+      - name: Convert QEMU serial log to JSON (if needed)
+        run: |
+          cp logs/qemu.serial logs/postinstall.log
+        shell: bash
+
+      - name: Validate JSON log for errors
+        run: |
+          if jq -e '.errors | length > 0' logs/postinstall.log; then
+            echo "Errors detected in post-install log"
+            exit 1
+          else
+            echo "No errors detected in post-install log"
+          fi
+        shell: bash
+        env:
+          CERT_PASS: ${{ secrets.CERT_PASS }}
