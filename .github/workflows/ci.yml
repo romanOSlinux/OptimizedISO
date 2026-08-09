@@ -14,10 +14,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up PowerShell
-        uses: actions/setup-pwsh@v2
-        with:
-          version: '7.3.x'
+        # PowerShell is pre‑installed on GitHub runners; no setup action needed.
+
 
       - name: Install QEMU (Arch Linux)
         run: |
@@ -25,9 +23,10 @@ jobs:
         shell: bash
 
       - name: Build ISO
+        shell: pwsh
         run: |
-          pwsh -NoProfile -ExecutionPolicy Bypass -File "OptimizedISO-Package/ImprovedScripts/New-OptimizedWindowsISO-Improved.ps1" -OutputIso "output.iso"
-        shell: bash
+          ./OptimizedISO-Package/ImprovedScripts/New-OptimizedWindowsISO-Improved.ps1 -OutputIso output.iso
+
 
       - name: Run ISO in QEMU and capture logs
         run: |
@@ -57,4 +56,17 @@ jobs:
           fi
         shell: bash
         env:
-          CERT_PASS: ${{ secrets.CERT_PASS }}
+          env:
+            CERT_PASS: ${{ secrets.CERT_PASS }}
+
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: optimized-iso
+          path: output.iso
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-logs
+          path: logs/
