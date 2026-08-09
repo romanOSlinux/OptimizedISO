@@ -70,7 +70,7 @@ param(
     [switch]$DownloadISO,
 
     [Parameter()]
-    [string]$WindowsVersion = " ",
+    [string]$WindowsVersion = "",
 
     [Parameter()]
     [switch]$AutoInstallDeps,
@@ -91,7 +91,7 @@ param(
     [string]$LocalUser = "Usuario",
 
     [Parameter()]
-    [string]$LocalPassword = " ",
+    [string]$LocalPassword = "",
 
     [Parameter()]
     [int]$AutoLogonCount = 1,
@@ -103,16 +103,16 @@ param(
     [string]$Timezone = "Romance Standard Time",
 
     [Parameter()]
-    [string]$KeyboardOverride = " ",
+    [string]$KeyboardOverride = "",
 
     [Parameter()]
-    [string]$Win10ScriptPath = " ",
+    [string]$Win10ScriptPath = "",
 
     [Parameter()]
     [string]$Win11ScriptPath = "Win11-Debloat-v3-Adaptive.ps1",
 
     [Parameter()]
-    [string]$WindowsEdition = " "
+    [string]$WindowsEdition = ""
 )
 
 # Forzar TLS 1.2 para descargas HTTPS (compatible con PS5)
@@ -202,62 +202,6 @@ function Test-OSCDImgInstalled {
     return $found
 }
 
-function New-IsoFileWithFallback {
-    param(
-        [string]$SourceDir,
-        [string]$OutputPath
-    )
-    $oscdimgDir = Join-Path $env:TEMP "oscdimg_tool"
-    $oscdimgExe = Join-Path $oscdimgDir "oscdimg.exe"
-
-    if (-not (Test-Path $oscdimgExe)) {
-        Remove-Item -Path $oscdimgDir -Recurse -Force -ErrorAction SilentlyContinue
-        New-Item -ItemType Directory -Path $oscdimgDir -Force | Out-Null
-
-        Write-Host "    Instalando oscdimg.exe via winget..." -ForegroundColor Gray
-        try {
-            winget install -e --id Microsoft.OSCDIMG --silent --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
-            Start-Sleep -Seconds 2
-            $foundOscdimg = Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Filter "oscdimg.exe" -Recurse -ErrorAction SilentlyContinue |
-                Where-Object { $_.FullName -match 'Microsoft\.OSCDIMG' } |
-                Select-Object -First 1 -ExpandProperty FullName
-            if ($foundOscdimg) {
-                Copy-Item -Path $foundOscdimg -Destination $oscdimgExe -Force
-                Write-OK "oscdimg.exe instalado via winget"
-            }
-        } catch {
-            Write-Warn "winget install falló: $_"
-        }
-    }
-
-    if (Test-Path $oscdimgExe) {
-        Write-OK "oscdimg.exe listo: $oscdimgExe"
-        $isoLabel = "WINDOWS_OPTIMIZED"
-
-        $biosBootFile = Join-Path $SourceDir "boot\etfsboot.com"
-        $uefiBootFile = Join-Path $SourceDir "efi\microsoft\boot\efisys.bin"
-
-        $bootArg = "-bootdata:2#p0,e,b`"$biosBootFile`"#pEF,e,b`"$uefiBootFile`""
-
-        $oscdimgArgs = @(
-            "-m", "-o", "-u2", "-udfver102", "-l$isoLabel",
-            $bootArg,
-            $SourceDir,
-            $OutputPath
-        )
-
-        $proc = Start-Process -FilePath $oscdimgExe -ArgumentList $oscdimgArgs -NoNewWindow -Wait -PassThru
-
-        if ($proc.ExitCode -eq 0 -and (Test-Path $OutputPath)) {
-            Write-OK "ISO creada con oscdimg: $OutputPath"
-            return $true
-        } else {
-            Write-Warn "oscdimg falló (exit: $($proc.ExitCode))"
-        }
-    }
-
-    return $false
-}
 
 function Install-Dependencies {
     Write-Step "Instalando dependencias necesarias..."
@@ -740,8 +684,8 @@ if (-not $SkipAutoUnattend) {
     # La contraseña en autounattend.xml con PlainText=false requiere codificación especial:
     # Windows exige que se concatene el sufijo "Password" al texto plano ANTES de codificar en Base64 UTF-16LE.
     # Sin el sufijo, el OOBE rechaza la contraseña incluso si el Base64 es válido.
-    $encodedPasswordForAccount = " "  # Usado en <LocalAccount><Password>
-    $encodedPasswordForAutologon = " " # Usado en <AutoLogon><Password>
+    $encodedPasswordForAccount = ""  # Usado en <LocalAccount><Password>
+    $encodedPasswordForAutologon = "" # Usado en <AutoLogon><Password>
     if ($LocalPassword) {
         $encodedPasswordForAccount  = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($LocalPassword + "Password"))
         $encodedPasswordForAutologon = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($LocalPassword + "Password"))
@@ -811,36 +755,48 @@ if (-not $SkipAutoUnattend) {
           <CreatePartitions>
             <CreatePartition wcm:action="add">
               <Order>1</Order>
+              <Size>1024</Size>
+              <Type>Primary</Type>
+            </CreatePartition>
+            <CreatePartition wcm:action="add">
+              <Order>2</Order>
               <Size>500</Size>
               <Type>EFI</Type>
             </CreatePartition>
             <CreatePartition wcm:action="add">
-              <Order>2</Order>
+              <Order>3</Order>
               <Size>128</Size>
               <Type>MSR</Type>
             </CreatePartition>
             <CreatePartition wcm:action="add">
-              <Order>3</Order>
+              <Order>4</Order>
               <Extend>true</Extend>
               <Type>Primary</Type>
             </CreatePartition>
           </CreatePartitions>
           <ModifyPartitions>
             <ModifyPartition wcm:action="add">
-              <Format>FAT32</Format>
-              <Label>System</Label>
+              <Format>NTFS</Format>
+              <Label>WinRE</Label>
               <Order>1</Order>
               <PartitionID>1</PartitionID>
+              <TypeID>de94bba4-06d1-4d40-a16a-bfd50179d6ac</TypeID>
             </ModifyPartition>
             <ModifyPartition wcm:action="add">
+              <Format>FAT32</Format>
+              <Label>System</Label>
               <Order>2</Order>
               <PartitionID>2</PartitionID>
             </ModifyPartition>
             <ModifyPartition wcm:action="add">
-              <Format>NTFS</Format>
-              <Label>Windows</Label>
               <Order>3</Order>
               <PartitionID>3</PartitionID>
+            </ModifyPartition>
+            <ModifyPartition wcm:action="add">
+              <Format>NTFS</Format>
+              <Label>Windows</Label>
+              <Order>4</Order>
+              <PartitionID>4</PartitionID>
             </ModifyPartition>
           </ModifyPartitions>
           <DiskID>0</DiskID>
@@ -852,7 +808,7 @@ if (-not $SkipAutoUnattend) {
         <OSImage>
           <InstallTo>
             <DiskID>0</DiskID>
-            <PartitionID>3</PartitionID>
+            <PartitionID>4</PartitionID>
           </InstallTo>
           <InstallFrom>
             <MetaData wcm:action="add">
@@ -881,11 +837,6 @@ if (-not $SkipAutoUnattend) {
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>2</Order>
-          <Description>Liberar IP para OOBE offline (no deshabilita NICs)</Description>
-          <Path>ipconfig /release</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>3</Order>
           <Description>Forzar SetupComplete.cmd (PostOobe)</Description>
           <Path>reg add "HKLM\SYSTEM\Setup\FirstBoot\PostOobe" /v "00" /t REG_SZ /d "cmd /c C:\Windows\Setup\Scripts\SetupComplete.cmd &amp; exit /b 0" /f</Path>
         </RunSynchronousCommand>
@@ -1119,8 +1070,7 @@ if ($oscdimg) {
         Write-Warn "Error ejecutando oscdimg: $_"
     }
 } else {
-    Write-Warn "oscdimg.exe no encontrado. Instalando via winget..."
-    $isoCreated = New-IsoFileWithFallback -SourceDir $ISOFilesDir -OutputPath $outputISO
+    Write-Warn "oscdimg.exe no pudo ser instalado automáticamente."
 }
 
 if (-not $isoCreated) {
