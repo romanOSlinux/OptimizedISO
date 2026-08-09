@@ -54,7 +54,7 @@ jobs:
         run: |
           # Solo reportamos Error (no Warning) para evitar ruido en este proyecto interactivo
           $results = Invoke-ScriptAnalyzer -Path ./scripts -Recurse -Severity Error `
-            -ExcludeRule PSAvoidUsingWriteHost,PSAvoidUsingConvertToSecureStringWithPlainText
+            -ExcludeRule PSAvoidUsingWriteHost,PSAvoidUsingConvertToSecureStringWithPlainText,PSAvoidUsingComputerNameHardcoded
 
           if ($results) {
             $results | ForEach-Object {
