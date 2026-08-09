@@ -1,0 +1,88 @@
+name: Create Release Package
+
+on:
+  push:
+    tags:
+      - 'v*.*'   # Corre cuando haces: git tag v2.3 && git push origin v2.3
+
+jobs:
+  package-and-release:
+    name: Package Scripts & Publish Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # Necesario para crear el Release en GitHub
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing version: $VERSION"
+
+      - name: Build release ZIP
+        run: |
+          mkdir -p dist
+          ZIP_NAME="OptimizedISO-${{ steps.version.outputs.VERSION }}.zip"
+
+          zip -r "dist/$ZIP_NAME" \
+            scripts/ \
+            docs/ \
+            README.md \
+            -x "*.gitkeep"
+
+          echo "ZIP creado: dist/$ZIP_NAME"
+          ls -lh dist/
+
+      - name: Extract CHANGELOG entry for this version
+        id: changelog
+        run: |
+          # Intenta extraer las notas de la versión actual del CHANGELOG
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          if [ -f "docs/CHANGELOG.md" ]; then
+            # Extrae el bloque entre el tag actual y el siguiente encabezado ##
+            NOTES=$(awk "/^## \[$VERSION\]/{found=1; next} found && /^## \[/{exit} found{print}" docs/CHANGELOG.md)
+            if [ -n "$NOTES" ]; then
+              echo "NOTES<<EOF" >> $GITHUB_OUTPUT
+              echo "$NOTES" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
+            else
+              echo "NOTES=Sin notas específicas para esta versión." >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "NOTES=Ver historial de cambios en MEMORY.md del proyecto." >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "OptimizedISO ${{ steps.version.outputs.VERSION }}"
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          body: |
+            ## OptimizedISO ${{ steps.version.outputs.VERSION }}
+
+            Genera una ISO de Windows 10/11 completamente desatendida (Zero-Touch) con optimizaciones preintegradas.
+
+            ### ¿Qué incluye este release?
+            - `scripts/New-OptimizedWindowsISO.ps1` — Creador de ISO personalizada
+            - `scripts/Win11-Debloat-v3-Adaptive.ps1` — Limpieza y optimización post-instalación
+            - `scripts/Win11-Network-Diagnostics-Optimizer.ps1` — Optimizador de red
+
+            ### Cambios en esta versión
+            ${{ steps.changelog.outputs.NOTES }}
+
+            ### Uso rápido
+            ```powershell
+            # Abre PowerShell como Administrador y ejecuta:
+            .\scripts\New-OptimizedWindowsISO.ps1 -LocalUser "TuNombre" -LocalPassword "TuClave"
+            ```
+            Consulta [docs/USAGE.md](docs/USAGE.md) para todos los parámetros disponibles.
+
+            > ⚠️ **Advertencia:** La ISO generada formatea automáticamente el Disco 0. Úsala solo en equipos donde desees una instalación limpia.
+          files: |
+            dist/*.zip
+          draft: false
+          prerelease: false

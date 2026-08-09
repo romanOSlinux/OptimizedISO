@@ -1,0 +1,117 @@
+name: Lint & Validate Scripts
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  lint-powershell:
+    name: PowerShell Syntax & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PowerShell Core
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y powershell
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -Repository PSGallery
+
+      - name: Validate PowerShell syntax (no parse errors)
+        shell: pwsh
+        run: |
+          $scripts = Get-ChildItem -Path ./scripts -Filter "*.ps1" -Recurse
+          $failed = $false
+          foreach ($script in $scripts) {
+            $parseErrors = $null
+            $null = [System.Management.Automation.Language.Parser]::ParseFile(
+              $script.FullName, [ref]$null, [ref]$parseErrors
+            )
+            if ($parseErrors.Count -gt 0) {
+              Write-Host "::error file=$($script.Name)::Syntax error: $parseErrors" -ForegroundColor Red
+              $failed = $true
+            } else {
+              Write-Host "✅ $($script.Name) — syntax OK"
+            }
+          }
+          if ($failed) { exit 1 }
+
+      - name: Run PSScriptAnalyzer (Errors only — no false positives)
+        shell: pwsh
+        run: |
+          # Solo reportamos Error (no Warning) para evitar ruido en este proyecto interactivo
+          $results = Invoke-ScriptAnalyzer -Path ./scripts -Recurse -Severity Error `
+            -ExcludeRule PSAvoidUsingWriteHost,PSAvoidUsingConvertToSecureStringWithPlainText
+
+          if ($results) {
+            $results | ForEach-Object {
+              Write-Host "::error file=$($_.ScriptName),line=$($_.Line)::[$($_.RuleName)] $($_.Message)"
+            }
+            Write-Host ""
+            Write-Host "PSScriptAnalyzer encontró $($results.Count) error(es). Ver detalles arriba."
+            exit 1
+          }
+          Write-Host "✅ PSScriptAnalyzer — sin errores críticos"
+
+  validate-xml:
+    name: Validate XML Templates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install xmllint
+        run: sudo apt-get install -y libxml2-utils
+
+      - name: Validate XML files (if any)
+        run: |
+          xml_files=$(find . -name "*.xml" -not -path "./.git/*")
+          if [ -z "$xml_files" ]; then
+            echo "ℹ️  No se encontraron archivos XML para validar."
+            exit 0
+          fi
+          failed=0
+          for f in $xml_files; do
+            if xmllint --noout "$f" 2>/dev/null; then
+              echo "✅ $f — XML válido"
+            else
+              echo "::error file=$f::XML inválido en $f"
+              failed=1
+            fi
+          done
+          exit $failed
+
+  validate-docs:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check that key docs exist
+        run: |
+          required=("README.md" "docs/USAGE.md" "docs/CHANGELOG.md")
+          failed=0
+          for doc in "${required[@]}"; do
+            if [ -f "$doc" ]; then
+              echo "✅ $doc — existe"
+            else
+              echo "::warning::Falta el archivo de documentación: $doc"
+            fi
+          done
+          exit $failed

@@ -1,0 +1,77 @@
+name: Bug Report
+description: Reportar un problema con los scripts o con la ISO generada
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportar un bug. Completá el formulario para que pueda reproducirlo.
+
+  - type: dropdown
+    id: script
+    attributes:
+      label: ¿En qué script ocurre el problema?
+      options:
+        - New-OptimizedWindowsISO.ps1 (creador de ISO)
+        - Win11-Debloat-v3-Adaptive.ps1 (debloat/optimización)
+        - Win11-Network-Diagnostics-Optimizer.ps1 (red)
+        - La ISO generada (al bootear/instalar)
+        - Otro
+    validations:
+      required: true
+
+  - type: dropdown
+    id: windows-version
+    attributes:
+      label: Versión de Windows
+      options:
+        - Windows 11 24H2
+        - Windows 11 23H2
+        - Windows 11 22H2
+        - Windows 10
+        - No aplica (el script corre en Linux/Mac)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: ¿Qué ocurrió?
+      description: Describí el problema con el mayor detalle posible
+      placeholder: "Al ejecutar el script con los parámetros X, ocurrió el error Y..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Comando ejecutado
+      description: El comando exacto que ejecutaste
+      render: powershell
+      placeholder: |
+        .\scripts\New-OptimizedWindowsISO.ps1 -LocalUser "Roman" -WindowsEdition "Pro"
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Mensaje de error (si hay)
+      description: Pegá el output del error o del log
+      render: text
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: ¿Qué esperabas que pasara?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: Ejecuté el script como Administrador
+          required: true
+        - label: Estoy usando la última versión del script (ver Releases)
+          required: true
