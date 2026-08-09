@@ -3,18 +3,18 @@
 .SYNOPSIS
 Genera una ISO de Windows 10/11 con los scripts optimizadores integrados
 .DESCRIPTION
-Toma una ISO original de Windows (o la descarga automáticamente), extrae
-su contenido, inyecta los scripts PostInstall_Optimizer, crea autounattend.xml
-con bypass de TPM/RAM/CPU/cuenta Microsoft, y reconstruye la ISO.
+Toma una ISO original de Windows, extrae su contenido, inyecta los scripts
+PostInstall_Optimizer, crea autounattend.xml con bypass de TPM/RAM/CPU/cuenta
+Microsoft, y reconstruye la ISO. La selección de edición y disco se realiza
+manualmente durante la instalación.
 .PARAMETER SourceISO
-Ruta a la ISO original de Windows 10 u 11. Si no se especifica y se usa
--DownloadISO, se descarga automáticamente.
+Ruta a la ISO original de Windows 10 u 11. Si no se especifica, se pedirá
+interactivamente un directorio donde buscar archivos .iso.
 .PARAMETER OutputDir
 Directorio donde se guardará la ISO resultante (default: Desktop\WinISO_Optimizado)
-.PARAMETER DownloadISO
-Descarga la ISO de Windows automáticamente desde Microsoft
 .PARAMETER WindowsVersion
-Versión a descargar (si -DownloadISO está activo). "10" o "11" (default: 11)
+Versión de Windows para forzar detección. "10" o "11". Si no se especifica,
+se detecta automáticamente.
 .PARAMETER AutoInstallDeps
 Instala automáticamente las dependencias necesarias (7-Zip) via winget
 .PARAMETER InjectWin10Script
@@ -43,11 +43,12 @@ especifíquelo aquí. Ej: "es-ES" (España), "latam" (Latinoamérica),
 .EXAMPLE
 # Usar ISO existente
 .\New-OptimizedWindowsISO.ps1 -SourceISO "C:\ISOs\Win11_23H2_ES.iso"
-# Descargar ISO automáticamente + instalar dependencias
-.\New-OptimizedWindowsISO.ps1 -DownloadISO -WindowsVersion 11 -AutoInstallDeps
+
+# Modo interactivo (se pedirá seleccionar carpeta e ISO)
+.\New-OptimizedWindowsISO.ps1
 
 # Windows 10 con idioma portugués
-.\New-OptimizedWindowsISO.ps1 -DownloadISO -WindowsVersion 10 -Language pt-BR
+.\New-OptimizedWindowsISO.ps1 -SourceISO "C:\ISOs\Win10.iso" -Language pt-BR
 .NOTES
 Correcciones aplicadas (v1.2):
 - Corrección crítica en la ejecución de oscdimg: Se eliminó el uso de cmd.exe /c con strings concatenados.
@@ -65,9 +66,6 @@ param(
     [string]$SourceISO,
     [Parameter()]
     [string]$OutputDir = "$HOME\Desktop\WinISO_Optimizado",
-
-    [Parameter()]
-    [switch]$DownloadISO,
 
     [Parameter()]
     [string]$WindowsVersion = "",
@@ -109,10 +107,7 @@ param(
     [string]$Win10ScriptPath = "",
 
     [Parameter()]
-    [string]$Win11ScriptPath = "Win11-Debloat-v3-Adaptive.ps1",
-
-    [Parameter()]
-    [string]$WindowsEdition = ""
+    [string]$Win11ScriptPath = "Win11-Debloat-v3-Adaptive.ps1"
 )
 
 # Forzar TLS 1.2 para descargas HTTPS (compatible con PS5)
@@ -229,27 +224,6 @@ function Install-Dependencies {
         Write-OK "7-Zip ya instalado: $7zPath"
     }
 
-    # Fido (para descargar ISOs de Windows)
-    $fidoPath = Join-Path $env:TEMP "Fido.ps1"
-    if (-not (Test-Path $fidoPath)) {
-        Write-Host "    Descargando Fido (gestor de descarga de ISOs)..." -ForegroundColor Gray
-        try {
-            $fidoUrl = "https://raw.githubusercontent.com/pbatard/Fido/master/Fido.ps1"
-            Invoke-WebRequest -Uri $fidoUrl -OutFile $fidoPath -UseBasicParsing -ErrorAction Stop
-            if (Test-Path $fidoPath) {
-                Write-OK "Fido descargado: $fidoPath"
-            } else {
-                throw "Fido no se descargó"
-            }
-        } catch {
-            Write-Warn "No se pudo descargar Fido: $_"
-            Write-Warn "Puede descargarlo manualmente desde: https://github.com/pbatard/Fido"
-            $depsOk = $false
-        }
-    } else {
-        Write-OK "Fido ya disponible: $fidoPath"
-    }
-
     if ($depsOk) { Write-OK "Dependencias listas" } else { Write-Warn "Algunas dependencias no se instalaron" }
     return $depsOk
 }
@@ -343,68 +317,6 @@ function Detect-WindowsVersion {
     }
 }
 
-function Download-WindowsISO {
-    param([string]$Version)
-    $fidoPath = Join-Path $env:TEMP "Fido.ps1"
-    if (-not (Test-Path $fidoPath)) {
-        Write-ErrorMsg "Fido no está disponible. Use -AutoInstallDeps para descargarlo o descárguelo manualmente."
-        return $null
-    }
-
-    Write-Host "    Consultando Microsoft para la última ISO de Windows $Version..." -ForegroundColor Gray
-
-    try {
-        $winName = if ($Version -eq "10") { "Windows 10" } else { "Windows 11" }
-
-        $fidoLang = switch ($Language) {
-            "es-ES"  { "Spanish" }
-            "en-US"  { "English International" }
-            "pt-BR"  { "Portuguese (Brazil)" }
-            "fr-FR"  { "French" }
-            "de-DE"  { "German" }
-            "it-IT"  { "Italian" }
-            default  { "Spanish" }
-        }
-
-        Write-Host "    Versión: $winName | Idioma: $fidoLang" -ForegroundColor Cyan
-        Write-Host "    Descargando ISO (esto puede tomar varios minutos)..." -ForegroundColor Gray
-        Write-Host "    La ISO se guardará en: Desktop" -ForegroundColor Gray
-        Write-Host "`n    Se abrirá una ventana de PowerShell para Fido. Espere a que termine..." -ForegroundColor Yellow
-
-        # Fido llama a exit al terminar, lo que mata el script padre si se invoca directo.
-        # Lo ejecutamos en una ventana nueva de PowerShell y esperamos.
-        $fidoScript = @"
-Set-Location '$HOME\Desktop'
-& '$fidoPath' -Win '$winName' -Rel 'Latest' -Ed 'Pro/Home' -Lang '$fidoLang' -Arch 'x64'
-Write-Host '`nFido terminó. Presione Enter para cerrar...' -ForegroundColor Green
-Read-Host
-"@
-        $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($fidoScript))
-
-        Write-Host "    Iniciando Fido..." -ForegroundColor Gray
-        $proc = Start-Process -FilePath powershell.exe -ArgumentList @(
-            "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", $encodedCommand
-        ) -Wait -PassThru
-
-        if ($proc.ExitCode -ne 0) {
-            Write-Warn "Fido terminó con código: $($proc.ExitCode)"
-        }
-
-        # Buscar la ISO descargada en el escritorio
-        $foundIso = Get-ChildItem $HOME\Desktop -Filter "*.iso" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        if ($foundIso) {
-            Write-OK "ISO descargada: $($foundIso.FullName)"
-            return $foundIso.FullName
-        }
-
-        Write-Warn "Fido no descargó la ISO automáticamente. Puede necesitar interacción."
-        Write-Warn "Ejecute Fido manualmente: PowerShell.exe -File `"$fidoPath`""
-        return $null
-    } catch {
-        Write-ErrorMsg "Error descargando ISO: $_"
-        return $null
-    }
-}
 
 #------------------------------------------------------------------------------
 # VALIDACIONES INICIALES
@@ -423,51 +335,52 @@ if ($AutoInstallDeps) {
     }
 }
 
-# Descargar ISO si se solicitó
-if ($DownloadISO) {
-    if ($WindowsVersion -ne "10" -and $WindowsVersion -ne "11") {
-        Write-ErrorMsg "Debe especificar -WindowsVersion 10 o 11 al usar -DownloadISO"
-        exit 1
-    }
-    Write-Step "Descargando ISO de Windows $WindowsVersion..."
-    $downloadedIso = Download-WindowsISO -Version $WindowsVersion
-    if ($downloadedIso) {
-        $SourceISO = $downloadedIso
-    } else {
-        if (-not $SourceISO -or -not (Test-Path $SourceISO)) {
-            Write-ErrorMsg "No se pudo descargar la ISO y no se especificó una ISO existente."
-            exit 1
-        }
-        Write-Warn "Usando ISO proporcionada: $SourceISO"
-    }
-}
 
-# Validar ISO: si no hay -SourceISO ni -DownloadISO, preguntar interactivamente
+# Validar ISO: si no hay -SourceISO, preguntar interactivamente
 if (-not $SourceISO -or -not (Test-Path $SourceISO)) {
     Write-Host "`nNo se especificó una ISO de origen." -ForegroundColor Yellow
-    Write-Host "  [1] Seleccionar archivo ISO con diálogo de archivos" -ForegroundColor Cyan
-    Write-Host "  [2] Escribir la ruta manualmente" -ForegroundColor Cyan
+    Write-Host "  [1] Buscar archivos ISO en una carpeta" -ForegroundColor Cyan
+    Write-Host "  [2] Escribir la ruta completa del archivo ISO" -ForegroundColor Cyan
     Write-Host "  [0] Cancelar" -ForegroundColor Gray
     $choice = Read-Host "`nSeleccione una opción"
     switch ($choice) {
         "1" {
-            Add-Type -AssemblyName System.Windows.Forms
-            $dialog = New-Object System.Windows.Forms.OpenFileDialog
-            $dialog.Filter = "Archivos ISO (*.iso)|*.iso"
-            $dialog.Title = "Seleccione la ISO de Windows"
-            if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-                $SourceISO = $dialog.FileName
+            $defaultDir = "$HOME\Desktop"
+            $dirInput = Read-Host "`nRuta de la carpeta donde buscar ISOs (Enter = $defaultDir)"
+            if ([string]::IsNullOrWhiteSpace($dirInput)) { $dirInput = $defaultDir }
+            if (-not (Test-Path $dirInput -PathType Container)) {
+                Write-ErrorMsg "La carpeta '$dirInput' no existe."
+                exit 1
             }
-            break
+            $isoFiles = @(Get-ChildItem -Path $dirInput -Filter "*.iso" -File -ErrorAction SilentlyContinue)
+            if ($isoFiles.Count -eq 0) {
+                Write-ErrorMsg "No se encontraron archivos .iso en '$dirInput'."
+                exit 1
+            }
+            Write-Host "`nArchivos ISO encontrados en: $dirInput" -ForegroundColor Cyan
+            Write-Host ("─" * 60) -ForegroundColor Gray
+            for ($i = 0; $i -lt $isoFiles.Count; $i++) {
+                $sizeMB = [math]::Round($isoFiles[$i].Length / 1MB, 0)
+                Write-Host "  [$($i + 1)] $($isoFiles[$i].Name)  ($sizeMB MB)" -ForegroundColor White
+            }
+            Write-Host ("─" * 60) -ForegroundColor Gray
+            $pick = Read-Host "`nSeleccione el número de la ISO"
+            $pickNum = 0
+            if ([int]::TryParse($pick, [ref]$pickNum) -and $pickNum -ge 1 -and $pickNum -le $isoFiles.Count) {
+                $SourceISO = $isoFiles[$pickNum - 1].FullName
+            } else {
+                Write-ErrorMsg "Selección inválida."
+                exit 1
+            }
         }
         "2" {
             $manual = Read-Host "`nEscriba la ruta completa del archivo ISO"
             if ($manual -and (Test-Path $manual)) {
                 $SourceISO = $manual
             } else {
-                Write-Warn "Ruta inválida o archivo inexistente."
+                Write-ErrorMsg "Ruta inválida o archivo inexistente."
+                exit 1
             }
-            break
         }
         default {
             exit 0
@@ -547,46 +460,7 @@ New-Item -ItemType Directory -Path $OEMScriptsDir -Force | Out-Null
 $detectedVersion = Detect-WindowsVersion -IsoPath $SourceISO -ExtractedDir $ISOFilesDir
 Write-Host "    Versión detectada: Windows $detectedVersion" -ForegroundColor Cyan
 
-# Seleccionar la edición a instalar
-$editions = @{
-    "1" = @{ Name = "Pro"; Key = "VK7JG-NPHTM-C97JM-9MPGT-3V66T" }
-    "2" = @{ Name = "Home"; Key = "YTMG3-N6DKC-DKB77-7M9GH-8HVX7" }
-    "3" = @{ Name = "Education"; Key = "YNMGQ-8RYV3-4PGQ3-C8XTP-7CFBY" }
-    "4" = @{ Name = "Enterprise"; Key = "XGVPP-NMH47-7TTHJ-W3FW7-8HV2C" }
-    "5" = @{ Name = "Pro Education"; Key = "8PTT6-RNW4C-6V7J2-C2D3X-MHBPB" }
-    "6" = @{ Name = "Pro for Workstations"; Key = "NRG8B-VKK3Q-CXVCJ-9G2XF-VKQIG" }
-}
-
-$targetEditionName = "Windows $detectedVersion Pro"
-$targetEditionKey = "VK7JG-NPHTM-C97JM-9MPGT-3V66T"
-
-if (-not [string]::IsNullOrWhiteSpace($WindowsEdition)) {
-    # Buscar por nombre
-    $found = $editions.Values | Where-Object { $_.Name -like "*$WindowsEdition*" } | Select-Object -First 1
-    if ($found) {
-        $targetEditionName = "Windows $detectedVersion $($found.Name)"
-        $targetEditionKey = $found.Key
-        Write-OK "Usando edición preseleccionada: $targetEditionName"
-    } else {
-        Write-Warn "Edición especificada no reconocida, usando Pro por defecto."
-    }
-} else {
-    Write-Host "`nSeleccione la Edición de Windows que desea automatizar:" -ForegroundColor Cyan
-    Write-Host "  [1] Pro (Recomendado)" -ForegroundColor Cyan
-    Write-Host "  [2] Home" -ForegroundColor Cyan
-    Write-Host "  [3] Education" -ForegroundColor Cyan
-    Write-Host "  [4] Enterprise" -ForegroundColor Cyan
-    Write-Host "  [5] Pro Education" -ForegroundColor Cyan
-    Write-Host "  [6] Pro for Workstations" -ForegroundColor Cyan
-    Write-Host "  [Enter] Por defecto (Pro)" -ForegroundColor Gray
-    $choice = Read-Host "`nOpción"
-    
-    if ($editions.ContainsKey($choice)) {
-        $targetEditionName = "Windows $detectedVersion $($editions[$choice].Name)"
-        $targetEditionKey = $editions[$choice].Key
-    }
-}
-Write-Host "    Edición configurada: $targetEditionName" -ForegroundColor Cyan
+Write-OK "La edición de Windows y el disco se seleccionarán durante la instalación"
 
 
 # Seleccionar ruta del script optimizador para la versión detectada
@@ -744,86 +618,7 @@ if (-not $SkipAutoUnattend) {
           <Description>Allow upgrades with unsupported TPM/CPU</Description>
           <Path>reg add HKLM\SYSTEM\Setup\MoSetup /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>8</Order>
-          <Description>Switch to legacy setup for 24H2+ compatibility</Description>
-          <Path>reg add "HKLM\SYSTEM\Setup" /v CmdLine /t REG_SZ /d "X:\sources\setup.exe" /f</Path>
-        </RunSynchronousCommand>
       </RunSynchronous>
-      <DiskConfiguration>
-        <Disk wcm:action="add">
-          <CreatePartitions>
-            <CreatePartition wcm:action="add">
-              <Order>1</Order>
-              <Size>1024</Size>
-              <Type>Primary</Type>
-            </CreatePartition>
-            <CreatePartition wcm:action="add">
-              <Order>2</Order>
-              <Size>500</Size>
-              <Type>EFI</Type>
-            </CreatePartition>
-            <CreatePartition wcm:action="add">
-              <Order>3</Order>
-              <Size>128</Size>
-              <Type>MSR</Type>
-            </CreatePartition>
-            <CreatePartition wcm:action="add">
-              <Order>4</Order>
-              <Extend>true</Extend>
-              <Type>Primary</Type>
-            </CreatePartition>
-          </CreatePartitions>
-          <ModifyPartitions>
-            <ModifyPartition wcm:action="add">
-              <Format>NTFS</Format>
-              <Label>WinRE</Label>
-              <Order>1</Order>
-              <PartitionID>1</PartitionID>
-              <TypeID>de94bba4-06d1-4d40-a16a-bfd50179d6ac</TypeID>
-            </ModifyPartition>
-            <ModifyPartition wcm:action="add">
-              <Format>FAT32</Format>
-              <Label>System</Label>
-              <Order>2</Order>
-              <PartitionID>2</PartitionID>
-            </ModifyPartition>
-            <ModifyPartition wcm:action="add">
-              <Order>3</Order>
-              <PartitionID>3</PartitionID>
-            </ModifyPartition>
-            <ModifyPartition wcm:action="add">
-              <Format>NTFS</Format>
-              <Label>Windows</Label>
-              <Order>4</Order>
-              <PartitionID>4</PartitionID>
-            </ModifyPartition>
-          </ModifyPartitions>
-          <DiskID>0</DiskID>
-          <WillWipeDisk>true</WillWipeDisk>
-        </Disk>
-        <WillShowUI>OnError</WillShowUI>
-      </DiskConfiguration>
-      <ImageInstall>
-        <OSImage>
-          <InstallTo>
-            <DiskID>0</DiskID>
-            <PartitionID>4</PartitionID>
-          </InstallTo>
-          <InstallFrom>
-            <MetaData wcm:action="add">
-              <Key>/IMAGE/NAME</Key>
-              <Value>$targetEditionName</Value>
-            </MetaData>
-          </InstallFrom>
-        </OSImage>
-      </ImageInstall>
-      <UserData>
-        <ProductKey>
-          <Key>$targetEditionKey</Key>
-        </ProductKey>
-        <AcceptEula>true</AcceptEula>
-      </UserData>
       <EnableFirewall>true</EnableFirewall>
     </component>
   </settings>
@@ -932,7 +727,7 @@ if ($wimFile) {
         Write-Warn "Se omitirá la inyección offline. Las optimizaciones dependerán de la carpeta `$OEM$` y autounattend.xml."
     } else {
         $wimIndexes = & dism.exe /Get-WimInfo /WimFile:"$($wimFile.FullName)" 2>&1 | Out-String
-        $indexMatches = [regex]::Matches($wimIndexes, 'Index\s*:\s*(\d+)')
+        $indexMatches = [regex]::Matches($wimIndexes, '(?i)(?:Index|Índice)\s*:\s*(\d+)')
         $indexesToProcess = if ($indexMatches.Count -gt 0) { $indexMatches | ForEach-Object { $_.Groups[1].Value } } else { @("1") }
         Write-Host "    Índices detectados: $($indexesToProcess -join ', ')" -ForegroundColor Gray
 
@@ -1105,9 +900,10 @@ Write-Host @"
 Contenido inyectado:
 "@ -ForegroundColor White
 Write-Host "  ├── autounattend.xml" -ForegroundColor Gray
-Write-Host "  │   - Instalación desatendida" -ForegroundColor Gray
+Write-Host "  │   - Instalación semi-desatendida" -ForegroundColor Gray
 Write-Host "  │   - Usuario: $LocalUser" -ForegroundColor Gray
 Write-Host "  │   - Idioma:  $Language" -ForegroundColor Gray
+Write-Host "  │   - Edición/Disco: Selección manual durante instalación" -ForegroundColor Gray
 Write-Host "  │   - PostOobe: SetupComplete.cmd forzado" -ForegroundColor Gray
 Write-Host "  │"
 Write-Host "  ├── `$OEM`$$$\Setup\Scripts" -ForegroundColor Gray
@@ -1124,8 +920,9 @@ Write-Host @"
 Para usar:
 1. Grabe la ISO en un USB con Rufus (marque 'Windows To Go' si prefiere)
 2. Inicie desde el USB
-3. La instalación será automática
-4. Al llegar al escritorio, los scripts ya se habrán ejecutado
+3. Seleccione la edición de Windows y el disco de instalación
+4. El resto de la instalación será automática
+5. Al llegar al escritorio, los scripts ya se habrán ejecutado
 
 Nota: Si la instalación es en una máquina con licencia OEM,
 SetupComplete.cmd se ejecuta igual gracias al PostOobe reg key.
