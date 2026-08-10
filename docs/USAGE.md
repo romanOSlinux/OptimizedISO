@@ -3,6 +3,8 @@
 Este documento explica cómo utilizar el script `New-OptimizedWindowsISO.ps1` para generar una imagen de Windows 10 u 11 completamente desatendida, con los scripts de optimización y limpieza (Debloat) preintegrados.
 
 > **Advertencia Importante:** La ISO generada con este script está configurada como **Zero-Touch**. Esto significa que al bootear desde el USB, **formateará automáticamente el Disco 0** e instalará Windows sin hacer preguntas. Úsala solo en equipos donde desees una instalación limpia completa.
+>
+> 💡 **Compatibilidad:** Probado y ajustado según las especificaciones oficiales de Microsoft ADK y Microsoft Learn para **Windows 10 y Windows 11 (23H2 / 24H2 / 25H2)**.
 
 ---
 

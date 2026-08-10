@@ -530,22 +530,25 @@ foreach ($script in $scriptsToInject) {
 # 3. CREAR SetupComplete.cmd
 #------------------------------------------------------------------------------
 Write-Step "3/6 - Creando SetupComplete.cmd..."
-$setupCompleteContent = @'
+# Fix #6: Heredoc double-quoted para que $scriptName se expanda al valor real detectado.
+# Evita la sintaxis ^ dentro de -Command que no funciona en strings entre comillas en CMD.
+$setupCompleteContent = @"
 @echo off
 REM ===========================================================
-REM  SetupComplete.cmd — Generado por New-OptimizedWindowsISO
+REM  SetupComplete.cmd - Generado por New-OptimizedWindowsISO
 REM  Se ejecuta como SYSTEM al finalizar Windows Setup
 REM ===========================================================
-REM Ejecutar el script optimizador correspondiente a esta version
-PowerShell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
-"$scriptDir = [System.IO.Path]::Combine($env:WINDIR, 'Setup', 'Scripts'); ^
-$target = Get-ChildItem -Path $scriptDir -Filter '*.ps1' | Where-Object { $_.Name -like '*Optimizer.ps1' -or $_.Name -like '*Debloat*.ps1' -or $_.Name -like '*Adaptive*.ps1' } | Select-Object -First 1; ^
-if ($target) { ^
-& PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File $target.FullName -Unattended ^
->> (Join-Path $scriptDir 'PostInstall.log') 2>&1; ^
-}" 2>> "C:\Windows\Setup\Scripts\SetupComplete.log"
+SET SCRIPTS_DIR=%WINDIR%\Setup\Scripts
+SET LOG=%SCRIPTS_DIR%\SetupComplete.log
+echo [%DATE% %TIME%] Iniciando SetupComplete.cmd >> "%LOG%"
+IF EXIST "%SCRIPTS_DIR%\$scriptName" (
+    PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\$scriptName" -Unattended >> "%SCRIPTS_DIR%\PostInstall.log" 2>&1
+    echo [%DATE% %TIME%] Optimizador ejecutado. >> "%LOG%"
+) ELSE (
+    echo [%DATE% %TIME%] WARN: $scriptName no encontrado en %SCRIPTS_DIR% >> "%LOG%"
+)
 exit /b 0
-'@
+"@
 $setupCompleteContent | Out-File -FilePath (Join-Path $OEMScriptsDir "SetupComplete.cmd") -Encoding ASCII -Force
 Write-OK "SetupComplete.cmd creado"
 
@@ -558,11 +561,17 @@ if (-not $SkipAutoUnattend) {
     # La contraseña en autounattend.xml con PlainText=false requiere codificación especial:
     # Windows exige que se concatene el sufijo "Password" al texto plano ANTES de codificar en Base64 UTF-16LE.
     # Sin el sufijo, el OOBE rechaza la contraseña incluso si el Base64 es válido.
-    $encodedPasswordForAccount = ""  # Usado en <LocalAccount><Password>
-    $encodedPasswordForAutologon = "" # Usado en <AutoLogon><Password>
+    # Fix #2: PlainText debe ser 'true' cuando la contraseña es vacía (PlainText=false con valor
+    # vacío es XML inválido según Microsoft y causa crash/loop en OOBE).
+    $encodedPasswordForAccount   = ""     # Usado en <LocalAccount><Password>
+    $encodedPasswordForAutologon = ""     # Usado en <AutoLogon><Password>
+    $passwordPlainTextAccount    = "true" # 'true' = vacío; 'false' = Base64 codificado
+    $passwordPlainTextAutologon  = "true" # 'true' = vacío; 'false' = Base64 codificado
     if ($LocalPassword) {
-        $encodedPasswordForAccount  = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($LocalPassword + "Password"))
+        $encodedPasswordForAccount   = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($LocalPassword + "Password"))
         $encodedPasswordForAutologon = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($LocalPassword + "Password"))
+        $passwordPlainTextAccount    = "false"
+        $passwordPlainTextAutologon  = "false"
     }
 
     # Si no se especificó KeyboardOverride, usar el mismo valor que Language
@@ -570,7 +579,9 @@ if (-not $SkipAutoUnattend) {
 
     $autounattendContent = @"
 <?xml version="1.0" encoding="utf-8"?>
-<unattend xmlns="urn:schemas-microsoft-com:unattend">
+<unattend xmlns="urn:schemas-microsoft-com:unattend"
+          xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <settings pass="windowsPE">
     <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <SetupUILanguage>
@@ -630,18 +641,15 @@ if (-not $SkipAutoUnattend) {
           <Description>Bypass Microsoft Account (BypassNRO)</Description>
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE /v BypassNRO /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>2</Order>
-          <Description>Forzar SetupComplete.cmd (PostOobe)</Description>
-          <Path>reg add "HKLM\SYSTEM\Setup\FirstBoot\PostOobe" /v "00" /t REG_SZ /d "cmd /c C:\Windows\Setup\Scripts\SetupComplete.cmd &amp; exit /b 0" /f</Path>
-        </RunSynchronousCommand>
+        <!-- Fix #3: Eliminado reg FirstBoot\PostOobe (clave no documentada, ignorada en Win11 24H2+).
+             SetupComplete.cmd se ejecuta automaticamente si existe en %WINDIR%\Setup\Scripts\
+             No requiere ningun registro adicional. -->
       </RunSynchronous>
     </component>
     <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <ComputerName>*</ComputerName>
       <RegisteredOrganization>Optimized</RegisteredOrganization>
       <RegisteredOwner>User</RegisteredOwner>
-      <ShowWindowsLive>false</ShowWindowsLive>
       <TimeZone>$Timezone</TimeZone>
     </component>
     <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
@@ -656,7 +664,7 @@ if (-not $SkipAutoUnattend) {
       <AutoLogon>
         <Password>
           <Value>$encodedPasswordForAutologon</Value>
-          <PlainText>false</PlainText>
+          <PlainText>$passwordPlainTextAutologon</PlainText>
         </Password>
         <Enabled>true</Enabled>
         <LogonCount>$AutoLogonCount</LogonCount>
@@ -667,28 +675,24 @@ if (-not $SkipAutoUnattend) {
           <LocalAccount wcm:action="add">
             <Password>
               <Value>$encodedPasswordForAccount</Value>
-              <PlainText>false</PlainText>
+              <PlainText>$passwordPlainTextAccount</PlainText>
             </Password>
             <DisplayName>$LocalUser</DisplayName>
-            <Group>*S-1-5-32-544</Group>
+            <Group>Administrators</Group>
             <Name>$LocalUser</Name>
           </LocalAccount>
         </LocalAccounts>
       </UserAccounts>
       <OOBE>
         <HideEULAPage>true</HideEULAPage>
-        <HideLocalAccountScreen>false</HideLocalAccountScreen>
         <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
         <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
         <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
         <NetworkLocation>Work</NetworkLocation>
         <ProtectYourPC>3</ProtectYourPC>
-        <SkipMachineOOBE>true</SkipMachineOOBE>
-        <SkipUserOOBE>true</SkipUserOOBE>
       </OOBE>
       <RegisteredOrganization>Optimized</RegisteredOrganization>
       <RegisteredOwner>User</RegisteredOwner>
-      <ShowWindowsLive>false</ShowWindowsLive>
       <TimeZone>$Timezone</TimeZone>
     </component>
     <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
@@ -755,13 +759,10 @@ if ($wimFile) {
                 $setupCompleteContent | Out-File -FilePath $setupCmdDest -Encoding ASCII -Force
                 Write-OK "Inyectado en WIM índice ${wimIndex}: SetupComplete.cmd"
 
-                if (-not $SkipAutoUnattend -and (Test-Path $autounattendPath)) {
-                    $unattendDest = Join-Path $WimMountDir "Windows\Panther\Unattend\Unattend.xml"
-                    $unattendDir = Split-Path $unattendDest -Parent
-                    if (-not (Test-Path $unattendDir)) { New-Item -ItemType Directory -Path $unattendDir -Force | Out-Null }
-                    Copy-Item -Path $autounattendPath -Destination $unattendDest -Force
-                    Write-OK "Inyectado en WIM índice ${wimIndex}: Unattend.xml (Panther)"
-                }
+                # Fix #5: ELIMINADA la inyeccion de autounattend.xml en Windows\Panther\Unattend\ del WIM.
+                # Windows Setup busca autounattend.xml en la RAIZ de la ISO (ya esta alli).
+                # Inyectarlo dentro del WIM genera conflicto de fases: las directivas windowsPE
+                # (bypasses TPM, idioma) se procesan en el momento equivocado -> error de parsing -> crash.
 
                 Dismount-WindowsImage -Path $WimMountDir -Save -ErrorAction Stop
                 Write-OK "WIM índice $wimIndex desmontado con cambios guardados"
@@ -838,31 +839,37 @@ if ($oscdimg) {
         Write-Warn "Verifica que la ISO original de Windows no esté corrupta o sea una versión no estándar."
     }
 
+    $tempBat = $null
     try {
-        # Construcción CORRECTA del argumento de boot (sin espacios extra ni comillas mal ubicadas)
-        $bootArg = "-bootdata:2#p0,e,b`"$biosBootFile`"#pEF,e,b`"$uefiBootFile`""
+        # Fix #4: Start-Process -ArgumentList corrompe las comillas internas del argumento -bootdata
+        # de oscdimg (doble-escaping o wrapping incorrecto), lo que hace que los archivos de arranque
+        # no se encuentren y la ISO se genere sin soporte de boot funcional.
+        # Solucion: escribir el comando a un batch temporal y ejecutarlo via cmd.exe /c.
+        # Esto preserva exactamente el string que oscdimg espera sin manipulacion de PS.
+        $tempBat = Join-Path $env:TEMP "oscdimg_$(Get-Random).cmd"
+        $batLine  = "`"$oscdimg`" -m -o -u2 -udfver102 -l`"$isoLabel`""
+        $batLine += " -bootdata:2#p0,e,b`"$biosBootFile`"#pEF,e,b`"$uefiBootFile`""
+        $batLine += " `"$ISOFilesDir`" `"$outputISO`""
+        $batContent = "@echo off" + [System.Environment]::NewLine + $batLine
+        $batContent | Out-File -FilePath $tempBat -Encoding ASCII -Force
 
-        # Usar un array de argumentos es mucho más seguro que cmd.exe /c con rutas con espacios
-        $oscdimgArgs = @(
-            "-m", "-o", "-u2", "-udfver102", "-l$isoLabel",
-            $bootArg,
-            $ISOFilesDir,
-            $outputISO
-        )
+        Write-Host "    Ejecutando oscdimg (batch temporal)..." -ForegroundColor Gray
+        Write-Host "    CMD: $batLine" -ForegroundColor DarkGray
 
-        Write-Host "    Ejecutando comando..." -ForegroundColor Gray
-
-        $proc = Start-Process -FilePath $oscdimg -ArgumentList $oscdimgArgs -NoNewWindow -Wait -PassThru
+        $proc = Start-Process -FilePath "cmd.exe" -ArgumentList @("/c", $tempBat) -NoNewWindow -Wait -PassThru
 
         if ($proc.ExitCode -eq 0 -and (Test-Path $outputISO)) {
             $isoCreated = $true
             Write-OK "ISO creada exitosamente: $outputISO"
         } else {
             Write-Warn "oscdimg falló (exit code: $($proc.ExitCode))"
+            Write-Warn "CMD ejecutado: $batLine"
             Write-Warn "Revisa que tengas espacio en disco suficiente y permisos de escritura en: $OutputDir"
         }
     } catch {
         Write-Warn "Error ejecutando oscdimg: $_"
+    } finally {
+        if ($tempBat -and (Test-Path $tempBat)) { Remove-Item $tempBat -ErrorAction SilentlyContinue }
     }
 } else {
     Write-Warn "oscdimg.exe no pudo ser instalado automáticamente."

@@ -9,6 +9,19 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [2.4.0] — 2026-08-09
+
+### Corregido
+- **Parsing XML Crítico:** Agregados namespaces requeridos `xmlns:wcm` y `xmlns:xsi` al nodo raíz `<unattend>` en `autounattend.xml` para evitar crash del instalador de Windows.
+- **Manejo de Contraseña Válido:** `PlainText` asigna `"true"` cuando la contraseña es vacía, evitando errores de validación XML en OOBE.
+- **Bootdata de oscdimg Preservado:** Invocación de `oscdimg.exe` refactorizada mediante archivo batch `.cmd` temporal para evitar corrupción de comillas en `-bootdata` por parte de PowerShell.
+- **Eliminación de Claves Obsoletas:** Removida inyección de `FirstBoot\PostOobe` (no documentada e ignorada en Win11 24H2+). `SetupComplete.cmd` corre de forma nativa desde `%WINDIR%\Setup\Scripts\`.
+- **Limpieza de conflicto de Fases:** Eliminada la copia redundante de `autounattend.xml` dentro del WIM (`Windows\Panther\Unattend\`) que provocaba choques de fases en WinPE.
+- **Depreciaciones según Microsoft Learn:** Eliminadas las etiquetas desaconsejadas `<SkipMachineOOBE>`, `<SkipUserOOBE>` y `<ShowWindowsLive>` del XML.
+- **Heredoc de SetupComplete:** Cambio a sintaxis heredoc expandida `@"..."@` para resolver `$scriptName` correctamente en tiempo de generación.
+
+---
+
 ## [2.3.0] — 2026-08-09
 
 ### Añadido
