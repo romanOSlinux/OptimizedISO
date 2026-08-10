@@ -71,6 +71,7 @@ Preguntará dónde está tu ISO original y creará un usuario local llamado "Usu
 | `-Language` | Idioma de la instalación (Por defecto: "es-ES") | `-Language "en-US"` |
 | `-Timezone` | Zona horaria para el reloj de Windows | `-Timezone "SA Western Standard Time"` |
 | `-KeyboardOverride` | Layout de teclado si difiere del idioma (ej: teclado latinoamericano) | `-KeyboardOverride "latam"` |
+| `-TargetWimIndex` | Especifica qué índice(s) del `install.wim` modificar (`"1"`, `"2"`, `"1,2"`, `"all"`). Si no se especifica, muestra menú interactivo | `-TargetWimIndex "2"` |
 | `-SkipAutoUnattend` | **CUIDADO:** No genera el XML de instalación automática | `-SkipAutoUnattend` |
 | `-SkipISOCreation` | Solo extrae e inyecta, sin crear el archivo `.iso` final | `-SkipISOCreation` |
 

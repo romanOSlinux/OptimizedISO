@@ -11,6 +11,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [2.4.0] — 2026-08-09
 
+### Añadido
+- **Visualización de Ediciones WIM:** Mapeo de índices de `install.wim` a nombres de edición reales (ej: `[Índice 1] Windows 11 Home`, `[Índice 2] Windows 11 Pro`).
+- **Menú de Selección de Índice:** Menú interactivo que permite elegir si inyectar en todas las ediciones o solo en una edición específica para ahorrar tiempo.
+- **Parámetro `-TargetWimIndex`:** Permite especificar por CLI el índice a modificar (ej: `-TargetWimIndex "2"` o `-TargetWimIndex "all"`).
+
 ### Corregido
 - **Parsing XML Crítico:** Agregados namespaces requeridos `xmlns:wcm` y `xmlns:xsi` al nodo raíz `<unattend>` en `autounattend.xml` para evitar crash del instalador de Windows.
 - **Manejo de Contraseña Válido:** `PlainText` asigna `"true"` cuando la contraseña es vacía, evitando errores de validación XML en OOBE.

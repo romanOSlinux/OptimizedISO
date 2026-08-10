@@ -107,7 +107,10 @@ param(
     [string]$Win10ScriptPath = "",
 
     [Parameter()]
-    [string]$Win11ScriptPath = "Win11-Debloat-v3-Adaptive.ps1"
+    [string]$Win11ScriptPath = "Win11-Debloat-v3-Adaptive.ps1",
+
+    [Parameter()]
+    [string]$TargetWimIndex = ""
 )
 
 # Forzar TLS 1.2 para descargas HTTPS (compatible con PS5)
@@ -169,6 +172,46 @@ function Test-7ZipInstalled {
         "$env:LOCALAPPDATA\Programs\7-Zip\7z.exe"
     )
     return ($paths | Where-Object { Test-Path $_ } | Select-Object -First 1)
+}
+
+function Get-WimImageList {
+    param([string]$WimPath)
+    $list = @()
+    # Intento 1: Get-WindowsImage (cmdlet nativo de DISM en PowerShell)
+    try {
+        $wimObjs = Get-WindowsImage -ImagePath $WimPath -ErrorAction Stop
+        foreach ($img in $wimObjs) {
+            $list += [PSCustomObject]@{
+                Index = [string]$img.ImageIndex
+                Name  = [string]$img.ImageName
+            }
+        }
+        if ($list.Count -gt 0) { return $list }
+    } catch { }
+
+    # Intento 2: Parsing de dism.exe CLI (multilenguaje)
+    try {
+        $rawText = & dism.exe /Get-WimInfo /WimFile:"$WimPath" 2>&1 | Out-String
+        $blocks = $rawText -split '(?i)(?=(?:Index|Índice)\s*:)'
+        foreach ($block in $blocks) {
+            if ($block -match '(?i)(?:Index|Índice)\s*:\s*(\d+)') {
+                $idx = $Matches[1]
+                $name = "Desconocido"
+                if ($block -match '(?i)(?:Name|Nombre)\s*:\s*([^\r\n]+)') {
+                    $name = $Matches[1].Trim()
+                }
+                $list += [PSCustomObject]@{
+                    Index = $idx
+                    Name  = $name
+                }
+            }
+        }
+    } catch { }
+
+    if ($list.Count -eq 0) {
+        $list += [PSCustomObject]@{ Index = "1"; Name = "Índice 1" }
+    }
+    return $list
 }
 
 function Test-OSCDImgInstalled {
@@ -730,19 +773,56 @@ if ($wimFile) {
         Write-Warn "El archivo es install.esd. DISM no puede modificar archivos ESD comprimidos de forma sólida."
         Write-Warn "Se omitirá la inyección offline. Las optimizaciones dependerán de la carpeta `$OEM$` y autounattend.xml."
     } else {
-        $wimIndexes = & dism.exe /Get-WimInfo /WimFile:"$($wimFile.FullName)" 2>&1 | Out-String
-        $indexMatches = [regex]::Matches($wimIndexes, '(?i)(?:Index|Índice)\s*:\s*(\d+)')
-        $indexesToProcess = if ($indexMatches.Count -gt 0) { $indexMatches | ForEach-Object { $_.Groups[1].Value } } else { @("1") }
-        Write-Host "    Índices detectados: $($indexesToProcess -join ', ')" -ForegroundColor Gray
+        $allWimImages = Get-WimImageList -WimPath $wimFile.FullName
+        Write-Host "`n    Ediciones detectadas en install.wim:" -ForegroundColor Cyan
+        Write-Host "    " + ("─" * 55) -ForegroundColor Gray
+        foreach ($img in $allWimImages) {
+            Write-Host "    [Índice $($img.Index)] $($img.Name)" -ForegroundColor White
+        }
+        Write-Host "    " + ("─" * 55) -ForegroundColor Gray
+
+        $indexesToProcess = @()
+        if ($TargetWimIndex) {
+            if ($TargetWimIndex -eq "all" -or $TargetWimIndex -eq "*") {
+                $indexesToProcess = $allWimImages | ForEach-Object { $_.Index }
+                Write-Host "    Procesando TODAS las ediciones por parámetro (-TargetWimIndex all)" -ForegroundColor Gray
+            } else {
+                $indexesToProcess = $TargetWimIndex -split ',' | ForEach-Object { $_.Trim() }
+                Write-Host "    Procesando índice(s) especificado(s): $($indexesToProcess -join ', ')" -ForegroundColor Gray
+            }
+        } elseif ($allWimImages.Count -eq 1) {
+            $indexesToProcess = @($allWimImages[0].Index)
+            Write-Host "    Solo se detectó 1 edición ($($allWimImages[0].Name)). Procesando..." -ForegroundColor Gray
+        } else {
+            Write-Host "`n    Seleccione qué edición(es) desea modificar offline:" -ForegroundColor Yellow
+            Write-Host "    [A] Procesar TODAS las ediciones (tarda más tiempo)" -ForegroundColor Cyan
+            for ($i = 0; $i -lt $allWimImages.Count; $i++) {
+                Write-Host "    [$($i + 1)] Solo Índice $($allWimImages[$i].Index): $($allWimImages[$i].Name)" -ForegroundColor White
+            }
+            $choice = Read-Host "`n    Seleccione una opción (ENTER = TODAS)"
+            if ([string]::IsNullOrWhiteSpace($choice) -or $choice -match '(?i)^a$') {
+                $indexesToProcess = $allWimImages | ForEach-Object { $_.Index }
+            } else {
+                $pickNum = 0
+                if ([int]::TryParse($choice, [ref]$pickNum) -and $pickNum -ge 1 -and $pickNum -le $allWimImages.Count) {
+                    $indexesToProcess = @($allWimImages[$pickNum - 1].Index)
+                } else {
+                    Write-Warn "Opción no válida. Se procesarán TODAS las ediciones por defecto."
+                    $indexesToProcess = $allWimImages | ForEach-Object { $_.Index }
+                }
+            }
+        }
 
         foreach ($wimIndex in $indexesToProcess) {
-            Write-Host "    Procesando índice $wimIndex..." -ForegroundColor Gray
+            $currentImg = $allWimImages | Where-Object { $_.Index -eq $wimIndex } | Select-Object -First 1
+            $imgNameStr = if ($currentImg) { " ($($currentImg.Name))" } else { "" }
+            Write-Host "    Procesando índice $wimIndex$imgNameStr..." -ForegroundColor Gray
             try {
                 if (Test-Path $WimMountDir) { Remove-Item -Path $WimMountDir -Recurse -Force -ErrorAction SilentlyContinue }
                 New-Item -ItemType Directory -Path $WimMountDir -Force | Out-Null
 
                 Mount-WindowsImage -ImagePath $wimFile.FullName -Index $wimIndex -Path $WimMountDir -ErrorAction Stop
-                Write-OK "WIM índice $wimIndex montado"
+                Write-OK "WIM índice $wimIndex$imgNameStr montado"
 
                 $wimScriptsDir = Join-Path $WimMountDir "Windows\Setup\Scripts"
                 if (-not (Test-Path $wimScriptsDir)) {
@@ -759,13 +839,8 @@ if ($wimFile) {
                 $setupCompleteContent | Out-File -FilePath $setupCmdDest -Encoding ASCII -Force
                 Write-OK "Inyectado en WIM índice ${wimIndex}: SetupComplete.cmd"
 
-                # Fix #5: ELIMINADA la inyeccion de autounattend.xml en Windows\Panther\Unattend\ del WIM.
-                # Windows Setup busca autounattend.xml en la RAIZ de la ISO (ya esta alli).
-                # Inyectarlo dentro del WIM genera conflicto de fases: las directivas windowsPE
-                # (bypasses TPM, idioma) se procesan en el momento equivocado -> error de parsing -> crash.
-
                 Dismount-WindowsImage -Path $WimMountDir -Save -ErrorAction Stop
-                Write-OK "WIM índice $wimIndex desmontado con cambios guardados"
+                Write-OK "WIM índice $wimIndex$imgNameStr desmontado con cambios guardados"
                 $wimInjected = $true
 
                 if (Test-Path $WimMountDir) {
