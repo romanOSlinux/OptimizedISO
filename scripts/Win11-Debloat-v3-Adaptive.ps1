@@ -698,7 +698,18 @@ $prerequisites += [PSCustomObject]@{
 }
 
 # 7. .NET Framework 3.5
-$netfx3 = Get-WindowsOptionalFeature -Online -FeatureName NetFx3 -ErrorAction SilentlyContinue
+# [FIX-PS7] Get-WindowsOptionalFeature falla en PS7 con "Clase no registrada" (COMException).
+#   Fallback a DISM.exe si el cmdlet no funciona. Ref: GitHub PowerShell #17232
+$netfx3 = try {
+    Get-WindowsOptionalFeature -Online -FeatureName NetFx3 -ErrorAction Stop
+} catch {
+    $dismOut = & DISM.exe /Online /Get-FeatureInfo /FeatureName:NetFx3 2>&1
+    if ($dismOut -match 'State\s*:\s*Enabled|Estado\s*:\s*Habilitad') {
+        [PSCustomObject]@{ State = 'Enabled' }
+    } else {
+        [PSCustomObject]@{ State = 'Disabled' }
+    }
+}
 $netfx3Installed = ($netfx3 -and $netfx3.State -eq 'Enabled')
 $prerequisites += [PSCustomObject]@{
     Componente = '.NET Framework 3.5 (Feature)'
@@ -791,11 +802,18 @@ if ($missingPrereqs.Count -gt 0) {
                 }
             } elseif ($prereq.Componente -match '\.NET Framework 3\.5') {
                 # .NET 3.5: via DISM (no necesita winget)
+                # [FIX-PS7] Enable-WindowsOptionalFeature falla en PS7. Fallback a DISM.exe
                 try {
                     Enable-WindowsOptionalFeature -Online -FeatureName NetFx3 -All -NoRestart -ErrorAction Stop
                     Write-Host "    OK: .NET Framework 3.5 habilitado" -ForegroundColor Green
                 } catch {
-                    Write-Host "    ! .NET 3.5: $($_.Exception.Message)" -ForegroundColor Yellow
+                    Write-Host "    Cmdlet fallo (PS7?). Intentando via DISM.exe..." -ForegroundColor DarkGray
+                    $dismResult = & DISM.exe /Online /Enable-Feature /FeatureName:NetFx3 /All /NoRestart 2>&1
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "    OK: .NET Framework 3.5 habilitado (via DISM.exe)" -ForegroundColor Green
+                    } else {
+                        Write-Host "    ! .NET 3.5: DISM exit $LASTEXITCODE" -ForegroundColor Yellow
+                    }
                 }
             }
         }

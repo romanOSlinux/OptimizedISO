@@ -1,5 +1,17 @@
 # Registro de Actividad (MEMORY.md)
 
+## [2026-08-10T00:15:00-03:00] Bugfix PS7 COMException en DISM cmdlets + Plan de Implementación v2
+- **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`
+- **Hitos Logrados:**
+  - **FIX PS7 (línea 701):** `Get-WindowsOptionalFeature -Online` falla en PowerShell 7 con "Clase no registrada" (COMException -2147221164, GitHub #17232). Agregado fallback a `DISM.exe /Get-FeatureInfo` con detección bilingüe (EN/ES).
+  - **FIX PS7 (línea 795):** `Enable-WindowsOptionalFeature -Online` mismo bug. Agregado fallback a `DISM.exe /Enable-Feature`.
+  - **Diagnóstico:** El error reportado en Windows Home NO era limitación de edición, sino bug de PS7 con cmdlets DISM. El script ya tenía el fix en la sección de bloatware (línea 914) pero faltaba en health check y prerequisites.
+- **Plan de Implementación v2 Ejecutado:**
+  - **Cambio 1:** Se insertó el reemplazo de `ei.cfg` con `[Channel] Retail` en `New-OptimizedWindowsISO.ps1` (línea 495) para forzar que el instalador muestre la pantalla de selección de edición y sobreescribir claves OEM de la BIOS.
+  - **Cambio 2:** Se agregó el bloque de debloat offline vía DISM durante el montaje de la imagen WIM (línea 835), incluyendo un filtro de aplicaciones protegidas (ej. Store, Xbox, Recortes) y un menú interactivo. También se agregó una pregunta interactiva (línea 635) para bloquear la instalación de OneDrive mediante entradas en `autounattend.xml`.
+  - **Cambio 3:** Se reescribió `SetupComplete.cmd` (línea 595) para detectar internet con ping. Si no hay conexión, se programa una tarea mediante desencadenador de red y se genera un acceso directo en el Escritorio.
+
+
 ## [2026-08-09T22:12:00-03:00] Auditoría e Investigación Oficial en Microsoft Learn (Deprecaciones XML)
 - **Archivos Modificados:** `scripts/New-OptimizedWindowsISO.ps1`
 - **Hitos Logrados / Hallazgos Verificados:**

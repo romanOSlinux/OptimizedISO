@@ -493,6 +493,17 @@ if (-not ($setupExe -and $sourcesDir)) {
 }
 Write-OK "ISO de Windows válida verificada"
 
+# Forzar pantalla de selección de edición (override clave OEM BIOS/UEFI)
+# Sin esto, el instalador lee la clave OEM de la BIOS y auto-selecciona Home/SingleLanguage.
+# Reemplazar ei.cfg con [Channel] Retail indica al installer "medio retail" → muestra todas
+# las ediciones del install.wim y deja elegir al usuario.
+$eiCfgPath = Join-Path $sourcesDir.FullName "ei.cfg"
+@"
+[Channel]
+Retail
+"@ | Out-File -FilePath $eiCfgPath -Encoding ASCII -Force
+Write-OK "ei.cfg reemplazado → el instalador mostrará selección de edición"
+
 #------------------------------------------------------------------------------
 # 2. CREAR ESTRUCTURA $OEM$ y DETECTAR VERSIÓN
 #------------------------------------------------------------------------------
@@ -582,13 +593,49 @@ REM  SetupComplete.cmd - Generado por New-OptimizedWindowsISO
 REM  Se ejecuta como SYSTEM al finalizar Windows Setup
 REM ===========================================================
 SET SCRIPTS_DIR=%WINDIR%\Setup\Scripts
+SET SCRIPT_NAME=$scriptName
 SET LOG=%SCRIPTS_DIR%\SetupComplete.log
+SET PS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe
+
 echo [%DATE% %TIME%] Iniciando SetupComplete.cmd >> "%LOG%"
-IF EXIST "%SCRIPTS_DIR%\$scriptName" (
-    PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\$scriptName" -Unattended >> "%SCRIPTS_DIR%\PostInstall.log" 2>&1
+
+IF NOT EXIST "%SCRIPTS_DIR%\%SCRIPT_NAME%" (
+    echo [%DATE% %TIME%] WARN: %SCRIPT_NAME% no encontrado en %SCRIPTS_DIR% >> "%LOG%"
+    exit /b 0
+)
+
+REM --- Detectar internet ---
+ping -n 1 -w 3000 8.8.8.8 >nul 2>&1
+IF %ERRORLEVEL% EQU 0 (
+    echo [%DATE% %TIME%] Internet detectado. Ejecutando optimizador... >> "%LOG%"
+    %PS% -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\%SCRIPT_NAME%" -Unattended >> "%SCRIPTS_DIR%\PostInstall.log" 2>&1
     echo [%DATE% %TIME%] Optimizador ejecutado. >> "%LOG%"
 ) ELSE (
-    echo [%DATE% %TIME%] WARN: $scriptName no encontrado en %SCRIPTS_DIR% >> "%LOG%"
+    echo [%DATE% %TIME%] Sin internet. Creando fallbacks... >> "%LOG%"
+
+    REM --- Wrapper que ejecuta + limpia ---
+    (
+        echo @echo off
+        echo echo Ejecutando optimizador...
+        echo %PS% -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\%SCRIPT_NAME%"
+        echo echo Limpiando...
+        echo schtasks /Delete /TN "OptimizedISO-Optimizer" /F ^>nul 2^>^&1
+        echo del "%%PUBLIC%%\Desktop\Ejecutar Optimizador.lnk" ^>nul 2^>^&1
+        echo pause
+    ) > "%SCRIPTS_DIR%\RunOptimizer.cmd"
+
+    REM --- Tarea programada con trigger de red ---
+    schtasks /Create /TN "OptimizedISO-Optimizer" ^
+        /TR "\"%SCRIPTS_DIR%\RunOptimizer.cmd\"" ^
+        /SC ONEVENT /EC Microsoft-Windows-NetworkProfile/Operational ^
+        /MO "*[System[EventID=10000]]" ^
+        /RL HIGHEST /F >> "%LOG%" 2>&1
+
+    REM --- Acceso directo en Escritorio publico ---
+    %PS% -NoProfile -ExecutionPolicy Bypass -Command ^
+        "`$ws = New-Object -ComObject WScript.Shell; `$sc = `$ws.CreateShortcut('C:\Users\Public\Desktop\Ejecutar Optimizador.lnk'); `$sc.TargetPath = '%SCRIPTS_DIR%\RunOptimizer.cmd'; `$sc.Description = 'Ejecutar optimizador (requiere internet)'; `$sc.Save()"
+
+    echo [%DATE% %TIME%] Tarea y acceso directo creados. >> "%LOG%"
 )
 exit /b 0
 "@
@@ -619,6 +666,29 @@ if (-not $SkipAutoUnattend) {
 
     # Si no se especificó KeyboardOverride, usar el mismo valor que Language
     $finalKeyboard = if ($KeyboardOverride) { $KeyboardOverride } else { $Language }
+
+    # Preguntar sobre OneDrive
+    $blockOneDrive = "true"
+    $odChoice = Read-Host "`n¿Desea bloquear la instalación automática de OneDrive? [Y/N] (Default: Y)"
+    if ($odChoice -match "^[nN]") {
+        $blockOneDrive = "false"
+    }
+
+    $oneDriveXml = ""
+    if ($blockOneDrive -eq "true") {
+        $oneDriveXml = @"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <Description>Prevent OneDrive auto-install</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive /v DisableFileSyncNGSC /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>3</Order>
+          <Description>Remove OneDrive Setup from Run</Description>
+          <Path>reg delete HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v OneDriveSetup /f</Path>
+        </RunSynchronousCommand>
+"@
+    }
 
     $autounattendContent = @"
 <?xml version="1.0" encoding="utf-8"?>
@@ -684,6 +754,7 @@ if (-not $SkipAutoUnattend) {
           <Description>Bypass Microsoft Account (BypassNRO)</Description>
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE /v BypassNRO /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
+$oneDriveXml
         <!-- Fix #3: Eliminado reg FirstBoot\PostOobe (clave no documentada, ignorada en Win11 24H2+).
              SetupComplete.cmd se ejecuta automaticamente si existe en %WINDIR%\Setup\Scripts\
              No requiere ningun registro adicional. -->
@@ -823,6 +894,96 @@ if ($wimFile) {
 
                 Mount-WindowsImage -ImagePath $wimFile.FullName -Index $wimIndex -Path $WimMountDir -ErrorAction Stop
                 Write-OK "WIM índice $wimIndex$imgNameStr montado"
+
+                # ==============================================================
+                # DEBLOAT OFFLINE: Eliminar Appx provisionados del WIM montado
+                # ==============================================================
+                Write-Host "`n    ── Debloat Offline (DISM) ──" -ForegroundColor Cyan
+
+                # Paquetes PROTEGIDOS: nunca se ofrecen quitar.
+                # Quitar estos rompe Store, Gaming, impresión, codecs o herramientas esenciales.
+                $protectedPatterns = @(
+                    'Microsoft.WindowsStore'
+                    'Microsoft.StorePurchaseApp'
+                    'Microsoft.DesktopAppInstaller'
+                    'Microsoft.XboxIdentityProvider'
+                    'Microsoft.XboxGamingOverlay'
+                    'Microsoft.Xbox.TCUI'
+                    'Microsoft.VCLibs'
+                    'Microsoft.UI.Xaml'
+                    'Microsoft.WindowsNotepad'
+                    'Microsoft.WindowsTerminal'
+                    'Microsoft.ScreenSketch'
+                    'Microsoft.HEIFImageExtension'
+                    'Microsoft.HEVCVideoExtension'
+                    'Microsoft.WebMediaExtensions'
+                    'Microsoft.VP9VideoExtensions'
+                    'Microsoft.WebpImageExtension'
+                    'Microsoft.RawImageExtension'
+                )
+
+                try {
+                    $allProvPkgs = Get-AppxProvisionedPackage -Path $WimMountDir -ErrorAction Stop
+
+                    # Filtrar protegidos
+                    $removablePkgs = $allProvPkgs | Where-Object {
+                        $pkgName = $_.DisplayName
+                        $isProtected = $false
+                        foreach ($pattern in $protectedPatterns) {
+                            if ($pkgName -like "*$pattern*") { $isProtected = $true; break }
+                        }
+                        -not $isProtected
+                    }
+
+                    $protectedCount = $allProvPkgs.Count - $removablePkgs.Count
+                    Write-Host "    Paquetes provisionados: $($allProvPkgs.Count) total, $protectedCount protegidos, $($removablePkgs.Count) seleccionables" -ForegroundColor Gray
+
+                    if ($removablePkgs.Count -gt 0) {
+                        # Preparar lista con descripciones para Out-GridView
+                        $debloatList = $removablePkgs | ForEach-Object {
+                            [PSCustomObject]@{
+                                Name        = $_.DisplayName
+                                PackageName = $_.PackageName
+                                Version     = $_.Version
+                            }
+                        } | Sort-Object Name
+
+                        $selectedToRemove = $null
+                        if (-not $SkipAutoUnattend) {
+                            # Modo interactivo: mostrar Out-GridView
+                            Write-Host "    Abriendo ventana de selección de bloatware..." -ForegroundColor Yellow
+                            Write-Host "    (Selecciona las apps a ELIMINAR de la ISO. Las no seleccionadas se conservan.)" -ForegroundColor Gray
+                            $selectedToRemove = $debloatList | Out-GridView `
+                                -Title "DEBLOAT OFFLINE: Selecciona apps a eliminar de la ISO (Ctrl+Click para varias) — Cancelar = no quitar nada" `
+                                -PassThru
+                        } else {
+                            # Modo desatendido: quitar todo lo seleccionable
+                            $selectedToRemove = $debloatList
+                            Write-Host "    Modo desatendido: eliminando todo el bloatware no protegido..." -ForegroundColor Gray
+                        }
+
+                        if ($selectedToRemove) {
+                            Write-Host "    Eliminando $($selectedToRemove.Count) paquetes del WIM..." -ForegroundColor Cyan
+                            foreach ($pkg in $selectedToRemove) {
+                                try {
+                                    Remove-AppxProvisionedPackage -Path $WimMountDir -PackageName $pkg.PackageName -ErrorAction Stop | Out-Null
+                                    Write-Host "      - Eliminado: $($pkg.Name)" -ForegroundColor Green
+                                } catch {
+                                    Write-Host "      ! Error eliminando $($pkg.Name): $($_.Exception.Message)" -ForegroundColor Yellow
+                                }
+                            }
+                            Write-OK "Debloat offline completado: $($selectedToRemove.Count) paquetes eliminados"
+                        } else {
+                            Write-Host "    Sin selección. Conservando todos los paquetes." -ForegroundColor Gray
+                        }
+                    } else {
+                        Write-Host "    No hay paquetes removibles (todos son protegidos o la imagen está limpia)." -ForegroundColor Gray
+                    }
+                } catch {
+                    Write-Warn "No se pudo obtener la lista de paquetes provisionados: $($_.Exception.Message)"
+                    Write-Warn "El debloat offline será omitido. El bloatware se podrá quitar post-instalación."
+                }
+                # ==============================================================
 
                 $wimScriptsDir = Join-Path $WimMountDir "Windows\Setup\Scripts"
                 if (-not (Test-Path $wimScriptsDir)) {
