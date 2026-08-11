@@ -17,7 +17,7 @@ Al arrancar un PC desde la ISO generada por este proyecto, ocurre lo siguiente *
 4. Salta la solicitud de clave de producto y el EULA
 5. Salta la obligación de usar una cuenta Microsoft
 6. Crea tu usuario local y arranca directo al escritorio
-7. Ejecuta automáticamente `Win11-Debloat-v3-Adaptive.ps1` para limpiar y optimizar
+7. Prepara el sistema para ejecutar de forma opcional `Win11-Debloat-v3-Adaptive.ps1` tras finalizar la instalación.
 
 > ⚠️ **Advertencia:** La ISO generada es **Zero-Touch** — formatea el Disco 0 sin preguntar. Úsala solo en equipos donde quieras una instalación limpia completa.
 
