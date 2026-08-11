@@ -1,5 +1,19 @@
 # Registro de Actividad (MEMORY.md)
 
+## [2026-08-10T23:55:00-03:00] Integración de Optimizaciones DISM Offline (Basado en Datos)
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO.ps1`
+- **Hitos Logrados:**
+  - **Slipstreaming Automático:** Se agregó soporte para inyectar actualizaciones (`.msu`, `.cab`) de forma desatendida. El script busca la carpeta `Updates`; si hay parches, los instala usando `Add-WindowsPackage`.
+  - **ResetBase Condicional:** Se implementó `Repair-WindowsImage -StartComponentCleanup -ResetBase` para limpiar la imagen y ahorrar 1.5 - 3 GB de espacio. Solo se activa si se inyectaron actualizaciones exitosamente, ahorrando tiempo en ISOs limpias.
+  - **Eliminación de Capacidades (FODs):** Se incluyó un bloque `Remove-WindowsCapability` para purgar offline componentes irrelevantes (Hello Face, IE11, Math Recognizer) mejorando la seguridad y bajando servicios base.
+  - Se evaluó y descartó formalmente la opción `/Optimize-Image /Boot` por carecer de utilidad real en hardware moderno fuera de WIMBoot.
+
+## [2026-08-10T23:25:09-03:00] Bugfix: Quitar Win11-Debloat-v3-Adaptive de la inyección por defecto
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO.ps1`
+- **Hitos Logrados:**
+  - Se retiró `Win11-Debloat-v3-Adaptive.ps1` como valor por defecto en la generación de la ISO. Esto soluciona un problema crítico donde la inyección temprana de estas configuraciones causaba un bloqueo permanente en la fase de Setup/OOBE ("Espere un momento...").
+  - Ahora es opcional y se deja a discreción del usuario inyectarlo en la ISO (cuando se le pida) o ejecutarlo posteriormente tras finalizar la instalación.
+
 ## [2026-08-10T00:15:00-03:00] Bugfix PS7 COMException en DISM cmdlets + Plan de Implementación v2
 - **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`
 - **Hitos Logrados:**

@@ -107,7 +107,7 @@ param(
     [string]$Win10ScriptPath = "",
 
     [Parameter()]
-    [string]$Win11ScriptPath = "Win11-Debloat-v3-Adaptive.ps1",
+    [string]$Win11ScriptPath = "",
 
     [Parameter()]
     [string]$TargetWimIndex = ""
@@ -894,6 +894,60 @@ if ($wimFile) {
 
                 Mount-WindowsImage -ImagePath $wimFile.FullName -Index $wimIndex -Path $WimMountDir -ErrorAction Stop
                 Write-OK "WIM índice $wimIndex$imgNameStr montado"
+
+                # ==============================================================
+                # SLIPSTREAMING: Inyectar Actualizaciones (.msu / .cab)
+                # ==============================================================
+                $UpdatesInjected = $false
+                $UpdatesDir = Join-Path $ScriptsDir "Updates"
+                if (Test-Path $UpdatesDir) {
+                    $packages = Get-ChildItem -Path $UpdatesDir -Include *.msu, *.cab -Recurse
+                    if ($packages.Count -gt 0) {
+                        Write-Host "`n    ── Slipstreaming de Actualizaciones ──" -ForegroundColor Cyan
+                        Write-Host "    Inyectando $($packages.Count) actualizaciones desde carpeta Updates..." -ForegroundColor Gray
+                        try {
+                            Add-WindowsPackage -Path $WimMountDir -PackagePath $UpdatesDir -ErrorAction Stop
+                            Write-OK "Actualizaciones inyectadas correctamente."
+                            $UpdatesInjected = $true
+                        } catch {
+                            Write-Warn "Error inyectando actualizaciones: $($_.Exception.Message)"
+                        }
+                    }
+                }
+
+                # ==============================================================
+                # RESETBASE: Limpieza profunda de componentes (Condicional)
+                # ==============================================================
+                if ($UpdatesInjected) {
+                    Write-Host "`n    ── ResetBase (Limpieza de Componentes) ──" -ForegroundColor Cyan
+                    Write-Host "    Optimizando WIM (Esto puede tardar varios minutos)..." -ForegroundColor Gray
+                    try {
+                        Repair-WindowsImage -Path $WimMountDir -StartComponentCleanup -ResetBase -ErrorAction Stop
+                        Write-OK "Componentes limpiados y consolidados (ResetBase)."
+                    } catch {
+                        Write-Warn "Error ejecutando ResetBase: $($_.Exception.Message)"
+                    }
+                }
+
+                # ==============================================================
+                # FEATURES ON DEMAND (FOD): Eliminar capacidades basura
+                # ==============================================================
+                Write-Host "`n    ── Eliminar Capacidades (FODs) ──" -ForegroundColor Cyan
+                $fodsToRemove = @("Hello.Face*", "MathRecognizer*", "Browser.InternetExplorer*")
+                try {
+                    $installedFods = Get-WindowsCapability -Path $WimMountDir | Where-Object { $_.Name -match ($fodsToRemove -join '|') -and $_.State -eq 'Installed' }
+                    if ($installedFods) {
+                        foreach ($fod in $installedFods) {
+                            Write-Host "    Eliminando FOD: $($fod.Name)..." -ForegroundColor Gray
+                            Remove-WindowsCapability -Path $WimMountDir -Name $fod.Name -ErrorAction SilentlyContinue | Out-Null
+                        }
+                        Write-OK "Capacidades (FOD) basura eliminadas."
+                    } else {
+                        Write-Host "    No se detectaron FODs basura instalados." -ForegroundColor Gray
+                    }
+                } catch {
+                    Write-Warn "Error eliminando FODs: $($_.Exception.Message)"
+                }
 
                 # ==============================================================
                 # DEBLOAT OFFLINE: Eliminar Appx provisionados del WIM montado

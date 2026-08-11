@@ -7,6 +7,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+### Añadido
+- **Slipstreaming de Actualizaciones:** Integración automática de parches (`.msu`, `.cab`) al colocar archivos en la carpeta `Updates`.
+- **Limpieza de Componentes Inteligente:** Integración de `ResetBase` condicional (solo si se inyectaron actualizaciones) para ahorrar gigabytes de espacio.
+- **Debloat Offline de FODs:** Eliminación automática offline de características innecesarias (Hello Face, IE11, Math Recognizer) para mejorar rendimiento base y seguridad.
+
+### Corregido
+- **Cuelgue en OOBE (Espere un momento):** Se retiró el script de optimización de Windows 11 (`Win11-Debloat-v3-Adaptive.ps1`) como parámetro por defecto en la inyección de ISO para prevenir bloqueos durante el Setup final.
+
 ---
 
 ## [2.4.0] — 2026-08-09
