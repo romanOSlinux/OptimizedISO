@@ -98,6 +98,12 @@ param(
     [string]$Language = "es-ES",
 
     [Parameter()]
+    # Locale regional independiente del UILanguage (SystemLocale + UserLocale).
+    # Si no se especifica, hereda el valor de -Language.
+    # Ejemplos: es-AR, es-MX, es-CL, es-CO, es-PE, en-US, pt-BR
+    [string]$Locale = "",
+
+    [Parameter()]
     [string]$Timezone = "Romance Standard Time",
 
     [Parameter()]
@@ -110,7 +116,14 @@ param(
     [string]$Win11ScriptPath = "",
 
     [Parameter()]
-    [string]$TargetWimIndex = ""
+    [string]$TargetWimIndex = "",
+
+    [Parameter()]
+    [ValidateSet("None", "Fast", "Max")]
+    [string]$WimCompression = "Max",
+
+    [Parameter()]
+    [switch]$InjectVisualTweaks
 )
 
 # Forzar TLS 1.2 para descargas HTTPS (compatible con PS5)
@@ -122,6 +135,7 @@ param(
 $ScriptsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ExtractDir = Join-Path $env:TEMP "WinISO_Extract_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
 $WimMountDir = Join-Path $env:TEMP "WimMount_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+$ScratchDir = Join-Path $env:TEMP "WinISO_Scratch_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
 $ISOFilesDir = Join-Path $ExtractDir "ISO_Files"
 $OEMScriptsDir = Join-Path $ISOFilesDir '$OEM$$$\Setup\Scripts'
 
@@ -362,6 +376,450 @@ function Detect-WindowsVersion {
 
 
 #------------------------------------------------------------------------------
+# WIZARD INTERACTIVO: Funciones de menú con flechas (Opción A)
+# Fuente: learn.microsoft.com/dotnet/api/system.console.readkey
+#------------------------------------------------------------------------------
+function Invoke-SelectionMenu {
+    param(
+        [string]$Title,
+        [string[]]$Options,
+        [string[]]$Descriptions,
+        [int]$DefaultIndex = 0
+    )
+    $cursor   = $DefaultIndex
+    $winWidth = [Math]::Min([System.Console]::WindowWidth - 4, 72)
+    $border   = "═" * $winWidth
+
+    # Reservar espacio en pantalla (título + borde + opciones + borde + ayuda)
+    $linesNeeded = $Options.Count + 5
+    $startRow = [System.Console]::CursorTop
+    # Emitir líneas vacías para reservar espacio
+    for ($r = 0; $r -lt $linesNeeded; $r++) { Write-Host "" }
+    [System.Console]::CursorVisible = $false
+
+    while ($true) {
+        [System.Console]::SetCursorPosition(0, $startRow)
+
+        Write-Host "  ╔$border╗" -ForegroundColor DarkCyan
+        $titlePad = $Title.PadRight($winWidth)
+        Write-Host "  ║ $titlePad║" -ForegroundColor Cyan
+        Write-Host "  ╠$border╣" -ForegroundColor DarkCyan
+
+        for ($i = 0; $i -lt $Options.Count; $i++) {
+            $desc = if ($Descriptions -and $i -lt $Descriptions.Count) { "  " + $Descriptions[$i] } else { "" }
+            $line = ("  $($Options[$i])$desc").PadRight($winWidth)
+            if ($i -eq $cursor) {
+                Write-Host "  ║" -NoNewline -ForegroundColor DarkCyan
+                Write-Host " ▶ $line" -NoNewline -ForegroundColor Black -BackgroundColor Cyan
+                Write-Host "║" -ForegroundColor DarkCyan
+            } else {
+                $lineOut = "    $line"
+                Write-Host "  ║$lineOut║" -ForegroundColor DarkGray
+            }
+        }
+
+        Write-Host "  ╠$border╣" -ForegroundColor DarkCyan
+        $hint = "  ↑↓ Mover   ENTER Confirmar".PadRight($winWidth)
+        Write-Host "  ║ $hint║" -ForegroundColor DarkGray
+        Write-Host "  ╚$border╝" -ForegroundColor DarkCyan
+
+        $key = [System.Console]::ReadKey($true)
+        switch ($key.Key) {
+            'UpArrow'   { $cursor = ($cursor - 1 + $Options.Count) % $Options.Count }
+            'DownArrow' { $cursor = ($cursor + 1) % $Options.Count }
+            'Enter'     {
+                [System.Console]::CursorVisible = $true
+                return $cursor
+            }
+        }
+    }
+}
+
+function Invoke-WizardConfig {
+    # Solo se activa si alguno de los parámetros clave NO fue pasado explícitamente por CLI
+    $needsWizard = (-not $PSBoundParameters.ContainsKey('Language')) -or
+                   (-not $PSBoundParameters.ContainsKey('Locale'))   -or
+                   (-not $PSBoundParameters.ContainsKey('Timezone')) -or
+                   (-not $PSBoundParameters.ContainsKey('LocalUser')) -or
+                   (-not $PSBoundParameters.ContainsKey('LocalPassword'))
+
+    if (-not $needsWizard) {
+        Write-Host "`n  Configuración por parámetros CLI detectada. Omitiendo wizard interactivo." -ForegroundColor DarkGray
+        return
+    }
+
+    $winWidth = [Math]::Min([System.Console]::WindowWidth - 4, 72)
+    $border   = "═" * $winWidth
+
+    Write-Host ""
+    Write-Host "  ╔$border╗" -ForegroundColor Magenta
+    $h1 = "  ASISTENTE DE CONFIGURACIÓN".PadRight($winWidth)
+    Write-Host "  ║ $h1║" -ForegroundColor Magenta
+    $h2 = "  Configure idioma, zona horaria y cuenta de usuario.".PadRight($winWidth)
+    Write-Host "  ║ $h2║" -ForegroundColor DarkGray
+    Write-Host "  ╚$border╝" -ForegroundColor Magenta
+    Write-Host ""
+
+    # ── PASO 1: Idioma / Región ──────────────────────────────────────────
+    if (-not $PSBoundParameters.ContainsKey('Language')) {
+        Write-Host "  PASO 1/6 — Idioma de la interfaz del sistema (UILanguage)" -ForegroundColor Cyan
+        Write-Host "  Controla el idioma de los menús y pantallas de Windows." -ForegroundColor DarkGray
+        Write-Host "  Fuente: learn.microsoft.com/windows-hardware/manufacture/desktop/default-input-locales-for-windows-language-packs" -ForegroundColor DarkGray
+        Write-Host ""
+        
+        $langOptions = @('es-ES','en-US','pt-BR','fr-FR','de-DE','it-IT','nl-NL','ja-JP','zh-CN','ko-KR')
+        $langDescs   = @(
+            '[Español — menus del OS en español]  '
+            '[English — OS menus in English]      '
+            '[Português — menus em português]     '
+            '[Français — menus en français]       '
+            '[Deutsch — Menüs auf Deutsch]        '
+            '[Italiano — menu in italiano]        '
+            '[Nederlands — menu in het Nederlands]'
+            '[日本語 — OS メニューを日本語に]        '
+            '[中文 — OS 菜单为中文]                '
+            '[한국어 — OS 메뉴를 한국어로]          '
+        )
+        # Detectar default según idioma actual del sistema
+        $sysLang    = (Get-Culture).Name
+        $defLangIdx = [Array]::IndexOf($langOptions, $sysLang)
+        if ($defLangIdx -lt 0) { $defLangIdx = 0 }
+
+        $idx = Invoke-SelectionMenu -Title "PASO 1/6 — Idioma de la interfaz (UILanguage)" `
+                                    -Options $langOptions `
+                                    -Descriptions $langDescs `
+                                    -DefaultIndex $defLangIdx
+        $script:Language = $langOptions[$idx]
+        Write-Host ""
+        Write-Host "  ✔ Idioma UI: $($script:Language)" -ForegroundColor Green
+        Write-Host ""
+    }
+
+    # ── PASO 2: Región / Formato Local (SystemLocale + UserLocale) ────────
+    if (-not $PSBoundParameters.ContainsKey('Locale')) {
+        Write-Host "  PASO 2/6 — Región / Formato local (SystemLocale + UserLocale)" -ForegroundColor Cyan
+        Write-Host "  Controla fechas, moneda, separador decimal y formatos numéricos." -ForegroundColor DarkGray
+        Write-Host "  Independiente del idioma de la interfaz. Ej: UI=es-ES, Región=es-AR." -ForegroundColor DarkGray
+        Write-Host ""
+
+        # Todos los locales regionales soportados por Windows (válidos en SystemLocale/UserLocale)
+        $localeOptions = @(
+            # ── Español (21 países) ──────────────────────────────────────────
+            'es-AR'   # Argentina
+            'es-BO'   # Bolivia
+            'es-CL'   # Chile
+            'es-CO'   # Colombia
+            'es-CR'   # Costa Rica
+            'es-CU'   # Cuba
+            'es-DO'   # República Dominicana
+            'es-EC'   # Ecuador
+            'es-ES'   # España
+            'es-GT'   # Guatemala
+            'es-HN'   # Honduras
+            'es-MX'   # México
+            'es-NI'   # Nicaragua
+            'es-PA'   # Panamá
+            'es-PE'   # Perú
+            'es-PR'   # Puerto Rico
+            'es-PY'   # Paraguay
+            'es-SV'   # El Salvador
+            'es-US'   # Estados Unidos (español)
+            'es-UY'   # Uruguay
+            'es-VE'   # Venezuela
+            # ── Portugués ────────────────────────────────────────────────────
+            'pt-BR'   # Brasil
+            'pt-PT'   # Portugal
+            # ── Inglés ───────────────────────────────────────────────────────
+            'en-US'   # EE.UU.
+            'en-GB'   # Reino Unido
+            'en-AU'   # Australia
+            'en-CA'   # Canadá
+            # ── Otros ────────────────────────────────────────────────────────
+            'fr-FR'   # Francia
+            'fr-CA'   # Canadá (francés)
+            'de-DE'   # Alemania
+            'it-IT'   # Italia
+            'nl-NL'   # Países Bajos
+            'ja-JP'   # Japón
+            'zh-CN'   # China
+            'ko-KR'   # Corea del Sur
+        )
+        $localeDescs = @(
+            '[Argentina  — dd/mm/aaaa, $ peso, coma decimal]     '
+            '[Bolivia    — dd/mm/aaaa, Bs, coma decimal]         '
+            '[Chile      — dd/mm/aaaa, $ peso, coma decimal]     '
+            '[Colombia   — dd/mm/aaaa, $ COP, coma decimal]      '
+            '[Costa Rica — dd/mm/aaaa, ₡ colón, coma decimal]   '
+            '[Cuba       — dd/mm/aaaa, $ CUP, coma decimal]      '
+            '[Rep. Dom.  — dd/mm/aaaa, $ DOP, coma decimal]      '
+            '[Ecuador    — dd/mm/aaaa, $ USD, coma decimal]      '
+            '[España     — dd/mm/aaaa, €, coma decimal]          '
+            '[Guatemala  — dd/mm/aaaa, Q quetzal, coma decimal]  '
+            '[Honduras   — dd/mm/aaaa, L lempira, coma decimal]  '
+            '[México     — dd/mm/aaaa, $ MXN, punto decimal]     '
+            '[Nicaragua  — dd/mm/aaaa, C$ córdoba, coma decimal] '
+            '[Panamá     — dd/mm/aaaa, B/. balboa, coma decimal] '
+            '[Perú       — dd/mm/aaaa, S/ sol, coma decimal]     '
+            '[Puerto Rico— mm/dd/aaaa, $ USD, punto decimal]     '
+            '[Paraguay   — dd/mm/aaaa, ₲ guaraní, coma decimal]  '
+            '[El Salvador— dd/mm/aaaa, $ USD, punto decimal]     '
+            '[EE.UU. ES  — mm/dd/aaaa, $ USD, punto decimal]     '
+            '[Uruguay    — dd/mm/aaaa, $ UYU, coma decimal]      '
+            '[Venezuela  — dd/mm/aaaa, Bs., coma decimal]        '
+            '[Brasil     — dd/mm/aaaa, R$, coma decimal]         '
+            '[Portugal   — dd/mm/aaaa, €, coma decimal]          '
+            '[EE.UU.     — mm/dd/yyyy, $, punto decimal]         '
+            '[UK         — dd/mm/yyyy, £, punto decimal]         '
+            '[Australia  — dd/mm/yyyy, A$, punto decimal]        '
+            '[Canadá     — dd/mm/yyyy, C$, punto decimal]        '
+            '[Francia    — dd/mm/aaaa, €, coma decimal]          '
+            '[Canadá FR  — aaaa-mm-dd, $, espacio decimal]       '
+            '[Alemania   — dd.mm.aaaa, €, coma decimal]          '
+            '[Italia     — dd/mm/aaaa, €, coma decimal]          '
+            '[P. Bajos   — dd-mm-aaaa, €, coma decimal]          '
+            '[Japón      — aaaa/mm/dd, ¥, sin decimal]           '
+            '[China      — aaaa/m/d,   ¥, punto decimal]         '
+            '[Corea      — aaaa. m. d, ₩, punto decimal]         '
+        )
+        # Default: intentar coincidir con el Language elegido o con la cultura del sistema
+        $sysCulture = (Get-Culture).Name
+        $defLocIdx  = [Array]::IndexOf($localeOptions, $sysCulture)
+        if ($defLocIdx -lt 0) { $defLocIdx = [Array]::IndexOf($localeOptions, $script:Language) }
+        if ($defLocIdx -lt 0) { $defLocIdx = 0 }
+
+        $idx = Invoke-SelectionMenu -Title "PASO 2/6 — Región / Formato local" `
+                                    -Options $localeOptions `
+                                    -Descriptions $localeDescs `
+                                    -DefaultIndex $defLocIdx
+        $script:Locale = $localeOptions[$idx]
+        Write-Host ""
+        Write-Host "  ✔ Región: $($script:Locale)" -ForegroundColor Green
+        Write-Host ""
+    }
+
+    # ── PASO 3: Zona Horaria ─────────────────────────────────────────────
+    if (-not $PSBoundParameters.ContainsKey('Timezone')) {
+        Write-Host "  PASO 3/6 — Zona horaria" -ForegroundColor Cyan
+        Write-Host "  Valores válidos según: tzutil /l (Windows)" -ForegroundColor DarkGray
+        Write-Host ""
+
+        # Lista curada de timezones más comunes (strings exactos de tzutil /l)
+        $tzOptions = @(
+            'Romance Standard Time'
+            'SA Pacific Standard Time'
+            'Argentina Standard Time'
+            'Montevideo Standard Time'
+            'Chile Standard Time'
+            'Venezuela Standard Time'
+            'Central America Standard Time'
+            'Mexico Standard Time'
+            'Eastern Standard Time'
+            'Central Standard Time'
+            'Mountain Standard Time'
+            'Pacific Standard Time'
+            'UTC'
+            'GMT Standard Time'
+            'W. Europe Standard Time'
+            'Central Europe Standard Time'
+            'E. Europe Standard Time'
+            'Russian Standard Time'
+            'China Standard Time'
+            'Tokyo Standard Time'
+        )
+        $tzDescs = @(
+            '[UTC+1  Madrid, París, Bruselas]'
+            '[UTC-5  Bogotá, Lima, Quito]    '
+            '[UTC-3  Buenos Aires]           '
+            '[UTC-3  Montevideo]             '
+            '[UTC-4  Santiago]               '
+            '[UTC-4  Caracas]               '
+            '[UTC-6  Guatemala, Costa Rica]  '
+            '[UTC-6  Ciudad de México]       '
+            '[UTC-5  Nueva York, Miami]      '
+            '[UTC-6  Chicago, Dallas]        '
+            '[UTC-7  Denver, Phoenix]        '
+            '[UTC-8  Los Ángeles, Seattle]   '
+            '[UTC+0  Universal]              '
+            '[UTC+0  Londres, Dublin]        '
+            '[UTC+1  Berlín, Roma, Ámsterdam]'
+            '[UTC+1  Budapest, Varsovia]     '
+            '[UTC+2  Atenas, Helsinki]       '
+            '[UTC+3  Moscú]                  '
+            '[UTC+8  Beijing, Shanghai]      '
+            '[UTC+9  Tokio, Osaka]           '
+        )
+        # Intentar detectar timezone actual del sistema
+        $systz = try { (Get-TimeZone).Id } catch { '' }
+        $defTzIdx = [Array]::IndexOf($tzOptions, $systz)
+        if ($defTzIdx -lt 0) { $defTzIdx = 0 }
+
+        $idx = Invoke-SelectionMenu -Title "Selecciona la zona horaria" `
+                                    -Options $tzOptions `
+                                    -Descriptions $tzDescs `
+                                    -DefaultIndex $defTzIdx
+        $script:Timezone = $tzOptions[$idx]
+        Write-Host ""
+        Write-Host "  ✔ Zona horaria: $($script:Timezone)" -ForegroundColor Green
+        Write-Host ""
+    }
+
+    # ── PASO 4: Layout de teclado ────────────────────────────────────────
+    if (-not $PSBoundParameters.ContainsKey('KeyboardOverride')) {
+        Write-Host "  PASO 4/6 — Layout de teclado" -ForegroundColor Cyan
+        Write-Host "  Fuente: learn.microsoft.com/windows-hardware/manufacture/desktop/keyboard-identifiers-and-input-method-editors-for-windows" -ForegroundColor DarkGray
+        Write-Host ""
+
+        $kbOptions = @(
+            "(igual que idioma '$($script:Language)')"
+            'es-ES'
+            'es-419'
+            'en-US'
+            'pt-BR'
+            'fr-FR'
+            'de-DE'
+            'it-IT'
+        )
+        $kbDescs = @(
+            '[Recomendado — mismo que idioma elegido]'
+            '[Español España — QWERTY con Ñ]        '
+            '[Español Latinoamérica — QWERTY]       '
+            '[English US — QWERTY estándar]         '
+            '[Português Brasil — ABNT2]             '
+            '[Français — AZERTY]                    '
+            '[Deutsch — QWERTZ]                     '
+            '[Italiano — QWERTY con accenti]        '
+        )
+        $idx = Invoke-SelectionMenu -Title "Selecciona el layout de teclado" `
+                                    -Options $kbOptions `
+                                    -Descriptions $kbDescs `
+                                    -DefaultIndex 0
+        if ($idx -eq 0) {
+            $script:KeyboardOverride = ''   # vacío = igual que Language (comportamiento original)
+        } else {
+            $script:KeyboardOverride = $kbOptions[$idx]
+        }
+        Write-Host ""
+        $kbDisplay = if ($script:KeyboardOverride) { $script:KeyboardOverride } else { "$($script:Language) (igual que idioma)" }
+        Write-Host "  ✔ Teclado: $kbDisplay" -ForegroundColor Green
+        Write-Host ""
+    }
+
+    # ── PASO 5: Usuario y Contraseña (Opción B) ──────────────────────────
+    if ((-not $PSBoundParameters.ContainsKey('LocalUser')) -or (-not $PSBoundParameters.ContainsKey('LocalPassword'))) {
+        Write-Host "  PASO 5/6 — Cuenta de usuario local" -ForegroundColor Cyan
+        Write-Host "  Fuente: learn.microsoft.com/powershell/module/microsoft.powershell.utility/read-host" -ForegroundColor DarkGray
+        Write-Host ""
+
+        # Nombre de usuario
+        if (-not $PSBoundParameters.ContainsKey('LocalUser')) {
+            do {
+                $userInput = Read-Host "  Nombre de usuario (Enter = '$($script:LocalUser)')"
+                if ([string]::IsNullOrWhiteSpace($userInput)) {
+                    $userInput = $script:LocalUser   # mantener default
+                }
+                # Validar: sin caracteres inválidos para cuentas Windows
+                $validUser = $userInput -match '^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9 _\-\.]{1,20}$'
+                if (-not $validUser) {
+                    Write-Host "  ✘ Nombre inválido. Usa letras, números, espacio, guion o punto (máx. 20 chars)." -ForegroundColor Red
+                }
+            } while (-not $validUser)
+            $script:LocalUser = $userInput
+            Write-Host "  ✔ Usuario: $($script:LocalUser)" -ForegroundColor Green
+            Write-Host ""
+        }
+
+        # Contraseña con confirmación (Read-Host -AsSecureString)
+        if (-not $PSBoundParameters.ContainsKey('LocalPassword')) {
+            Write-Host "  Contraseña de la cuenta (Enter sin escribir nada = sin contraseña):" -ForegroundColor Gray
+            do {
+                $pass1 = Read-Host "  Contraseña " -AsSecureString
+                $pass2 = Read-Host "  Confirmar  " -AsSecureString
+
+                # Extraer plaintext en memoria para comparar (patrón oficial Microsoft)
+                $bstr1 = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass1)
+                $bstr2 = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass2)
+                $plain1 = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr1)
+                $plain2 = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr2)
+
+                $passMatch = ($plain1 -eq $plain2)
+                if (-not $passMatch) {
+                    Write-Host "  ✘ Las contraseñas no coinciden. Intenta de nuevo." -ForegroundColor Red
+                    Write-Host ""
+                }
+
+                # Limpiar punteros BSTR de memoria (zero-fill)
+                [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr1)
+                [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr2)
+            } while (-not $passMatch)
+
+            $script:LocalPassword = $plain1
+            Remove-Variable plain1, plain2 -ErrorAction SilentlyContinue
+
+            if ([string]::IsNullOrEmpty($script:LocalPassword)) {
+                Write-Host "  ✔ Sin contraseña (cuenta abierta)" -ForegroundColor Yellow
+            } else {
+                Write-Host "  ✔ Contraseña configurada correctamente." -ForegroundColor Green
+            }
+            Write-Host ""
+        }
+    }
+
+    # ── PASO 6: Tweaks Visuales Offline ──────────────────────────────────
+    if (-not $PSBoundParameters.ContainsKey('InjectVisualTweaks')) {
+        Write-Host "  PASO 6/6 — Tweaks Visuales Offline (Modo Oscuro, Taskbar)" -ForegroundColor Cyan
+        Write-Host "  Inyecta configuraciones visuales directamente en la ISO para nuevos usuarios." -ForegroundColor DarkGray
+        Write-Host ""
+        $uiOptions = @('Sí (Inyectar Modo Oscuro, Explorador optimizado, etc.)', 'No (Instalación estándar de Windows)')
+        $idx = Invoke-SelectionMenu -Title "Inyectar Tweaks Visuales" `
+                                    -Options $uiOptions `
+                                    -DefaultIndex 0
+        if ($idx -eq 0) {
+            $script:InjectVisualTweaks = $true
+        } else {
+            $script:InjectVisualTweaks = $false
+        }
+        Write-Host ""
+        $uiStatus = if ($script:InjectVisualTweaks) { 'Sí (Se inyectará en NTUSER.DAT)' } else { 'No' }
+        Write-Host "  ✔ Tweaks Visuales: $uiStatus" -ForegroundColor Green
+        Write-Host ""
+    }
+
+    # ── RESUMEN DE CONFIGURACIÓN ─────────────────────────────────────────
+    Write-Host "  ╔$border╗" -ForegroundColor DarkGreen
+    $rTitle = "  RESUMEN DE CONFIGURACIÓN".PadRight($winWidth)
+    Write-Host "  ║ $rTitle║" -ForegroundColor Green
+    Write-Host "  ╠$border╣" -ForegroundColor DarkGreen
+    $kbFinal  = if ($script:KeyboardOverride) { $script:KeyboardOverride } else { "$($script:Language) (igual que idioma)" }
+    $locFinal = if ($script:Locale) { $script:Locale } else { "$($script:Language) (igual que idioma UI)" }
+    $pwdMask  = if ([string]::IsNullOrEmpty($script:LocalPassword)) { '(sin contraseña)' } else { '●●●●●●●●' }
+    $uiTweakStatus = if ($script:InjectVisualTweaks) { 'Sí' } else { 'No' }
+    @(
+        "  Idioma UI (menus): $($script:Language)"
+        "  Región / Formato : $locFinal"
+        "  Zona Horaria     : $($script:Timezone)"
+        "  Teclado          : $kbFinal"
+        "  Usuario          : $($script:LocalUser)"
+        "  Contraseña       : $pwdMask"
+        "  Tweaks Visuales  : $uiTweakStatus"
+    ) | ForEach-Object {
+        $line = $_.PadRight($winWidth)
+        Write-Host "  ║ $line║" -ForegroundColor White
+    }
+    Write-Host "  ╚$border╝" -ForegroundColor DarkGreen
+    Write-Host ""
+
+    # Confirmación final antes de continuar
+    Write-Host "  ¿Continuar con esta configuración? " -ForegroundColor Yellow -NoNewline
+    Write-Host "[S/N]: " -ForegroundColor Gray -NoNewline
+    $confirm = Read-Host
+    if ($confirm -notmatch '^[Ss]?$') {
+        Write-Host "`n  Operación cancelada por el usuario." -ForegroundColor Red
+        exit 0
+    }
+    Write-Host ""
+}
+
+#------------------------------------------------------------------------------
 # VALIDACIONES INICIALES
 #------------------------------------------------------------------------------
 Write-Banner
@@ -439,6 +897,12 @@ if (-not $SourceISO -or -not (Test-Path $SourceISO)) {
 Write-Host "`nISO origen: $SourceISO" -ForegroundColor Yellow
 
 #------------------------------------------------------------------------------
+# WIZARD INTERACTIVO: Configuración regional y cuenta de usuario
+# Se activa solo si los parámetros no fueron pasados explícitamente por CLI
+#------------------------------------------------------------------------------
+Invoke-WizardConfig
+
+#------------------------------------------------------------------------------
 # 1. EXTRAER ISO
 #------------------------------------------------------------------------------
 Write-Step "1/6 - Extrayendo ISO..."
@@ -472,7 +936,7 @@ if (-not $extractedOK) {
 
         # Copiar todo excepto el archivo install.wim demasiado grande
         Write-Host "    Copiando archivos (esto puede tomar varios minutos)..." -ForegroundColor Gray
-        $robocopyExit = (robocopy $driveLetter $ISOFilesDir /E /COPY:DAT /R:2 /W:2 /NP /NFL /NDL 2>&1 | Select-Object -Last 1)
+        $robocopyExit = (robocopy $driveLetter $ISOFilesDir /E /COPY:DAT /R:2 /W:2 /NP /NFL /NDL /MT:32 2>&1 | Select-Object -Last 1)
         Write-OK "Archivos copiados desde unidad $driveLetter"
 
         Dismount-DiskImage -ImagePath $SourceISO -ErrorAction SilentlyContinue
@@ -666,12 +1130,37 @@ if (-not $SkipAutoUnattend) {
 
     # Si no se especificó KeyboardOverride, usar el mismo valor que Language
     $finalKeyboard = if ($KeyboardOverride) { $KeyboardOverride } else { $Language }
+    # Si no se especificó Locale, heredar el valor de Language
+    $finalLocale   = if ($Locale) { $Locale } else { $Language }
+
+    # Preguntar sobre el Perfil de Optimización
+    Write-Host "`n╔══════════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host "║ PERFILES DE OPTIMIZACIÓN (DEBLOAT)                                   ║" -ForegroundColor Cyan
+    Write-Host "╠══════════════════════════════════════════════════════════════════════╣" -ForegroundColor Cyan
+    Write-Host "║ [1] Conservador (Laptops/General): Mantiene Wi-Fi, Bluetooth y apps  ║" -ForegroundColor Cyan
+    Write-Host "║     básicas. Seguro para cualquier PC o Notebook.                    ║" -ForegroundColor Cyan
+    Write-Host "║ [2] Gaming (PCs/Laptops Gamer): Elimina bloatware agresivo y         ║" -ForegroundColor Cyan
+    Write-Host "║     telemetría. Mantiene Wi-Fi/Bluetooth activos.                    ║" -ForegroundColor Cyan
+    Write-Host "║ [3] Hardcore Barebones (¡SOLO TORRES LAN!): EXTREMO. Destruye Wi-Fi, ║" -ForegroundColor Cyan
+    Write-Host "║     Bluetooth, Impresión, Paint. Máximo rendimiento RAM/CPU.         ║" -ForegroundColor Cyan
+    Write-Host "╚══════════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    
+    $optProfile = "1"
+    if (-not $SkipAutoUnattend) {
+        $validProfiles = @("1", "2", "3")
+        $profileChoice = Read-Host "`nSeleccione el perfil de optimización [1/2/3] (Default: 1)"
+        if ($validProfiles -contains $profileChoice) {
+            $optProfile = $profileChoice
+        }
+    }
 
     # Preguntar sobre OneDrive
     $blockOneDrive = "true"
-    $odChoice = Read-Host "`n¿Desea bloquear la instalación automática de OneDrive? [Y/N] (Default: Y)"
-    if ($odChoice -match "^[nN]") {
-        $blockOneDrive = "false"
+    if (-not $SkipAutoUnattend) {
+        $odChoice = Read-Host "`n¿Desea bloquear la instalación automática de OneDrive? [Y/N] (Default: Y)"
+        if ($odChoice -match "^[nN]") {
+            $blockOneDrive = "false"
+        }
     }
 
     $oneDriveXml = ""
@@ -693,6 +1182,7 @@ if (-not $SkipAutoUnattend) {
     # Optimizaciones de sistema inyectadas en fase specialize
     # Los Order se calculan dinámicamente según si OneDrive fue bloqueado o no.
     $nextOrder = if ($blockOneDrive -eq "true") { 4 } else { 2 }
+    
     $optimizeXml = @"
         <RunSynchronousCommand wcm:action="add">
           <Order>$nextOrder</Order>
@@ -710,6 +1200,54 @@ if (-not $SkipAutoUnattend) {
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OOBE /v DisablePrivacyExperience /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
 "@
+    $nextOrder += 3
+
+    if ($optProfile -ge 2) {
+        $optimizeXml += @"
+`n        <RunSynchronousCommand wcm:action="add">
+          <Order>$nextOrder</Order>
+          <Description>Disable Telemetry (DiagTrack)</Description>
+          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\DiagTrack /v Start /t REG_DWORD /d 4 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 1)</Order>
+          <Description>Disable Search Indexer (WSearch)</Description>
+          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\WSearch /v Start /t REG_DWORD /d 4 /f</Path>
+        </RunSynchronousCommand>
+"@
+        $nextOrder += 2
+    }
+
+    if ($optProfile -eq 3) {
+        $optimizeXml += @"
+`n        <RunSynchronousCommand wcm:action="add">
+          <Order>$nextOrder</Order>
+          <Description>Disable Print Spooler</Description>
+          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\Spooler /v Start /t REG_DWORD /d 4 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 1)</Order>
+          <Description>Disable WLAN (WlanSvc)</Description>
+          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\WlanSvc /v Start /t REG_DWORD /d 4 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 2)</Order>
+          <Description>Disable Bluetooth (bthserv)</Description>
+          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\bthserv /v Start /t REG_DWORD /d 4 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 3)</Order>
+          <Description>Disable Sensor Service</Description>
+          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\SensorService /v Start /t REG_DWORD /d 4 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 4)</Order>
+          <Description>Disable Superfetch (SysMain)</Description>
+          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\SysMain /v Start /t REG_DWORD /d 4 /f</Path>
+        </RunSynchronousCommand>
+"@
+        $nextOrder += 5
+    }
 
     $autounattendContent = @"
 <?xml version="1.0" encoding="utf-8"?>
@@ -722,9 +1260,9 @@ if (-not $SkipAutoUnattend) {
         <UILanguage>$Language</UILanguage>
       </SetupUILanguage>
       <InputLocale>$finalKeyboard</InputLocale>
-      <SystemLocale>$Language</SystemLocale>
+      <SystemLocale>$finalLocale</SystemLocale>
       <UILanguage>$Language</UILanguage>
-      <UserLocale>$Language</UserLocale>
+      <UserLocale>$finalLocale</UserLocale>
     </component>
     <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <RunSynchronous>
@@ -790,9 +1328,9 @@ $optimizeXml
     </component>
     <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <InputLocale>$finalKeyboard</InputLocale>
-      <SystemLocale>$Language</SystemLocale>
+      <SystemLocale>$finalLocale</SystemLocale>
       <UILanguage>$Language</UILanguage>
-      <UserLocale>$Language</UserLocale>
+      <UserLocale>$finalLocale</UserLocale>
     </component>
   </settings>
   <settings pass="oobeSystem">
@@ -833,9 +1371,9 @@ $optimizeXml
     </component>
     <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <InputLocale>$finalKeyboard</InputLocale>
-      <SystemLocale>$Language</SystemLocale>
+      <SystemLocale>$finalLocale</SystemLocale>
       <UILanguage>$Language</UILanguage>
-      <UserLocale>$Language</UserLocale>
+      <UserLocale>$finalLocale</UserLocale>
     </component>
   </settings>
 </unattend>
@@ -906,6 +1444,15 @@ if ($wimFile) {
             }
         }
 
+        # Configurar ScratchDir para estabilidad y rendimiento de DISM
+        if (Test-Path $ScratchDir) { Remove-Item -Path $ScratchDir -Recurse -Force -ErrorAction SilentlyContinue }
+        New-Item -ItemType Directory -Path $ScratchDir -Force | Out-Null
+        $globalTemp = $env:TEMP
+        $globalTmp  = $env:TMP
+        $env:TEMP   = $ScratchDir
+        $env:TMP    = $ScratchDir
+
+        try {
         foreach ($wimIndex in $indexesToProcess) {
             $currentImg = $allWimImages | Where-Object { $_.Index -eq $wimIndex } | Select-Object -First 1
             $imgNameStr = if ($currentImg) { " ($($currentImg.Name))" } else { "" }
@@ -914,37 +1461,111 @@ if ($wimFile) {
                 if (Test-Path $WimMountDir) { Remove-Item -Path $WimMountDir -Recurse -Force -ErrorAction SilentlyContinue }
                 New-Item -ItemType Directory -Path $WimMountDir -Force | Out-Null
 
-                Mount-WindowsImage -ImagePath $wimFile.FullName -Index $wimIndex -Path $WimMountDir -ErrorAction Stop
+                Mount-WindowsImage -ImagePath $wimFile.FullName -Index $wimIndex -Path $WimMountDir -ScratchDirectory $ScratchDir -ErrorAction Stop
                 Write-OK "WIM índice $wimIndex$imgNameStr montado"
 
                 # ==============================================================
                 # SLIPSTREAMING: Inyectar Actualizaciones (.msu / .cab)
+                # Fuente: learn.microsoft.com/windows-hardware/manufacture/desktop/add-updates-to-a-windows-image
+                # Orden oficial Microsoft: SSU (Servicing Stack) → LCU (Cumulative)
                 # ==============================================================
-                $UpdatesInjected = $false
-                $UpdatesDir = Join-Path $ScriptsDir "Updates"
-                if (Test-Path $UpdatesDir) {
-                    $packages = Get-ChildItem -Path $UpdatesDir -Include *.msu, *.cab -Recurse
-                    if ($packages.Count -gt 0) {
-                        Write-Host "`n    ── Slipstreaming de Actualizaciones ──" -ForegroundColor Cyan
-                        Write-Host "    Inyectando $($packages.Count) actualizaciones desde carpeta Updates..." -ForegroundColor Gray
-                        try {
-                            Add-WindowsPackage -Path $WimMountDir -PackagePath $UpdatesDir -ErrorAction Stop
-                            Write-OK "Actualizaciones inyectadas correctamente."
-                            $UpdatesInjected = $true
-                        } catch {
-                            Write-Warn "Error inyectando actualizaciones: $($_.Exception.Message)"
+                $UpdatesDir   = Join-Path $ScriptsDir "Updates"
+                $successCount = 0
+                $failCount    = 0
+
+                Write-Host "`n    ══ Slipstreaming de Actualizaciones ══" -ForegroundColor Cyan
+
+                if (-not (Test-Path $UpdatesDir)) {
+                    # Estado A: carpeta Updates/ no existe
+                    Write-Host "    " -NoNewline
+                    Write-Host "⚠" -ForegroundColor Yellow -NoNewline
+                    Write-Host " Carpeta 'scripts/Updates/' no encontrada. Slipstreaming omitido." -ForegroundColor DarkYellow
+                    Write-Host "    " -NoNewline
+                    Write-Host "→" -ForegroundColor Gray -NoNewline
+                    Write-Host " Para inyectar parches, crea la carpeta y coloca archivos .msu/.cab en ella." -ForegroundColor Gray
+                } else {
+                    $packages = Get-ChildItem -Path $UpdatesDir -Include *.msu, *.cab -Recurse -ErrorAction SilentlyContinue
+
+                    if ($packages.Count -eq 0) {
+                        # Estado B: carpeta existe pero vacía
+                        Write-Host "    " -NoNewline
+                        Write-Host "⚠" -ForegroundColor Yellow -NoNewline
+                        Write-Host " Carpeta 'scripts/Updates/' encontrada pero sin archivos .msu/.cab. Slipstreaming omitido." -ForegroundColor DarkYellow
+                    } else {
+                        # Estado C: hay paquetes que inyectar
+                        # Ordenar SSU primero (Servicing Stack Updates), luego el resto por nombre
+                        # Los SSU deben aplicarse ANTES que los Cumulative Updates (KB4601382+)
+                        $orderedPackages = $packages | Sort-Object {
+                            if ($_.Name -match 'ssu|servicing.?stack') { 0 } else { 1 }
+                        }, Name
+
+                        $total = $orderedPackages.Count
+                        Write-Host "    Encontrados $total paquete(s). Orden: SSU → LCU (según Microsoft docs)." -ForegroundColor Gray
+
+                        # Detectar y avisar cuántos SSU hay
+                        $ssuCount = ($orderedPackages | Where-Object { $_.Name -match 'ssu|servicing.?stack' }).Count
+                        if ($ssuCount -gt 0) {
+                            Write-Host "    " -NoNewline
+                            Write-Host "★" -ForegroundColor Magenta -NoNewline
+                            Write-Host " $ssuCount SSU detectado(s) — se aplicarán primero." -ForegroundColor Gray
+                        }
+
+                        Write-Host ""
+                        $i = 0
+                        foreach ($pkg in $orderedPackages) {
+                            $i++
+                            $pct    = [int](($i / $total) * 100)
+                            $label  = if ($pkg.Name -match 'ssu|servicing.?stack') { "[SSU]" } else { "[PKG]" }
+                            $sizeMB = [math]::Round($pkg.Length / 1MB, 1)
+
+                            Write-Progress -Activity "Slipstreaming actualizaciones en WIM" `
+                                           -Status "$label [$i/$total] $($pkg.Name) ($sizeMB MB)" `
+                                           -PercentComplete $pct
+
+                            Write-Host "    [$i/$total] $label $($pkg.Name) ($sizeMB MB)..." -ForegroundColor Gray -NoNewline
+
+                            try {
+                                Add-WindowsPackage -Path $WimMountDir -PackagePath $pkg.FullName `
+                                                   -ScratchDirectory $ScratchDir -ErrorAction Stop | Out-Null
+                                $successCount++
+                                Write-Host " ✔" -ForegroundColor Green
+                            } catch {
+                                $failCount++
+                                Write-Host " ✘" -ForegroundColor Red
+                                Write-Host "      → Error: $($_.Exception.Message)" -ForegroundColor DarkRed
+                            }
+                        }
+
+                        # Cerrar la barra de progreso
+                        Write-Progress -Activity "Slipstreaming actualizaciones en WIM" -Completed
+
+                        # ── Resumen final de slipstreaming ──
+                        Write-Host ""
+                        Write-Host "    ── Slipstreaming: RESUMEN ──" -ForegroundColor Cyan
+                        if ($successCount -gt 0) {
+                            Write-Host "    " -NoNewline
+                            Write-Host "✔ Inyectados : $successCount paquete(s)" -ForegroundColor Green
+                        }
+                        if ($failCount -gt 0) {
+                            Write-Host "    " -NoNewline
+                            Write-Host "✘ Fallidos   : $failCount paquete(s)  ← revisar errores arriba" -ForegroundColor Red
+                        }
+                        if ($successCount -eq 0 -and $failCount -eq 0) {
+                            Write-Host "    ○ Sin paquetes procesados." -ForegroundColor Gray
                         }
                     }
                 }
 
                 # ==============================================================
                 # RESETBASE: Limpieza profunda de componentes (Condicional)
+                # Solo si al menos un paquete fue inyectado exitosamente
                 # ==============================================================
-                if ($UpdatesInjected) {
+                if ($successCount -gt 0) {
                     Write-Host "`n    ── ResetBase (Limpieza de Componentes) ──" -ForegroundColor Cyan
-                    Write-Host "    Optimizando WIM (Esto puede tardar varios minutos)..." -ForegroundColor Gray
+                    Write-Host "    Consolidando WIM tras slipstreaming (puede tardar varios minutos)..." -ForegroundColor Gray
                     try {
-                        Repair-WindowsImage -Path $WimMountDir -StartComponentCleanup -ResetBase -ErrorAction Stop
+                        Repair-WindowsImage -Path $WimMountDir -StartComponentCleanup -ResetBase `
+                                            -ScratchDirectory $ScratchDir -ErrorAction Stop
                         Write-OK "Componentes limpiados y consolidados (ResetBase)."
                     } catch {
                         Write-Warn "Error ejecutando ResetBase: $($_.Exception.Message)"
@@ -956,6 +1577,12 @@ if ($wimFile) {
                 # ==============================================================
                 Write-Host "`n    ── Eliminar Capacidades (FODs) ──" -ForegroundColor Cyan
                 $fodsToRemove = @("Hello.Face*", "MathRecognizer*", "Browser.InternetExplorer*")
+                if ($optProfile -ge 2) {
+                    $fodsToRemove += @("Media.WindowsMediaPlayer*", "App.Support.QuickAssist*", "App.StepsRecorder*")
+                }
+                if ($optProfile -eq 3) {
+                    $fodsToRemove += @("Print.Management.Console*", "WMI-SNMP-Provider*")
+                }
                 try {
                     $installedFods = Get-WindowsCapability -Path $WimMountDir | Where-Object { $_.Name -match ($fodsToRemove -join '|') -and $_.State -eq 'Installed' }
                     if ($installedFods) {
@@ -980,23 +1607,39 @@ if ($wimFile) {
                 # Quitar estos rompe Store, Gaming, impresión, codecs o herramientas esenciales.
                 $protectedPatterns = @(
                     'Microsoft.WindowsStore'
-                    'Microsoft.StorePurchaseApp'
                     'Microsoft.DesktopAppInstaller'
                     'Microsoft.XboxIdentityProvider'
-                    'Microsoft.XboxGamingOverlay'
                     'Microsoft.Xbox.TCUI'
                     'Microsoft.VCLibs'
                     'Microsoft.UI.Xaml'
-                    'Microsoft.WindowsNotepad'
-                    'Microsoft.WindowsTerminal'
-                    'Microsoft.ScreenSketch'
-                    'Microsoft.HEIFImageExtension'
-                    'Microsoft.HEVCVideoExtension'
-                    'Microsoft.WebMediaExtensions'
-                    'Microsoft.VP9VideoExtensions'
-                    'Microsoft.WebpImageExtension'
-                    'Microsoft.RawImageExtension'
                 )
+
+                if ($optProfile -le 2) {
+                    $protectedPatterns += @(
+                        'Microsoft.XboxGamingOverlay'
+                        'Microsoft.WindowsNotepad'
+                        'Microsoft.WindowsTerminal'
+                        'Microsoft.ScreenSketch'
+                        'Microsoft.HEIFImageExtension'
+                        'Microsoft.HEVCVideoExtension'
+                        'Microsoft.WebMediaExtensions'
+                        'Microsoft.VP9VideoExtensions'
+                        'Microsoft.WebpImageExtension'
+                        'Microsoft.RawImageExtension'
+                        'Microsoft.WindowsCalculator'
+                    )
+                }
+                
+                if ($optProfile -eq 1) {
+                    $protectedPatterns += @(
+                        'Microsoft.Paint'
+                        'Microsoft.WindowsSoundRecorder'
+                        'Microsoft.WindowsCamera'
+                        'Microsoft.WindowsAlarms'
+                        'Microsoft.WindowsPhotos'
+                        'Microsoft.StorePurchaseApp'
+                    )
+                }
 
                 try {
                     $allProvPkgs = Get-AppxProvisionedPackage -Path $WimMountDir -ErrorAction Stop
@@ -1025,17 +1668,17 @@ if ($wimFile) {
                         } | Sort-Object Name
 
                         $selectedToRemove = $null
-                        if (-not $SkipAutoUnattend) {
-                            # Modo interactivo: mostrar Out-GridView
+                        if (-not $SkipAutoUnattend -and $optProfile -eq "1") {
+                            # Modo interactivo: mostrar Out-GridView solo en Perfil 1
                             Write-Host "    Abriendo ventana de selección de bloatware..." -ForegroundColor Yellow
                             Write-Host "    (Selecciona las apps a ELIMINAR de la ISO. Las no seleccionadas se conservan.)" -ForegroundColor Gray
                             $selectedToRemove = $debloatList | Out-GridView `
                                 -Title "DEBLOAT OFFLINE: Selecciona apps a eliminar de la ISO (Ctrl+Click para varias) — Cancelar = no quitar nada" `
                                 -PassThru
                         } else {
-                            # Modo desatendido: quitar todo lo seleccionable
+                            # Modo desatendido o Perfil 2/3: quitar todo lo seleccionable
                             $selectedToRemove = $debloatList
-                            Write-Host "    Modo desatendido: eliminando todo el bloatware no protegido..." -ForegroundColor Gray
+                            Write-Host "    Modo automático (Perfil $optProfile): eliminando todo el bloatware no protegido..." -ForegroundColor Gray
                         }
 
                         if ($selectedToRemove) {
@@ -1061,6 +1704,54 @@ if ($wimFile) {
                 }
                 # ==============================================================
 
+                # ==============================================================
+                # OFFLINE REGISTRY TWEAKS (Visuals)
+                # ==============================================================
+                if ($script:InjectVisualTweaks) {
+                    Write-Host "`n    ── Tweaks Visuales Offline (Registro) ──" -ForegroundColor Cyan
+                    $ntuserPath = Join-Path $WimMountDir "Users\Default\NTUSER.DAT"
+                    if (Test-Path $ntuserPath) {
+                        try {
+                            Write-Host "    Cargando colmena NTUSER.DAT..." -ForegroundColor Gray
+                            # Usamos cmd /c para llamar a reg.exe de forma segura, evitando escapes raros
+                            $regLoad = Start-Process -FilePath "cmd.exe" -ArgumentList @("/c", "reg", "load", "HKLM\OfflineDefaultUser", "`"$ntuserPath`"") -Wait -PassThru -NoNewWindow
+                            if ($regLoad.ExitCode -eq 0) {
+                                Write-Host "    Aplicando Modo Oscuro, Explorador y Barra de Tareas..." -ForegroundColor Gray
+                                
+                                $commands = @(
+                                    # Modo Oscuro
+                                    "add `"HKLM\OfflineDefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize`" /v AppsUseLightTheme /t REG_DWORD /d 0 /f",
+                                    "add `"HKLM\OfflineDefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize`" /v SystemUsesLightTheme /t REG_DWORD /d 0 /f",
+                                    # Explorador (Este Equipo, mostrar extensiones)
+                                    "add `"HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`" /v LaunchTo /t REG_DWORD /d 1 /f",
+                                    "add `"HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`" /v HideFileExt /t REG_DWORD /d 0 /f",
+                                    # Barra de Tareas (Izquierda, sin TaskView, sin SearchBox)
+                                    "add `"HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`" /v TaskbarAl /t REG_DWORD /d 0 /f",
+                                    "add `"HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`" /v ShowTaskViewButton /t REG_DWORD /d 0 /f",
+                                    "add `"HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Search`" /v SearchboxTaskbarMode /t REG_DWORD /d 0 /f"
+                                )
+                                
+                                foreach ($cmd in $commands) {
+                                    $proc = Start-Process -FilePath "cmd.exe" -ArgumentList @("/c", "reg", $cmd) -Wait -PassThru -NoNewWindow
+                                    if ($proc.ExitCode -ne 0) {
+                                        Write-Warn "Error al aplicar clave de registro: reg $cmd"
+                                    }
+                                }
+                                
+                                Write-OK "Tweaks inyectados exitosamente en Default User."
+                            } else {
+                                Write-Warn "Fallo al cargar la colmena de registro (exit code: $($regLoad.ExitCode))."
+                            }
+                        } finally {
+                            Write-Host "    Descargando colmena NTUSER.DAT (Crítico)..." -ForegroundColor Gray
+                            Start-Process -FilePath "cmd.exe" -ArgumentList @("/c", "reg", "unload", "HKLM\OfflineDefaultUser") -Wait -NoNewWindow | Out-Null
+                        }
+                    } else {
+                        Write-Warn "No se encontró NTUSER.DAT en $ntuserPath."
+                    }
+                }
+                # ==============================================================
+
                 $wimScriptsDir = Join-Path $WimMountDir "Windows\Setup\Scripts"
                 if (-not (Test-Path $wimScriptsDir)) {
                     New-Item -ItemType Directory -Path $wimScriptsDir -Force | Out-Null
@@ -1076,7 +1767,7 @@ if ($wimFile) {
                 $setupCompleteContent | Out-File -FilePath $setupCmdDest -Encoding ASCII -Force
                 Write-OK "Inyectado en WIM índice ${wimIndex}: SetupComplete.cmd"
 
-                Dismount-WindowsImage -Path $WimMountDir -Save -ErrorAction Stop
+                Dismount-WindowsImage -Path $WimMountDir -Save -ScratchDirectory $ScratchDir -ErrorAction Stop
                 Write-OK "WIM índice $wimIndex$imgNameStr desmontado con cambios guardados"
                 $wimInjected = $true
 
@@ -1085,8 +1776,43 @@ if ($wimFile) {
                 }
             } catch {
                 Write-Warn "Error inyectando en WIM índice ${wimIndex}: $_"
-                try { Dismount-WindowsImage -Path $WimMountDir -Discard -ErrorAction SilentlyContinue } catch { }
+                try { Dismount-WindowsImage -Path $WimMountDir -Discard -ScratchDirectory $ScratchDir -ErrorAction SilentlyContinue } catch { }
             }
+        }
+
+        # Exportar WIM para consolidar y aplicar máxima compresión
+        if ($wimInjected -and $WimCompression -ne "None") {
+            Write-Host "`n    ── Consolidación Final del WIM ──" -ForegroundColor Cyan
+            Write-Host "    Exportando WIM para eliminar espacio muerto y aplicar compresión $WimCompression..." -ForegroundColor Gray
+            $destName = $wimFile.FullName + ".tmp"
+            
+            try {
+                # Exportar TODOS los índices del WIM (procesados y no procesados)
+                # para no perder ediciones que el usuario eligió no modificar.
+                foreach ($img in $allWimImages) {
+                    Write-Host "    Exportando índice $($img.Index): $($img.Name)..." -ForegroundColor Gray
+                    Export-WindowsImage -SourceImagePath $wimFile.FullName -SourceIndex ([int]$img.Index) -DestinationImagePath $destName -CompressionType $WimCompression -ScratchDirectory $ScratchDir -ErrorAction Stop | Out-Null
+                }
+
+                # Reemplazar WIM original por el consolidado
+                $originalSize = (Get-Item $wimFile.FullName).Length
+                Remove-Item -Path $wimFile.FullName -Force
+                Rename-Item -Path $destName -NewName $wimFile.Name
+                $finalWimPath = Join-Path (Split-Path $wimFile.FullName) $wimFile.Name
+                $newSize = (Get-Item $finalWimPath).Length
+                $savedMB = [math]::Round(($originalSize - $newSize) / 1MB, 1)
+                Write-OK "WIM consolidado exitosamente. Ahorro: ${savedMB} MB"
+            } catch {
+                Write-Warn "Error durante la exportación final: $($_.Exception.Message)"
+                if (Test-Path $destName) { Remove-Item $destName -Force -ErrorAction SilentlyContinue }
+            }
+        }
+
+        } finally {
+            # Restaurar variables temporales
+            $env:TEMP = $globalTemp
+            $env:TMP  = $globalTmp
+            if (Test-Path $ScratchDir) { Remove-Item -Path $ScratchDir -Recurse -Force -ErrorAction SilentlyContinue }
         }
     }
 } else {
@@ -1158,7 +1884,7 @@ if ($oscdimg) {
         # no se encuentren y la ISO se genere sin soporte de boot funcional.
         # Solucion: escribir el comando a un batch temporal y ejecutarlo via cmd.exe /c.
         # Esto preserva exactamente el string que oscdimg espera sin manipulacion de PS.
-        $tempBat = Join-Path $env:TEMP "oscdimg_$(Get-Random).cmd"
+        $tempBat = Join-Path ([System.IO.Path]::GetTempPath()) "oscdimg_$(Get-Random).cmd"
         $batLine  = "`"$oscdimg`" -m -o -u2 -udfver102 -l`"$isoLabel`""
         $batLine += " -bootdata:2#p0,e,b`"$biosBootFile`"#pEF,e,b`"$uefiBootFile`""
         $batLine += " `"$ISOFilesDir`" `"$outputISO`""
