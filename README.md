@@ -67,7 +67,7 @@ El script `New-OptimizedWindowsISO.ps1` ahora soporta optimizaciones avanzadas d
 .\scripts\New-OptimizedWindowsISO.ps1 -LocalUser "Roman" -LocalPassword "MiClave"
 ```
 
-**Consulta [docs/USAGE.md](docs/USAGE.md) para la guía completa y todos los parámetros.**
+**Consulta [docs/USAGE.md](docs/USAGE.md) para la guía de uso completo y [docs/AUTOUNATTEND.md](docs/AUTOUNATTEND.md) para entender cómo funciona la instalación desatendida.**
 
 ### Ejemplo completo
 
