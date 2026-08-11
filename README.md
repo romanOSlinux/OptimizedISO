@@ -39,6 +39,15 @@ Al arrancar un PC desde la ISO generada por este proyecto, ocurre lo siguiente *
 
 ---
 
+## Optimizaciones Offline (Novedad)
+
+El script `New-OptimizedWindowsISO.ps1` ahora soporta optimizaciones avanzadas de imagen (DISM) de forma desatendida:
+- **Slipstreaming de Actualizaciones:** Crea una carpeta llamada `Updates` junto al script y coloca allí tus parches de Windows (`.msu` o `.cab`). El script los integrará automáticamente en la ISO.
+- **ResetBase Inteligente:** Si inyectas actualizaciones, el script limpiará automáticamente los archivos obsoletos de la imagen (WinSxS) ahorrando gigabytes de espacio.
+- **Debloat Offline:** Purga automáticamente capacidades basura (FODs) como Hello Face y el motor de Internet Explorer desde la raíz del sistema operativo.
+
+---
+
 ## Requisitos
 
 - Windows 10/11 (para ejecutar los scripts)
