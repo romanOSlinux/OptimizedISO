@@ -1,5 +1,13 @@
 # Registro de Actividad (MEMORY.md)
 
+## [2026-08-11T00:33:00-03:00] Nuevas Optimizaciones en autounattend.xml (Fase specialize)
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO.ps1`, `docs/AUTOUNATTEND.md`
+- **Hitos Logrados:**
+  - **Hibernación OFF:** Se inyectó `powercfg -h off` en la fase `specialize` para eliminar `hiberfil.sys` desde el primer arranque (ahorro de 40-75% del tamaño de RAM en disco).
+  - **Alto Rendimiento:** Se forzó el plan de energía "High Performance" (`8c5e7fda-...`) para que la CPU no sea estrangulada durante la instalación y ejecución de scripts post-instalación.
+  - **Bloqueo Scoobe:** Se inyectó `DisablePrivacyExperience` para bloquear permanentemente las pantallas intrusivas de "Terminar de configurar tu dispositivo".
+  - Los `<Order>` de los comandos XML se calculan dinámicamente según si el usuario eligió o no bloquear OneDrive.
+
 ## [2026-08-11T00:22:00-03:00] Certificación y Auditoría de Código Generador de ISO
 - **Archivos Auditados:** `scripts/New-OptimizedWindowsISO.ps1`
 - **Hitos Logrados:**

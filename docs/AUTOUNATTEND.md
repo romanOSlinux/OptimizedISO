@@ -24,6 +24,9 @@ Ocurre después del formateo, durante el primer inicio real de Windows.
 
 - **Bypass de Cuenta Microsoft (NRO):** Inyecta la directiva `BypassNRO` en el registro. Esto le dice a Windows que no exija una conexión a internet ni fuerce la creación de una cuenta en la nube de Microsoft.
 - **Prevención de Bloatware (OneDrive):** Si el usuario lo eligió, borra los binarios de autoinstalación de OneDrive antes de que el sistema logre iniciar el asistente.
+- **Deshabilitación de Hibernación:** Ejecuta `powercfg -h off` para eliminar la creación del archivo `hiberfil.sys`, recuperando entre el 40% y 75% del tamaño de tu RAM en espacio de disco SSD/NVMe.
+- **Plan de Alto Rendimiento:** Fuerza el perfil de energía "High Performance" (`powercfg -setactive`) para que la CPU opere al 100% desde el primer arranque, acelerando la descompresión de archivos y la ejecución de los scripts post-instalación.
+- **Bloqueo de Privacy Experience (Scoobe):** Inyecta la política `DisablePrivacyExperience` para evitar permanentemente las pantallas a pantalla completa que Windows 11 muestra días después pidiéndote "Terminar de configurar tu dispositivo".
 - **Identidad de PC:** Asigna un nombre aleatorio al equipo (`*`), define la organización como "Optimized", y aplica tu Zona Horaria.
 
 ## 3. Fase `oobeSystem` (Experiencia de Primer Uso)

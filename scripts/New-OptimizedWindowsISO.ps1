@@ -690,6 +690,27 @@ if (-not $SkipAutoUnattend) {
 "@
     }
 
+    # Optimizaciones de sistema inyectadas en fase specialize
+    # Los Order se calculan dinámicamente según si OneDrive fue bloqueado o no.
+    $nextOrder = if ($blockOneDrive -eq "true") { 4 } else { 2 }
+    $optimizeXml = @"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$nextOrder</Order>
+          <Description>Disable Hibernation (recover SSD space)</Description>
+          <Path>powercfg -h off</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 1)</Order>
+          <Description>Set High Performance power plan</Description>
+          <Path>powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 2)</Order>
+          <Description>Block Privacy Experience screens (Scoobe)</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OOBE /v DisablePrivacyExperience /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@
+
     $autounattendContent = @"
 <?xml version="1.0" encoding="utf-8"?>
 <unattend xmlns="urn:schemas-microsoft-com:unattend"
@@ -755,6 +776,7 @@ if (-not $SkipAutoUnattend) {
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE /v BypassNRO /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
 $oneDriveXml
+$optimizeXml
         <!-- Fix #3: Eliminado reg FirstBoot\PostOobe (clave no documentada, ignorada en Win11 24H2+).
              SetupComplete.cmd se ejecuta automaticamente si existe en %WINDIR%\Setup\Scripts\
              No requiere ningun registro adicional. -->
