@@ -1133,8 +1133,9 @@ Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' 'AllowDeviceN
 Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' 'LimitDiagnosticLogCollection'   1
 Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' 'LimitDumpCollection'            1
 Set-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection' 'AllowTelemetry'  0
-# ADVERTENCIA: AllowTelemetry=0 solo funciona completamente en Enterprise/Education.
-# En Home/Pro baja al minimo ("Required") pero NO desactiva la telemetria por completo.
+# ADVERTENCIA OFICIAL: AllowTelemetry=0 solo funciona completamente en Enterprise/Education.
+# En Home/Pro, Microsoft ignora el valor 0 y lo fuerza a 1 (Required).
+# El bloqueo real de telemetría en Consumer Editions se logra desactivando el servicio 'DiagTrack' en la sección de servicios.
 if ($isHomeEdition) {
     Write-Host "  [!] Edicion Home detectada: AllowTelemetry=0 reduce a 'Required' pero NO desactiva." -ForegroundColor Yellow
     Write-Host "      Algunas GPOs de privacidad pueden ser ignoradas en esta edicion." -ForegroundColor Yellow
@@ -1624,9 +1625,10 @@ if ($applyGameBar) {
     Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled' 0
     Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR' 'AllowGameDVR' 0
 
-    # GameConfigStore -- conjunto completo verificado en Blur Busters y WinUtil (Chris Titus)
-    # Refs: https://forums.blurbusters.com/viewtopic.php?t=7959
-    #       https://winutil.christitus.com/dev/tweaks/essential-tweaks/gamedvr/
+    # GameConfigStore -- NOTA DE AUDITORIA (DX12 vs DX11):
+    # Estos tweaks de FSE (Exclusive Fullscreen) son efectivos unicamente en juegos DirectX 11 / DX9.
+    # En DirectX 12 y Vulkan, Microsoft implemento el 'Independent Flip Model' (MPO) que bypassa el compositor (DWM)
+    # sin necesidad de modo exclusivo. Se aplican por compatibilidad legacy, pero no tienen efecto en juegos AAA modernos.
     Set-Reg 'HKCU:\System\GameConfigStore' 'GameDVR_Enabled'                    0
     Set-Reg 'HKCU:\System\GameConfigStore' 'GameDVR_FSEBehaviorMode'             2   # 2 = prefer FSO desactivado
     Set-Reg 'HKCU:\System\GameConfigStore' 'GameDVR_HonorUserFSEBehaviorMode'    1   # 1 = respetar flag FSE del juego

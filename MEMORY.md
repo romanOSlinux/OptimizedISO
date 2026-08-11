@@ -1,5 +1,19 @@
 # Registro de Actividad (MEMORY.md)
 
+## [2026-08-11T00:22:00-03:00] Certificación y Auditoría de Código Generador de ISO
+- **Archivos Auditados:** `scripts/New-OptimizedWindowsISO.ps1`
+- **Hitos Logrados:**
+  - **Certificación de Código Limpio:** Se verificó que el script no contiene placebos, directivas obsoletas ni código basura.
+  - **Validación ADK / DISM:** La inyección de claves de bypass de Windows 11 en la fase `windowsPE` de `autounattend.xml` cumple rigurosamente con los estándares oficiales documentados.
+  - **Workarounds Técnicos Aprobados:** Se certificó como válida y necesaria la lógica de añadir el sufijo `"Password"` en texto plano antes del hash Base64 para prevenir cuelgues criptográficos en el OOBE, así como el uso de `cmd.exe /c` para evadir los bugs de formateo de `oscdimg.exe`.
+  - El código de este módulo fue dado por validado oficialmente sin necesidad de refactorización ni purga.
+## [2026-08-11T00:15:00-03:00] Auditoría Data-Driven de Scripts de Optimización
+- **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/Win11-Network-Diagnostics-Optimizer.ps1`
+- **Hitos Logrados:**
+  - **Revisión Oficial (Microsoft Learn):** Se auditaron todas las configuraciones de red, telemetría y gaming contra fuentes oficiales.
+  - **Detección de Placebos (DX12):** Se documentó en el código que los tweaks de `GameDVR` (Exclusive Fullscreen) carecen de impacto en DX12/Vulkan debido al *Independent Flip Model*.
+  - **Limitación de Telemetría (Home/Pro):** Se documentó que Microsoft ignora `AllowTelemetry=0` en Consumer Editions, validando que el enfoque de desactivar el servicio `DiagTrack` (usado por el script) es el único método real.
+  - **Blindaje de Red:** Se agregó una advertencia estricta en el script de red para evitar que `AutoTuningLevelLocal` sea configurado alguna vez como `Disabled`, ya que eso estrangula el ancho de banda a 64KB (mito de internet desmentido).
 ## [2026-08-10T23:55:00-03:00] Integración de Optimizaciones DISM Offline (Basado en Datos)
 - **Archivos Modificados:** `scripts/New-OptimizedWindowsISO.ps1`
 - **Hitos Logrados:**

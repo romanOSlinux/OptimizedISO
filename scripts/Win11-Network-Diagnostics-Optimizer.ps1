@@ -170,6 +170,10 @@ try {
         # --- OPTIMIZACIONES TCP STACK ---
         if ('AutoTuning' -in $selectedIds) {
             Write-Host "  - Ajustando TCP AutoTuning a 'Normal'..." -ForegroundColor Gray
+            # NOTA DE AUDITORIA (Microsoft Learn):
+            # Jamas permitir que esto se cambie a "Disabled". Los mitos de internet afirman que "Disabled" baja el ping,
+            # pero matematicamente paraliza la ventana de recepcion a 64KB estrangulando todo el ancho de banda moderno.
+            # "Normal" es el valor oficial soportado.
             try {
                 & netsh.exe int tcp set global autotuninglevel=normal | Out-Null
                 Set-NetTCPSetting -SettingName InternetCustom -AutoTuningLevelLocal Normal -ErrorAction SilentlyContinue | Out-Null
