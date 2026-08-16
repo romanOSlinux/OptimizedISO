@@ -96,10 +96,10 @@ Write-Host ">>> Componentes habilitados. Reinicia tu equipo para aplicar los cam
    git config --global user.email "tu-email@dominio.com"
    git config --global core.autocrlf true
    ```
-3. **Clonar el Proyecto:**
+3. **Clonar el Proyecto (Rama de Trabajo):**
    ```powershell
    cd C:\
-   git clone https://github.com/romanOSlinux/OptimizedISO.git C:\OptimizedISO
+   git clone -b feature/offline-ui-tweaks https://github.com/romanOSlinux/OptimizedISO.git C:\OptimizedISO
    ```
 4. **Abrir en Antigravity:**
    Inicia Antigravity y abre la carpeta `C:\OptimizedISO`.
