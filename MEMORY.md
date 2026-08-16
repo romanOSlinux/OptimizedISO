@@ -1,3 +1,12 @@
+## [2026-08-16T18:23:00-03:00] Aislamiento de Ramas: feature/offline-ui-tweaks (Trabajo) vs main (Público)
+
+- **Archivos Modificados:** `docs/WINDOWS_ENVIRONMENT_SETUP.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se configuró el flujo de trabajo manteniendo la separación estricta entre la rama de trabajo `feature/offline-ui-tweaks` y la rama pública `main`.
+  - Se actualizaron las instrucciones en `docs/WINDOWS_ENVIRONMENT_SETUP.md` para especificar la clonación explícita de la rama de trabajo (`git clone -b feature/offline-ui-tweaks ...`).
+  - Se confirmó y subió la actualización a GitHub (`origin/feature/offline-ui-tweaks`).
+- **Pendiente:** Listo para clonación y bootstrap en Windows 11.
+
 ## [2026-08-16T18:14:00-03:00] Publicación y Push Completo a Repositorio Remoto en GitHub
 
 - **Archivos Modificados:** `MEMORY.md`
