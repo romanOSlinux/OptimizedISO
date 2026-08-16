@@ -23,12 +23,149 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 
 $ErrorActionPreference = 'Continue'
 
-# Crear carpeta de logs
+# ============================================================
+# LOGGING ENGINE — Write-Log + Start-Transcript
+# Genera dos archivos con timestamp en C:\Logs\
+#   Network-Diagnostics_<ts>.log            ← log estructurado
+#   Network-Diagnostics_<ts>_transcript.log ← transcripción completa
+# ============================================================
 $logDir = "C:\Logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-$log = "$logDir\Network-Diagnostics.log"
 
-Start-Transcript -Path $log -Force | Out-Null
+$_logTs                = Get-Date -Format 'yyyyMMdd_HHmmss'
+$script:LogFile        = "$logDir\Network-Diagnostics_$_logTs.log"
+$script:TranscriptFile = "$logDir\Network-Diagnostics_${_logTs}_transcript.log"
+$script:AiSummaryFile  = "$logDir\Network-Diagnostics_${_logTs}_AI_SUMMARY.md"
+$script:DiagStart      = Get-Date
+$log                   = $script:LogFile
+
+$script:LogErrors  = [System.Collections.Generic.List[string]]::new()
+$script:LogWarns   = [System.Collections.Generic.List[string]]::new()
+
+function Write-LogEntry {
+    [CmdletBinding()]
+    param(
+        [ValidateSet("INIT","STEP","INFO","OK","WARN","ERROR","DEBUG")]
+        [string]$Level = "INFO",
+        [string]$Message
+    )
+    $ts   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $line = "[$ts] [$($Level.PadRight(5))] $Message"
+    if ($script:LogFile) {
+        Add-Content -Path $script:LogFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+    }
+    if ($Level -eq "ERROR") { $script:LogErrors.Add($line) }
+    if ($Level -eq "WARN")  { $script:LogWarns.Add($line) }
+}
+
+function Write-LogSummary {
+    $totalDuration = [math]::Round(((Get-Date) - $script:DiagStart).TotalSeconds, 1)
+
+    Write-LogEntry -Level "INIT" -Message ("=" * 64)
+    Write-LogEntry -Level "INIT" -Message "RESUMEN FINAL"
+    Write-LogEntry -Level "INFO" -Message "Duración total       : ${totalDuration}s"
+    Write-LogEntry -Level "INFO" -Message "Errores registrados : $($script:LogErrors.Count)"
+    Write-LogEntry -Level "INFO" -Message "Advertencias        : $($script:LogWarns.Count)"
+    if ($script:LogErrors.Count -gt 0) {
+        Write-LogEntry -Level "ERROR" -Message "--- ERRORES DETECTADOS ---"
+        foreach ($e in $script:LogErrors) { Write-LogEntry -Level "ERROR" -Message $e }
+    }
+    if ($script:LogWarns.Count -gt 0) {
+        Write-LogEntry -Level "WARN" -Message "--- ADVERTENCIAS ---"
+        foreach ($w in $script:LogWarns) { Write-LogEntry -Level "WARN" -Message $w }
+    }
+    if ($script:LogErrors.Count -eq 0) {
+        Write-LogEntry -Level "OK" -Message "Diagnóstico de red completado sin errores."
+    }
+    Write-LogEntry -Level "INIT" -Message "Log estructurado    : $script:LogFile"
+    Write-LogEntry -Level "INIT" -Message "AI Summary (MD)     : $script:AiSummaryFile"
+    Write-LogEntry -Level "INIT" -Message "Transcript          : $script:TranscriptFile"
+    Write-LogEntry -Level "INIT" -Message ("=" * 64)
+
+    # Detener transcript
+    try { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null } catch {}
+
+    # Generar Reporte Markdown optimizado para IA
+    try {
+        $overallStatus = if ($script:LogErrors.Count -eq 0) { "SUCCESS" } else { "FAILED" }
+        $statusBadge   = if ($overallStatus -eq "SUCCESS") { "SUCCESS ✅" } else { "FAILED ❌" }
+
+        $sb = [System.Text.StringBuilder]::new()
+        [void]$sb.AppendLine("# AI Diagnostic Report: Win11-Network-Diagnostics-Optimizer")
+        [void]$sb.AppendLine("- **Status:** $statusBadge")
+        [void]$sb.AppendLine("- **Timestamp:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')")
+        [void]$sb.AppendLine("- **Total Duration:** ${totalDuration}s")
+        [void]$sb.AppendLine("- **Host:** $env:COMPUTERNAME | **User:** $env:USERNAME | **PowerShell:** $($PSVersionTable.PSVersion)")
+        [void]$sb.AppendLine("")
+        [void]$sb.AppendLine("## Network Tweaks Summary")
+        [void]$sb.AppendLine("| ID | Tweak Name | Category | Status | Details |")
+        [void]$sb.AppendLine("|---|---|---|---|---|")
+
+        if ($executionSummary -and $executionSummary.Count -gt 0) {
+            foreach ($rec in $executionSummary) {
+                $stIcon = switch ($rec.Result) {
+                    "OK"      { "OK ✅" }
+                    "APPLIED" { "APPLIED ✅" }
+                    "WARN"    { "WARN ⚠️" }
+                    "ERROR"   { "ERROR ❌" }
+                    "SKIPPED" { "SKIPPED ⚪" }
+                    default   { "$($rec.Result)" }
+                }
+                [void]$sb.AppendLine("| $($rec.Id) | $($rec.Name) | $($rec.Category) | $stIcon | $($rec.Details) |")
+            }
+        }
+
+        if ($script:LogErrors.Count -gt 0) {
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("## ❌ Errors Detected")
+            [void]$sb.AppendLine('```text')
+            foreach ($err in $script:LogErrors) { [void]$sb.AppendLine($err) }
+            [void]$sb.AppendLine('```')
+        }
+
+        if ($script:LogWarns.Count -gt 0) {
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("## ⚠️ Warnings Logged")
+            [void]$sb.AppendLine('```text')
+            foreach ($warn in $script:LogWarns) { [void]$sb.AppendLine($warn) }
+            [void]$sb.AppendLine('```')
+        }
+
+        [void]$sb.AppendLine("")
+        [void]$sb.AppendLine("## Generated Artifacts")
+        [void]$sb.AppendLine("- **Structured Log:** ``$script:LogFile``")
+        [void]$sb.AppendLine("- **Raw Transcript:** ``$script:TranscriptFile``")
+        [void]$sb.AppendLine("- **AI Diagnostic:** ``$script:AiSummaryFile``")
+
+        if ($script:AiSummaryFile) {
+            [System.IO.File]::WriteAllText($script:AiSummaryFile, $sb.ToString(), [System.Text.Encoding]::UTF8)
+        }
+    } catch {}
+
+    Write-Host ""
+    Write-Host "  ┌─ Logs generados (Listos para análisis por IA) ────────────────" -ForegroundColor DarkCyan
+    if ($script:AiSummaryFile)  { Write-Host "  │  AI Diagnostic MD : $script:AiSummaryFile  <-- Pásame este archivo" -ForegroundColor Green }
+    Write-Host "  │  Log estructurado : $script:LogFile" -ForegroundColor Cyan
+    Write-Host "  │  Transcript       : $script:TranscriptFile" -ForegroundColor Cyan
+    if ($script:LogErrors.Count -gt 0) {
+        Write-Host "  │" -ForegroundColor DarkCyan
+        Write-Host "  │  [$($script:LogErrors.Count) ERROR(S) detectados — revisa el reporte]" -ForegroundColor Red
+    } else {
+        Write-Host "  │  Sin errores detectados." -ForegroundColor Green
+    }
+    Write-Host "  └───────────────────────────────────────────────────────────────" -ForegroundColor DarkCyan
+}
+
+try {
+    Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null
+} catch {
+    Write-Host "  [LOG] Start-Transcript no disponible: $($_.Exception.Message)" -ForegroundColor DarkGray
+}
+
+Write-LogEntry -Level "INIT" -Message ("=" * 64)
+Write-LogEntry -Level "INIT" -Message "Win11-Network-Diagnostics-Optimizer Log"
+Write-LogEntry -Level "INIT" -Message "PowerShell $($PSVersionTable.PSVersion) | Host: $env:COMPUTERNAME | User: $env:USERNAME"
+Write-LogEntry -Level "INIT" -Message ("=" * 64)
 
 # Lista global para el reporte final
 $executionSummary = [System.Collections.Generic.List[PSCustomObject]]::new()
@@ -454,5 +591,6 @@ try {
     Write-Host "==== Proceso de red finalizado con exito. Log guardado en: $log ====" -ForegroundColor Cyan
 
 } finally {
-    Stop-Transcript | Out-Null
+    Write-LogSummary
+    try { Stop-Transcript | Out-Null } catch {}
 }

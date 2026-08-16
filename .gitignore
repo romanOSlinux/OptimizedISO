@@ -1,0 +1,20 @@
+# Archivos de Imagen y Virtualización
+*.iso
+*.wim
+*.esd
+*.vhd
+*.vhdx
+
+# Directorios de Trabajo Temporales de DISM y Extracción
+WinISO_Extract_*
+WimMount_*
+WinISO_Scratch_*
+
+# Logs de compilación locales (se mantienen los reportes .md)
+Log/*.log
+Log/*_transcript.log
+*.tmp
+
+# VS Code / IDE settings locales
+.vscode/
+.idea/

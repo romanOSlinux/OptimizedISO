@@ -63,19 +63,31 @@ param(
 )
 
 # ============================================================
+# FIX-PS51-1: Forzar TLS 1.2 y 1.3 de forma GLOBAL al inicio.
+# PS 5.1 arranca con SSL3/TLS1.0 por defecto. GitHub, Microsoft CDN
+# y PSGallery rechazan esas versiones con "Could not create SSL/TLS secure channel".
+# Usamos valores numericos (3072 = Tls12, 12288 = Tls13) para evitar
+# errores en builds donde la enum no incluye Tls13.
+# ============================================================
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor 3072 -bor 12288
+} catch {
+    [Net.ServicePointManager]::SecurityProtocol = 3072  # Tls12 como minimo seguro
+}
+
+# ============================================================
 # Comprobar privilegios de Administrador y auto-elevar
 # ============================================================
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Warning "Este script debe ejecutarse como Administrador. Reiniciando con privilegios elevados..."
-    # FIX PS5.1: usar ruta absoluta de powershell.exe nativo de Windows.
-    # "Start-Process PowerShell" puede resolver a pwsh.exe (PS7) si esta
-    # instalado y aparece primero en PATH -- lo que rompe el script.
-    # $env:SystemRoot es siempre C:\Windows independientemente del usuario.
     $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
     $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
-    $argList = "-NoProfile -ExecutionPolicy Bypass -File `"$myScript`""
-    if ($Unattended) { $argList += " -Unattended" }
-    Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
+    # FIX-PS51-2: Pasar argumentos como ARRAY en lugar de string plano.
+    # En PS 5.1, un string con comillas anidadas en -ArgumentList provoca
+    # que powershell.exe no encuentre el archivo si la ruta tiene espacios.
+    $argArray = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
+    if ($Unattended) { $argArray += '-Unattended' }
+    Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs
     Exit
 }
 
@@ -85,12 +97,150 @@ $ErrorActionPreference = 'Continue'
 $adv    = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 $expPol = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
 
-# Crear carpeta de logs si no existe
+# ============================================================
+# LOGGING ENGINE — Write-Log + Start-Transcript
+# Genera dos archivos con timestamp en C:\Logs\
+#   Setup-Windows_<ts>.log            ← log estructurado con niveles
+#   Setup-Windows_<ts>_transcript.log ← transcripción completa de consola
+# ============================================================
 $logDir = "C:\Logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-$log = "$logDir\Setup-Windows.log"
 
-Start-Transcript -Path $log -Force | Out-Null
+$_logTs                = Get-Date -Format 'yyyyMMdd_HHmmss'
+$script:LogFile        = "$logDir\Setup-Windows_$_logTs.log"
+$script:TranscriptFile = "$logDir\Setup-Windows_${_logTs}_transcript.log"
+$script:AiSummaryFile  = "$logDir\Setup-Windows_${_logTs}_AI_SUMMARY.md"
+$script:DebloatStart   = Get-Date
+$log                   = $script:LogFile   # compatibilidad con Write-Host existentes
+
+$script:LogErrors   = [System.Collections.Generic.List[string]]::new()
+$script:LogWarns    = [System.Collections.Generic.List[string]]::new()
+
+function Write-LogEntry {
+    [CmdletBinding()]
+    param(
+        [ValidateSet("INIT","STEP","INFO","OK","WARN","ERROR","DEBUG")]
+        [string]$Level = "INFO",
+        [string]$Message
+    )
+    $ts   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $line = "[$ts] [$($Level.PadRight(5))] $Message"
+    if ($script:LogFile) {
+        Add-Content -Path $script:LogFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+    }
+    if ($Level -eq "ERROR") { $script:LogErrors.Add($line) }
+    if ($Level -eq "WARN")  { $script:LogWarns.Add($line) }
+}
+
+function Write-LogSummary {
+    $totalDuration = [math]::Round(((Get-Date) - $script:DebloatStart).TotalSeconds, 1)
+
+    Write-LogEntry -Level "INIT" -Message ("=" * 64)
+    Write-LogEntry -Level "INIT" -Message "RESUMEN FINAL"
+    Write-LogEntry -Level "INFO" -Message "Duración total       : ${totalDuration}s"
+    Write-LogEntry -Level "INFO" -Message "Errores registrados : $($script:LogErrors.Count)"
+    Write-LogEntry -Level "INFO" -Message "Advertencias        : $($script:LogWarns.Count)"
+    if ($script:LogErrors.Count -gt 0) {
+        Write-LogEntry -Level "ERROR" -Message "--- ERRORES DETECTADOS ---"
+        foreach ($e in $script:LogErrors) { Write-LogEntry -Level "ERROR" -Message $e }
+    }
+    if ($script:LogWarns.Count -gt 0) {
+        Write-LogEntry -Level "WARN" -Message "--- ADVERTENCIAS ---"
+        foreach ($w in $script:LogWarns) { Write-LogEntry -Level "WARN" -Message $w }
+    }
+    if ($script:LogErrors.Count -eq 0) {
+        Write-LogEntry -Level "OK" -Message "Debloat completado sin errores críticos."
+    }
+    Write-LogEntry -Level "INIT" -Message "Log estructurado    : $script:LogFile"
+    Write-LogEntry -Level "INIT" -Message "AI Summary (MD)     : $script:AiSummaryFile"
+    Write-LogEntry -Level "INIT" -Message "Transcript          : $script:TranscriptFile"
+    Write-LogEntry -Level "INIT" -Message ("=" * 64)
+
+    # Detener transcript
+    try { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null } catch {}
+
+    # Generar Reporte Markdown optimizado para IA
+    try {
+        $overallStatus = if ($script:LogErrors.Count -eq 0) { "SUCCESS" } else { "FAILED" }
+        $statusBadge   = if ($overallStatus -eq "SUCCESS") { "SUCCESS ✅" } else { "FAILED ❌" }
+
+        $sb = [System.Text.StringBuilder]::new()
+        [void]$sb.AppendLine("# AI Diagnostic Report: Win11-Debloat-v3-Adaptive")
+        [void]$sb.AppendLine("- **Status:** $statusBadge")
+        [void]$sb.AppendLine("- **Timestamp:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')")
+        [void]$sb.AppendLine("- **Total Duration:** ${totalDuration}s")
+        [void]$sb.AppendLine("- **Host:** $env:COMPUTERNAME | **User:** $env:USERNAME | **PowerShell:** $($PSVersionTable.PSVersion)")
+        [void]$sb.AppendLine("")
+        [void]$sb.AppendLine("## System Environment Detected")
+        [void]$sb.AppendLine("| Property | Value |")
+        [void]$sb.AppendLine("|---|---|")
+        [void]$sb.AppendLine("| Hardware Profile | ``$hwProfile`` |")
+        [void]$sb.AppendLine("| Windows Edition | ``$winEdition $osDisplayVersion`` |")
+        [void]$sb.AppendLine("| Winget Available | ``$($script:HasWinget)`` |")
+        [void]$sb.AppendLine("| Pre-optimized Flags | ``$script:PreOptimizedFlags`` |")
+        [void]$sb.AppendLine("")
+        [void]$sb.AppendLine("## Tweaks & Optimization Status")
+        [void]$sb.AppendLine("| Feature | Applied |")
+        [void]$sb.AppendLine("|---|---|")
+        [void]$sb.AppendLine("| GameBar / GameDVR | $(if($applyGameBar){'Applied ✅'}else{'Skipped ⚪'}) |")
+        [void]$sb.AppendLine("| HAGS (Hardware GPU Scheduling) | $(if($applyHags){'Applied ✅'}else{'Skipped ⚪'}) |")
+        [void]$sb.AppendLine("| VBS / Core Isolation | $(if($applyVbs){'Disabled ✅'}else{'Unchanged ⚪'}) |")
+        [void]$sb.AppendLine("| Network / Nagle TCP | $(if($applyNagle){'Disabled ✅'}else{'Unchanged ⚪'}) |")
+        [void]$sb.AppendLine("| Power Plan | $(if($applyUltimate){'Ultimate / High Performance ✅'}else{'Balanced ⚪'}) |")
+
+        if ($script:LogErrors.Count -gt 0) {
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("## ❌ Errors Detected")
+            [void]$sb.AppendLine('```text')
+            foreach ($err in $script:LogErrors) { [void]$sb.AppendLine($err) }
+            [void]$sb.AppendLine('```')
+        }
+
+        if ($script:LogWarns.Count -gt 0) {
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("## ⚠️ Warnings Logged")
+            [void]$sb.AppendLine('```text')
+            foreach ($warn in $script:LogWarns) { [void]$sb.AppendLine($warn) }
+            [void]$sb.AppendLine('```')
+        }
+
+        [void]$sb.AppendLine("")
+        [void]$sb.AppendLine("## Generated Artifacts")
+        [void]$sb.AppendLine("- **Structured Log:** ``$script:LogFile``")
+        [void]$sb.AppendLine("- **Raw Transcript:** ``$script:TranscriptFile``")
+        [void]$sb.AppendLine("- **AI Diagnostic:** ``$script:AiSummaryFile``")
+
+        if ($script:AiSummaryFile) {
+            [System.IO.File]::WriteAllText($script:AiSummaryFile, $sb.ToString(), [System.Text.Encoding]::UTF8)
+        }
+    } catch {}
+
+    Write-Host ""
+    Write-Host "  ┌─ Logs generados (Listos para análisis por IA) ────────────────" -ForegroundColor DarkCyan
+    if ($script:AiSummaryFile)  { Write-Host "  │  AI Diagnostic MD : $script:AiSummaryFile  <-- Pásame este archivo" -ForegroundColor Green }
+    Write-Host "  │  Log estructurado : $script:LogFile" -ForegroundColor Cyan
+    Write-Host "  │  Transcript       : $script:TranscriptFile" -ForegroundColor Cyan
+    if ($script:LogErrors.Count -gt 0) {
+        Write-Host "  │" -ForegroundColor DarkCyan
+        Write-Host "  │  [$($script:LogErrors.Count) ERROR(S) detectados — revisa el reporte]" -ForegroundColor Red
+    } else {
+        Write-Host "  │  Sin errores críticos registrados." -ForegroundColor Green
+    }
+    Write-Host "  └───────────────────────────────────────────────────────────────" -ForegroundColor DarkCyan
+}
+
+# Abrir transcript
+try {
+    Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null
+} catch {
+    Write-Host "  [LOG] Start-Transcript no disponible: $($_.Exception.Message)" -ForegroundColor DarkGray
+}
+
+# Cabecera del log estructurado
+Write-LogEntry -Level "INIT" -Message ("=" * 64)
+Write-LogEntry -Level "INIT" -Message "Win11-Debloat-v3-Adaptive Build Log"
+Write-LogEntry -Level "INIT" -Message "PowerShell $($PSVersionTable.PSVersion) | Host: $env:COMPUTERNAME | User: $env:USERNAME"
+Write-LogEntry -Level "INIT" -Message ("=" * 64)
 
 try {
 
@@ -179,6 +329,16 @@ Write-Host "" -ForegroundColor Gray
 # Cada dato se usa para tomar decisiones automaticas en secciones posteriores
 # ================================================================
 
+# --- Detección de Sistema Pre-Optimizado por ISO ---
+$isIsoOptimized = $false
+try {
+    $cloudPol = Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableWindowsConsumerFeatures" -ErrorAction SilentlyContinue
+    $tpmBypass = Get-ItemProperty -Path "HKLM:\SYSTEM\Setup\LabConfig" -Name "BypassTPMCheck" -ErrorAction SilentlyContinue
+    if (($cloudPol -and $cloudPol.DisableWindowsConsumerFeatures -eq 1) -or ($tpmBypass -and $tpmBypass.BypassTPMCheck -eq 1)) {
+        $isIsoOptimized = $true
+    }
+} catch {}
+
 # --- Plataforma: Laptop vs Desktop ---
 # Metodo dual: PCSystemType (fuente primaria, Microsoft Learn) +
 # Win32_Battery (confirmacion). Una UPS por USB puede reportarse
@@ -201,6 +361,20 @@ if ($isLaptopByType -and -not $isLaptopByBattery) {
 } else {
     $isLaptop = $false
     $laptopSrc = 'PCSystemType=Desktop'
+}
+
+# --- Modern Standby (S0ix) en Laptops ---
+$hasModernStandby = $false
+if ($isLaptop) {
+    try {
+        $powerPlatform = Get-CimInstance -Namespace root\cimv2\power -ClassName Win32_PowerPlatform -ErrorAction SilentlyContinue
+        if ($powerPlatform -and ($powerPlatform.AoAc -or $powerPlatform.ModernStandby)) {
+            $hasModernStandby = $true
+        } else {
+            $aoacReg = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power" -Name "PlatformAoAcOverride" -ErrorAction SilentlyContinue
+            if ($aoacReg) { $hasModernStandby = $true }
+        }
+    } catch {}
 }
 
 # --- RAM total ---
@@ -365,6 +539,12 @@ if ($ramChannels -gt 0) {
     Write-Host ("  | RAM Canal : {0,-39} |" -f $chanLabel) -ForegroundColor $(if($isSingleChannel){'Yellow'} else {'Gray'})
 }
 Write-Host ("  | Tipo      : {0,-39} |" -f $laptopSrc) -ForegroundColor Gray
+if ($isLaptop -and $hasModernStandby) {
+    Write-Host ("  | Power Arch: {0,-39} |" -f "Modern Standby (S0 Low Power Idle)") -ForegroundColor Cyan
+}
+if ($isIsoOptimized) {
+    Write-Host ("  | Base ISO  : {0,-39} |" -f "Pre-optimizada por OptimizedISO [OK]") -ForegroundColor Green
+}
 Write-Host "  +---------------------------------------------------------+" -ForegroundColor DarkCyan
 Write-Host "" -ForegroundColor Gray
 
@@ -466,7 +646,7 @@ function Install-WingetIfNeeded {
     # Ref: https://github.com/microsoft/winget-cli/releases (cada release incluye License1.xml)
     Write-Host "  [!] Nivel 2: Descargando desde fuentes oficiales de Microsoft..." -ForegroundColor Yellow
     try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
+        # TLS ya forzado globalmente al inicio del script (FIX-PS51-1)
         $tempDir = Join-Path $env:TEMP "WingetInstall"
         if (-not (Test-Path $tempDir)) { New-Item -ItemType Directory -Path $tempDir -Force | Out-Null }
 
@@ -486,7 +666,8 @@ function Install-WingetIfNeeded {
             # Descargar msixbundle
             $bundleAsset = $ghRelease.assets | Where-Object { $_.name -like "*.msixbundle" } | Select-Object -First 1
             if ($bundleAsset) {
-                Invoke-WebRequest -Uri $bundleAsset.browser_download_url -OutFile $bundlePath -ErrorAction Stop
+                # FIX-PS51-3: -UseBasicParsing evita el error "IE engine not available" en PS 5.1
+                Invoke-WebRequest -Uri $bundleAsset.browser_download_url -OutFile $bundlePath -UseBasicParsing -ErrorAction Stop
                 $downloadOk = $true
                 Write-Host "    Bundle descargado via GitHub API" -ForegroundColor Gray
             }
@@ -494,7 +675,7 @@ function Install-WingetIfNeeded {
             # Descargar License1.xml (asset del release, requerido para Add-AppxProvisionedPackage)
             $licenseAsset = $ghRelease.assets | Where-Object { $_.name -like "*License*.xml" } | Select-Object -First 1
             if ($licenseAsset) {
-                Invoke-WebRequest -Uri $licenseAsset.browser_download_url -OutFile $licensePath -ErrorAction Stop
+                Invoke-WebRequest -Uri $licenseAsset.browser_download_url -OutFile $licensePath -UseBasicParsing -ErrorAction Stop
                 $licenseOk = $true
                 Write-Host "    License1.xml descargado via GitHub API" -ForegroundColor Gray
             }
@@ -505,7 +686,7 @@ function Install-WingetIfNeeded {
         # Fallback: aka.ms para el bundle si GitHub fallo (licencia no disponible por esta via)
         if (-not $downloadOk) {
             try {
-                Invoke-WebRequest -Uri "https://aka.ms/getwinget" -OutFile $bundlePath -ErrorAction Stop
+                Invoke-WebRequest -Uri "https://aka.ms/getwinget" -OutFile $bundlePath -UseBasicParsing -ErrorAction Stop
                 $downloadOk = $true
                 Write-Host "    Bundle descargado via aka.ms/getwinget" -ForegroundColor Gray
             } catch {
@@ -517,9 +698,9 @@ function Install-WingetIfNeeded {
             # Descargar dependencias
             Write-Host "    Descargando dependencias (VCLibs y UI.Xaml)..." -ForegroundColor Gray
             $vcLibsPath = Join-Path $tempDir "VCLibs.appx"
-            Invoke-WebRequest -Uri "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" -OutFile $vcLibsPath -ErrorAction SilentlyContinue
+            Invoke-WebRequest -Uri "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" -OutFile $vcLibsPath -UseBasicParsing -ErrorAction SilentlyContinue
             $uiXamlPath = Join-Path $tempDir "UIXaml.appx"
-            Invoke-WebRequest -Uri "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx" -OutFile $uiXamlPath -ErrorAction SilentlyContinue
+            Invoke-WebRequest -Uri "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx" -OutFile $uiXamlPath -UseBasicParsing -ErrorAction SilentlyContinue
 
             # Instalar dependencias primero (ambos metodos las necesitan)
             Write-Host "    Instalando dependencias..." -ForegroundColor Gray
@@ -768,10 +949,22 @@ if ($missingPrereqs.Count -gt 0) {
         $selectedPrereqs = $missingPrereqs
         Write-Host "  Modo desatendido: instalando todos los prerrequisitos faltantes..." -ForegroundColor Gray
     } else {
-        Write-Host "  Abriendo ventana de seleccion de prerrequisitos..." -ForegroundColor Yellow
-        $selectedPrereqs = $missingPrereqs |
-            Select-Object Componente, Estado, Nota, Critico, WingetId |
-            Out-GridView -Title "Prerrequisitos FALTANTES -- Selecciona los que deseas instalar (recomendado: todos)" -PassThru
+        # FIX-PS51-4: Out-GridView requiere el modulo Microsoft.PowerShell.Utility con WPF disponible.
+        # Puede fallar si la sesion es remota o el entorno grafico no esta listo. Fallback a consola.
+        $ogvAvailable = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
+        if ($ogvAvailable) {
+            try {
+                $selectedPrereqs = $missingPrereqs |
+                    Select-Object Componente, Estado, Nota, Critico, WingetId |
+                    Out-GridView -Title "Prerrequisitos FALTANTES -- Selecciona los que deseas instalar (recomendado: todos)" -PassThru
+            } catch {
+                Write-Host "  [!] Out-GridView no disponible ($($_.Exception.Message)). Instalando todos los faltantes..." -ForegroundColor Yellow
+                $selectedPrereqs = $missingPrereqs
+            }
+        } else {
+            Write-Host "  [!] Out-GridView no disponible en esta sesion. Instalando todos los prerrequisitos faltantes automaticamente..." -ForegroundColor Yellow
+            $selectedPrereqs = $missingPrereqs
+        }
     }
 
     if ($selectedPrereqs) {
@@ -794,7 +987,7 @@ if ($missingPrereqs.Count -gt 0) {
                 try {
                     $dxUrl = "https://download.microsoft.com/download/1/7/1/1718CCC4-6315-4D8E-9543-8E28A4E18C4C/dxwebsetup.exe"
                     $dxPath = Join-Path $env:TEMP "dxwebsetup.exe"
-                    Invoke-WebRequest -Uri $dxUrl -OutFile $dxPath -ErrorAction Stop
+                    Invoke-WebRequest -Uri $dxUrl -OutFile $dxPath -UseBasicParsing -ErrorAction Stop
                     Start-Process -FilePath $dxPath -ArgumentList '/Q' -Wait
                     Write-Host "    OK: DirectX Legacy Runtime" -ForegroundColor Green
                 } catch {
@@ -844,8 +1037,18 @@ if ($Unattended) {
     $selectedApps = $appsList
     Write-Host "  Modo desatendido activo: instalando todas las aplicaciones por defecto..." -ForegroundColor Gray
 } else {
-    Write-Host "  Abriendo ventana de seleccion para aplicaciones..." -ForegroundColor Yellow
-    $selectedApps = $appsList | Out-GridView -Title "Selecciona las aplicaciones a INSTALAR (Ctrl para varios) -- Cancelar para no instalar ninguna" -PassThru
+    $ogvAvailable = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
+    if ($ogvAvailable) {
+        try {
+            $selectedApps = $appsList | Out-GridView -Title "Selecciona las aplicaciones a INSTALAR (Ctrl para varios) -- Cancelar para no instalar ninguna" -PassThru
+        } catch {
+            Write-Host "  [!] Out-GridView no disponible. Usa el parametro -Unattended para instalar todas, o edita \$appsList." -ForegroundColor Yellow
+            $selectedApps = $null
+        }
+    } else {
+        Write-Host "  [!] Out-GridView no disponible en esta sesion. Omitiendo instalacion de apps. Usa -Unattended para auto-instalar." -ForegroundColor Yellow
+        $selectedApps = $null
+    }
 }
 
 if ($selectedApps) {
@@ -870,7 +1073,7 @@ if ($selectedApps) {
 # ============================================================
 #region 1. Remove bloatware Appx apps (Interactive)
 # ============================================================
-Write-Host "`n[1] Removing bloatware apps..." -ForegroundColor Cyan
+Write-Host "`n[1] Analizando aplicaciones AppX / Bloatware..." -ForegroundColor Cyan
 
 $bloatwareList = @(
     [PSCustomObject]@{ Name='Clipchamp.Clipchamp';                    Note='Editor de video de Microsoft' },
@@ -917,85 +1120,86 @@ $bloatwareList = @(
     [PSCustomObject]@{ Name='MicrosoftWindows.Client.WebExperience';   Note='Widgets backend (consume RAM en background)' }
 )
 
-if (-not $Unattended) {
-    Write-Host "  Abriendo ventana de seleccion para Bloatware..." -ForegroundColor Yellow
-    $selectedApps = $bloatwareList | Out-GridView -Title "Selecciona las apps Appx a eliminar (Ctrl para elegir varias) -- Lee Note antes de marcar [!]" -PassThru
-} else {
-    Write-Host "  Modo desatendido: seleccionando todo el bloatware excepto aplicaciones criticas (!)..." -ForegroundColor Gray
-    $selectedApps = $bloatwareList | Where-Object { $_.Note -notmatch '\[!\]' }
+# -----------------------------------------------------------------------
+# Verificación Rápida y Diferencial en Memoria:
+# Si la ISO ya eliminó los paquetes offline, evitamos 42 llamadas secuenciales.
+# -----------------------------------------------------------------------
+Write-Host "  Consultando paquetes instalados y provisionados en el sistema..." -ForegroundColor Gray
+
+$installedPkgs = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue)
+$installedNames = $installedPkgs | ForEach-Object { $_.Name }
+
+$dismProvOutput = & DISM.exe /Online /Get-ProvisionedAppxPackages 2>&1
+$provisionedPackages = @($dismProvOutput |
+    Where-Object { $_ -match '^\s*PackageName\s*:' } |
+    ForEach-Object { ($_ -split ':', 2)[1].Trim() })
+
+# Filtrar solo las apps de la lista que realmente sigan presentes en el sistema
+$presentBloatware = $bloatwareList | Where-Object {
+    $appName = $_.Name
+    ($installedNames -like "*$appName*") -or ($provisionedPackages -like "*$appName*")
 }
 
-if ($selectedApps) {
-    Write-Host "  $($selectedApps.Count) aplicaciones seleccionadas para eliminar." -ForegroundColor Cyan
+if ($presentBloatware.Count -eq 0) {
+    Write-Host "  [✓] Sistema limpio: No se detectaron paquetes bloatware activos (ya eliminados por la ISO o desinstalados previamente)." -ForegroundColor Green
+} else {
+    Write-Host "  Detectadas $($presentBloatware.Count) aplicaciones residuales para evaluar." -ForegroundColor Yellow
 
-    # -----------------------------------------------------------------------
-    # [FIX-PS7] Get-AppxProvisionedPackage / Remove-AppxProvisionedPackage
-    #   fallan en PowerShell 7 con "Clase no registrada" (COMException -2147221164).
-    #   Bug conocido y abierto en GitHub PowerShell #17232 y #18241.
-    #   Workaround oficial: usar DISM.exe directamente desde la linea de comandos.
-    #   Refs: https://github.com/PowerShell/PowerShell/issues/17232
-    #         https://learn.microsoft.com/windows-hardware/manufacture/desktop/
-    #                dism-app-package--appx-or-appxbundle--servicing-command-line-options
-    #
-    # Pre-cargamos la lista de paquetes provisionados UNA sola vez via DISM.exe
-    # (mas eficiente que llamarlo por cada app) y la guardamos en memoria.
-    # -----------------------------------------------------------------------
-    Write-Host "  Obteniendo lista de paquetes provisionados via DISM.exe..." -ForegroundColor Gray
-    $dismProvOutput = & DISM.exe /Online /Get-ProvisionedAppxPackages 2>&1
-    # DISM devuelve lineas como: "PackageName : NombreCompleto_version_arch_~_token"
-    # Extraemos solo los nombres completos de paquete
-    $provisionedPackages = $dismProvOutput |
-        Where-Object { $_ -match '^\s*PackageName\s*:' } |
-        ForEach-Object { ($_ -split ':', 2)[1].Trim() }
-
-    Write-Host "  Paquetes provisionados encontrados: $($provisionedPackages.Count)" -ForegroundColor Gray
-
-    foreach ($entry in $selectedApps) {
-        $appName = $entry.Name
-
-        # --- Paso 1: Eliminar para todos los usuarios ya instalados (Get/Remove-AppxPackage) ---
-        # Get-AppxPackage SI funciona en PS7 sin problemas
-        $pkgs = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue |
-                Where-Object { $_.Name -like "*$appName*" }
-        if ($pkgs) {
-            foreach ($pkg in $pkgs) {
-                try {
-                    $pkg | Remove-AppxPackage -AllUsers -ErrorAction Stop
-                    Write-Host "  - Removed (installed): $appName" -ForegroundColor Green
-                } catch {
-                    Write-Host "  ! Could not remove $appName : $($_.Exception.Message)" -ForegroundColor Yellow
-                }
+    if (-not $Unattended) {
+        Write-Host "  Abriendo ventana de seleccion para Bloatware..." -ForegroundColor Yellow
+        $ogvAvailable = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
+        if ($ogvAvailable) {
+            try {
+                $selectedApps = $presentBloatware | Out-GridView -Title "Selecciona las apps Appx a eliminar (Ctrl para elegir varias) -- Lee Note antes de marcar [!]" -PassThru
+            } catch {
+                Write-Host "  [!] Out-GridView no disponible. Eliminar TODO el bloatware detectado automaticamente..." -ForegroundColor Yellow
+                $selectedApps = $presentBloatware
             }
         } else {
-            Write-Host "  - No instalado para ningun usuario: $appName" -ForegroundColor DarkGray
+            Write-Host "  [!] Out-GridView no disponible. Eliminando TODO el bloatware detectado..." -ForegroundColor Yellow
+            $selectedApps = $presentBloatware
         }
+    } else {
+        Write-Host "  Modo desatendido: seleccionando todo el bloatware residual excepto aplicaciones criticas (!)..." -ForegroundColor Gray
+        $selectedApps = $presentBloatware | Where-Object { $_.Note -notmatch '\[!\]' }
+    }
 
-        # --- Paso 2: Eliminar el paquete provisionado via DISM.exe ---
-        # Busca en la lista pre-cargada los paquetes cuyo nombre contenga $appName
-        $matchedProvPackages = $provisionedPackages | Where-Object { $_ -like "*$appName*" }
+    if ($selectedApps) {
+        Write-Host "  $($selectedApps.Count) aplicaciones seleccionadas para eliminar." -ForegroundColor Cyan
 
-        if ($matchedProvPackages) {
-            foreach ($pkgFullName in $matchedProvPackages) {
-                Write-Host "  - Removing provisioned: $pkgFullName" -ForegroundColor Gray
-                $dismRemove = & DISM.exe /Online /Remove-ProvisionedAppxPackage /PackageName:$pkgFullName 2>&1
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Host "  - Removed (provisioned): $appName" -ForegroundColor DarkGreen
-                } else {
-                    # Codigo 1641 = reinicio necesario pero OK, 3010 = idem
-                    if ($LASTEXITCODE -in @(1641, 3010)) {
-                        Write-Host "  - Removed (provisioned, reinicio requerido): $appName" -ForegroundColor DarkGreen
-                    } else {
-                        Write-Host "  ! DISM /Remove-ProvisionedAppxPackage exit $LASTEXITCODE para: $pkgFullName" -ForegroundColor Yellow
-                        Write-Host "    $dismRemove" -ForegroundColor DarkGray
+        foreach ($entry in $selectedApps) {
+            $appName = $entry.Name
+
+            # --- Paso 1: Eliminar para todos los usuarios ya instalados ---
+            $pkgs = $installedPkgs | Where-Object { $_.Name -like "*$appName*" }
+            if ($pkgs) {
+                foreach ($pkg in $pkgs) {
+                    try {
+                        $pkg | Remove-AppxPackage -AllUsers -ErrorAction Stop
+                        Write-Host "  - Removed (installed): $appName" -ForegroundColor Green
+                    } catch {
+                        Write-Host "  ! Could not remove $appName : $($_.Exception.Message)" -ForegroundColor Yellow
                     }
                 }
             }
-        } else {
-            Write-Host "  - No provisionado: $appName" -ForegroundColor DarkGray
+
+            # --- Paso 2: Eliminar el paquete provisionado via DISM.exe ---
+            $matchedProvPackages = $provisionedPackages | Where-Object { $_ -like "*$appName*" }
+            if ($matchedProvPackages) {
+                foreach ($pkgFullName in $matchedProvPackages) {
+                    Write-Host "  - Removing provisioned: $pkgFullName" -ForegroundColor Gray
+                    $dismRemove = & DISM.exe /Online /Remove-ProvisionedAppxPackage /PackageName:$pkgFullName 2>&1
+                    if ($LASTEXITCODE -in @(0, 1641, 3010)) {
+                        Write-Host "  - Removed (provisioned): $appName" -ForegroundColor DarkGreen
+                    } else {
+                        Write-Host "  ! DISM /Remove-ProvisionedAppxPackage exit $LASTEXITCODE para: $pkgFullName" -ForegroundColor Yellow
+                    }
+                }
+            }
         }
+    } else {
+        Write-Host "  - Sin seleccion. Omitiendo." -ForegroundColor Gray
     }
-} else {
-    Write-Host "  - Sin seleccion. Omitiendo." -ForegroundColor Gray
 }
 #endregion
 
@@ -1010,8 +1214,18 @@ $win32List = @(
 )
 
 if (-not $Unattended) {
-    Write-Host "  Abriendo ventana de seleccion para Aplicaciones Win32..." -ForegroundColor Yellow
-    $selectedWin32 = $win32List | Out-GridView -Title "Selecciona las apps Win32 a DESINSTALAR (Ctrl para elegir varias)" -PassThru
+    $ogvAvailable = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
+    if ($ogvAvailable) {
+        try {
+            $selectedWin32 = $win32List | Out-GridView -Title "Selecciona las apps Win32 a DESINSTALAR (Ctrl para elegir varias)" -PassThru
+        } catch {
+            Write-Host "  [!] Out-GridView no disponible. Omitiendo desinstalacion de Win32 (ejecuta con -Unattended para auto-desinstalar)." -ForegroundColor Yellow
+            $selectedWin32 = $null
+        }
+    } else {
+        Write-Host "  [!] Out-GridView no disponible en esta sesion. Omitiendo Apps Win32 (usa -Unattended)." -ForegroundColor Yellow
+        $selectedWin32 = $null
+    }
 } else {
     Write-Host "  Modo desatendido: seleccionando todas las apps Win32 (OneDrive, Teams, Skype)..." -ForegroundColor Gray
     $selectedWin32 = $win32List
@@ -1054,6 +1268,7 @@ if ($applyDark) {
     $theme = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
     Set-Reg $theme 'AppsUseLightTheme'   0
     Set-Reg $theme 'SystemUsesLightTheme' 0
+    Set-Reg $theme 'EnableTransparency'   1
 
     $darkWall = 'C:\Windows\Web\Wallpaper\Windows\img19.jpg'
     if (Test-Path $darkWall) {
@@ -1176,7 +1391,6 @@ Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsAADC
 Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsMSACloudSearchEnabled'      0
 Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings' 'IsDeviceSearchHistoryEnabled' 0
 Set-Reg 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions' 1
-Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'AllowCortana'           0
 Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'ConnectedSearchUseWeb'  0
 Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'DisableWebSearch'       1
 Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search' 'AllowSearchToUseLocation' 0
@@ -1216,7 +1430,18 @@ $servicesList = @(
 
 if (-not $Unattended) {
     Write-Host "  Abriendo ventana de seleccion para Servicios..." -ForegroundColor Yellow
-    $selectedServices = $servicesList | Out-GridView -Title "Selecciona los servicios a DESHABILITAR (Ctrl para varios) -- respeta los [!]" -PassThru
+    $ogvAvailable = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
+    if ($ogvAvailable) {
+        try {
+            $selectedServices = $servicesList | Out-GridView -Title "Selecciona los servicios a DESHABILITAR (Ctrl para varios) -- respeta los [!]" -PassThru
+        } catch {
+            Write-Host "  [!] Out-GridView no disponible. Omitiendo gestion de servicios (usa -Unattended)." -ForegroundColor Yellow
+            $selectedServices = $null
+        }
+    } else {
+        Write-Host "  [!] Out-GridView no disponible en esta sesion. Omitiendo gestion de servicios (usa -Unattended)." -ForegroundColor Yellow
+        $selectedServices = $null
+    }
 } else {
     Write-Host "  Modo desatendido: deshabilitando servicios seguros (excepto críticos [!] y SysMain que es dinámico)..." -ForegroundColor Gray
     $selectedServices = $servicesList | Where-Object { $_.DisplayName -notmatch '\[!\]' -and $_.Name -notmatch 'SysMain' }
@@ -1425,16 +1650,26 @@ if (-not $isLaptop) {
 }
 
 if (-not $isLaptop) {
-    # Desktop: Configurar modo de energía oficial a Best Performance (alto rendimiento)
-    # GUID 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c es High Performance
+    # Desktop: Activar e importar Ultimate Performance (con fallback a High Performance)
+    $upGuid = 'e9a42b02-d5df-448d-aa00-03f14749eb61'
+    $hpGuid = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'
     try {
-        powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>&1 | Out-Null
-        Write-Host "    - Modo de energia configurado a High Performance (Desktop)." -ForegroundColor Green
+        $existing = powercfg /list | Select-String $upGuid
+        if (-not $existing) {
+            powercfg /duplicatescheme $upGuid 2>&1 | Out-Null
+        }
+        powercfg /setactive $upGuid 2>&1 | Out-Null
+        Write-Host "    - Plan de energia configurado a Ultimate Performance (Desktop)." -ForegroundColor Green
     } catch {
-        Write-Host "    ! Error al establecer plan de energia: $($_.Exception.Message)" -ForegroundColor Yellow
+        try {
+            powercfg /setactive $hpGuid 2>&1 | Out-Null
+            Write-Host "    - Plan de energia configurado a High Performance (Desktop fallback)." -ForegroundColor Green
+        } catch {
+            Write-Host "    ! Error al establecer plan de energia: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
     }
 } else {
-    Write-Host "    - Power Mode MANTENIDO en Balanced (Laptop: necesario para gestion de bateria)." -ForegroundColor Gray
+    Write-Host "    - Power Mode MANTENIDO en Balanced (Laptop: necesario para gestion de bateria y Modern Standby)." -ForegroundColor Gray
 }
 
 # -- SysMain: forzar OFF si HDD con menos del 5% de espacio libre --
@@ -1578,7 +1813,18 @@ $adaptiveTweaks += [PSCustomObject]@{
 if (-not $Unattended) {
     Write-Host "  Abriendo ventana de optimizaciones opcionales..." -ForegroundColor Yellow
     Write-Host "  (Las automaticas ya fueron aplicadas arriba. Estas son adicionales.)" -ForegroundColor DarkGray
-    $selectedTweaks = $adaptiveTweaks | Out-GridView -Title "Optimizaciones opcionales -- guiate por la columna Recomendado" -PassThru
+    $ogvAvailable = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
+    if ($ogvAvailable) {
+        try {
+            $selectedTweaks = $adaptiveTweaks | Out-GridView -Title "Optimizaciones opcionales -- guiate por la columna Recomendado" -PassThru
+        } catch {
+            Write-Host "  [!] Out-GridView no disponible. Aplicando tweaks recomendados automaticamente..." -ForegroundColor Yellow
+            $selectedTweaks = $adaptiveTweaks | Where-Object { $_.Recomendado -eq 'SI' }
+        }
+    } else {
+        Write-Host "  [!] Out-GridView no disponible. Aplicando tweaks recomendados automaticamente..." -ForegroundColor Yellow
+        $selectedTweaks = $adaptiveTweaks | Where-Object { $_.Recomendado -eq 'SI' }
+    }
 } else {
     Write-Host "  Modo desatendido: aplicando optimizaciones recomendadas segun el hardware..." -ForegroundColor Gray
     $selectedTweaks = $adaptiveTweaks | Where-Object { $_.Recomendado -match '^SI' }
@@ -2024,6 +2270,8 @@ Write-Host "  +---------------------------------------------------------+" -Fore
 Write-Host "`n  REINICIA el equipo para que bcdedit, HAGS y servicios tomen efecto." -ForegroundColor Yellow
 
 } finally {
+    # Escribir resumen de errores al log antes de cerrar transcript
+    Write-LogSummary
     # Stop-Transcript en finally: se ejecuta SIEMPRE, incluso si el script falla a mitad
-    Stop-Transcript | Out-Null
+    try { Stop-Transcript | Out-Null } catch {}
 }
