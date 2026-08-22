@@ -55,7 +55,8 @@
      12. Gaming optimizations (Core) [ENHANCED v5]
      13. MMAgent tuning
      14. DISM component cleanup
-     15. Restart Explorer
+     15. Funciones avanzadas de Menu Contextual (Interactivo)
+     16. Restart Explorer
 #>
 
 param(
@@ -2270,9 +2271,65 @@ try {
 #endregion
 
 # ============================================================
-#region 15. Restart Explorer
+#region 15. Funciones Avanzadas de Menu Contextual (Nativo Windows Shell)
+# Ref: learn.microsoft.com/windows/win32/shell/context-menu-handlers
 # ============================================================
-Write-Host "`n[15] Restarting Explorer to apply visual changes..." -ForegroundColor Cyan
+$applyContextMenu = $true
+if (-not $Unattended) {
+    $choice = Read-Host "`n[15] Â¿Desea agregar funciones avanzadas al Menu Contextual? (PowerShell Admin, Flush DNS, God Mode, Bloc de Notas, Reiniciar Explorer, DISM+SFC) [Y/N] (Default: Y)"
+    if ($choice -ne '' -and $choice -notmatch '^[yYsS]') {
+        $applyContextMenu = $false
+    }
+}
+
+if ($applyContextMenu) {
+    Write-Host "`n[15] Registrando funciones de Menu Contextual (nativo Windows Shell)..." -ForegroundColor Cyan
+
+    try {
+        # 1: PowerShell Admin (fondo carpeta + escritorio)
+        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /ve /d "Terminal (Administrador)" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,109" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin\command" /ve /d "powershell.exe -Command `"Start-Process powershell.exe -ArgumentList '-NoExit','-Command','Set-Location -LiteralPath \`"%V\`"' -Verb RunAs`"" /f *>$null
+
+        # 2: Reiniciar Explorador (solo escritorio)
+        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /ve /d "Reiniciar Explorador" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,178" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer\command" /ve /d "cmd.exe /c taskkill /f /im explorer.exe & start explorer.exe" /f *>$null
+
+        # 3: Flush DNS (fondo carpeta + escritorio)
+        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS" /ve /d "Vaciar Cache DNS" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,23" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS\command" /ve /d "cmd.exe /c ipconfig /flushdns & pause" /f *>$null
+
+        # 4: God Mode (solo escritorio)
+        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode" /ve /d "Panel de Control Maestro" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,104" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode\command" /ve /d "explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}" /f *>$null
+
+        # 5: Abrir con Bloc de Notas (cualquier archivo)
+        & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /ve /d "Abrir con Bloc de Notas" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\notepad.exe,0" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad\command" /ve /d "notepad.exe `"%1`"" /f *>$null
+
+        # 6: Reparacion del Sistema DISM + SFC (solo escritorio)
+        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem" /ve /d "Reparar Sistema (DISM + SFC)" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,54" /f *>$null
+        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem\command" /ve /d "powershell.exe -Command `"Start-Process cmd.exe -ArgumentList '/k DISM /Online /Cleanup-Image /RestoreHealth && sfc /scannow' -Verb RunAs`"" /f *>$null
+
+        Write-Host "  [OK] 6 funciones de menu contextual registradas." -ForegroundColor Green
+        Write-Host "  Accesibles via Shift+F10 o 'Mostrar mas opciones' (menu extendido de Windows 11)." -ForegroundColor Gray
+    } catch {
+        Write-Host "  ! Error registrando menu contextual: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "`n[15] Omitiendo funciones de menu contextual." -ForegroundColor Gray
+}
+#endregion
+
+# ============================================================
+#region 16. Restart Explorer
+# ============================================================
+Write-Host "`n[16] Restarting Explorer to apply visual changes..." -ForegroundColor Cyan
 Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue)) { Start-Process explorer.exe }
@@ -2299,6 +2356,7 @@ Write-Host ("  | VBS/HVCI    : {0,-37} |" -f $(if($applyVbs){'Deshabilitado'}els
 Write-Host ("  | Timer fix   : {0,-37} |" -f $(if($applyFixTimer){'Aplicado (bcdedit)'}else{'Omitido'})) -ForegroundColor $(if($applyFixTimer){'Yellow'}else{'Gray'})
 Write-Host ("  | Nagle TCP   : {0,-37} |" -f $(if($applyNagle){'Deshabilitado'}else{'Sin cambio'})) -ForegroundColor Gray
 Write-Host ("  | Ultimate PP : {0,-37} |" -f $(if($applyUltimate){'Activado'}else{'Omitido'}))  -ForegroundColor Gray
+Write-Host ("  | Menu Context: {0,-37} |" -f $(if($applyContextMenu){'Aplicado (6 funciones)'}else{'Omitido'}))  -ForegroundColor Gray
 Write-Host "  +---------------------------------------------------------+" -ForegroundColor DarkCyan
 #endregion
 

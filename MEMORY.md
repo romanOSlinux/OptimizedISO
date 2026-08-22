@@ -1,3 +1,19 @@
+## [2026-08-22T20:55:00-03:00] Integración de 6 Funciones Nativas de Menú Contextual en ISO y Script Adaptivo
+
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se implementaron **6 funciones avanzadas de menú contextual** utilizando el estándar oficial de Microsoft Shell (`HKLM\SOFTWARE\Classes`):
+    1. **`PSAdmin` (Terminal / PowerShell Administrador):** `Directory\Background\shell\PSAdmin` con elevación `Start-Process powershell -Verb RunAs` e icono `imageres.dll,109`.
+    2. **`RestartExplorer` (Reiniciar Explorador):** `DesktopBackground\Shell\RestartExplorer` con `cmd.exe /c taskkill /f /im explorer.exe & start explorer.exe` e icono `imageres.dll,178`.
+    3. **`FlushDNS` (Vaciar Caché DNS):** `Directory\Background\shell\FlushDNS` con `cmd.exe /c ipconfig /flushdns & pause` e icono `imageres.dll,23`.
+    4. **`GodMode` (Panel de Control Maestro):** `DesktopBackground\Shell\GodMode` con `explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}` e icono `imageres.dll,104`.
+    5. **`OpenWithNotepad` (Abrir con Bloc de Notas):** `*\shell\OpenWithNotepad` con `notepad.exe "%1"` e icono `notepad.exe,0` aplicable a cualquier archivo.
+    6. **`RepairSystem` (Reparación del Sistema DISM + SFC):** `DesktopBackground\Shell\RepairSystem` ejecutando en consola elevada `DISM /Online /Cleanup-Image /RestoreHealth && sfc /scannow` e icono `imageres.dll,54` (confirmado que **no revierte** optimizaciones de Perfiles 2 y 3).
+  - **Integración en ISO (`New-OptimizedWindowsISO-v2.ps1`):** Inyección automática en `SetupComplete.cmd` (para todos los perfiles) y verificación de las 6 claves en `PostInstall-Diagnostics.ps1`.
+  - **Integración en Script Adaptivo (`Win11-Debloat-v3-Adaptive.ps1`):** Nueva **Región 15** con selector interactivo `Read-Host [Y/N]` / `-Unattended` y resumen en tabla final. Reorganizada la región de reinicio del Explorador como **Región 16**.
+  - **Validación AST:** **0 Errores de Parseo** en ambos scripts comprobado con `[System.Management.Automation.Language.Parser]`.
+- **Pendiente:** Compilación de ISO y prueba en Hyper-V.
+
 ## [2026-08-22T13:50:00-03:00] Optimización Integral de Servicios para Gaming/Streaming y Desactivación de BitLocker por Software
 
 - **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `MEMORY.md`

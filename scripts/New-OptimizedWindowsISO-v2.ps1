@@ -3473,6 +3473,44 @@ IF EXIST "%SCRIPTS_DIR%\Runtimes" (
     echo [%DATE% %TIME%] Runtimes instalados exitosamente. >> "%LOG%"
 )
 
+REM ===========================================================
+REM Funciones Avanzadas de Menu Contextual (Nativo Windows Shell)
+REM Refs: learn.microsoft.com/windows/win32/shell/context-menu-handlers
+REM ===========================================================
+echo [%DATE% %TIME%] Registrando funciones de menu contextual... >> "%LOG%"
+
+REM -- 1: PowerShell Admin (fondo carpeta + escritorio) --
+reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /ve /d "Terminal (Administrador)" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,109" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin\command" /ve /d "powershell.exe -Command \"Start-Process powershell.exe -ArgumentList '-NoExit','-Command','Set-Location -LiteralPath \"%V\"' -Verb RunAs\"" /f >> "%LOG%" 2>&1
+
+REM -- 2: Reiniciar Explorador (solo escritorio) --
+reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /ve /d "Reiniciar Explorador" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,178" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer\command" /ve /d "cmd.exe /c taskkill /f /im explorer.exe & start explorer.exe" /f >> "%LOG%" 2>&1
+
+REM -- 3: Flush DNS (fondo carpeta + escritorio) --
+reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS" /ve /d "Vaciar Cache DNS" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,23" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS\command" /ve /d "cmd.exe /c ipconfig /flushdns & pause" /f >> "%LOG%" 2>&1
+
+REM -- 4: God Mode (solo escritorio) --
+reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode" /ve /d "Panel de Control Maestro" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,104" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode\command" /ve /d "explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}" /f >> "%LOG%" 2>&1
+
+REM -- 5: Abrir con Bloc de Notas (cualquier archivo) --
+reg add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /ve /d "Abrir con Bloc de Notas" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\notepad.exe,0" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad\command" /ve /d "notepad.exe \"%1\"" /f >> "%LOG%" 2>&1
+
+REM -- 6: Reparacion del Sistema DISM + SFC (solo escritorio) --
+reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem" /ve /d "Reparar Sistema (DISM + SFC)" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,54" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem\command" /ve /d "powershell.exe -Command \"Start-Process cmd.exe -ArgumentList '/k DISM /Online /Cleanup-Image /RestoreHealth && sfc /scannow' -Verb RunAs\"" /f >> "%LOG%" 2>&1
+
+echo [%DATE% %TIME%] Funciones de menu contextual registradas. >> "%LOG%"
+
 __OPTIMIZATIONS_BLOCK__
 REM ===========================================================
 REM Registrar Tareas a Demanda y Accesos Directos en Escritorio
@@ -3817,6 +3855,26 @@ try {
     } else {
         $reportLines.Add("- **Prevencion Cifrado BitLocker:** Inactiva o no configurada ($bitlockerPrevent).")
     }
+
+    # Verificacion de Claves de Menu Contextual Avanzado
+    $ctxMenuKeys = @(
+        @{ Path = "HKLM:\SOFTWARE\Classes\Directory\Background\shell\PSAdmin";        Label = "PSAdmin (Terminal Administrador)" },
+        @{ Path = "HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer";   Label = "RestartExplorer (Reiniciar Explorer)" },
+        @{ Path = "HKLM:\SOFTWARE\Classes\Directory\Background\shell\FlushDNS";       Label = "FlushDNS (Vaciar Cache DNS)" },
+        @{ Path = "HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\GodMode";           Label = "GodMode (Panel Control Maestro)" },
+        @{ Path = "HKLM:\SOFTWARE\Classes\*\shell\OpenWithNotepad";                   Label = "OpenWithNotepad (Abrir con Notepad)" },
+        @{ Path = "HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem";      Label = "RepairSystem (DISM + SFC)" }
+    )
+    $ctxAll = $true
+    foreach ($k in $ctxMenuKeys) {
+        if (Test-Path $k.Path) {
+            $reportLines.Add("- **Menu Contextual [$($k.Label)]:** Registrado [OK]")
+        } else {
+            $ctxAll = $false
+            $reportLines.Add("- **Menu Contextual [$($k.Label)]:** NO encontrado.")
+        }
+    }
+    if ($ctxAll) { $passedChecks.Add("Funciones avanzadas de menu contextual (6/6) registradas.") }
 
     # Modo Oscuro
     $appsDark = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme
