@@ -1,6 +1,6 @@
 ## [2026-08-22T13:50:00-03:00] Optimización Integral de Servicios para Gaming/Streaming y Desactivación de BitLocker por Software
 
-- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `MEMORY.md`
 - **Hitos Logrados:**
   - Se implementó la matriz de servicios basada en documentación de Microsoft Learn y benchmarks empíricos (*Tom's Hardware, CapFrameX*):
     1. **Prevención de Cifrado BitLocker (`PreventDeviceEncryption = 1`):** Inyectado en `autounattend.xml` (fase `specialize`) para Perfil 2+, evitando la pérdida de hasta 45% en rendimiento aleatorio I/O en SSDs NVMe y habilitando **BypassIO** para la tecnología **DirectStorage**.

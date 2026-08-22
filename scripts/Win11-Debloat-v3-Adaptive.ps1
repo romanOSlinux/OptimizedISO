@@ -1421,7 +1421,11 @@ Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings' 'Allo
 # Ref: learn.microsoft.com/windows/client-management/mdm/policy-csp-applicationmanagement#allowautomaticapparchiving
 Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' 'AutoDownload' 2
 
-Write-Host "  [OK] Politicas de drivers y apps OEM configuradas." -ForegroundColor Green
+# Bloquear cifrado automatico de BitLocker por software y habilitar BypassIO para DirectStorage
+# Ref: learn.microsoft.com/windows/security/operating-system-hardware/data-protection/bitlocker/device-encryption-overview
+Set-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\BitLocker' 'PreventDeviceEncryption' 1
+
+Write-Host "  [OK] Politicas de drivers, apps OEM y BitLocker configuradas." -ForegroundColor Green
 #endregion
 
 
@@ -1440,16 +1444,23 @@ Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' 'BackgroundAppG
 Write-Host "`n[8] Disabling Windows Services and Tasks..." -ForegroundColor Cyan
 
 $servicesList = @(
-    [PSCustomObject]@{ Name='SysMain';         DisplayName='SysMain (SuperFetch)';                     Reason='Gaming/SSD: libera RAM. En HDD o <16 GB puede empeorar el arranque.' },
-    [PSCustomObject]@{ Name='WSearch';          DisplayName='Windows Search (Indexer)';                 Reason='Reduce I/O constante. Las busquedas sin indice seran mas lentas.' },
-    [PSCustomObject]@{ Name='DiagTrack';        DisplayName='Connected User Experiences and Telemetry'; Reason='Privacidad: telemetria principal de Microsoft.' },
-    [PSCustomObject]@{ Name='dmwappushservice'; DisplayName='WAP Push Message Routing';                 Reason='Privacidad: telemetria secundaria. Puede afectar MDM/Intune.' },
-    [PSCustomObject]@{ Name='MapsBroker';       DisplayName='Downloaded Maps Manager';                  Reason='Mapas sin conexion. Innecesario en escritorio.' },
-    [PSCustomObject]@{ Name='XblAuthManager';   DisplayName='Xbox Live Auth Manager';                   Reason='Innecesario sin Xbox Live / Game Pass.' },
-    [PSCustomObject]@{ Name='Spooler';          DisplayName='Print Spooler [!]';                        Reason='[!] ADVERTENCIA: rompe impresoras fisicas Y virtuales (PDF, Adobe).' },
-    [PSCustomObject]@{ Name='TrkWks';           DisplayName='Distributed Link Tracking Client';         Reason='Innecesario en redes domesticas.' },
+    [PSCustomObject]@{ Name='DiagTrack';        DisplayName='Connected User Experiences and Telemetry'; Reason='Privacidad y rendimiento: telemetria principal de Microsoft.' },
+    [PSCustomObject]@{ Name='dmwappushservice'; DisplayName='WAP Push Message Routing';                 Reason='Privacidad: telemetria secundaria.' },
+    [PSCustomObject]@{ Name='WerSvc';           DisplayName='Windows Error Reporting Service';          Reason='Evita congelamientos de 30s tras crash inesperado de juegos/apps.' },
+    [PSCustomObject]@{ Name='TroubleshootingSvc'; DisplayName='Recommended Troubleshooting Service';   Reason='Diagnosticos no solicitados en segundo plano.' },
+    [PSCustomObject]@{ Name='BDESVC';           DisplayName='BitLocker Drive Encryption Service';       Reason='Cifrado por software de disco (libera I/O en SSDs NVMe).' },
+    [PSCustomObject]@{ Name='Fax';              DisplayName='Fax Service';                              Reason='Servicio legado de oficina. Inutil en PCs personales/gaming.' },
+    [PSCustomObject]@{ Name='SCardSvr';         DisplayName='Smart Card Service';                       Reason='Tarjetas inteligentes corporativas / DNIe en empresas.' },
+    [PSCustomObject]@{ Name='RemoteRegistry';   DisplayName='Remote Registry';                          Reason='Modificacion remota corporativa del registro.' },
     [PSCustomObject]@{ Name='RetailDemo';       DisplayName='Retail Demo Service';                      Reason='Modo demo de tienda. Sin utilidad personal.' },
-    [PSCustomObject]@{ Name='WbioSrvc';         DisplayName='Windows Biometric Service';                Reason='Solo deshabilitar si NO usas Windows Hello / huella / facial.' }
+    [PSCustomObject]@{ Name='MapsBroker';       DisplayName='Downloaded Maps Manager';                  Reason='Mapas sin conexion. Innecesario en escritorio.' },
+    [PSCustomObject]@{ Name='lfsvc';            DisplayName='Geolocation Service';                      Reason='Sondeo constante de ubicacion geografica.' },
+    [PSCustomObject]@{ Name='XblAuthManager';   DisplayName='Xbox Live Auth Manager';                   Reason='Innecesario sin Xbox Live / Game Pass.' },
+    [PSCustomObject]@{ Name='WbioSrvc';         DisplayName='Windows Biometric Service';                Reason='Solo deshabilitar si NO usas Windows Hello / huella / facial.' },
+    [PSCustomObject]@{ Name='TrkWks';           DisplayName='Distributed Link Tracking Client';         Reason='Innecesario en redes domesticas.' },
+    [PSCustomObject]@{ Name='SysMain';          DisplayName='SysMain (SuperFetch)';                     Reason='Gaming/SSD: libera RAM. En HDD o <16 GB puede empeorar el arranque.' },
+    [PSCustomObject]@{ Name='WSearch';          DisplayName='Windows Search (Indexer)';                 Reason='Reduce I/O constante. Las busquedas sin indice seran mas lentas.' },
+    [PSCustomObject]@{ Name='Spooler';          DisplayName='Print Spooler [!]';                        Reason='[!] ADVERTENCIA: rompe impresoras fisicas Y virtuales (PDF, Adobe).' }
 )
 
 if (-not $Unattended) {
