@@ -1,4 +1,4 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 
 <#
 .SYNOPSIS
@@ -99,6 +99,16 @@ Activa la instalación 100% desatendida (Zero-Touch): particiona automáticament
 
 .PARAMETER ZeroTouchDisk
 Índice del disco físico de destino para Zero-Touch (por defecto: 0).
+
+.PARAMETER ProcessTimeoutMinutes
+Tiempo límite máximo en minutos para la ejecución de subprocesos externos (DISM, oscdimg, 7-Zip, curl).
+Por defecto: 30 minutos. Establecer en 0 para desactivar el corte por timeout.
+
+.PARAMETER HeartbeatIntervalSeconds
+Intervalo en segundos para la emisión de reportes de actividad/heartbeat en pantalla y logs (por defecto: 15s).
+
+.PARAMETER SkipComponentCleanup
+Omite la ejecución de StartComponentCleanup / ResetBase en la imagen WIM (acelera la compilación evitando esperas largas).
 
 .PARAMETER KeepExtractDir
 Si se especifica, conserva la carpeta temporal de extracción ($ExtractDir) tras
@@ -207,6 +217,15 @@ param(
     [Parameter()]
     [ValidateSet("amd64", "arm64", "x86")]
     [string]$Architecture = "amd64",
+
+    [Parameter()]
+    [int]$ProcessTimeoutMinutes = 30,
+
+    [Parameter()]
+    [int]$HeartbeatIntervalSeconds = 15,
+
+    [Parameter()]
+    [switch]$SkipComponentCleanup,
 
     [Parameter()]
     [switch]$KeepExtractDir,
@@ -399,6 +418,8 @@ function Write-LogSummary {
         [void]$sb.AppendLine("| Block OneDrive | ``$script:BlockOneDrive`` |")
         [void]$sb.AppendLine("| Zero-Touch | ``$($script:EnableZeroTouch)`` (Disk: ``$ZeroTouchDisk``) |")
         [void]$sb.AppendLine("| WIM Compression | ``$WimCompression`` |")
+        [void]$sb.AppendLine("| Process Timeout | ``$(${ProcessTimeoutMinutes})m`` (Heartbeat: ``$(${HeartbeatIntervalSeconds})s``) |")
+        [void]$sb.AppendLine("| Skip Cleanup | ``$($SkipComponentCleanup)`` |")
         [void]$sb.AppendLine("")
         [void]$sb.AppendLine("## Execution Timeline")
         [void]$sb.AppendLine("| Step | Status | Elapsed | Details |")
@@ -533,6 +554,12 @@ function Write-Warn {
     }
 }
 
+function Write-Info {
+    param([string]$Message)
+    Write-Host "  [*] $Message" -ForegroundColor Cyan
+    Write-LogEntry -Level "INFO" -Message $Message
+}
+
 function Write-ErrorMsg {
     param([string]$Message)
     Write-Host "  [ERROR] $Message" -ForegroundColor Red
@@ -541,6 +568,245 @@ function Write-ErrorMsg {
         $script:CurrentStepObj.Status = "ERROR"
         $script:CurrentStepObj.Note = $Message
     }
+}
+
+#------------------------------------------------------------------------------
+# SUBSISTEMA DE SUPERVISIÓN DE PROCESOS Y RESILIENCIA (WATCHDOG & HEARTBEAT)
+# Implementado con System.Diagnostics.Process y lectura asíncrona de flujos
+# para evitar deadlocks de búfer de Windows y detectar bloqueos de ejecución.
+# Fuentes oficiales:
+# - learn.microsoft.com/dotnet/api/system.diagnostics.process.waitforexit
+# - learn.microsoft.com/dotnet/api/system.diagnostics.process.standardoutput
+#------------------------------------------------------------------------------
+
+function Invoke-MonitoredProcess {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+
+        [Parameter()]
+        [object]$ArgumentList = $null,
+
+        [Parameter()]
+        [string]$TaskDescription = "",
+
+        [Parameter()]
+        [int]$TimeoutSeconds = 0,
+
+        [Parameter()]
+        [int]$HeartbeatIntervalSeconds = 15,
+
+        [Parameter()]
+        [int[]]$AllowExitCodes = @(0),
+
+        [Parameter()]
+        [string]$WorkingDirectory = "",
+
+        [Parameter()]
+        [switch]$ShowConsoleOutput
+    )
+
+    if ([string]::IsNullOrWhiteSpace($TaskDescription)) {
+        $TaskDescription = Split-Path -Leaf $FilePath
+    }
+
+    $argumentsString = if ($ArgumentList -is [array]) {
+        ($ArgumentList | ForEach-Object {
+            if ($_ -match '\s' -and $_ -notmatch '^".*"$') { '"{0}"' -f $_ } else { [string]$_ }
+        }) -join ' '
+    } elseif ($ArgumentList) {
+        [string]$ArgumentList
+    } else {
+        ""
+    }
+
+    $psi = [System.Diagnostics.ProcessStartInfo]::new()
+    $psi.FileName = $FilePath
+    $psi.Arguments = $argumentsString
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.CreateNoWindow = $true
+
+    if ($WorkingDirectory -and (Test-Path $WorkingDirectory)) {
+        $psi.WorkingDirectory = $WorkingDirectory
+    }
+
+    $proc = [System.Diagnostics.Process]::new()
+    $proc.StartInfo = $psi
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $lastHeartbeatSec = 0
+    $timedOut = $false
+
+    Write-LogEntry -Level "DEBUG" -Message "Ejecutando proceso supervisado: $FilePath $argumentsString (Timeout: ${TimeoutSeconds}s)" -NoAccumulate
+
+    try {
+        $proc.Start() | Out-Null
+    } catch {
+        Write-ErrorMsg "No se pudo iniciar el proceso '$FilePath': $($_.Exception.Message)"
+        return [PSCustomObject]@{
+            Success        = $false
+            TimedOut       = $false
+            ExitCode       = -1
+            StdOut         = ""
+            StdErr         = $_.Exception.Message
+            ElapsedSeconds = 0
+            Task           = $TaskDescription
+        }
+    }
+
+    $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+    $stderrTask = $proc.StandardError.ReadToEndAsync()
+
+    # Bucle de supervisión periódica con heartbeat y detector de cuelgues
+    while (-not $proc.WaitForExit(1000)) {
+        $elapsedSec = [int]$sw.Elapsed.TotalSeconds
+
+        # Emisión de Heartbeat
+        if ($HeartbeatIntervalSeconds -gt 0 -and ($elapsedSec - $lastHeartbeatSec) -ge $HeartbeatIntervalSeconds) {
+            $lastHeartbeatSec = $elapsedSec
+            $elapsedStr = [timespan]::FromSeconds($elapsedSec).ToString('mm\:ss')
+            $memMB = 0
+            try {
+                if (-not $proc.HasExited) {
+                    $proc.Refresh()
+                    $memMB = [math]::Round($proc.WorkingSet64 / 1MB, 1)
+                }
+            } catch {}
+
+            Write-Host "    [⏳ Heartbeat] $TaskDescription en progreso... (Transcurrido: $elapsedStr | RAM: ${memMB} MB)" -ForegroundColor DarkGray
+            Write-LogEntry -Level "INFO" -Message "[HEARTBEAT] $TaskDescription en ejecución (Transcurrido: $elapsedStr | RAM: ${memMB} MB)" -NoAccumulate
+        }
+
+        # Detección de Timeout
+        if ($TimeoutSeconds -gt 0 -and $elapsedSec -ge $TimeoutSeconds) {
+            $timedOut = $true
+            Write-Warn "TIMEOUT: '$TaskDescription' excedió el límite de ${TimeoutSeconds}s. Cancelando subproceso..."
+            Write-LogEntry -Level "ERROR" -Message "TIMEOUT: '$TaskDescription' superó el límite de ${TimeoutSeconds}s. Terminando PID $($proc.Id)."
+            try {
+                if (-not $proc.HasExited) {
+                    $proc.Kill()
+                    $proc.WaitForExit(3000)
+                }
+            } catch {}
+            break
+        }
+    }
+
+    $proc.WaitForExit()
+
+    try {
+        [System.Threading.Tasks.Task]::WaitAll(@($stdoutTask, $stderrTask), 2000) | Out-Null
+    } catch {}
+
+    $stdout = if ($stdoutTask.IsCompleted) { $stdoutTask.Result.Trim() } else { "" }
+    $stderr = if ($stderrTask.IsCompleted) { $stderrTask.Result.Trim() } else { "" }
+    $exitCode = if ($timedOut) { -1 } else { $proc.ExitCode }
+
+    $isSuccess = (-not $timedOut) -and ($exitCode -in $AllowExitCodes)
+
+    if ($ShowConsoleOutput -and $stdout) {
+        Write-Host $stdout -ForegroundColor DarkGray
+    }
+
+    if (-not $isSuccess -and -not $timedOut) {
+        $diagMsg = "Proceso '$TaskDescription' finalizó con código de salida: $exitCode."
+        if ($stderr) { $diagMsg += " STDERR: $stderr" }
+        Write-LogEntry -Level "WARN" -Message $diagMsg
+    }
+
+    $elapsedTotal = [math]::Round($sw.Elapsed.TotalSeconds, 1)
+    $proc.Dispose()
+
+    return [PSCustomObject]@{
+        Success         = $isSuccess
+        TimedOut        = $timedOut
+        ExitCode        = $exitCode
+        StdOut          = $stdout
+        StdErr          = $stderr
+        ElapsedSeconds  = $elapsedTotal
+        DurationSeconds = $elapsedTotal
+        Task            = $TaskDescription
+    }
+}
+
+function Invoke-SafeWimDismount {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$MountDir,
+
+        [Parameter()]
+        [ValidateSet("Save", "Discard")]
+        [string]$Action = "Save",
+
+        [Parameter()]
+        [string]$ScratchDirectory = "",
+
+        [Parameter()]
+        [int]$MaxRetries = 3
+    )
+
+    Write-Host "    Desmontando imagen WIM en '$MountDir' (Acción: $Action)..." -ForegroundColor Gray
+
+    # 1. Recolección de basura preventiva para liberar cualquier File/Registry handle abierto por PowerShell/.NET
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
+
+    $dismountSuccess = $false
+
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        try {
+            $dismountParams = @{
+                Path        = $MountDir
+                ErrorAction = 'Stop'
+            }
+            if ($Action -eq "Save") {
+                $dismountParams["Save"] = $true
+            } else {
+                $dismountParams["Discard"] = $true
+            }
+            if ($ScratchDirectory -and (Test-Path $ScratchDirectory)) {
+                $dismountParams["ScratchDirectory"] = $ScratchDirectory
+            }
+
+            Dismount-WindowsImage @dismountParams | Out-Null
+            $dismountSuccess = $true
+            break
+        } catch {
+            Write-Warn "Intento $attempt/$MaxRetries de desmontaje falló ($($_.Exception.Message))."
+            if ($attempt -lt $MaxRetries) {
+                Write-Host "    Esperando 3 segundos y liberando identificadores antes de reintentar..." -ForegroundColor DarkYellow
+                Start-Sleep -Seconds 3
+                [System.GC]::Collect()
+                [System.GC]::WaitForPendingFinalizers()
+            }
+        }
+    }
+
+    # Si falló el guardado y se agotaron los reintentos, aplicar desmontaje forzado y limpieza preventiva
+    if (-not $dismountSuccess) {
+        Write-Warn "No se pudo desmontar con '$Action'. Intentando desmontaje forzado (/Discard)..."
+        try {
+            Dismount-WindowsImage -Path $MountDir -Discard -ErrorAction SilentlyContinue | Out-Null
+        } catch {}
+
+        if (Get-Command "dism.exe" -ErrorAction SilentlyContinue) {
+            try {
+                & dism.exe /Unmount-Wim /MountDir:"$MountDir" /Discard 2>&1 | Out-Null
+                & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null
+            } catch {}
+        }
+    }
+
+    # Limpieza final del directorio de montaje si quedó vacío
+    if (Test-Path $MountDir) {
+        Remove-Item -Path $MountDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    return $dismountSuccess
 }
 
 #------------------------------------------------------------------------------
@@ -900,7 +1166,7 @@ function Detect-WindowsVersion {
     switch ($choice) {
         "1" { return "11" }
         "2" { return "10" }
-        default { exit 1 }
+        default { return $null }
     }
 }
 
@@ -1662,7 +1928,7 @@ function Invoke-WizardConfig {
 
     if ($confirm -notmatch '^[Ss]$') {
         Write-Host "`n  Operación cancelada por el usuario." -ForegroundColor Red
-        exit 0
+        return $false
     }
 
     Write-Host ""
@@ -1918,6 +2184,7 @@ function Get-OnlineWindowsReleases {
 function Invoke-OfficialWindowsDownload {
     [CmdletBinding()]
     param(
+
         [string]$Version = "",
         [string]$Edition = "",
         [string]$Language = "",
@@ -2000,8 +2267,8 @@ function Invoke-OfficialWindowsDownload {
     if (-not (Test-Path $OutputDir)) { New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null }
     $OutputDir = (Resolve-Path $OutputDir).Path
 
-    $langFilePart = $Language -replace '\s+', '_' -replace '[\(\)]', ''
-    $isoFileName = "Windows_${Version}_${Edition}_${langFilePart}_x64.iso"
+    $langFilePart    = $Language -replace '\s+', '_' -replace '[\(\)]', ''
+    $isoFileName     = "Windows_${Version}_${Edition}_${langFilePart}_x64.iso"
     $destinationFile = Join-Path $OutputDir $isoFileName
 
     if (Test-Path $destinationFile) {
@@ -2012,46 +2279,271 @@ function Invoke-OfficialWindowsDownload {
         }
     }
 
-    Write-Host ""
-    Write-Info "Resolviendo enlace de descarga directa en CDN oficial de Microsoft..."
-    $downloadUrl = "https://software-download.microsoft.com/download/pr/$isoFileName"
+    # -----------------------------------------------------------------------
+    # DETECCIÓN DE EDICIÓN ESPECIAL (LTSC / IoT / Enterprise / Business)
+    # Estas ediciones NO se distribuyen vía MCT público ni Fido CDN Consumer.
+    # Fuente oficial: https://learn.microsoft.com/en-us/windows/whats-new/ltsc/
+    #                 https://www.microsoft.com/en-us/evalcenter/
+    # Fuente técnica: https://github.com/pbatard/Fido#description
+    # -----------------------------------------------------------------------
+    $isSpecialEdition = ($Edition -in @("Business", "IoTEnterprise")) -or ($Version -match "LTSC")
 
-    Write-Info "Iniciando descarga hacia: $destinationFile"
+    $specialLinks = @{
+        "11_LTSC_2024" = @{
+            EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise"
+            MassgraveTag = "#windows-11"
+            EvalNote     = "Windows 11 Enterprise LTSC 2024 (Build 26100) — Evaluación oficial 90 días"
+            IoTNote      = "IoT Enterprise LTSC: usar ISO 24H2 estándar + PID.txt con clave IoT en setup"
+        }
+        "10_LTSC_2021" = @{
+            EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-10-enterprise"
+            MassgraveTag = "#windows-10"
+            EvalNote     = "Windows 10 Enterprise LTSC 2021 (Build 19044) — Evaluación oficial 90 días"
+            IoTNote      = ""
+        }
+        "11_25H2" = @{
+            EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise"
+            MassgraveTag = "#windows-11"
+            EvalNote     = "Windows 11 Enterprise 25H2 — Evaluación oficial 90 días"
+            IoTNote      = "IoT Enterprise: usar ISO 25H2 estándar + PID.txt con clave IoT en setup"
+        }
+        "11_24H2" = @{
+            EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise"
+            MassgraveTag = "#windows-11"
+            EvalNote     = "Windows 11 Enterprise 24H2 (Build 26100) — Evaluación oficial 90 días"
+            IoTNote      = "IoT Enterprise: usar ISO 24H2 estándar + PID.txt con clave IoT en setup"
+        }
+        "10_22H2" = @{
+            EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-10-enterprise"
+            MassgraveTag = "#windows-10"
+            EvalNote     = "Windows 10 Enterprise 22H2 — Evaluación oficial 90 días"
+            IoTNote      = ""
+        }
+    }
+    $editionLinks = $specialLinks[$Version]
+
+    if ($isSpecialEdition) {
+        Write-Host ""
+        Write-Host "  ╔═══════════════════════════════════════════════════════════════════════╗" -ForegroundColor Magenta
+        Write-Host "  ║  EDICIÓN ESPECIAL — CANAL DE DISTRIBUCIÓN OFICIAL                   ║" -ForegroundColor Magenta
+        Write-Host "  ║  Edición: $Edition | Versión: $Version" -ForegroundColor Magenta
+        Write-Host "  ╚═══════════════════════════════════════════════════════════════════════╝" -ForegroundColor Magenta
+        Write-Host ""
+        Write-Warn "Esta edición NO está disponible en el CDN público de consumidor (Fido/MCT)."
+        Write-Info "Motivo técnico: MCT público solo distribuye Home/Pro/Education (Consumer)."
+        Write-Info "Fuente: https://learn.microsoft.com/en-us/windows/whats-new/ltsc/"
+        Write-Host ""
+
+        $evalUrl      = if ($editionLinks) { $editionLinks.EvalCenter } else { "https://www.microsoft.com/en-us/evalcenter/" }
+        $massgraveUrl = "https://massgrave.dev/genuine-installation-media" + $(if ($editionLinks) { $editionLinks.MassgraveTag } else { "" })
+
+        Write-Host "  OPCIÓN A — Microsoft Evaluation Center (Oficial Microsoft, GRATUITO):" -ForegroundColor Cyan
+        if ($editionLinks) { Write-Host "  $($editionLinks.EvalNote)" -ForegroundColor White }
+        Write-Host "  URL: $evalUrl" -ForegroundColor Yellow
+        Write-Host ""
+        if ($editionLinks -and $editionLinks.IoTNote -and $Edition -eq "IoTEnterprise") {
+            Write-Host "  NOTA IoT Enterprise:" -ForegroundColor Yellow
+            Write-Host "  $($editionLinks.IoTNote)" -ForegroundColor White
+            Write-Host "  (No existe ISO IoT separada en canal público — se selecciona vía PID.txt durante setup)" -ForegroundColor Gray
+            Write-Host ""
+        }
+        Write-Host "  OPCIÓN B — Massgrave Genuine Media (ISO completa, SHA-256 verificado):" -ForegroundColor Cyan
+        Write-Host "  Sin límite de 90 días. Links directos CDN oficial de Microsoft." -ForegroundColor White
+        Write-Host "  URL: $massgraveUrl" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "  Directorio destino: $OutputDir" -ForegroundColor Gray
+        Write-Host ""
+
+        $openChoice = Read-Host "  Abrir en navegador: [A] Evaluation Center  [B] Massgrave  [C] Ambos  [N] No"
+        switch ($openChoice.ToUpper().Trim()) {
+            "A" { Start-Process $evalUrl }
+            "B" { Start-Process $massgraveUrl }
+            "C" { Start-Process $evalUrl; Start-Sleep -Seconds 1; Start-Process $massgraveUrl }
+            default { Write-Info "URLs registradas en log. Sin apertura de navegador." }
+        }
+
+        Write-Warn "Descarga manual requerida. Una vez descargada la ISO, use -SourceISO para continuar la compilación."
+        return $null
+    }
+
+    # -----------------------------------------------------------------------
+    # ESTRATEGIA 1: CDN DIRECTO VÍA MOTOR FIDO (pbatard/Fido) — SOLO CONSUMER
+    # Fido emula sesión de navegador para obtener tokens temporales del CDN
+    # de Microsoft. Sin este proceso, las URLs del CDN retornan HTTP 403/404.
+    # Fuente: https://github.com/pbatard/Fido#description
+    # -----------------------------------------------------------------------
     $downloadSuccess = $false
 
-    # 1. BITS
-    if (Get-Command "Start-BitsTransfer" -ErrorAction SilentlyContinue) {
-        try {
-            Write-Info "Descargando con motor BITS nativo de Windows..."
-            Start-BitsTransfer -Source $downloadUrl -Destination $destinationFile -Description "Descarga ISO Oficial Microsoft" -DisplayName "Windows ISO" -Priority High -ErrorAction Stop
-            $downloadSuccess = (Test-Path $destinationFile)
-        } catch {
-            Write-Warn "BITS no completó la transferencia ($($_.Exception.Message)). Intentando con curl..."
+    Write-Host ""
+    Write-Info "Estrategia 1: Motor CDN Fido (pbatard/Fido) — Edición Consumer..."
+    $fidoScript = Join-Path $env:TEMP "Fido_$(Get-Random).ps1"
+    $fidoUrl    = "https://raw.githubusercontent.com/pbatard/Fido/master/Fido.ps1"
+
+    try {
+        Invoke-WebRequest -Uri $fidoUrl -OutFile $fidoScript -UseBasicParsing -ErrorAction Stop
+        Write-OK "Motor Fido.ps1 descargado."
+
+        $fidoWinNum = if ($Version -like '11_*') { '11' } else { '10' }
+        $fidoRel    = ($Version -replace '^\d+_', '') -replace '_', ' '
+
+        Write-Info "Consultando API Microsoft vía Fido (Win $fidoWinNum $fidoRel, $Language, x64)..."
+        $fidoArgs      = @("-Win", $fidoWinNum, "-Rel", $fidoRel, "-Lang", $Language, "-Arch", "x64", "-GetUrl")
+        $fidoRawOutput = & $fidoScript @fidoArgs 2>&1
+        $downloadUrl   = $fidoRawOutput | Where-Object { $_ -match '^https?://' } | Select-Object -Last 1
+
+        if ($downloadUrl) {
+            Write-OK "URL CDN autenticada obtenida."
+            Write-Info "URL: $downloadUrl"
+
+            if (Get-Command "Start-BitsTransfer" -ErrorAction SilentlyContinue) {
+                try {
+                    Write-Info "Descargando con motor BITS nativo de Windows..."
+                    Start-BitsTransfer -Source $downloadUrl -Destination $destinationFile `
+                        -Description "Descarga ISO Oficial Microsoft" -DisplayName "Windows ISO" `
+                        -Priority High -ErrorAction Stop
+                    $downloadSuccess = (Test-Path $destinationFile) -and ((Get-Item $destinationFile).Length -gt 1GB)
+                    if ($downloadSuccess) { Write-OK "Descarga completada vía BITS." }
+                } catch {
+                    Write-Warn "BITS no completó la transferencia ($($_.Exception.Message)). Intentando con curl..."
+                }
+            }
+
+            if (-not $downloadSuccess -and (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
+                Write-Info "Descargando con curl.exe (reanudación -C - activada)..."
+                $curlTimeout = if ($ProcessTimeoutMinutes -gt 0) { $ProcessTimeoutMinutes * 60 } else { 0 }
+                $curlHb      = if ($HeartbeatIntervalSeconds -gt 0) { $HeartbeatIntervalSeconds } else { 15 }
+
+                $curlRes = Invoke-MonitoredProcess -FilePath "curl.exe" `
+                    -ArgumentList @("-L", "-C", "-", "--retry", "5", "--retry-delay", "3", "--connect-timeout", "30", "-#", "-o", $destinationFile, $downloadUrl) `
+                    -TaskDescription "Descarga CDN oficial vía curl" `
+                    -TimeoutSeconds $curlTimeout `
+                    -HeartbeatIntervalSeconds $curlHb
+
+                $downloadSuccess = (Test-Path $destinationFile) -and ((Get-Item $destinationFile).Length -gt 1GB)
+                if ($downloadSuccess) { Write-OK "Descarga completada vía curl.exe." }
+            }
+        } else {
+            $isSentinel = ($fidoRawOutput | Out-String) -match "Sentinel"
+            if ($isSentinel) {
+                Write-Warn "Microsoft Sentinel WAF bloqueó la petición automatizada de Fido."
+                Write-Info "Esto ocurre cuando Microsoft detecta requests no interactivos. Conmutando a estrategia 2..."
+            } else {
+                Write-Warn "Fido no retornó URL CDN válida. Detalle: $(($fidoRawOutput | Out-String).Trim())"
+            }
+        }
+    } catch {
+        Write-Warn "Fallo al descargar/ejecutar Fido: $($_.Exception.Message)"
+    } finally {
+        if (Test-Path $fidoScript) { Remove-Item $fidoScript -Force -ErrorAction SilentlyContinue }
+    }
+
+    # -----------------------------------------------------------------------
+    # ESTRATEGIA 2: MEDIACREATIONTOOL OFICIAL — SOLO CONSUMER / GA
+    # MCT solo ofrece ediciones Consumer (Home/Pro/Education/Pro Workstations).
+    # Fuente: https://www.microsoft.com/software-download/windows11
+    # -----------------------------------------------------------------------
+    if (-not $downloadSuccess) {
+        Write-Info "Estrategia 2: MediaCreationTool oficial de Microsoft (Consumer GA)..."
+
+        $mctUrls = @{
+            "11_25H2" = "https://go.microsoft.com/fwlink/?linkid=2156295"
+            "11_24H2" = "https://go.microsoft.com/fwlink/?linkid=2156295"
+            "11_23H2" = "https://go.microsoft.com/fwlink/?linkid=2156295"
+            "10_22H2" = "https://go.microsoft.com/fwlink/?LinkId=691209"
+        }
+        $mctUrl = $mctUrls[$Version]
+
+        if ($mctUrl) {
+            $scratchDir = Join-Path $env:TEMP "MCT_$(Get-Random)"
+            New-Item -ItemType Directory -Path $scratchDir -Force | Out-Null
+            $mctPath = Join-Path $scratchDir "MediaCreationTool.exe"
+
+            try {
+                Write-Info "Descargando MediaCreationTool firmado por Microsoft..."
+                Invoke-WebRequest -Uri $mctUrl -OutFile $mctPath -UseBasicParsing -ErrorAction Stop
+                Write-OK "MediaCreationTool descargado en: $mctPath"
+
+                Write-Host ""
+                Write-Host "  ┌────────────────────────────────────────────────────────────────────────┐" -ForegroundColor Yellow
+                Write-Host "  │  ASISTENTE OFICIAL DE MEDIACREATIONTOOL:                               │" -ForegroundColor Yellow
+                Write-Host "  │  1. Se abrirá la ventana gráfica oficial de Microsoft.                │" -ForegroundColor Yellow
+                Write-Host "  │  2. Acepte los términos de licencia.                                  │" -ForegroundColor Yellow
+                Write-Host "  │  3. Seleccione: 'Crear medios de instalación (archivo ISO)'.         │" -ForegroundColor Yellow
+                Write-Host "  │  4. Guarde el ISO en: $OutputDir" -ForegroundColor Cyan
+                Write-Host "  └────────────────────────────────────────────────────────────────────────┘" -ForegroundColor Yellow
+                Write-Host ""
+
+                $mctStartTime = Get-Date
+                Start-Process -FilePath $mctPath -ArgumentList @("/Eula", "Accept") -Wait | Out-Null
+
+                if (Test-Path $destinationFile) {
+                    $downloadSuccess = $true
+                } else {
+                    $recentIso = Get-ChildItem -Path $OutputDir -Filter "*.iso" -File -ErrorAction SilentlyContinue |
+                                 Where-Object { $_.LastWriteTime -ge $mctStartTime.AddMinutes(-2) } |
+                                 Sort-Object LastWriteTime -Descending |
+                                 Select-Object -First 1
+                    if ($recentIso) {
+                        $destinationFile = $recentIso.FullName
+                        $downloadSuccess = $true
+                    }
+                }
+
+                if ($downloadSuccess) {
+                    Write-OK "ISO generada y detectada vía MediaCreationTool."
+                } else {
+                    Write-Warn "MediaCreationTool finalizó sin detectar ISO en directorio objetivo."
+                }
+            } catch {
+                Write-Warn "Fallo en MediaCreationTool: $($_.Exception.Message)"
+            } finally {
+                if (Test-Path $scratchDir) { Remove-Item $scratchDir -Recurse -Force -ErrorAction SilentlyContinue }
+            }
+        } else {
+            Write-Warn "No hay MCT disponible para la versión '$Version'. Conmutando al navegador asistido."
         }
     }
 
-    # 2. curl fallback
-    if (-not $downloadSuccess -and (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
-        Write-Info "Descargando con curl.exe (soporte de reanudación activo)..."
-        & curl.exe -L -C - --retry 5 --retry-delay 3 -# -o "$destinationFile" "$downloadUrl"
-        $downloadSuccess = (Test-Path $destinationFile)
+    # -----------------------------------------------------------------------
+    # ESTRATEGIA 3: BROWSER ASISTIDO — FALLBACK FINAL
+    # -----------------------------------------------------------------------
+    if (-not $downloadSuccess) {
+        Write-Host ""
+        $consumerUrl  = if ($Version -like '11_*') { "https://www.microsoft.com/software-download/windows11" } `
+                        else { "https://www.microsoft.com/software-download/windows10" }
+        $massgraveUrl = "https://massgrave.dev/genuine-installation-media"
+
+        Write-Host "  ┌────────────────────────────────────────────────────────────────────────┐" -ForegroundColor Cyan
+        Write-Host "  │  DESCARGA MANUAL ASISTIDA — CONSUMER (FUENTES OFICIALES):              │" -ForegroundColor Cyan
+        Write-Host "  │  1. Portal oficial Microsoft: $consumerUrl" -ForegroundColor Yellow
+        Write-Host "  │  2. Massgrave Genuine Media:  $massgraveUrl" -ForegroundColor Yellow
+        Write-Host "  │  Directorio destino: $OutputDir" -ForegroundColor Gray
+        Write-Host "  └────────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
+        Write-Host ""
+
+        $openBrowser = Read-Host "  ¿Abrir portal oficial de Microsoft en el navegador ahora? (S/N)"
+        if ($openBrowser -match '^[sSyY]') { Start-Process $consumerUrl }
+        return $null
     }
 
+    # -----------------------------------------------------------------------
+    # VERIFICACIÓN FINAL: TAMAÑO E INTEGRIDAD SHA-256
+    # -----------------------------------------------------------------------
     if ($downloadSuccess -and (Test-Path $destinationFile)) {
         $fileSize = (Get-Item $destinationFile).Length
-        $sizeGB = [math]::Round($fileSize / 1GB, 2)
+        $sizeGB   = [math]::Round($fileSize / 1GB, 2)
         if ($fileSize -gt 3GB) {
-            Write-OK "Descarga completada exitosamente: $destinationFile ($sizeGB GB)"
-            Write-Info "Calculando hash criptográfico SHA-256..."
+            Write-OK "Descarga completada: $destinationFile ($sizeGB GB)"
+            Write-Info "Calculando hash SHA-256..."
             $sha256 = (Get-FileHash -Path $destinationFile -Algorithm SHA256).Hash
-            Write-OK "Hash SHA-256 verificado: $sha256"
+            Write-OK "Hash SHA-256: $sha256"
             return $destinationFile
         } else {
-            Write-ErrorMsg "El archivo descargado está incompleto ($sizeGB GB)."
+            Write-ErrorMsg "El archivo descargado está incompleto ($sizeGB GB). Verifique su conexión."
             return $null
         }
     } else {
-        Write-ErrorMsg "No fue posible descargar la ISO desde los servidores de Microsoft."
+        Write-ErrorMsg "No fue posible obtener la ISO. Use -SourceISO para proveer una ISO local."
         return $null
     }
 }
@@ -2075,6 +2567,7 @@ function Resolve-SourceISO {
         if ($downloaded -and (Test-Path $downloaded)) {
             return $downloaded
         }
+        return $null
     }
 
     # Si ya viene por parámetro y existe, usarla directamente.
@@ -2175,7 +2668,7 @@ function Resolve-SourceISO {
             '0' {
                 Write-Host ""
                 Write-Host "  Operación cancelada por el usuario." -ForegroundColor Red
-                exit 0
+                return $null
             }
 
             default {
@@ -2195,6 +2688,9 @@ function Expand-WindowsIso {
         [string]$Destination
     )
 
+    $timeoutSec = if ($ProcessTimeoutMinutes -gt 0) { $ProcessTimeoutMinutes * 60 } else { 0 }
+    $hbSec      = if ($HeartbeatIntervalSeconds -gt 0) { $HeartbeatIntervalSeconds } else { 15 }
+
     # Intento 1: 7-Zip
     $7zPath = Test-7ZipInstalled
 
@@ -2202,7 +2698,6 @@ function Expand-WindowsIso {
         Write-Host "    Usando 7-Zip: $7zPath" -ForegroundColor Gray
 
         try {
-            # Argumentos corregidos, sin espacios internos ni comillas manuales.
             $arguments = @(
                 'x'
                 $IsoPath
@@ -2210,17 +2705,20 @@ function Expand-WindowsIso {
                 '-y'
             )
 
-            $process = Start-Process -FilePath $7zPath `
-                                     -ArgumentList $arguments `
-                                     -NoNewWindow `
-                                     -Wait `
-                                     -PassThru
+            $pRes = Invoke-MonitoredProcess -FilePath $7zPath `
+                                            -ArgumentList $arguments `
+                                            -TaskDescription "Extracción de ISO con 7-Zip" `
+                                            -TimeoutSeconds $timeoutSec `
+                                            -HeartbeatIntervalSeconds $hbSec
 
-            if ($process.ExitCode -eq 0) {
+            if ($pRes.Success) {
                 Write-OK "ISO extraída con 7-Zip."
                 return $true
+            } elseif ($pRes.TimedOut) {
+                Write-ErrorMsg "La extracción con 7-Zip superó el límite de tiempo (${timeoutSec}s) y fue cancelada."
             } else {
-                Write-Warn "7-Zip falló con código de salida: $($process.ExitCode)"
+                Write-Warn "7-Zip falló con código de salida: $($pRes.ExitCode)"
+                if ($pRes.StdErr) { Write-Warn "Detalle: $($pRes.StdErr)" }
             }
         } catch {
             Write-Warn "Error ejecutando 7-Zip: $($_.Exception.Message)"
@@ -2254,16 +2752,22 @@ function Expand-WindowsIso {
         Write-Host "    ISO montada en $driveRoot" -ForegroundColor Gray
         Write-Host "    Copiando archivos. Esto puede tardar varios minutos..." -ForegroundColor Gray
 
-        # Robocopy:
-        # Exit codes < 8 suelen indicar éxito o advertencias no fatales.
-        & robocopy $driveRoot $Destination /E /COPY:DAT /R:2 /W:2 /NP /NFL /NDL /MT:32 /XD "System Volume Information" | Out-Null
+        $roboArgs = @($driveRoot, $Destination, "/E", "/COPY:DAT", "/R:2", "/W:2", "/NP", "/NFL", "/NDL", "/MT:16", "/XD", "System Volume Information")
+        $roboRes  = Invoke-MonitoredProcess -FilePath "robocopy.exe" `
+                                            -ArgumentList $roboArgs `
+                                            -AllowExitCodes @(0, 1, 2, 3, 4, 5, 6, 7) `
+                                            -TaskDescription "Copia de archivos ISO con Robocopy" `
+                                            -TimeoutSeconds $timeoutSec `
+                                            -HeartbeatIntervalSeconds $hbSec
 
-        if ($LASTEXITCODE -ge 8) {
-            throw "Robocopy terminó con código $LASTEXITCODE."
+        if ($roboRes.Success) {
+            Write-OK "Archivos copiados desde unidad $driveRoot."
+            return $true
+        } elseif ($roboRes.TimedOut) {
+            throw "Robocopy excedió el tiempo límite (${timeoutSec}s) y se canceló."
+        } else {
+            throw "Robocopy terminó con código $($roboRes.ExitCode)."
         }
-
-        Write-OK "Archivos copiados desde unidad $driveRoot."
-        return $true
     } catch {
         Write-ErrorMsg "No se pudo extraer la ISO mediante montaje nativo: $($_.Exception.Message)"
         return $false
@@ -2830,7 +3334,7 @@ if ($scriptsToInject.Count -gt 0) {
         # 1. Copiar script .ps1 a las dos rutas de scripts para máxima redundancia
         Copy-Item -Path $sc.Source -Destination (Join-Path $OEMScriptsDir $sc.DestName) -Force
         Copy-Item -Path $sc.Source -Destination (Join-Path $OEMScriptsDir1 $sc.DestName) -Force
-        Write-OK "Script inyectado en `$OEM$: $($sc.DestName)"
+        Write-OK "Script inyectado en `$OEM`$: $($sc.DestName)"
 
         # 2. Generar Lanzador .cmd con auto-elevación UAC en el Escritorio Público y Scripts
         $launcherContent = @"
@@ -2969,10 +3473,19 @@ IF EXIST "%SCRIPTS_DIR%\Runtimes" (
     echo [%DATE% %TIME%] Runtimes instalados exitosamente. >> "%LOG%"
 )
 
+__OPTIMIZATIONS_BLOCK__
 REM ===========================================================
 REM Registrar Tareas a Demanda y Accesos Directos en Escritorio
 REM ===========================================================
 __SCHEDULED_TASKS_BLOCK__
+
+REM ===========================================================
+REM Auditoria y Diagnostico Integral Post-Instalacion
+REM ===========================================================
+echo [%DATE% %TIME%] Ejecutando auditoria post-instalacion... >> "%LOG%"
+if exist "%SCRIPTS_DIR%\PostInstall-Diagnostics.ps1" (
+    "%PS%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\PostInstall-Diagnostics.ps1" -DesktopOutput >> "%LOG%" 2>&1
+)
 
 echo [%DATE% %TIME%] SetupComplete.cmd finalizado exitosamente. >> "%LOG%"
 exit /b 0
@@ -2991,14 +3504,370 @@ schtasks /create /tn "$taskName" /tr "powershell.exe -NoProfile -ExecutionPolicy
     }
 }
 
-$setupCompleteContent = $setupCompleteTemplate.Replace('__SCHEDULED_TASKS_BLOCK__', $tasksBlock)
+# Acceso directo para Auditoría Post-Instalación
+$tasksBlock += @"
+"%PS%" -NoProfile -ExecutionPolicy Bypass -Command "`$ws = New-Object -ComObject WScript.Shell; `$desk = if (`$env:PUBLIC) { \"`$env:PUBLIC\Desktop\" } else { 'C:\Users\Public\Desktop' }; if (-not (Test-Path `$desk)) { New-Item -ItemType Directory -Path `$desk -Force | Out-Null }; `$sc = `$ws.CreateShortcut(\"`$desk\Auditar Instalacion.lnk\"); `$sc.TargetPath = '%WINDIR%\Setup\Scripts\Auditar-Instalacion.cmd'; `$sc.WorkingDirectory = '%WINDIR%\Setup\Scripts'; `$sc.Description = 'Auditar y Diagnosticar Instalacion de Windows'; `$sc.IconLocation = '%SystemRoot%\System32\imageres.dll,104'; `$sc.Save()" >> "%LOG%" 2>&1
+"@ + "`r`n"
+
+$optimizationsBlock = @"
+REM ===========================================================
+REM Configuracion de Planes de Energia y Rendimiento
+REM ===========================================================
+echo [%DATE% %TIME%] Configurando plan de energia... >> "%LOG%"
+powercfg -h off >> "%LOG%" 2>&1
+powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 >> "%LOG%" 2>&1
+powercfg -setactive e9a42b02-d5df-448d-aa00-03f14749eb61 >> "%LOG%" 2>&1 || powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >> "%LOG%" 2>&1
+
+"@
+
+$optProfileIntSetup = if ($script:OptProfile) { [int]$script:OptProfile } else { 1 }
+
+if ($optProfileIntSetup -ge 2) {
+    $optimizationsBlock += @'
+REM ===========================================================
+REM Deshabilitar Servicios de Telemetria (Perfil 2+)
+REM ===========================================================
+echo [%DATE% %TIME%] Deshabilitando servicios de telemetria... >> "%LOG%"
+sc config DiagTrack start=disabled >> "%LOG%" 2>&1
+sc config dmwappushservice start=disabled >> "%LOG%" 2>&1
+
+'@
+}
+
+if ($optProfileIntSetup -eq 3) {
+    $optimizationsBlock += @'
+REM ===========================================================
+REM Deshabilitar Servicios Hardcore (Perfil 3)
+REM ===========================================================
+echo [%DATE% %TIME%] Deshabilitando servicios hardcore... >> "%LOG%"
+sc config WSearch start=disabled >> "%LOG%" 2>&1
+sc config Spooler start=disabled >> "%LOG%" 2>&1
+sc config WlanSvc start=disabled >> "%LOG%" 2>&1
+sc config bthserv start=disabled >> "%LOG%" 2>&1
+sc config SensorService start=disabled >> "%LOG%" 2>&1
+sc config SysMain start=disabled >> "%LOG%" 2>&1
+
+'@
+}
+
+$setupCompleteContent = $setupCompleteTemplate.Replace('__OPTIMIZATIONS_BLOCK__', $optimizationsBlock).Replace('__SCHEDULED_TASKS_BLOCK__', $tasksBlock)
 
 $setupCompletePath  = Join-Path $OEMScriptsDir "SetupComplete.cmd"
 $setupCompletePath1 = Join-Path $OEMScriptsDir1 "SetupComplete.cmd"
 $setupCompleteContent | Out-File -FilePath $setupCompletePath -Encoding ASCII -Force
 $setupCompleteContent | Out-File -FilePath $setupCompletePath1 -Encoding ASCII -Force
 
-Write-OK "SetupComplete.cmd y configuración a demanda registrados en `$OEM$"
+#------------------------------------------------------------------------------
+# GENERAR SCRIPT DE DIAGNOSTICO POST-INSTALACION (PostInstall-Diagnostics.ps1)
+#------------------------------------------------------------------------------
+
+$postInstallDiagTemplate = @'
+<#
+.SYNOPSIS
+Auditoria y Diagnostico Integral Post-Instalacion de Windows
+Generado automaticamente por New-OptimizedWindowsISO
+#>
+param(
+    [string]$OutputDir = "$env:WINDIR\Setup\Logs",
+    [switch]$DesktopOutput,
+    [switch]$ShowInNotepad,
+    [string]$ExpectedProfile = "__OPT_PROFILE__",
+    [bool]$ExpectedBlockOneDrive = __BLOCK_ONEDRIVE__
+)
+
+$ErrorActionPreference = 'Continue'
+
+try {
+    if (-not (Test-Path $OutputDir)) {
+        New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+    }
+
+    $desktopPath = [Environment]::GetFolderPath('CommonDesktopDirectory')
+    if (-not $desktopPath -or -not (Test-Path $desktopPath)) {
+        $desktopPath = if ($env:PUBLIC) { "$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" }
+    }
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $reportLines = [System.Collections.Generic.List[string]]::new()
+    $criticalErrors = [System.Collections.Generic.List[string]]::new()
+    $warnings = [System.Collections.Generic.List[string]]::new()
+    $passedChecks = [System.Collections.Generic.List[string]]::new()
+
+    # Encabezado
+    $reportLines.Add("# Reporte de Auditoria y Diagnostico Post-Instalacion")
+    $reportLines.Add("")
+    $reportLines.Add("- **Fecha de Analisis:** $timestamp")
+
+    # 1. Informacion del Sistema
+    try {
+        $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+        $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
+        $cpu = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1
+
+        $isVM = if ($cs.Model -match 'Virtual|Hyper-V|VMware|KVM|QEMU|VirtualBox') { "Maquina Virtual ($($cs.Model))" } else { "Equipo Fisico ($($cs.Manufacturer) $($cs.Model))" }
+        $ramGB = if ($cs.TotalPhysicalMemory) { [math]::Round($cs.TotalPhysicalMemory / 1GB, 1) } else { "N/A" }
+        $ubr = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -Name UBR -ErrorAction SilentlyContinue).UBR
+        $fullBuild = if ($ubr) { "$($os.Version).$ubr" } else { "$($os.Version)" }
+
+        $reportLines.Add("- **Edicion:** $($os.Caption)")
+        $reportLines.Add("- **Compilacion:** $fullBuild ($($os.OSArchitecture))")
+        $reportLines.Add("- **Entorno:** $isVM")
+        $reportLines.Add("- **Procesador:** $($cpu.Name)")
+        $reportLines.Add("- **Memoria RAM:** $ramGB GB")
+        $reportLines.Add("- **Nombre de Equipo:** $env:COMPUTERNAME")
+        $reportLines.Add("- **Usuario Actual:** $env:USERNAME")
+        $reportLines.Add("- **Perfil Esperado:** Perfil $ExpectedProfile")
+    } catch {
+        $reportLines.Add("- **Informacion del Sistema:** Error obteniendo telemetria ($($_.Exception.Message))")
+    }
+
+    $reportLines.Add("")
+
+    # 2. Auditoria de Windows Setup (Panther y UnattendGC)
+    $reportLines.Add("## 1. Auditoria de Logs Oficiales de Windows Setup")
+    $reportLines.Add("")
+
+    # Panther\setuperr.log
+    $pantherErr = "$env:WINDIR\Panther\setuperr.log"
+    if (Test-Path $pantherErr) {
+        $errLines = @(Get-Content -Path $pantherErr -ErrorAction SilentlyContinue | Where-Object { $_.Trim() -ne "" })
+        if ($errLines.Count -gt 0) {
+            $warnings.Add("Panther\setuperr.log contiene $($errLines.Count) linea(s) de error/advertencia.")
+            $reportLines.Add("### [WARN] Windows Setup Base: Panther\setuperr.log ($($errLines.Count) eventos)")
+            $reportLines.Add('```text')
+            foreach ($l in ($errLines | Select-Object -Last 10)) { $reportLines.Add($l) }
+            $reportLines.Add('```')
+        } else {
+            $passedChecks.Add("Windows Setup Base: Panther\setuperr.log limpio (0 errores).")
+            $reportLines.Add("- **Panther\setuperr.log:** Limpio (0 errores detectados) [OK]")
+        }
+    } else {
+        $passedChecks.Add("Windows Setup Base: Panther\setuperr.log sin errores.")
+        $reportLines.Add("- **Panther\setuperr.log:** Limpio / Sin errores registrados [OK]")
+    }
+
+    # Panther\UnattendGC\setuperr.log
+    $unattendErr = "$env:WINDIR\Panther\UnattendGC\setuperr.log"
+    if (Test-Path $unattendErr) {
+        $uErrLines = @(Get-Content -Path $unattendErr -ErrorAction SilentlyContinue | Where-Object { $_.Trim() -ne "" })
+        if ($uErrLines.Count -gt 0) {
+            $criticalErrors.Add("UnattendGC\setuperr.log contiene $($uErrLines.Count) error(es) en autounattend.xml.")
+            $reportLines.Add("### [ERROR] OOBE / Unattend: UnattendGC\setuperr.log ($($uErrLines.Count) eventos)")
+            $reportLines.Add('```text')
+            foreach ($l in ($uErrLines | Select-Object -Last 10)) { $reportLines.Add($l) }
+            $reportLines.Add('```')
+        } else {
+            $passedChecks.Add("Unattend / OOBE: UnattendGC\setuperr.log limpio (0 errores).")
+            $reportLines.Add("- **UnattendGC\setuperr.log:** Limpio (0 errores en autounattend.xml) [OK]")
+        }
+    } else {
+        $passedChecks.Add("Unattend / OOBE: UnattendGC\setuperr.log sin errores.")
+        $reportLines.Add("- **UnattendGC\setuperr.log:** Limpio / Sin errores registrados [OK]")
+    }
+
+    $reportLines.Add("")
+
+    # 3. Auditoria de SetupComplete.cmd
+    $reportLines.Add("## 2. Auditoria de SetupComplete.cmd y Runtimes")
+    $reportLines.Add("")
+
+    $setupCompleteLog = "$env:WINDIR\Setup\Scripts\SetupComplete.log"
+    if (Test-Path $setupCompleteLog) {
+        $scContent = Get-Content -Path $setupCompleteLog -Raw -ErrorAction SilentlyContinue
+        if ($scContent -match 'SetupComplete\.cmd finalizado exitosamente') {
+            $passedChecks.Add("SetupComplete.cmd ejecuto y finalizo exitosamente.")
+            $reportLines.Add("- **Estado de SetupComplete.cmd:** Finalizado Exitosamente [OK]")
+        } else {
+            $warnings.Add("SetupComplete.cmd no registro la marca de finalizacion exitosa.")
+            $reportLines.Add("- **Estado de SetupComplete.cmd:** Incompleto o no finalizado [WARN]")
+        }
+    } else {
+        $warnings.Add("No se encontro el log SetupComplete.log.")
+        $reportLines.Add("- **Estado de SetupComplete.cmd:** Log no encontrado en $setupCompleteLog")
+    }
+
+    # Verificacion de Visual C++ Redistributables
+    $vcKeys = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+    )
+    $installedVC = @(Get-ItemProperty $vcKeys -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'Visual C\+\+' } | Select-Object -ExpandProperty DisplayName -Unique)
+    if ($installedVC.Count -gt 0) {
+        $passedChecks.Add("Visual C++ Redistributables: $($installedVC.Count) paquetes instalados.")
+        $reportLines.Add("- **Visual C++ Redistributables:** $($installedVC.Count) paquetes detectados [OK]")
+    } else {
+        $reportLines.Add("- **Visual C++ Redistributables:** No se detectaron paquetes VC++ instalados.")
+    }
+
+    # Verificacion de Plan de Energia
+    try {
+        $activePlan = & powercfg /getactivescheme 2>&1
+        $reportLines.Add("- **Esquema de Energia Activo:** $activePlan")
+    } catch {}
+
+    $reportLines.Add("")
+
+    # 4. Auditoria de Bypasses, Politicas y Registro
+    $reportLines.Add("## 3. Estado de Tweaks, Registro y Bypasses")
+    $reportLines.Add("")
+
+    # BypassNRO
+    $bypassNro = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE" -Name BypassNRO -ErrorAction SilentlyContinue).BypassNRO
+    if ($bypassNro -eq 1) {
+        $passedChecks.Add("Bypass de Cuenta Microsoft (BypassNRO = 1) activo.")
+        $reportLines.Add("- **Bypass Cuenta Microsoft (BypassNRO):** Activo (1) [OK]")
+    } else {
+        $reportLines.Add("- **Bypass Cuenta Microsoft (BypassNRO):** Inactivo o no configurado.")
+    }
+
+    # Bloqueo OneDrive
+    if ($ExpectedBlockOneDrive) {
+        $odVal = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive" -Name DisableFileSyncNGSC -ErrorAction SilentlyContinue).DisableFileSyncNGSC
+        if ($odVal -eq 1) {
+            $passedChecks.Add("Bloqueo de OneDrive (DisableFileSyncNGSC = 1) activo.")
+            $reportLines.Add("- **Bloqueo de OneDrive:** Activo (1) [OK]")
+        } else {
+            $warnings.Add("La directiva de bloqueo de OneDrive no esta activa.")
+            $reportLines.Add("- **Bloqueo de OneDrive:** Inactivo [WARN]")
+        }
+    }
+
+
+
+    # Modo Oscuro
+    $appsDark = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme
+    $sysDark = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name SystemUsesLightTheme -ErrorAction SilentlyContinue).SystemUsesLightTheme
+    if ($appsDark -eq 0 -and $sysDark -eq 0) {
+        $passedChecks.Add("Modo Oscuro activo en cuenta de usuario.")
+        $reportLines.Add("- **Tema Visual:** Modo Oscuro Activo (Apps: 0, Sistema: 0) [OK]")
+    } else {
+        $reportLines.Add("- **Tema Visual:** Modo Estandar / Claro (Apps: $appsDark, Sistema: $sysDark)")
+    }
+
+    $reportLines.Add("")
+
+    # 5. Auditoria de Servicios de Rendimiento
+    $reportLines.Add("## 4. Estado de Servicios de Rendimiento")
+    $reportLines.Add("")
+
+    $servicesToCheck = @("DiagTrack", "dmwappushservice", "WSearch", "Spooler", "WlanSvc", "bthserv", "SysMain")
+    foreach ($sName in $servicesToCheck) {
+        $svc = Get-Service -Name $sName -ErrorAction SilentlyContinue
+        if ($svc) {
+            $startMode = (Get-CimInstance Win32_Service -Filter "Name='$sName'" -ErrorAction SilentlyContinue).StartMode
+            $reportLines.Add("- **Servicio $($sName):** Estado: $($svc.Status) | Inicio: $startMode")
+        } else {
+            $reportLines.Add("- **Servicio $($sName):** No instalado en esta edicion.")
+        }
+    }
+
+    $reportLines.Add("")
+
+    # 6. Auditoria de Hardware y Controladores PnP
+    $reportLines.Add("## 5. Auditoria de Hardware y Controladores (PnP)")
+    $reportLines.Add("")
+
+    try {
+        $problemDevices = @(Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne 'OK' -and $_.Class -ne 'System' })
+        if ($problemDevices.Count -gt 0) {
+            $warnings.Add("Se detectaron $($problemDevices.Count) dispositivo(s) con advertencia o falta de driver.")
+            $reportLines.Add("### [WARN] Dispositivos con problemas detectados ($($problemDevices.Count)):")
+            $reportLines.Add("| Dispositivo | Clase | Estado | Codigo de Problema |")
+            $reportLines.Add("|---|---|---|---|")
+            foreach ($d in $problemDevices) {
+                $reportLines.Add("| $($d.FriendlyName) | $($d.Class) | $($d.Status) | $($d.Problem) |")
+            }
+        } else {
+            $passedChecks.Add("Hardware: 0 dispositivos con problemas de controladores.")
+            $reportLines.Add("- **Estado de Dispositivos:** Todos los dispositivos PnP inicializados correctamente (0 errores) [OK]")
+        }
+    } catch {
+        $reportLines.Add("- **Auditoria PnP:** Consulta no disponible en este entorno.")
+    }
+
+    $reportLines.Add("")
+
+    # 7. Evaluacion Final y Resumen Ejecutivo
+    $finalStatus = if ($criticalErrors.Count -gt 0) {
+        "FAILED / CON ERRORES"
+    } elseif ($warnings.Count -gt 0) {
+        "SUCCESS WITH WARNINGS"
+    } else {
+        "SUCCESS (100% LIMPIO)"
+    }
+
+    $summaryLines = @(
+        "## Resumen Ejecutivo de Instalacion"
+        ""
+        "- **Estado General:** **$finalStatus**"
+        "- **Verificaciones Aprobadas:** $($passedChecks.Count)"
+        "- **Advertencias:** $($warnings.Count)"
+        "- **Errores Criticos:** $($criticalErrors.Count)"
+        ""
+    )
+
+    $finalReport = ($reportLines[0..3] + $summaryLines + $reportLines[4..($reportLines.Count - 1)]) -join "`r`n"
+
+    # Guardar reportes en disco
+    $systemReportPath = Join-Path $OutputDir "PostInstall_Report.md"
+    [System.IO.File]::WriteAllText($systemReportPath, $finalReport, [System.Text.Encoding]::UTF8)
+
+    $desktopReportPath = Join-Path $desktopPath "INFORME_INSTALACION.md"
+    try {
+        [System.IO.File]::WriteAllText($desktopReportPath, $finalReport, [System.Text.Encoding]::UTF8)
+    } catch {}
+
+    # Salida en consola
+    Write-Host ""
+    Write-Host "==========================================================================" -ForegroundColor Cyan
+    Write-Host "  AUDITORIA POST-INSTALACION DE WINDOWS                                   " -ForegroundColor Cyan
+    Write-Host "==========================================================================" -ForegroundColor Cyan
+    Write-Host "  Estado: $finalStatus" -ForegroundColor $(if ($criticalErrors.Count -gt 0) { 'Red' } elseif ($warnings.Count -gt 0) { 'Yellow' } else { 'Green' })
+    Write-Host "  Verificaciones Aprobadas : $($passedChecks.Count)" -ForegroundColor Green
+    Write-Host "  Advertencias             : $($warnings.Count)" -ForegroundColor $(if ($warnings.Count -gt 0) { 'Yellow' } else { 'Gray' })
+    Write-Host "  Errores Criticos         : $($criticalErrors.Count)" -ForegroundColor $(if ($criticalErrors.Count -gt 0) { 'Red' } else { 'Gray' })
+    Write-Host "  Informe guardado en      : $desktopReportPath" -ForegroundColor Cyan
+    Write-Host "==========================================================================" -ForegroundColor Cyan
+    Write-Host ""
+
+    if ($ShowInNotepad) {
+        Start-Process -FilePath "notepad.exe" -ArgumentList $desktopReportPath
+    }
+} catch {
+    Write-Host "[ERROR] Excepcion durante la auditoria post-instalacion: $($_.Exception.Message)" -ForegroundColor Red
+}
+'@
+
+$postInstallDiagContent = $postInstallDiagTemplate.Replace('__OPT_PROFILE__', "$optProfileIntSetup").Replace('__BLOCK_ONEDRIVE__', $(if ($script:BlockOneDrive) { '$true' } else { '$false' }))
+
+$postInstallDiagPath  = Join-Path $OEMScriptsDir "PostInstall-Diagnostics.ps1"
+$postInstallDiagPath1 = Join-Path $OEMScriptsDir1 "PostInstall-Diagnostics.ps1"
+$postInstallDiagContent | Out-File -FilePath $postInstallDiagPath -Encoding UTF8 -Force
+$postInstallDiagContent | Out-File -FilePath $postInstallDiagPath1 -Encoding UTF8 -Force
+
+# Lanzador interactivo en formato .cmd
+$auditarLauncherContent = @'
+@echo off
+REM ===========================================================
+REM  Lanzador Auto-Elevable de Auditoria Post-Instalacion
+REM ===========================================================
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    exit /b
+)
+cd /d "%~dp0"
+title Auditoria y Diagnostico Post-Instalacion de Windows
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\PostInstall-Diagnostics.ps1" -DesktopOutput -ShowInNotepad
+pause
+'@
+
+$auditarLauncherPath  = Join-Path $OEMScriptsDir "Auditar-Instalacion.cmd"
+$auditarLauncherPath1 = Join-Path $OEMScriptsDir1 "Auditar-Instalacion.cmd"
+$auditarLauncherContent | Out-File -FilePath $auditarLauncherPath -Encoding ASCII -Force
+$auditarLauncherContent | Out-File -FilePath $auditarLauncherPath1 -Encoding ASCII -Force
+
+Write-OK "PostInstall-Diagnostics.ps1 y lanzador de auditoría registrados en `$OEM$"
 
 #------------------------------------------------------------------------------
 # 4/6 - CREAR autounattend.xml (CORREGIDO)
@@ -3025,49 +3894,38 @@ if (-not $SkipAutoUnattend) {
     }
 
     # Construcción dinámica de FirstLogonCommands:
-    # 1. Respaldo para garantizar AutoLogon sin contraseña en Windows 11 24H2+.
-    # 2. Respaldo para garantizar la creación/validación de accesos directos de optimización en el Escritorio.
+    # Respaldo para garantizar AutoLogon sin contraseña en Windows 11 24H2+.
     $firstLogonCommands = [System.Collections.Generic.List[string]]::new()
     $cmdOrder = 1
 
     if (-not $LocalPassword) {
         $firstLogonCommands.Add(@"
         <SynchronousCommand wcm:action="add">
-          <Order>$cmdOrder</Order>
-          <Description>Force AutoAdminLogon in Winlogon for passwordless account</Description>
           <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d 1 /f</CommandLine>
+          <Description>Force AutoAdminLogon in Winlogon for passwordless account</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
 "@)
         $cmdOrder++
         $firstLogonCommands.Add(@"
         <SynchronousCommand wcm:action="add">
-          <Order>$cmdOrder</Order>
-          <Description>Set DefaultUserName for AutoLogon</Description>
           <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName /t REG_SZ /d "$($script:LocalUser)" /f</CommandLine>
+          <Description>Set DefaultUserName for AutoLogon</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
 "@)
         $cmdOrder++
         $firstLogonCommands.Add(@"
         <SynchronousCommand wcm:action="add">
-          <Order>$cmdOrder</Order>
-          <Description>Set DefaultPassword empty for passwordless AutoLogon</Description>
           <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /t REG_SZ /d "" /f</CommandLine>
+          <Description>Set DefaultPassword empty for passwordless AutoLogon</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
 "@)
         $cmdOrder++
-    }
-
-    if ($scriptsToInject.Count -gt 0) {
-        foreach ($sc in $scriptsToInject) {
-            $firstLogonCommands.Add(@"
-        <SynchronousCommand wcm:action="add">
-          <Order>$cmdOrder</Order>
-          <Description>Garantizar Acceso Directo de $($sc.Title) en Escritorio</Description>
-          <CommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "`$ws=New-Object -ComObject WScript.Shell; `$d=[Environment]::GetFolderPath('CommonDesktopDirectory'); if(-not `$d){`$d='C:\Users\Public\Desktop'}; `$s=`$ws.CreateShortcut(\"`$d\$($sc.ShortcutName)\"); `$s.TargetPath='C:\Windows\Setup\Scripts\$($sc.LauncherName)'; `$s.WorkingDirectory='C:\Windows\Setup\Scripts'; `$s.IconLocation='C:\Windows\System32\imageres.dll,109'; `$s.Save()"</CommandLine>
-        </SynchronousCommand>
-"@)
-            $cmdOrder++
-        }
     }
 
     $firstLogonXml = ""
@@ -3076,18 +3934,6 @@ if (-not $SkipAutoUnattend) {
       <FirstLogonCommands>
 $($firstLogonCommands -join "`n")
       </FirstLogonCommands>
-"@
-    }
-
-    # Inyección nativa de Modo Oscuro en autounattend.xml (Microsoft-Windows-Shell-Setup\Themes)
-    # Permite que Windows 11 aplique dark.theme directamente en el primer inicio de sesión sin requerir reinicio.
-    $themesXml = ""
-    if ($script:InjectVisualTweaks) {
-        $themesXml = @"
-      <Themes>
-        <ThemeName>C:\Windows\Resources\Themes\dark.theme</ThemeName>
-        <DefaultThemesOff>false</DefaultThemesOff>
-      </Themes>
 "@
     }
 
@@ -3136,161 +3982,103 @@ $($firstLogonCommands -join "`n")
           <Description>Prevent OneDrive auto-install</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive /v DisableFileSyncNGSC /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>3</Order>
-          <Description>Remove OneDrive Setup from Run</Description>
-          <Path>reg delete HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v OneDriveSetup /f</Path>
-        </RunSynchronousCommand>
 "@
     }
 
-    # Optimizaciones de sistema inyectadas en fase specialize
-    $nextOrder = if ($script:BlockOneDrive) { 4 } else { 2 }
+    # Optimizaciones de sistema inyectadas en fase specialize (políticas HKLM 100% seguras)
+    $nextOrder = if ($script:BlockOneDrive) { 3 } else { 2 }
 
     $optimizeXml = @"
         <RunSynchronousCommand wcm:action="add">
           <Order>$nextOrder</Order>
-          <Description>Disable Hibernation (recover SSD space)</Description>
-          <Path>powercfg -h off</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 1)</Order>
-          <Description>Activate Ultimate Performance power plan (with High Performance fallback)</Description>
-          <Path>cmd.exe /c powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 >nul 2>&amp;1 &amp;&amp; powercfg -setactive e9a42b02-d5df-448d-aa00-03f14749eb61 || powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 2)</Order>
           <Description>Block Privacy Experience screens (Scoobe)</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OOBE /v DisablePrivacyExperience /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 3)</Order>
+          <Order>$($nextOrder + 1)</Order>
           <Description>Disable Cloud Consumer Features (Anti-Bloatware)</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent /v DisableWindowsConsumerFeatures /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 4)</Order>
+          <Order>$($nextOrder + 2)</Order>
           <Description>Disable Cloud SoftLanding Tips</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent /v DisableSoftLanding /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 5)</Order>
+          <Order>$($nextOrder + 3)</Order>
           <Description>Disable PasswordLess sign-in to allow AutoLogon without password (W11 24H2+)</Description>
           <Path>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device" /v DevicePasswordLessBuildVersion /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 6)</Order>
+          <Order>$($nextOrder + 4)</Order>
           <Description>Hide Recommended section in Start Menu</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer /v HideRecommendedSection /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 7)</Order>
+          <Order>$($nextOrder + 5)</Order>
           <Description>Disable Search Box Suggestions in Start and Taskbar</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer /v DisableSearchBoxSuggestions /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 8)</Order>
+          <Order>$($nextOrder + 6)</Order>
           <Description>Disable Cloud Optimized Content (W11 24H2+)</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent /v DisableCloudOptimizedContent /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 9)</Order>
+          <Order>$($nextOrder + 7)</Order>
           <Description>Disable Consumer Account State Content</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent /v DisableConsumerAccountStateContent /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 10)</Order>
+          <Order>$($nextOrder + 8)</Order>
           <Description>Disable Automatic Microsoft Store App Downloads</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsStore /v AutoDownload /t REG_DWORD /d 2 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 11)</Order>
+          <Order>$($nextOrder + 9)</Order>
           <Description>Block Silent App Installation System-Wide (CDM)</Description>
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager /v SilentInstalledAppsEnabled /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 12)</Order>
+          <Order>$($nextOrder + 10)</Order>
           <Description>Block Pre-Installed Apps System-Wide (CDM)</Description>
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager /v PreInstalledAppsEnabled /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
 "@
 
-    $nextOrder += 13
+    $nextOrder += 11
 
     if ($optProfile -ge 2) {
-        # Perfil 2+ (Gaming / Hardcore): Telemetría completa y Bloqueo de Drivers / Apps OEM automáticas
+        # Perfil 2+ (Gaming / Hardcore): Políticas de telemetría HKLM y Bloqueo de Drivers de Windows Update
         $optimizeXml += @"
 
         <RunSynchronousCommand wcm:action="add">
           <Order>$nextOrder</Order>
-          <Description>Disable Telemetry service (DiagTrack)</Description>
-          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\DiagTrack /v Start /t REG_DWORD /d 4 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 1)</Order>
-          <Description>Disable Telemetry relay service (dmwappushservice)</Description>
-          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\dmwappushservice /v Start /t REG_DWORD /d 4 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 2)</Order>
           <Description>Set AllowTelemetry policy to Security level</Description>
           <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 3)</Order>
+          <Order>$($nextOrder + 1)</Order>
           <Description>Exclude Drivers from Automatic Updates (Move to Optional Updates)</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /v ExcludeWUDriversInQualityUpdate /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 4)</Order>
-          <Description>Enable On-Demand Driver Catalog Search for Optional Updates</Description>
-          <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching /v SearchOrderConfig /t REG_DWORD /d 1 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 5)</Order>
-          <Description>Prevent Device Metadata and OEM App Download from Network (Profile 2+)</Description>
-          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" /v PreventDeviceMetadataFromNetwork /t REG_DWORD /d 1 /f</Path>
-        </RunSynchronousCommand>
-"@
-        $nextOrder += 6
-    }
-
-    if ($optProfile -eq 3) {
-        # Perfil 3 Hardcore: servicios adicionales deshabilitados
-        $optimizeXml += @"
-
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$nextOrder</Order>
-          <Description>Disable Search Indexer (WSearch) — Hardcore only</Description>
-          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\WSearch /v Start /t REG_DWORD /d 4 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 1)</Order>
-          <Description>Disable Print Spooler</Description>
-          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\Spooler /v Start /t REG_DWORD /d 4 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
           <Order>$($nextOrder + 2)</Order>
-          <Description>Disable WLAN (WlanSvc)</Description>
-          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\WlanSvc /v Start /t REG_DWORD /d 4 /f</Path>
+          <Description>Block Driver Search on Windows Update via CurrentVersion hive (SearchOrderConfig=0 = local-only)</Description>
+          <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching /v SearchOrderConfig /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>$($nextOrder + 3)</Order>
-          <Description>Disable Bluetooth (bthserv)</Description>
-          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\bthserv /v Start /t REG_DWORD /d 4 /f</Path>
+          <Description>Prevent Device Metadata and OEM App Download from Network (Profile 2+)</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" /v PreventDeviceMetadataFromNetwork /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>$($nextOrder + 4)</Order>
-          <Description>Disable Sensor Service</Description>
-          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\SensorService /v Start /t REG_DWORD /d 4 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 5)</Order>
-          <Description>Disable Superfetch (SysMain)</Description>
-          <Path>reg add HKLM\SYSTEM\CurrentControlSet\Services\SysMain /v Start /t REG_DWORD /d 4 /f</Path>
+          <Description>Disable WPBT ACPI Execution (Block OEM BIOS Bloatware on Notebooks/Motherboards)</Description>
+          <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v DisableWPBT /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
 "@
-        $nextOrder += 6
+        $nextOrder += 5
     }
 
     # Generar XML completo sin espacios en namespaces (corrección crítica)
@@ -3365,7 +4153,6 @@ $optimizeXml
       <RegisteredOrganization>Optimized</RegisteredOrganization>
       <RegisteredOwner>User</RegisteredOwner>
       <TimeZone>$Timezone</TimeZone>
-$themesXml
     </component>
     <component name="Microsoft-Windows-International-Core" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <InputLocale>$finalKeyboard</InputLocale>
@@ -3397,7 +4184,6 @@ $firstLogonXml
       <RegisteredOrganization>Optimized</RegisteredOrganization>
       <RegisteredOwner>User</RegisteredOwner>
       <TimeZone>$Timezone</TimeZone>
-$themesXml
       <UserAccounts>
         <LocalAccounts>
           <LocalAccount wcm:action="add">
@@ -3593,18 +4379,17 @@ if ($wimFile) {
                     if (Test-Path $sxsDir) {
                         try {
                             Write-Host "    Habilitando .NET 3.5 desde sources\sxs con DISM..." -ForegroundColor Gray
-                            $dismNetFx3 = & dism.exe /Image:"$WimMountDir" `
-                                                    /Enable-Feature `
-                                                    /FeatureName:NetFx3 `
-                                                    /All `
-                                                    /Source:"$sxsDir" `
-                                                    /LimitAccess `
-                                                    /ScratchDir:"$ScratchDir" 2>&1
+                            $dismNetFx3 = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                                -ArgumentList @("/Image:$WimMountDir", "/Enable-Feature", "/FeatureName:NetFx3", "/All", "/Source:$sxsDir", "/LimitAccess", "/ScratchDir:$ScratchDir") `
+                                -AllowExitCodes @(0, 3010) `
+                                -TaskDescription "Habilitación offline de .NET Framework 3.5" `
+                                -TimeoutSeconds 600 `
+                                -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
-                            if ($LASTEXITCODE -in @(0, 3010)) {
+                            if ($dismNetFx3.Success) {
                                 Write-OK ".NET Framework 3.5 habilitado en la imagen WIM."
                             } else {
-                                Write-Warn "DISM NetFx3 exit code: $LASTEXITCODE. Continuando."
+                                Write-Warn "DISM NetFx3 exit code: $($dismNetFx3.ExitCode). Continuando."
                             }
                         } catch {
                             Write-Warn "No se pudo habilitar .NET 3.5 offline: $($_.Exception.Message)"
@@ -3665,13 +4450,14 @@ if ($wimFile) {
                                 try {
                                     $dismLog = Join-Path $ScratchDir "dism_$($pkg.Name).log"
 
-                                    & dism.exe /Image:"$WimMountDir" `
-                                               /Add-Package `
-                                               /PackagePath:"$($pkg.FullName)" `
-                                               /ScratchDir:"$ScratchDir" `
-                                               /LogPath:"$dismLog" 2>&1 | Out-Null
+                                    $dismRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                                        -ArgumentList @("/Image:$WimMountDir", "/Add-Package", "/PackagePath:$($pkg.FullName)", "/ScratchDir:$ScratchDir", "/LogPath:$dismLog") `
+                                        -AllowExitCodes @(0, 3010) `
+                                        -TaskDescription "Slipstreaming paquete $($pkg.Name)" `
+                                        -TimeoutSeconds 900 `
+                                        -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
-                                    if ($LASTEXITCODE -in @(0, 3010)) {
+                                    if ($dismRes.Success) {
                                         $successCount++
                                         Write-Host " OK" -ForegroundColor Green
                                     } else {
@@ -3689,18 +4475,19 @@ if ($wimFile) {
                                                 Select-Object -First 1
 
                                             if ($cabFile) {
-                                                & dism.exe /Image:"$WimMountDir" `
-                                                           /Add-Package `
-                                                           /PackagePath:"$($cabFile.FullName)" `
-                                                           /ScratchDir:"$ScratchDir" `
-                                                           /LogPath:"$dismLog" 2>&1 | Out-Null
+                                                $dismCabRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                                                    -ArgumentList @("/Image:$WimMountDir", "/Add-Package", "/PackagePath:$($cabFile.FullName)", "/ScratchDir:$ScratchDir", "/LogPath:$dismLog") `
+                                                    -AllowExitCodes @(0, 3010) `
+                                                    -TaskDescription "Slipstreaming .cab extraído de $($pkg.Name)" `
+                                                    -TimeoutSeconds 900 `
+                                                    -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
-                                                if ($LASTEXITCODE -in @(0, 3010)) {
+                                                if ($dismCabRes.Success) {
                                                     $successCount++
                                                     Write-Host "      OK usando .cab extraído." -ForegroundColor Green
                                                 } else {
                                                     $failCount++
-                                                    Write-Host "      ERROR también con .cab. Exit code: $LASTEXITCODE." -ForegroundColor Red
+                                                    Write-Host "      ERROR también con .cab. Exit code: $($dismCabRes.ExitCode)." -ForegroundColor Red
                                                 }
                                             } else {
                                                 $failCount++
@@ -3708,7 +4495,7 @@ if ($wimFile) {
                                             }
                                         } else {
                                             $failCount++
-                                            Write-Host " ERROR. Exit code: $LASTEXITCODE." -ForegroundColor Red
+                                            Write-Host " ERROR. Exit code: $($dismRes.ExitCode)." -ForegroundColor Red
                                         }
                                     }
                                 } catch {
@@ -3755,18 +4542,17 @@ if ($wimFile) {
                             try {
                                 $dismDriverLog = Join-Path $ScratchDir "dism_drivers.log"
 
-                                & dism.exe /Image:"$WimMountDir" `
-                                           /Add-Driver `
-                                           /Driver:"$resolvedDriversDir" `
-                                           /Recurse `
-                                           /ForceUnsigned `
-                                           /ScratchDir:"$ScratchDir" `
-                                           /LogPath:"$dismDriverLog" 2>&1 | Out-Null
+                                $dismDrv = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                                    -ArgumentList @("/Image:$WimMountDir", "/Add-Driver", "/Driver:$resolvedDriversDir", "/Recurse", "/ForceUnsigned", "/ScratchDir:$ScratchDir", "/LogPath:$dismDriverLog") `
+                                    -AllowExitCodes @(0, 3010) `
+                                    -TaskDescription "Inyección offline de controladores" `
+                                    -TimeoutSeconds 900 `
+                                    -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
-                                if ($LASTEXITCODE -in @(0, 3010)) {
+                                if ($dismDrv.Success) {
                                     Write-OK "Controladores inyectados exitosamente en la imagen WIM ($($driverFiles.Count) archivos .inf)."
                                 } else {
-                                    Write-Warn "DISM Add-Driver devolvió exit code: $LASTEXITCODE. Revise $dismDriverLog."
+                                    Write-Warn "DISM Add-Driver devolvió exit code: $($dismDrv.ExitCode). Revise $dismDriverLog."
                                 }
                             } catch {
                                 Write-Warn "Error inyectando controladores offline: $($_.Exception.Message)"
@@ -4001,19 +4787,28 @@ if ($wimFile) {
                     #==================================================================
 
                     if ($successCount -gt 0) {
-                        Write-Host ""
-                        Write-Host "    Ejecutando ResetBase / StartComponentCleanup..." -ForegroundColor Cyan
+                        if ($SkipComponentCleanup) {
+                            Write-Host ""
+                            Write-Host "    [INFO] StartComponentCleanup / ResetBase omitido (-SkipComponentCleanup activo)." -ForegroundColor DarkYellow
+                        } else {
+                            Write-Host ""
+                            Write-Host "    Ejecutando ResetBase / StartComponentCleanup..." -ForegroundColor Cyan
 
-                        try {
-                            Repair-WindowsImage -Path $WimMountDir `
-                                                -StartComponentCleanup `
-                                                -ResetBase `
-                                                -ScratchDirectory $ScratchDir `
-                                                -ErrorAction Stop
+                            try {
+                                $resetRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                                    -ArgumentList @("/Image:$WimMountDir", "/Cleanup-Image", "/StartComponentCleanup", "/ResetBase", "/ScratchDir:$ScratchDir") `
+                                    -TaskDescription "Limpieza y consolidación ResetBase de componentes" `
+                                    -TimeoutSeconds 1800 `
+                                    -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
-                            Write-OK "Componentes limpiados y consolidados."
-                        } catch {
-                            Write-Warn "Error ejecutando ResetBase: $($_.Exception.Message)"
+                                if ($resetRes.Success) {
+                                    Write-OK "Componentes limpiados y consolidados."
+                                } else {
+                                    Write-Warn "ResetBase finalizó con código: $($resetRes.ExitCode). Continuando."
+                                }
+                            } catch {
+                                Write-Warn "Error ejecutando ResetBase: $($_.Exception.Message)"
+                            }
                         }
                     }
 
@@ -4047,315 +4842,332 @@ if ($wimFile) {
                                     $tweaks = @(
                                         # Modo Oscuro Nativo directo en Themes\Personalize
                                         @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
-                                            Name = "AppsUseLightTheme"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
-                                            Name = "SystemUsesLightTheme"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
-                                            Name = "EnableTransparency"
-                                            Type = "REG_DWORD"
-                                            Data = "1"
-                                        }
-                                        # Fallback RunOnce
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\RunOnce"
-                                            Name = "ApplyDarkMode"
-                                            Type = "REG_SZ"
-                                            Data = $darkModeCommand
-                                        }
-                                        # Bloqueo ContentDeliveryManager (Anti-Reinstalación Bloatware en la Nube)
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SilentInstalledAppsEnabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "OemPreInstalledAppsEnabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "PreInstalledAppsEnabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "ContentDeliveryAllowed"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SubscribedContent-338388Enabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SubscribedContent-310093Enabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SubscribedContent-338389Enabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SubscribedContent-353696Enabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SubscribedContent-353694Enabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SubscribedContent-353698Enabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SubscribedContent-338387Enabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SubscribedContent-338393Enabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SoftLandingEnabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "RotatingLockScreenOverlayEnabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
-                                            Name = "SystemPanelEnabled"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        # Ajustes de Explorador y Barra de Tareas
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-                                            Name = "LaunchTo"
-                                            Type = "REG_DWORD"
-                                            Data = "1"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-                                            Name = "HideFileExt"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-                                            Name = "TaskbarAl"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-                                            Name = "ShowTaskViewButton"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Search"
-                                            Name = "SearchboxTaskbarMode"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Search"
-                                            Name = "SearchboxTaskbarModeCache"
-                                            Type = "REG_DWORD"
-                                            Data = "1"
-                                        }
-                                    )
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+                                             Name = "AppsUseLightTheme"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+                                             Name = "SystemUsesLightTheme"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+                                             Name = "EnableTransparency"
+                                             Type = "REG_DWORD"
+                                             Data = "1"
+                                         }
+                                         # Fallback RunOnce
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\RunOnce"
+                                             Name = "ApplyDarkMode"
+                                             Type = "REG_SZ"
+                                             Data = $darkModeCommand
+                                         }
+                                         # Bloqueo ContentDeliveryManager (Anti-Reinstalación Bloatware en la Nube)
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SilentInstalledAppsEnabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "OemPreInstalledAppsEnabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "PreInstalledAppsEnabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "ContentDeliveryAllowed"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SubscribedContent-338388Enabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SubscribedContent-310093Enabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SubscribedContent-338389Enabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SubscribedContent-353696Enabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SubscribedContent-353694Enabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SubscribedContent-353698Enabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SubscribedContent-338387Enabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SubscribedContent-338393Enabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SoftLandingEnabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "RotatingLockScreenOverlayEnabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+                                             Name = "SystemPanelEnabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         # Ajustes de Explorador y Barra de Tareas
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                                             Name = "LaunchTo"
+                                             Type = "REG_DWORD"
+                                             Data = "1"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                                             Name = "HideFileExt"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                                             Name = "TaskbarAl"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                                             Name = "ShowTaskViewButton"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Search"
+                                             Name = "SearchboxTaskbarMode"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Search"
+                                             Name = "SearchboxTaskbarModeCache"
+                                             Type = "REG_DWORD"
+                                             Data = "1"
+                                         }
+                                     )
 
-                                    foreach ($tweak in $tweaks) {
-                                        & reg.exe add $tweak.Path /v $tweak.Name /t $tweak.Type /d $tweak.Data /f 2>&1 | Out-Null
-                                        if ($LASTEXITCODE -ne 0) {
-                                            Write-Warn "Error aplicando tweak: $($tweak.Path) /v $($tweak.Name)"
-                                        }
-                                    }
+                                     foreach ($tweak in $tweaks) {
+                                         & reg.exe add $tweak.Path /v $tweak.Name /t $tweak.Type /d $tweak.Data /f 2>&1 | Out-Null
+                                         if ($LASTEXITCODE -ne 0) {
+                                             Write-Warn "Error aplicando tweak: $($tweak.Path) /v $($tweak.Name)"
+                                         }
+                                     }
 
-                                    Write-OK "Tweaks visuales inyectados en Default User."
-                                } else {
-                                    Write-Warn "No se pudo cargar NTUSER.DAT. Exit code: $($procLoad.ExitCode)."
-                                }
-                            } catch {
-                                Write-Warn "Error aplicando tweaks visuales offline: $($_.Exception.Message)"
-                            } finally {
-                                if ($hiveLoaded) {
-                                    Write-Host "    Descargando colmena NTUSER.DAT..." -ForegroundColor Gray
+                                     Write-OK "Tweaks visuales inyectados en Default User."
+                                 } else {
+                                     Write-Warn "No se pudo cargar NTUSER.DAT. Exit code: $($procLoad.ExitCode)."
+                                 }
+                             } catch {
+                                 Write-Warn "Error aplicando tweaks visuales offline: $($_.Exception.Message)"
+                             } finally {
+                                 if ($hiveLoaded) {
+                                     Write-Host "    Descargando colmena NTUSER.DAT..." -ForegroundColor Gray
 
-                                    $unloaded = Invoke-RegUnloadHive -HiveName "HKLM\OfflineDefaultUser"
+                                     $unloaded = Invoke-RegUnloadHive -HiveName "HKLM\OfflineDefaultUser"
 
-                                    if ($unloaded) {
-                                        Write-OK "Colmena descargada correctamente."
-                                    } else {
-                                        Write-Warn "No se pudo descargar la colmena. Puede quedar cargada hasta reiniciar."
-                                    }
-                                }
-                            }
-                        } else {
-                            Write-Warn "No se encontró NTUSER.DAT en: $ntuserPath"
-                        }
-                    }
+                                     if ($unloaded) {
+                                         Write-OK "Colmena descargada correctamente."
+                                     } else {
+                                         Write-Warn "No se pudo descargar la colmena. Puede quedar cargada hasta reiniciar."
+                                     }
+                                 }
+                             }
+                         } else {
+                             Write-Warn "No se encontró NTUSER.DAT en: $ntuserPath"
+                         }
+                     }
 
-                    #==================================================================
-                    # INYECTAR SCRIPTS Y SetupComplete.cmd EN WIM
-                    #==================================================================
+                     #==================================================================
+                     # INYECTAR SCRIPTS Y SetupComplete.cmd EN WIM
+                     #==================================================================
 
-                    $wimScriptsDir = Join-Path $WimMountDir "Windows\Setup\Scripts"
+                     $wimScriptsDir = Join-Path $WimMountDir "Windows\Setup\Scripts"
 
-                    if (-not (Test-Path $wimScriptsDir)) {
-                        New-Item -ItemType Directory -Path $wimScriptsDir -Force | Out-Null
-                    }
+                     if (-not (Test-Path $wimScriptsDir)) {
+                         New-Item -ItemType Directory -Path $wimScriptsDir -Force | Out-Null
+                     }
 
-                    foreach ($script in $scriptsToInject) {
-                        $dest = Join-Path $wimScriptsDir $script.DestName
-                        Copy-Item -Path $script.Source -Destination $dest -Force
-                        Write-OK "Inyectado en WIM índice ${wimIndex}: $($script.DestName)"
-                    }
+                     foreach ($script in $scriptsToInject) {
+                         $dest = Join-Path $wimScriptsDir $script.DestName
+                         Copy-Item -Path $script.Source -Destination $dest -Force
+                         Write-OK "Inyectado en WIM índice ${wimIndex}: $($script.DestName)"
+                     }
 
-                    if ($setupCompleteContent) {
-                        $setupCmdDest = Join-Path $wimScriptsDir "SetupComplete.cmd"
-                        $setupCompleteContent | Out-File -FilePath $setupCmdDest -Encoding ASCII -Force
-                        Write-OK "Inyectado en WIM índice ${wimIndex}: SetupComplete.cmd"
-                    } else {
-                        Write-Warn "No existe contenido de SetupComplete.cmd para inyectar."
-                    }
+                     if ($setupCompleteContent) {
+                         $setupCmdDest = Join-Path $wimScriptsDir "SetupComplete.cmd"
+                         $setupCompleteContent | Out-File -FilePath $setupCmdDest -Encoding ASCII -Force
+                         Write-OK "Inyectado en WIM índice ${wimIndex}: SetupComplete.cmd"
+                     } else {
+                         Write-Warn "No existe contenido de SetupComplete.cmd para inyectar."
+                     }
 
-                    Dismount-WindowsImage -Path $WimMountDir -Save -ScratchDirectory $ScratchDir -ErrorAction Stop
+                     if ($postInstallDiagContent) {
+                         $postDiagDest = Join-Path $wimScriptsDir "PostInstall-Diagnostics.ps1"
+                         $postInstallDiagContent | Out-File -FilePath $postDiagDest -Encoding UTF8 -Force
+                         Write-OK "Inyectado en WIM índice ${wimIndex}: PostInstall-Diagnostics.ps1"
+                     }
 
-                    Write-OK "WIM índice $wimIndex$imgNameStr desmontado con cambios guardados."
+                     if ($auditarLauncherContent) {
+                         $auditarDest = Join-Path $wimScriptsDir "Auditar-Instalacion.cmd"
+                         $auditarLauncherContent | Out-File -FilePath $auditarDest -Encoding ASCII -Force
+                         Write-OK "Inyectado en WIM índice ${wimIndex}: Auditar-Instalacion.cmd"
 
-                    $wimInjected = $true
+                         $wimPublicDesktop = Join-Path $WimMountDir "Users\Public\Desktop"
+                         if (Test-Path $wimPublicDesktop) {
+                             Copy-Item -Path $auditarDest -Destination (Join-Path $wimPublicDesktop "Auditar-Instalacion.cmd") -Force
+                         }
+                     }
 
-                    if (Test-Path $WimMountDir) {
-                        Remove-Item -Path $WimMountDir -Recurse -Force -ErrorAction SilentlyContinue
-                    }
-                } catch {
-                    Write-Warn "Error inyectando en WIM índice ${wimIndex}: $($_.Exception.Message)"
+                     $dismountSuccess = Invoke-SafeWimDismount -MountDir $WimMountDir -Action Save -ScratchDirectory $ScratchDir
 
-                    try {
-                        Dismount-WindowsImage -Path $WimMountDir -Discard -ScratchDirectory $ScratchDir -ErrorAction SilentlyContinue
-                    } catch {
-                        # Ignorar error de desmontaje
-                    }
-                }
-            }
+                     if ($dismountSuccess) {
+                         Write-OK "WIM índice $wimIndex$imgNameStr desmontado con cambios guardados."
+                         $wimInjected = $true
+                     } else {
+                         Write-Warn "No se pudo guardar cambios en WIM índice ${wimIndex}."
+                     }
 
-            #==================================================================
-            # EXPORTAR / CONSOLIDAR WIM
-            #==================================================================
+                     if (Test-Path $WimMountDir) {
+                         Remove-Item -Path $WimMountDir -Recurse -Force -ErrorAction SilentlyContinue
+                     }
+                 } catch {
+                     Write-Warn "Error inyectando en WIM índice ${wimIndex}: $($_.Exception.Message)"
 
-            if ($wimInjected -and $WimCompression -ne "None") {
-                Write-Host ""
-                Write-Host "    ══ Consolidación final del WIM ══" -ForegroundColor Cyan
-                Write-Host "    Exportando WIM para eliminar espacio muerto y aplicar compresión $WimCompression..." -ForegroundColor Gray
+                     Invoke-SafeWimDismount -MountDir $WimMountDir -Action Discard -ScratchDirectory $ScratchDir | Out-Null
+                 }
+             }
 
-                $destName = $wimFile.FullName + ".tmp"
+             #==================================================================
+             # EXPORTAR / CONSOLIDAR WIM
+             #==================================================================
 
-                if (Test-Path $destName) {
-                    Remove-Item -Path $destName -Force -ErrorAction SilentlyContinue
-                }
+             if ($wimInjected -and $WimCompression -ne "None") {
+                 Write-Host ""
+                 Write-Host "    ══ Consolidación final del WIM ══" -ForegroundColor Cyan
+                 Write-Host "    Exportando WIM para eliminar espacio muerto y aplicar compresión $WimCompression..." -ForegroundColor Gray
 
-                try {
-                    $exportTargets = $allWimImages | Where-Object { $indexesToProcess -contains $_.Index }
-                    $compressArg = $WimCompression.ToLower()
+                 $destName = $wimFile.FullName + ".tmp"
 
-                    foreach ($img in $exportTargets) {
-                        Write-Host "    Exportando índice $($img.Index): $($img.Name)..." -ForegroundColor Gray
+                 if (Test-Path $destName) {
+                     Remove-Item -Path $destName -Force -ErrorAction SilentlyContinue
+                 }
 
-                        & dism.exe /Export-Image `
-                                   /SourceImageFile:"$($wimFile.FullName)" `
-                                   /SourceIndex:$($img.Index) `
-                                   /DestinationImageFile:"$destName" `
-                                   /Compress:$compressArg `
-                                   /ScratchDir:"$ScratchDir" 2>&1 | Out-Null
+                 try {
+                     $exportTargets = $allWimImages | Where-Object { $indexesToProcess -contains $_.Index }
+                     $compressArg = $WimCompression.ToLower()
 
-                        if ($LASTEXITCODE -ne 0) {
-                            throw "DISM /Export-Image falló para el índice $($img.Index). Exit code: $LASTEXITCODE."
-                        }
-                    }
+                     foreach ($img in $exportTargets) {
+                         Write-Host "    Exportando índice $($img.Index): $($img.Name)..." -ForegroundColor Gray
 
-                    if (Test-Path $destName) {
-                        $originalSize = (Get-Item $wimFile.FullName).Length
-                        $bakName = $wimFile.FullName + ".bak"
+                         $timeoutSec = if ($ProcessTimeoutMinutes -gt 0) { $ProcessTimeoutMinutes * 60 } else { 1800 }
+                         $expRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                             -ArgumentList @("/Export-Image", "/SourceImageFile:$($wimFile.FullName)", "/SourceIndex:$($img.Index)", "/DestinationImageFile:$destName", "/Compress:$compressArg", "/ScratchDir:$ScratchDir") `
+                             -TaskDescription "Exportación y compresión WIM (Índice $($img.Index))" `
+                             -TimeoutSeconds $timeoutSec `
+                             -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
-                        if (Test-Path $bakName) {
-                            Remove-Item -Path $bakName -Force -ErrorAction SilentlyContinue
-                        }
+                         if (-not $expRes.Success) {
+                             throw "DISM /Export-Image falló para el índice $($img.Index). Exit code: $($expRes.ExitCode)."
+                         }
+                     }
 
-                        # 1. Respaldo atómico seguro antes de reemplazar
-                        Rename-Item -Path $wimFile.FullName -NewName (Split-Path $bakName -Leaf) -Force
+                     if (Test-Path $destName) {
+                         $originalSize = (Get-Item $wimFile.FullName).Length
+                         $bakName = $wimFile.FullName + ".bak"
 
-                        try {
-                            # 2. Renombrar archivo consolidado al nombre definitivo
-                            Rename-Item -Path $destName -NewName $wimFile.Name -Force
+                         if (Test-Path $bakName) {
+                             Remove-Item -Path $bakName -Force -ErrorAction SilentlyContinue
+                         }
 
-                            # 3. Validar existencia del WIM final
-                            if (Test-Path $wimFile.FullName) {
-                                # Éxito: eliminar respaldo .bak
-                                Remove-Item -Path $bakName -Force -ErrorAction SilentlyContinue
+                         # 1. Respaldo atómico seguro antes de reemplazar
+                         Rename-Item -Path $wimFile.FullName -NewName (Split-Path $bakName -Leaf) -Force
 
-                                $newSize = (Get-Item $wimFile.FullName).Length
-                                $savedMB = [math]::Round(($originalSize - $newSize) / 1MB, 1)
-                                $exportSucceeded = $true
+                         try {
+                             # 2. Renombrar archivo consolidado al nombre definitivo
+                             Rename-Item -Path $destName -NewName $wimFile.Name -Force
 
-                                Write-OK "WIM consolidado correctamente. Ahorro aproximado: $savedMB MB."
-                            } else {
-                                throw "El archivo final WIM no se encontró tras el renombrado."
-                            }
-                        } catch {
-                            # Si falló renombrar el nuevo, restaurar el original desde el .bak
-                            if (Test-Path $bakName) {
-                                Rename-Item -Path $bakName -NewName $wimFile.Name -Force -ErrorAction SilentlyContinue
-                            }
-                            throw $_
-                        }
-                    } else {
-                        throw "El archivo WIM exportado no existe después de DISM /Export-Image."
-                    }
-                } catch {
-                    Write-Warn "Error durante la exportación final: $($_.Exception.Message)"
+                             # 3. Validar existencia del WIM final
+                             if (Test-Path $wimFile.FullName) {
+                                 # Éxito: eliminar respaldo .bak
+                                 Remove-Item -Path $bakName -Force -ErrorAction SilentlyContinue
 
-                    if (Test-Path $destName) {
-                        Remove-Item -Path $destName -Force -ErrorAction SilentlyContinue
-                    }
-                }
-            }
+                                 $newSize = (Get-Item $wimFile.FullName).Length
+                                 $savedMB = [math]::Round(($originalSize - $newSize) / 1MB, 1)
+                                 $exportSucceeded = $true
+
+                                 Write-OK "WIM consolidado correctamente. Ahorro aproximado: $savedMB MB."
+                             } else {
+                                 throw "El archivo final WIM no se encontró tras el renombrado."
+                             }
+                         } catch {
+                             # Si falló renombrar el nuevo, restaurar el original desde el .bak
+                             if (Test-Path $bakName) {
+                                 Rename-Item -Path $bakName -NewName $wimFile.Name -Force -ErrorAction SilentlyContinue
+                             }
+                             throw $_
+                         }
+                     } else {
+                         throw "El archivo WIM exportado no existe después de DISM /Export-Image."
+                     }
+                 } catch {
+                     Write-Warn "Error durante la exportación final: $($_.Exception.Message)"
+
+                     if (Test-Path $destName) {
+                         Remove-Item -Path $destName -Force -ErrorAction SilentlyContinue
+                     }
+                 }
+             }
+
 
             #==================================================================
             # DECIDIR ÍNDICE FINAL PARA ImageInstall
@@ -4533,7 +5345,24 @@ if ($isoLabel.Length -gt 32) {
 #------------------------------------------------------------------------------
 
 $biosBootFile = Join-Path $ISOFilesDir "boot\etfsboot.com"
-$uefiBootFile = Join-Path $ISOFilesDir "efi\microsoft\boot\efisys.bin"
+
+# Búsqueda inteligente de bootloader UEFI:
+# Preferir 'efisys_noprompt.bin' para arranque directo en Hyper-V/UEFI sin requerir
+# presionar una tecla ("Press any key to boot from CD..."), evitando timeouts de arranque.
+$candidateUefiBoot = @(
+    (Join-Path $ISOFilesDir "efi\microsoft\boot\efisys_noprompt.bin"),
+    "${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\efisys_noprompt.bin",
+    "${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\arm64\Oscdimg\efisys_noprompt.bin",
+    (Join-Path $ISOFilesDir "efi\microsoft\boot\efisys.bin")
+)
+
+$uefiBootFile = $null
+foreach ($cand in $candidateUefiBoot) {
+    if ($cand -and (Test-Path $cand)) {
+        $uefiBootFile = $cand
+        break
+    }
+}
 
 #------------------------------------------------------------------------------
 # CREACIÓN DE ISO CON OSCDIMG
@@ -4546,16 +5375,16 @@ if (-not $oscdimg) {
     Write-Warn "Instálalo con:"
     Write-Warn "winget install -e --id Microsoft.OSCDIMG"
     Write-Warn "O instala el Windows ADK Deployment Tools."
-} elseif (-not (Test-Path $biosBootFile) -or -not (Test-Path $uefiBootFile)) {
-    Write-Warn "Faltan archivos de arranque críticos en la ISO extraída."
+} elseif (-not (Test-Path $biosBootFile) -or (-not $uefiBootFile) -or (-not (Test-Path $uefiBootFile))) {
+    Write-Warn "Faltan archivos de arranque críticos en la ISO extraída o en el sistema."
     Write-Warn "Ruta BIOS esperada: $biosBootFile"
-    Write-Warn "Ruta UEFI esperada: $uefiBootFile"
+    Write-Warn "Ruta UEFI esperada: $($candidateUefiBoot -join ' O ')"
     Write-Warn "No se generará una ISO no arrancable."
 } else {
     Write-Host "    Usando oscdimg: $oscdimg" -ForegroundColor Gray
     Write-Host "    Etiqueta ISO: $isoLabel" -ForegroundColor Gray
     Write-Host "    BIOS boot: $biosBootFile" -ForegroundColor Gray
-    Write-Host "    UEFI boot: $uefiBootFile" -ForegroundColor Gray
+    Write-Host "    UEFI boot: $uefiBootFile $(if ($uefiBootFile -like '*efisys_noprompt.bin') { '(Sin prompt - Arranque directo)' } else { '(Con prompt)' })" -ForegroundColor Gray
 
     $tempBat = $null
 
@@ -4580,13 +5409,16 @@ if (-not $oscdimg) {
         Write-Host "    Ejecutando oscdimg..." -ForegroundColor Gray
         Write-Host "    CMD: $batLine" -ForegroundColor DarkGray
 
-        $proc = Start-Process -FilePath "cmd.exe" `
-                              -ArgumentList @("/c", $tempBat) `
-                              -NoNewWindow `
-                              -Wait `
-                              -PassThru
+        $timeoutSec = if ($ProcessTimeoutMinutes -gt 0) { $ProcessTimeoutMinutes * 60 } else { 0 }
+        $hbSec      = if ($HeartbeatIntervalSeconds -gt 0) { $HeartbeatIntervalSeconds } else { 15 }
 
-        if ($proc.ExitCode -eq 0 -and (Test-Path $outputISO)) {
+        $oscdRes = Invoke-MonitoredProcess -FilePath "cmd.exe" `
+                                           -ArgumentList @("/c", $tempBat) `
+                                           -TaskDescription "Reconstrucción de ISO UEFI/BIOS con oscdimg" `
+                                           -TimeoutSeconds $timeoutSec `
+                                           -HeartbeatIntervalSeconds $hbSec
+
+        if ($oscdRes.Success -and (Test-Path $outputISO)) {
             $isoCreated = $true
             Write-OK "ISO creada exitosamente: $outputISO"
 
@@ -4596,9 +5428,12 @@ if (-not $oscdimg) {
             } catch {
                 # Hash opcional; no bloquear si falla.
             }
+        } elseif ($oscdRes.TimedOut) {
+            Write-ErrorMsg "La compilación de la ISO con oscdimg superó el tiempo límite (${timeoutSec}s) y fue cancelada."
         } else {
-            Write-Warn "oscdimg falló con código de salida: $($proc.ExitCode)"
+            Write-Warn "oscdimg falló con código de salida: $($oscdRes.ExitCode)"
             Write-Warn "CMD ejecutado: $batLine"
+            if ($oscdRes.StdErr) { Write-Warn "Detalle error oscdimg: $($oscdRes.StdErr)" }
             Write-Warn "Revisa espacio en disco, permisos de escritura y que la carpeta ISO_Files esté completa."
         }
     } catch {
@@ -4763,4 +5598,3 @@ Write-Host ""
 Write-Host "  Nota: Si conservas la carpeta extraída, puedes inspeccionar" -ForegroundColor DarkGray
 Write-Host "  autounattend.xml, ei.cfg, `$OEM$ y sources antes de quemar la ISO." -ForegroundColor DarkGray
 Write-Host ""
-

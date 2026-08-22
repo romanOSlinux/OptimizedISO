@@ -1,4 +1,4 @@
-<#
+﻿<#
     Win11-Debloat-v3-Adaptive.ps1
     Fresh Windows 11 25H2 (build 26200) -- setup / debloat / privacy / gaming (adaptativo).
     Ejecutar elevado (Admin). Crea punto de restauracion antes de cualquier cambio.
@@ -1312,19 +1312,6 @@ if ($applyTaskbar) {
 
     $cfgDir = 'C:\ProgramData\WindowsSetupTuning'
     if (-not (Test-Path $cfgDir)) { New-Item -ItemType Directory -Path $cfgDir -Force | Out-Null }
-
-    # Pin ONLY File Explorer to the taskbar en Windows 11 usando LayoutModification.json
-    $taskbarJson = @'
-{
-  "pinnedList": [
-    { "desktopAppId": "Microsoft.Windows.Explorer" }
-  ]
-}
-'@
-    $taskbarFile = Join-Path $cfgDir 'LayoutModification.json'
-    Set-Content -Path $taskbarFile -Value $taskbarJson -Encoding UTF8
-    # $expPol definido globalmente al inicio del script
-    Set-Reg $expPol 'StartLayoutFile' $taskbarFile 'ExpandString'
 } else {
     Write-Host "`n[4] Omitiendo configuracion personalizada de la Barra de Tareas." -ForegroundColor Gray
 }
@@ -1337,6 +1324,8 @@ Write-Host "`n[5] Configuring File Explorer..." -ForegroundColor Cyan
 Set-Reg $adv 'LaunchTo'    1   # abrir en Este Equipo
 Set-Reg $adv 'HideFileExt' 0   # mostrar extensiones
 #endregion
+
+
 
 # ============================================================
 #region 6. Privacy & telemetry
@@ -1399,7 +1388,42 @@ Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting' 'Dis
 Set-Reg 'HKCU:\Software\Policies\Microsoft\Windows\WindowsAI' 'DisableAIDataAnalysis' 1
 Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI' 'DisableAIDataAnalysis' 1
 Set-Reg 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 1
+# Bloqueo de inyeccion de binarios OEM desde BIOS/UEFI en notebooks y placas base
+Set-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' 'DisableWPBT' 1
+
+# --- Bloqueo completo de drivers y apps OEM automaticas ---
+# Fuente: learn.microsoft.com/windows-client-management/mdm/policy-csp-update (ExcludeWUDriversInQualityUpdate)
+#         learn.microsoft.com/windows-client-management/mdm/policy-csp-deviceinstallation (AllowGenericDriverFallback)
+Write-Host "  [+] Bloqueando instalacion automatica de drivers y apps OEM..." -ForegroundColor Gray
+
+# Excluir drivers de las actualizaciones de calidad de Windows Update (solo opcional)
+Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'ExcludeWUDriversInQualityUpdate' 1
+
+# Bloquear descarga de metadata de dispositivo y apps OEM asociadas al hardware desde servidores MS
+# (dmd.metaservices.microsoft.com) - previene HP Support Assistant, Dell SupportAssist, etc.
+Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata' 'PreventDeviceMetadataFromNetwork' 1
+
+# Bloquear busqueda de drivers en Windows Update en hive CurrentVersion
+# NOTA: SearchOrderConfig=0 = solo local. SearchOrderConfig=1 = buscar en WU (valor erroneo comun)
+# Ref: learn.microsoft.com/windows/win32/setupapi/driver-store  
+Set-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching' 'SearchOrderConfig'    0
+
+# Bloquear busqueda en WU tambien via hive Policies (tiene precedencia sobre CurrentVersion)
+Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching' 'DontSearchWindowsUpdate'   1
+Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching' 'SearchOrderConfig'         0
+
+# Deshabilitar la instalacion de drivers genericos como interino mientras espera drivers especificos
+# Evita que Windows instale un driver HID generico de HP, Dell, etc. que luego arrastra bloatware
+Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings' 'AllowGenericDriverFallback' 0
+
+# Bloquear descarga automatica de apps OEM asociadas al hardware desde el Windows Store
+# (Device Support Apps: HP Support Assistant, Dell SupportAssist, ASUS Armoury Crate, etc.)
+# Ref: learn.microsoft.com/windows/client-management/mdm/policy-csp-applicationmanagement#allowautomaticapparchiving
+Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' 'AutoDownload' 2
+
+Write-Host "  [OK] Politicas de drivers y apps OEM configuradas." -ForegroundColor Green
 #endregion
+
 
 # ============================================================
 #region 7. Background apps
@@ -1819,11 +1843,11 @@ if (-not $Unattended) {
             $selectedTweaks = $adaptiveTweaks | Out-GridView -Title "Optimizaciones opcionales -- guiate por la columna Recomendado" -PassThru
         } catch {
             Write-Host "  [!] Out-GridView no disponible. Aplicando tweaks recomendados automaticamente..." -ForegroundColor Yellow
-            $selectedTweaks = $adaptiveTweaks | Where-Object { $_.Recomendado -eq 'SI' }
+            $selectedTweaks = $adaptiveTweaks | Where-Object { $_.Recomendado -match '^SI' }
         }
     } else {
         Write-Host "  [!] Out-GridView no disponible. Aplicando tweaks recomendados automaticamente..." -ForegroundColor Yellow
-        $selectedTweaks = $adaptiveTweaks | Where-Object { $_.Recomendado -eq 'SI' }
+        $selectedTweaks = $adaptiveTweaks | Where-Object { $_.Recomendado -match '^SI' }
     }
 } else {
     Write-Host "  Modo desatendido: aplicando optimizaciones recomendadas segun el hardware..." -ForegroundColor Gray

@@ -1,3 +1,119 @@
+## [2026-08-22T11:25:00-03:00] Limpieza Total de Menús Contextuales y Reversión a Interfaz Estándar
+
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se removieron por completo todas las entradas de registro, submenús en cascada y atajos de clic derecho que generaban conflictos de compatibilidad:
+    1. **`SetupComplete.cmd`:** Eliminación del bloque de menús contextuales avanzados (`DesktopBackground\Shell\Maintenance` con DISM, SFC, vaciado DNS, papelera, reboot UEFI/WinRE, TakeOwnership, OpenWithNotepad, OpenElevatedPS y BlockInFirewall).
+    2. **`autounattend.xml` (fase `specialize`):** Eliminación de la inyección forzada del CLSID `{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32`, reajustando la secuencia de órdenes de `RunSynchronousCommand` para garantizar 100% de continuidad sin saltos.
+    3. **Inyección Offline NTUSER.DAT:** Eliminación del tweak de menú contextual clásico en la colmena del usuario por defecto (`HKLM\OfflineDefaultUser`).
+    4. **`PostInstall-Diagnostics.ps1`:** Limpieza de las comprobaciones de menús contextuales y de mantenimiento en la auditoría post-instalación.
+    5. **`Win11-Debloat-v3-Adaptive.ps1`:** Remoción completa de la región `5.B Extended Context Menu`.
+  - Validación sintáctica AST con `[System.Management.Automation.Language.Parser]`: **0 Errores de Parseo** en ambos scripts.
+  - Validación de esquema `autounattend.xml`: Comprobación empírica en todos los perfiles (1, 2, 3) y combinaciones de flags con órdenes consecutivas (1..12, 1..15, 1..17, 1..20).
+- **Pendiente:** Compilación y prueba de instalación limpia en Hyper-V.
+
+## [2026-08-18T23:25:00-03:00] Saneamiento Integral de autounattend.xml y Corrección de Esquema XSD para Instalación en Hyper-V
+
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Test-OptimizedISO-v2.ps1`, `MEMORY.md`
+- **Reporte Generado:** `Log/TestHarness_20260818_232141.md`
+- **Hitos Logrados:**
+  - Se diagnosticó y corrigió la causa raíz definitiva del error de Windows Setup (*"El equipo se reinició de manera inesperada o se produjo un error inesperado. La instalación de Windows no puede continuar..."*) que ocurría durante el arranque en Hyper-V (fase `specialize`/OOBE):
+    1. **Eliminación de `<WillContinueOnFailure>`:** La documentación oficial de Microsoft Learn y el esquema XSD de Unattend (`unattend.xsd`) demuestran que `WillContinueOnFailure` **no existe** en `RunSynchronousCommand`. El motor SMI de Windows Setup abortaba la instalación por violación de esquema XML. Se eliminaron las 29 directivas inválidas de todos los pases de `autounattend.xml`.
+    2. **Saneamiento de Comandos en `specialize`:** Se removieron comandos complejos con pipes (`reg delete ... || exit /b 0`) y la modificación prematura de claves de servicios (`DiagTrack`, `dmwappushservice`), manteniendo únicamente comandos puros `reg add "..." /v ... /t ... /d ... /f` (que siempre garantizan código de salida 0 sin interferir con la inicialización PnP de SCM).
+    3. **Desactivación Segura de Servicios en `SetupComplete.cmd`:** La desactivación de servicios de telemetría para Perfil 2+ se migró a `SetupComplete.cmd` (vía `sc config <servicio> start=disabled`), ejecutándose limpiamente como `SYSTEM` tras completar OOBE.
+    4. **Limpieza de `FirstLogonCommands`:** Se simplificó para contener únicamente los comandos de `Winlogon` (`AutoAdminLogon`, `DefaultUserName`, `DefaultPassword`) cuando `-LocalPassword` esté vacío, eliminando scripts PowerShell redundantes que ya gestiona `$OEM$\$1\Users\Public\Desktop\`.
+    5. **Compatibilidad UTF-8 con BOM en PowerShell 5.1:** Se corrigió la codificación de `New-OptimizedWindowsISO-v2.ps1` y `Test-OptimizedISO-v2.ps1` a UTF-8 con BOM y se normalizaron los literales del subsistema de diagnóstico a ASCII seguro, evitando errores sintácticos de parseo en Windows-1252.
+  - Resultados empíricos de validación: **136 Pruebas Totales | 136 PASS (100%) | 0 FAIL | 0 SKIP**.
+- **Pendiente:** Listo para compilar ISOs optimizadas y verificar la instalación en Hyper-V con `New-TestVM-HyperV.ps1`.
+
+## [2026-08-18T22:35:00-03:00] Creación y Certificación del Subsistema de Diagnóstico Post-Instalación (PostInstall-Diagnostics.ps1)
+
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Test-OptimizedISO-v2.ps1`, `MEMORY.md`
+- **Reporte Generado:** `Log/TestHarness_20260818_223133.md`
+- **Hitos Logrados:**
+  - Se diseñó e integró el **Subsistema de Diagnóstico y Auditoría Post-Instalación** (`PostInstall-Diagnostics.ps1`) en `scripts/New-OptimizedWindowsISO-v2.ps1`.
+  - El script se genera dinámicamente y se inyecta en `$OEM$\$1\Windows\Setup\Scripts\`, en `install.wim` y en `$OEMScriptsDir`.
+  - Funcionalidades del diagnóstico post-instalación:
+    1. Inspección de telemetría de hardware (CPU, RAM, detección de VM vs equipo físico, build/UBR).
+    2. Auditoría profunda de logs oficiales de Windows Setup (`Panther\setuperr.log` y `UnattendGC\setuperr.log`).
+    3. Verificación de ejecución de `SetupComplete.cmd`, paquetes de Visual C++ Redistributables y plan de energía.
+    4. Comprobación de bypasses activos (BypassNRO, bloqueo OneDrive, Menú contextual clásico de W11, Tema Oscuro).
+    5. Estado de servicios de telemetría y rendimiento (`DiagTrack`, `dmwappushservice`, `SysMain`, `WSearch`).
+    6. Auditoría PnP de dispositivos con controladores faltantes o errores de hardware.
+    7. Generación automática de reportes ejecutivos Markdown en `$env:WINDIR\Setup\Logs\PostInstall_Report.md` y en el Escritorio Público (`INFORME_INSTALACION.md`).
+  - Se creó el lanzador auto-elevable `Auditar-Instalacion.cmd` y se registró un acceso directo interactivo en el Escritorio con icono oficial del sistema.
+  - Se corrigió la sintaxis de la plantilla (escapes de backticks en bloques Markdown ``` y delimitación de nombres de variables `${sName}:`).
+  - Se amplió el Test Harness a **136 pruebas automatizadas** cubriendo validación AST, ejecución en sandbox y verificación de reportes generados.
+  - Resultados empíricos de validación: **136 Pruebas Totales | 136 PASS (100%) | 0 FAIL | 0 SKIP**.
+- **Pendiente:** Listo para compilar ISOs optimizadas y probar en Hyper-V con `New-TestVM-HyperV.ps1`.
+
+## [2026-08-18T21:38:00-03:00] Resolución de Fallo en Specialize (Hyper-V / Windows Setup) y Refactorización de autounattend.xml y SetupComplete.cmd
+
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Reporte Generado:** `Log/TestHarness_20260818_213701.md`
+- **Hitos Logrados:**
+  - Se diagnosticó la causa raíz del error *"El equipo se reinició de manera inesperada o se produjo un error inesperado"* ocurrido durante el primer arranque en Hyper-V (fase `specialize` de Windows Setup):
+    1. Falta de la directiva `<WillContinueOnFailure>true</WillContinueOnFailure>` en los comandos sincrónicos de `autounattend.xml` (haciendo que códigos de salida distintos de 0, como `reg delete ... OneDriveSetup` sobre claves inexistentes, aborten la instalación).
+    2. Comandos de menú contextual con comillas y `&&` anidados dentro de llamadas `cmd.exe /c` en XML que causaban errores fatales de parseo en Windows Setup.
+    3. Incompatibilidad de esquema en `<Themes>` dentro de `Microsoft-Windows-Shell-Setup` (`ThemeName` con ruta `.theme` y directiva no soportada `DefaultThemesOff`).
+  - Se refactorizó la arquitectura de despliegue:
+    - **`autounattend.xml`:** Se inyectó `<WillContinueOnFailure>true</WillContinueOnFailure>` en todos los comandos de `windowsPE` y `specialize`, se eliminó el componente `<Themes>` conflictivo y se aseguró la directiva `<RequiresUserInput>false</RequiresUserInput>` en `FirstLogonCommands`.
+    - **`SetupComplete.cmd`:** Se migraron todas las configuraciones de menús contextuales avanzados (Mantenimiento, DISM/SFC, Reinicio UEFI/WinRE, Tomar Posesión, Bloquear Firewall, Notepad, PowerShell Elevado), planes de energía y servicios complementarios para que se ejecuten limpiamente en lote como `SYSTEM` al finalizar la instalación con redirección completa a `%LOG%`.
+  - Validación con Test Harness: **122 Pruebas Totales | 122 PASS (100%) | 0 FAIL | 0 SKIP**.
+- **Pendiente:** Listo para compilar nuevas ISOs e instalarlas sin errores en Hyper-V o hardware físico.
+
+## [2026-08-17T15:45:00-03:00] Creación de Script Automatizado de Pruebas Hyper-V (New-TestVM-HyperV.ps1)
+
+- **Archivos Creados:** `scripts/New-TestVM-HyperV.ps1`
+- **Archivos Modificados:** `MEMORY.md`
+- **Hitos Logrados:**
+  - Se creó `scripts/New-TestVM-HyperV.ps1` para automatizar completamente el ciclo de prueba de ISOs optimizadas en Hyper-V.
+  - Implementa validación de privilegios de Administrador, estado del servicio `vmms`, auto-descubrimiento de la ISO más reciente si no se pasa parámetro, selección inteligente de Virtual Switch y limpieza segura de instancias previas (VM y disco `.vhdx`).
+  - Configura hardware de Generación 2 (UEFI x64), 4 vCPUs, 4GB RAM fija, TPM 2.0 virtual (`Set-VMKeyProtector` + `Enable-VMTPM`), Secure Boot (`MicrosoftWindows`) y primer dispositivo de arranque en la unidad DVD virtual.
+  - Resuelve el problema de sincronización de foco abriendo `vmconnect.exe` previo al encendido (`Start-VM`) para evitar expiraciones de teclado en ISOs legacy.
+- **Pendiente:** Listo para ejecución por el usuario.
+
+## [2026-08-17T15:15:00-03:00] Integración de Subsistema de Supervisión de Procesos (Watchdog, Heartbeat y Desmontaje Seguro) en New-OptimizedWindowsISO-v2.ps1
+
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Test-OptimizedISO-v2.ps1`, `MEMORY.md`
+- **Reporte Generado:** `Log/TestHarness_20260817_151237.md`
+- **Hitos Logrados:**
+  - Se investigaron las causas de parates y bloqueos durante la compilación de imágenes (`dism.exe`, `oscdimg.exe`, `curl.exe`, `7z.exe`, `robocopy.exe`) fundamentadas en la documentación oficial de Microsoft Learn y .NET Runtime (deadlocks en búfer de pipes `StandardOutput`/`StandardError`, retención de handles por COM/PowerShell en desmontaje WIM y operaciones no terminadas de DISM ResetBase).
+  - Se implementó `Invoke-MonitoredProcess`: subsistema de ejecución supervisada que utiliza vaciado de flujo asíncrono (`ReadToEndAsync()`), polling no bloqueante de subprocesos (`WaitForExit(1000)`), latidos en vivo configurables (*Heartbeats* con visualización de tiempo transcurrido y consumo de memoria WorkingSet en tiempo real), timeout watchdog automático con terminación forzada (`$proc.Kill()`) y registro estructurado.
+  - Se implementó `Invoke-SafeWimDismount`: procedimiento de desmontaje WIM resiliente con recolección de basura previa (`[System.GC]::Collect()`), reintentos progresivos con espera no lineal, splatting de parámetros nativos, fallback a descarte forzado (`/Discard`) y limpieza de puntos huérfanos (`dism.exe /Cleanup-Mountpoints`).
+  - Se agregaron los parámetros `-ProcessTimeoutMinutes` (default 30 min, 0 para ilimitado), `-HeartbeatIntervalSeconds` (default 15 seg) y `-SkipComponentCleanup` para omitir `StartComponentCleanup /ResetBase` cuando se requiera máxima velocidad o aislamiento de fallos.
+  - Se sustituyeron todas las invocaciones directas no supervisadas en `scripts/New-OptimizedWindowsISO-v2.ps1` (extracción 7z/robocopy, NetFx3, slipstreaming de parches, inyección de drivers, ResetBase, exportación WIM, oscdimg y curl) por el nuevo motor supervisado.
+  - Se actualizó el Test Harness `scripts/Test-OptimizedISO-v2.ps1` a la versión 2.0 (122 pruebas unitarias y de integración, incluyendo verificación empírica de timeout watchdog kill, captura asíncrona y desmontaje seguro).
+  - Resultados empíricos de validación: **122 Pruebas Totales | 122 PASS (100%) | 0 FAIL | 0 SKIP**.
+- **Pendiente:** Listo para producción y compilación de ISOs optimizadas en Windows.
+
+## [2026-08-17T00:35:00-03:00] Implementación y Certificación de Test Harness para New-OptimizedWindowsISO-v2.ps1
+
+- **Archivos Creados:** `scripts/Test-OptimizedISO-v2.ps1`
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Reporte Generado:** `Log/TestHarness_20260817_003355.md`
+- **Hitos Logrados:**
+  - Se implementó `Test-OptimizedISO-v2.ps1`: una suite de pruebas automatizada de 110 aserciones que valida las 27 funciones de `New-OptimizedWindowsISO-v2.ps1` sin compilar ISOs ni alterar el sistema.
+  - Técnica empleada: Extracción de AST (`FunctionDefinitionAst`) para cargar funciones aisladas en memoria sin ejecutar el flujo principal, combinada con stubs y mocks seguros (patrón Pester) para `dism.exe`, `Get-Volume`, `Read-Host` (con soporte `SecureString`), y simulación de red.
+  - Correcciones críticas aplicadas a `New-OptimizedWindowsISO-v2.ps1`:
+    1. Se implementó la función faltante `Write-Info`.
+    2. Se integró el motor multicanal completo en `Invoke-OfficialWindowsDownload` (routing directo a Evaluation Center y Massgrave para LTSC/IoT/Enterprise, motor Fido y fallback MCT para Consumer).
+    3. Se sustituyeron llamadas a `exit` dentro de funciones secundarias (`Resolve-SourceISO`, `Detect-WindowsVersion`, `Invoke-WizardConfig`) por retornos limpios (`return $null` / `return $false`), garantizando modularidad y testeabilidad.
+  - Resultados empíricos de ejecución: **110 Pruebas Totales | 109 PASS (99.1%) | 0 FAIL | 1 SKIP (PSScriptAnalyzer opcional)**.
+- **Pendiente:** Listo para compilación de ISOs en producción.
+
+## [2026-08-16T23:00:00-03:00] Unificación y Refactorización del Descargador Oficial de ISOs (Get-OfficialWindowsISO.ps1)
+
+- **Archivos Creados:** `scripts/Get-OfficialWindowsISO.ps1`
+- **Archivos Eliminados:** `scripts/Get-OfficialWindowsISO-MethodA.ps1`, `scripts/Get-OfficialWindowsISO-MethodB.ps1`
+- **Archivos Modificados:** `MEMORY.md`
+- **Hitos Logrados:**
+  - Se realizó una auditoría técnica completa sobre los métodos de descarga A (MediaCreationTool) y B (Fido / CDN).
+  - Se identificaron las causas raíz de los fallos previos: rechazo de flags incompatibles (`/IsoFile`, `/Retail`) en MCT y bloqueo de API por el WAF Sentinel de Microsoft en Fido.
+  - Se unificó la arquitectura en un único script inteligente (`Get-OfficialWindowsISO.ps1`) con pipeline en cascada: (1) Motor CDN Directo (Fido/BITS/curl) -> (2) Fallback a MediaCreationTool oficial asistido -> (3) Apertura asistida en navegador/catálogo oficial.
+  - Se eliminaron los dos scripts redundantes para cumplir con el principio DRY y reducir la complejidad del proyecto.
+- **Pendiente:** Listo para ejecución directa por el usuario.
+
 ## [2026-08-16T18:23:00-03:00] Aislamiento de Ramas: feature/offline-ui-tweaks (Trabajo) vs main (Público)
 
 - **Archivos Modificados:** `docs/WINDOWS_ENVIRONMENT_SETUP.md`, `MEMORY.md`
