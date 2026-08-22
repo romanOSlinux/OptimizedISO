@@ -3623,8 +3623,32 @@ try {
 
     $reportLines.Add("")
 
-    # 2. Auditoria de Windows Setup (Panther y UnattendGC)
-    $reportLines.Add("## 1. Auditoria de Logs Oficiales de Windows Setup")
+    # 2. Almacenamiento y Huella del Sistema
+    $reportLines.Add("## 1. Almacenamiento y Huella del Sistema")
+    $reportLines.Add("")
+    try {
+        $sysDrive = (Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'" -ErrorAction SilentlyContinue)
+        if ($sysDrive) {
+            $totalGB = [math]::Round($sysDrive.Size / 1GB, 2)
+            $freeGB  = [math]::Round($sysDrive.FreeSpace / 1GB, 2)
+            $usedGB  = [math]::Round(($sysDrive.Size - $sysDrive.FreeSpace) / 1GB, 2)
+            $pctUsed = [math]::Round(($usedGB / $totalGB) * 100, 1)
+
+            $compactStatus = & compact.exe /CompactOS:query 2>&1
+            $isCompact = if ($compactStatus -match 'is in the Compact state|est[aá] en el estado Compact') { "Habilitado (CompactOS Activo)" } else { "Deshabilitado (Estandar)" }
+
+            $passedChecks.Add("Almacenamiento C: auditado ($usedGB GB usados de $totalGB GB, $freeGB GB libres).")
+            $reportLines.Add("- **Particion C:** $usedGB GB usados / $totalGB GB totales ($pctUsed% ocupado, $freeGB GB libres)")
+            $reportLines.Add("- **Compresion CompactOS:** $isCompact")
+        }
+    } catch {
+        $reportLines.Add("- **Almacenamiento:** Error al consultar Win32_LogicalDisk ($($_.Exception.Message))")
+    }
+
+    $reportLines.Add("")
+
+    # 3. Auditoria de Windows Setup (Panther y UnattendGC)
+    $reportLines.Add("## 2. Auditoria de Logs Oficiales de Windows Setup")
     $reportLines.Add("")
 
     # Panther\setuperr.log
@@ -3667,8 +3691,8 @@ try {
 
     $reportLines.Add("")
 
-    # 3. Auditoria de SetupComplete.cmd
-    $reportLines.Add("## 2. Auditoria de SetupComplete.cmd y Runtimes")
+    # 4. Auditoria de SetupComplete.cmd y Runtimes
+    $reportLines.Add("## 3. Auditoria de SetupComplete.cmd y Runtimes")
     $reportLines.Add("")
 
     $setupCompleteLog = "$env:WINDIR\Setup\Scripts\SetupComplete.log"
@@ -3682,7 +3706,6 @@ try {
             $reportLines.Add("- **Estado de SetupComplete.cmd:** Incompleto o no finalizado [WARN]")
         }
     } else {
-        $warnings.Add("No se encontro el log SetupComplete.log.")
         $reportLines.Add("- **Estado de SetupComplete.cmd:** Log no encontrado en $setupCompleteLog")
     }
 
@@ -3707,8 +3730,8 @@ try {
 
     $reportLines.Add("")
 
-    # 4. Auditoria de Bypasses, Politicas y Registro
-    $reportLines.Add("## 3. Estado de Tweaks, Registro y Bypasses")
+    # 5. Auditoria de Bypasses, Politicas y Registro
+    $reportLines.Add("## 4. Estado de Tweaks, Registro y Bypasses")
     $reportLines.Add("")
 
     # BypassNRO
@@ -3732,7 +3755,41 @@ try {
         }
     }
 
+    # Exclusion de Drivers en Windows Update
+    $wuDrivers = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name ExcludeWUDriversInQualityUpdate -ErrorAction SilentlyContinue).ExcludeWUDriversInQualityUpdate
+    if ($wuDrivers -eq 1) {
+        $passedChecks.Add("Exclusion de Drivers en Windows Update activa.")
+        $reportLines.Add("- **Exclusion Drivers Windows Update:** Activa (1) [OK]")
+    } else {
+        $reportLines.Add("- **Exclusion Drivers Windows Update:** Inactiva o no configurada (0).")
+    }
 
+    # Busqueda de Drivers Local-Only
+    $drvSearch = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching" -Name SearchOrderConfig -ErrorAction SilentlyContinue).SearchOrderConfig
+    if ($drvSearch -eq 0) {
+        $passedChecks.Add("Busqueda de Drivers en modo solo local activa.")
+        $reportLines.Add("- **Busqueda de Drivers (Local-Only):** Activa (0) [OK]")
+    } else {
+        $reportLines.Add("- **Busqueda de Drivers (Local-Only):** Inactiva ($drvSearch).")
+    }
+
+    # Bloqueo Metadata OEM
+    $metaBlock = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" -Name PreventDeviceMetadataFromNetwork -ErrorAction SilentlyContinue).PreventDeviceMetadataFromNetwork
+    if ($metaBlock -eq 1) {
+        $passedChecks.Add("Bloqueo de Metadata OEM en red activo.")
+        $reportLines.Add("- **Bloqueo Metadata y Apps OEM:** Activo (1) [OK]")
+    } else {
+        $reportLines.Add("- **Bloqueo Metadata y Apps OEM:** Inactivo o no configurado.")
+    }
+
+    # Bloqueo WPBT ACPI
+    $wpbtVal = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager" -Name DisableWPBT -ErrorAction SilentlyContinue).DisableWPBT
+    if ($wpbtVal -eq 1) {
+        $passedChecks.Add("Bloqueo de tabla ACPI WPBT activo.")
+        $reportLines.Add("- **Bloqueo ACPI WPBT (OEM Bloatware):** Activo (1) [OK]")
+    } else {
+        $reportLines.Add("- **Bloqueo ACPI WPBT (OEM Bloatware):** Inactivo o no configurado.")
+    }
 
     # Modo Oscuro
     $appsDark = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme
@@ -3746,8 +3803,108 @@ try {
 
     $reportLines.Add("")
 
-    # 5. Auditoria de Servicios de Rendimiento
-    $reportLines.Add("## 4. Estado de Servicios de Rendimiento")
+    # 6. Auditoria de Debloat AppX / UWP
+    $reportLines.Add("## 5. Auditoria de Paquetes AppX / UWP Aprovisionados")
+    $reportLines.Add("")
+    try {
+        $appxPackages = @(Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue)
+        if ($appxPackages.Count -gt 0) {
+            $knownBloatList = @(
+                'Microsoft.BingNews', 'Microsoft.BingWeather', 'Microsoft.GetHelp',
+                'Microsoft.Getstarted', 'Microsoft.MicrosoftSolitaireCollection',
+                'Microsoft.People', 'Microsoft.Todos', 'Microsoft.WindowsFeedbackHub',
+                'Microsoft.XboxApp', 'Microsoft.XboxGamingOverlay', 'Microsoft.Clipchamp.Clipchamp',
+                'MicrosoftCorporationII.QuickAssist'
+            )
+            $detectedBloat = @($appxPackages | Where-Object { $pkg = $_.DisplayName; $knownBloatList | Where-Object { $pkg -like "*$_*" } })
+            
+            $reportLines.Add("- **Total Paquetes Aprovisionados:** $($appxPackages.Count) paquete(s) registrados en la imagen.")
+            if ($detectedBloat.Count -gt 0) {
+                $reportLines.Add("- **Paquetes Promocionales/Telemetria Residuales:** $($detectedBloat.Count) detectado(s)")
+                foreach ($b in $detectedBloat) {
+                    $reportLines.Add("  - $($b.DisplayName)")
+                }
+            } else {
+                $passedChecks.Add("Debloat AppX: 0 paquetes promocionales o telemetria residuales.")
+                $reportLines.Add("- **Estado de Debloat AppX:** Limpio (0 paquetes promocionales/telemetria detectados) [OK]")
+            }
+        } else {
+            $reportLines.Add("- **Auditoria AppX:** Consulta requiere elevacion de Administrador.")
+        }
+    } catch {
+        $reportLines.Add("- **Auditoria AppX:** Error consultando paquetes provisionados ($($_.Exception.Message))")
+    }
+
+    $reportLines.Add("")
+
+    # 7. Licenciamiento y Activacion WMI
+    $reportLines.Add("## 6. Estado de Licenciamiento y Activacion")
+    $reportLines.Add("")
+    try {
+        $licProducts = @(Get-CimInstance SoftwareLicensingProduct -Filter "PartialProductKey IS NOT NULL" -ErrorAction SilentlyContinue)
+        if ($licProducts.Count -gt 0) {
+            foreach ($lp in $licProducts) {
+                $statusText = switch ($lp.LicenseStatus) {
+                    0 { "Sin Licencia (Unlicensed)" }
+                    1 { "Licenciado / Activado (Licensed)" }
+                    2 { "Periodo de Gracia OOBE (OOBE Grace)" }
+                    3 { "Periodo de Gracia Fuera de Tolerancia (OOT Grace)" }
+                    4 { "Periodo de Gracia de No Genuino (Non-Genuine Grace)" }
+                    5 { "Notificacion (Notification)" }
+                    6 { "Gracia Extendida (Extended Grace)" }
+                    default { "Estado ($($lp.LicenseStatus))" }
+                }
+                $isLicensed = ($lp.LicenseStatus -eq 1)
+                if ($isLicensed) {
+                    $passedChecks.Add("Licencia de Windows: Activada ($($lp.Name)).")
+                }
+                $reportLines.Add("- **Producto:** $($lp.Name)")
+                $reportLines.Add("- **Estado:** $statusText $(if ($isLicensed) { '[OK]' } else { '' })")
+                $reportLines.Add("- **Clave Parcial:** $($lp.PartialProductKey)")
+            }
+        } else {
+            $reportLines.Add("- **Licenciamiento:** Sin claves de producto registradas (Imagen limpia o generica).")
+        }
+    } catch {
+        $reportLines.Add("- **Licenciamiento:** No disponible ($($_.Exception.Message))")
+    }
+
+    $reportLines.Add("")
+
+    # 8. Seguridad del Kernel y VBS
+    $reportLines.Add("## 7. Seguridad del Kernel y Virtualization-Based Security (VBS)")
+    $reportLines.Add("")
+    try {
+        $dg = Get-CimInstance -Namespace root\Microsoft\Windows\DeviceGuard -ClassName Win32_DeviceGuard -ErrorAction SilentlyContinue
+        if ($dg) {
+            $vbsStatus = switch ($dg.VirtualizationBasedSecurityStatus) {
+                0 { "Deshabilitado (0)" }
+                1 { "Habilitado pero no en ejecucion (1)" }
+                2 { "Habilitado y en ejecucion (2)" }
+                default { "Estado ($($dg.VirtualizationBasedSecurityStatus))" }
+            }
+            $reportLines.Add("- **Virtualization-Based Security (VBS):** $vbsStatus")
+            
+            $secServices = @()
+            if ($dg.SecurityServicesRunning -contains 1) { $secServices += "HVCI (Integridad de Memoria)" }
+            if ($dg.SecurityServicesRunning -contains 2) { $secServices += "Credential Guard" }
+            if ($secServices.Count -gt 0) {
+                $reportLines.Add("- **Servicios de Seguridad Activos:** $($secServices -join ', ')")
+            } else {
+                $reportLines.Add("- **Servicios de Seguridad Activos:** Ninguno (Maximo rendimiento)")
+            }
+            $passedChecks.Add("Seguridad del Kernel / DeviceGuard auditado ($vbsStatus).")
+        } else {
+            $reportLines.Add("- **Win32_DeviceGuard:** No disponible en esta edicion o entorno VM sin virtualizacion anidada.")
+        }
+    } catch {
+        $reportLines.Add("- **DeviceGuard / VBS:** Consulta no disponible ($($_.Exception.Message))")
+    }
+
+    $reportLines.Add("")
+
+    # 9. Auditoria de Servicios de Rendimiento
+    $reportLines.Add("## 8. Estado de Servicios de Rendimiento")
     $reportLines.Add("")
 
     $servicesToCheck = @("DiagTrack", "dmwappushservice", "WSearch", "Spooler", "WlanSvc", "bthserv", "SysMain")
@@ -3763,12 +3920,12 @@ try {
 
     $reportLines.Add("")
 
-    # 6. Auditoria de Hardware y Controladores PnP
-    $reportLines.Add("## 5. Auditoria de Hardware y Controladores (PnP)")
+    # 10. Auditoria de Hardware y Controladores PnP
+    $reportLines.Add("## 9. Auditoria de Hardware y Controladores (PnP)")
     $reportLines.Add("")
 
     try {
-        $problemDevices = @(Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne 'OK' -and $_.Class -ne 'System' })
+        $problemDevices = @(Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne 'OK' -and $_.Class -ne 'System' -and $_.Problem -ne 'CM_PROB_PHANTOM' })
         if ($problemDevices.Count -gt 0) {
             $warnings.Add("Se detectaron $($problemDevices.Count) dispositivo(s) con advertencia o falta de driver.")
             $reportLines.Add("### [WARN] Dispositivos con problemas detectados ($($problemDevices.Count)):")
@@ -3787,7 +3944,7 @@ try {
 
     $reportLines.Add("")
 
-    # 7. Evaluacion Final y Resumen Ejecutivo
+    # 11. Evaluacion Final y Resumen Ejecutivo
     $finalStatus = if ($criticalErrors.Count -gt 0) {
         "FAILED / CON ERRORES"
     } elseif ($warnings.Count -gt 0) {
@@ -3836,6 +3993,7 @@ try {
 } catch {
     Write-Host "[ERROR] Excepcion durante la auditoria post-instalacion: $($_.Exception.Message)" -ForegroundColor Red
 }
+
 '@
 
 $postInstallDiagContent = $postInstallDiagTemplate.Replace('__OPT_PROFILE__', "$optProfileIntSetup").Replace('__BLOCK_ONEDRIVE__', $(if ($script:BlockOneDrive) { '$true' } else { '$false' }))

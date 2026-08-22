@@ -1,3 +1,18 @@
+## [2026-08-22T11:55:00-03:00] Ampliación del Subsistema de Diagnóstico Post-Instalación con Métricas Oficiales de Microsoft Learn
+
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se integraron 5 nuevas categorías de métricas oficiales en la plantilla `PostInstall-Diagnostics.ps1` inyectada dinámicamente en las ISOs:
+    1. **Almacenamiento y Huella del Sistema:** Medición precisa de espacio usado, espacio libre, porcentaje de ocupación en C: e inspección del estado de compresión del sistema *CompactOS* (`compact.exe /CompactOS:query`).
+    2. **Políticas de Controladores y Bloqueo WPBT:** Auditoría de exclusión de drivers en Windows Update (`ExcludeWUDriversInQualityUpdate`), búsqueda local-only (`SearchOrderConfig=0`), bloqueo de metadatos OEM (`PreventDeviceMetadataFromNetwork`) y bloqueo de inyección ACPI (`DisableWPBT`).
+    3. **Auditoría de Debloat AppX / UWP:** Conteo total de paquetes aprovisionados en línea (`Get-AppxProvisionedPackage -Online`) e identificación de bloatware residual de telemetría/promocional.
+    4. **Licenciamiento y Activación WMI:** Consulta no bloqueante de `SoftwareLicensingProduct` para obtener descripción de producto, canal de licencia (Retail, OEM, Volume KMS, GVLK, Evaluación) y clave parcial.
+    5. **Seguridad del Kernel y DeviceGuard:** Detección de estado de *Virtualization-Based Security* (VBS) e integridad de memoria (HVCI) vía `Win32_DeviceGuard`.
+    6. **Saneamiento de PnP Devices:** Filtrado de dispositivos fantasma (`CM_PROB_PHANTOM`) para enfocar el reporte en hardware con fallas reales de drivers.
+  - Validación sintáctica AST con `[System.Management.Automation.Language.Parser]`: **0 Errores de Parseo** en PowerShell 5.1 y 7+.
+  - Prueba empírica en vivo (`test_diagnostics_live.ps1`): Ejecución exitosa y generación del reporte completo en Markdown (`PostInstall_Report.md`).
+- **Pendiente:** Compilación y prueba de instalación limpia en Hyper-V.
+
 ## [2026-08-22T11:25:00-03:00] Limpieza Total de Menús Contextuales y Reversión a Interfaz Estándar
 
 - **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `MEMORY.md`
