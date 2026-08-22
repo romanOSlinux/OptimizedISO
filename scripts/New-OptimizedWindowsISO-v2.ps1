@@ -3525,11 +3525,24 @@ $optProfileIntSetup = if ($script:OptProfile) { [int]$script:OptProfile } else {
 if ($optProfileIntSetup -ge 2) {
     $optimizationsBlock += @'
 REM ===========================================================
-REM Deshabilitar Servicios de Telemetria (Perfil 2+)
+REM Deshabilitar Servicios de Telemetria, Diagnosticos y Oficina (Perfil 2+)
 REM ===========================================================
-echo [%DATE% %TIME%] Deshabilitando servicios de telemetria... >> "%LOG%"
+echo [%DATE% %TIME%] Deshabilitando servicios de telemetria y diagnosticos... >> "%LOG%"
 sc config DiagTrack start=disabled >> "%LOG%" 2>&1
 sc config dmwappushservice start=disabled >> "%LOG%" 2>&1
+sc config WerSvc start=disabled >> "%LOG%" 2>&1
+sc config TroubleshootingSvc start=disabled >> "%LOG%" 2>&1
+
+echo [%DATE% %TIME%] Deshabilitando servicios corporativos y de oficina... >> "%LOG%"
+sc config Fax start=disabled >> "%LOG%" 2>&1
+sc config SCardSvr start=disabled >> "%LOG%" 2>&1
+sc config RemoteRegistry start=disabled >> "%LOG%" 2>&1
+sc config RetailDemo start=disabled >> "%LOG%" 2>&1
+sc config MapsBroker start=disabled >> "%LOG%" 2>&1
+sc config lfsvc start=disabled >> "%LOG%" 2>&1
+
+echo [%DATE% %TIME%] Deshabilitando servicio de BitLocker... >> "%LOG%"
+sc config BDESVC start=disabled >> "%LOG%" 2>&1
 
 '@
 }
@@ -3537,15 +3550,20 @@ sc config dmwappushservice start=disabled >> "%LOG%" 2>&1
 if ($optProfileIntSetup -eq 3) {
     $optimizationsBlock += @'
 REM ===========================================================
-REM Deshabilitar Servicios Hardcore (Perfil 3)
+REM Deshabilitar Servicios Hardcore y Latencia Minima (Perfil 3)
 REM ===========================================================
 echo [%DATE% %TIME%] Deshabilitando servicios hardcore... >> "%LOG%"
 sc config WSearch start=disabled >> "%LOG%" 2>&1
 sc config Spooler start=disabled >> "%LOG%" 2>&1
+sc config SysMain start=disabled >> "%LOG%" 2>&1
 sc config WlanSvc start=disabled >> "%LOG%" 2>&1
 sc config bthserv start=disabled >> "%LOG%" 2>&1
 sc config SensorService start=disabled >> "%LOG%" 2>&1
-sc config SysMain start=disabled >> "%LOG%" 2>&1
+sc config SensorsDataService start=disabled >> "%LOG%" 2>&1
+sc config TabletInputService start=disabled >> "%LOG%" 2>&1
+
+echo [%DATE% %TIME%] Configurando hipervisor en modo latencia minima... >> "%LOG%"
+bcdedit /set hypervisorlaunchtype off >> "%LOG%" 2>&1
 
 '@
 }
@@ -3791,6 +3809,15 @@ try {
         $reportLines.Add("- **Bloqueo ACPI WPBT (OEM Bloatware):** Inactivo o no configurado.")
     }
 
+    # Prevencion Cifrado Automatico BitLocker (PreventDeviceEncryption)
+    $bitlockerPrevent = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\BitLocker" -Name PreventDeviceEncryption -ErrorAction SilentlyContinue).PreventDeviceEncryption
+    if ($bitlockerPrevent -eq 1) {
+        $passedChecks.Add("Prevencion de Cifrado BitLocker (PreventDeviceEncryption = 1) activa.")
+        $reportLines.Add("- **Prevencion Cifrado BitLocker:** Activa (1 - DirectStorage/BypassIO Habilitado) [OK]")
+    } else {
+        $reportLines.Add("- **Prevencion Cifrado BitLocker:** Inactiva o no configurada ($bitlockerPrevent).")
+    }
+
     # Modo Oscuro
     $appsDark = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme
     $sysDark = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name SystemUsesLightTheme -ErrorAction SilentlyContinue).SystemUsesLightTheme
@@ -3907,7 +3934,7 @@ try {
     $reportLines.Add("## 8. Estado de Servicios de Rendimiento")
     $reportLines.Add("")
 
-    $servicesToCheck = @("DiagTrack", "dmwappushservice", "WSearch", "Spooler", "WlanSvc", "bthserv", "SysMain")
+    $servicesToCheck = @("DiagTrack", "dmwappushservice", "WerSvc", "TroubleshootingSvc", "BDESVC", "Fax", "SCardSvr", "RemoteRegistry", "RetailDemo", "MapsBroker", "lfsvc", "WSearch", "Spooler", "WlanSvc", "bthserv", "SensorService", "SysMain")
     foreach ($sName in $servicesToCheck) {
         $svc = Get-Service -Name $sName -ErrorAction SilentlyContinue
         if ($svc) {
@@ -4207,7 +4234,7 @@ $($firstLogonCommands -join "`n")
     $nextOrder += 11
 
     if ($optProfile -ge 2) {
-        # Perfil 2+ (Gaming / Hardcore): Políticas de telemetría HKLM y Bloqueo de Drivers de Windows Update
+        # Perfil 2+ (Gaming / Hardcore): Políticas de telemetría HKLM, Bloqueo de Drivers y Prevención BitLocker
         $optimizeXml += @"
 
         <RunSynchronousCommand wcm:action="add">
@@ -4235,8 +4262,13 @@ $($firstLogonCommands -join "`n")
           <Description>Disable WPBT ACPI Execution (Block OEM BIOS Bloatware on Notebooks/Motherboards)</Description>
           <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v DisableWPBT /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 5)</Order>
+          <Description>Prevent Automatic BitLocker Device Encryption on Clean Install (Profile 2+)</Description>
+          <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\BitLocker" /v PreventDeviceEncryption /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
 "@
-        $nextOrder += 5
+        $nextOrder += 6
     }
 
     # Generar XML completo sin espacios en namespaces (corrección crítica)

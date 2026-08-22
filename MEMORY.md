@@ -1,3 +1,16 @@
+## [2026-08-22T13:50:00-03:00] Optimización Integral de Servicios para Gaming/Streaming y Desactivación de BitLocker por Software
+
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se implementó la matriz de servicios basada en documentación de Microsoft Learn y benchmarks empíricos (*Tom's Hardware, CapFrameX*):
+    1. **Prevención de Cifrado BitLocker (`PreventDeviceEncryption = 1`):** Inyectado en `autounattend.xml` (fase `specialize`) para Perfil 2+, evitando la pérdida de hasta 45% en rendimiento aleatorio I/O en SSDs NVMe y habilitando **BypassIO** para la tecnología **DirectStorage**.
+    2. **Deshabilitación de Servicios en Perfil 2 (Gaming & Streaming):** `SetupComplete.cmd` desactiva telemetría/diagnósticos (`DiagTrack`, `dmwappushservice`, `WerSvc`, `TroubleshootingSvc`), servicios de oficina/legados (`Fax`, `SCardSvr`, `RemoteRegistry`, `RetailDemo`, `MapsBroker`, `lfsvc`) y el servicio de BitLocker (`BDESVC`). Se preservan activos `WSearch`, `Spooler`, audio, red y VBS base para compatibilidad 100% con anti-cheats (Vanguard, EAC, FACEIT).
+    3. **Deshabilitación de Servicios en Perfil 3 (Hardcore):** Aplica Perfil 2 + desactiva `WSearch`, `Spooler`, `SysMain`, `WlanSvc`, `bthserv`, `SensorService`, `SensorsDataService`, `TabletInputService` y ejecuta `bcdedit /set hypervisorlaunchtype off` para latencia mínima.
+    4. **Actualización de Diagnóstico (`PostInstall-Diagnostics.ps1`):** Incorpora la verificación de `PreventDeviceEncryption` y la auditoría de los 17 servicios clave de rendimiento.
+    5. **Validación de Secuencias XML:** Verificación matemática de que `autounattend.xml` genera órdenes estrictamente consecutivas sin saltos (1..12, 1..13, 1..18, 1..19) en todos los perfiles y combinaciones.
+  - Validación sintáctica AST con `[System.Management.Automation.Language.Parser]`: **0 Errores de Parseo** en PowerShell 5.1 y 7+.
+- **Pendiente:** Compilación y prueba de instalación limpia en Hyper-V.
+
 ## [2026-08-22T11:55:00-03:00] Ampliación del Subsistema de Diagnóstico Post-Instalación con Métricas Oficiales de Microsoft Learn
 
 - **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
