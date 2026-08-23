@@ -3398,18 +3398,57 @@ echo ======================================================================
 pause >nul
 "@
 
-        $launcherPublicPath  = Join-Path $OEMDesktopDir $sc.LauncherName
         $launcherScriptsPath = Join-Path $OEMScriptsDir $sc.LauncherName
         $launcherScripts1Path = Join-Path $OEMScriptsDir1 $sc.LauncherName
 
-        [System.IO.File]::WriteAllText($launcherPublicPath, $launcherContent, [System.Text.Encoding]::ASCII)
         [System.IO.File]::WriteAllText($launcherScriptsPath, $launcherContent, [System.Text.Encoding]::ASCII)
         [System.IO.File]::WriteAllText($launcherScripts1Path, $launcherContent, [System.Text.Encoding]::ASCII)
 
-        Write-OK "Lanzador elevado creado en Escritorio Público: $($sc.LauncherName)"
+        Write-OK "Lanzador elevado registrado en Scripts: $($sc.LauncherName)"
     }
+
+    # Generar tambien lanzador de Auditoria en Scripts
+    $diagLauncherContent = @"
+@echo off
+title Auditoria y Diagnostico de Instalacion de Windows
+echo.
+echo ======================================================================
+echo   Auditoria y Diagnostico de Instalacion de Windows
+echo   Ejecucion bajo demanda con privilegios de Administrador
+echo ======================================================================
+echo.
+
+:: Comprobar privilegios de Administrador
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [!] Solicitando elevacion de privilegios de Administrador...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process cmd.exe -ArgumentList '/c \"\"%~f0\"\"' -Verb RunAs"
+    exit /b 0
+)
+
+cd /d "%WINDIR%\Setup\Scripts"
+
+if exist "%WINDIR%\Setup\Scripts\PostInstall-Diagnostics.ps1" (
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\PostInstall-Diagnostics.ps1"
+) else if exist "C:\Windows\Setup\Scripts\PostInstall-Diagnostics.ps1" (
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\PostInstall-Diagnostics.ps1"
+) else (
+    echo [ERROR] No se encontro PostInstall-Diagnostics.ps1 en C:\Windows\Setup\Scripts\
+    pause
+    exit /b 1
+)
+
+echo.
+echo ======================================================================
+echo   Auditoria finalizada. Presione cualquier tecla para cerrar...
+echo ======================================================================
+pause >nul
+"@
+    [System.IO.File]::WriteAllText((Join-Path $OEMScriptsDir "Auditar-Instalacion.cmd"), $diagLauncherContent, [System.Text.Encoding]::ASCII)
+    [System.IO.File]::WriteAllText((Join-Path $OEMScriptsDir1 "Auditar-Instalacion.cmd"), $diagLauncherContent, [System.Text.Encoding]::ASCII)
+    Write-OK "Lanzador de Auditoria registrado en Scripts: Auditar-Instalacion.cmd"
 } else {
-    Write-Warn "No se seleccionaron scripts. La ISO se generará sin herramientas en el Escritorio."
+    Write-Warn "No se seleccionaron scripts adicionales para inyeccion."
 }
 
 # ------------------------------------------------------------------
@@ -3617,22 +3656,33 @@ echo [%DATE% %TIME%] SetupComplete.cmd finalizado exitosamente. >> "%LOG%"
 exit /b 0
 '@
 
-$tasksBlock = ""
+$tasksBlock = @"
+REM ===========================================================
+REM Crear Carpeta de Suite en el Menu Inicio (Start Menu\Programs)
+REM Ref: learn.microsoft.com/windows/win32/shell/knownfolderid
+REM ===========================================================
+echo [%DATE% %TIME%] Creando accesos directos de la Suite en el Menu Inicio... >> "%LOG%"
+set "START_MENU_TOOLS=%ProgramData%\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema"
+if not exist "%START_MENU_TOOLS%" mkdir "%START_MENU_TOOLS%" >> "%LOG%" 2>&1
+
+"@
+
 if ($scriptsToInject.Count -gt 0) {
     foreach ($sc in $scriptsToInject) {
         $taskName = "Ejecutar_" + ($sc.DestName -replace '[^a-zA-Z0-9_]', '')
+        $iconNumber = if ($sc.DestName -match 'Maintenance') { "54" } elseif ($sc.DestName -match 'Network') { "23" } else { "109" }
         $tasksBlock += @"
 echo [%DATE% %TIME%] Configurando tarea a demanda para $($sc.DestName)... >> "%LOG%"
 schtasks /create /tn "$taskName" /tr "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"%SCRIPTS_DIR%\$($sc.DestName)\"" /sc ONCE /st 00:00 /ru "SYSTEM" /rl HIGHEST /f >> "%LOG%" 2>&1
 
-"%PS%" -NoProfile -ExecutionPolicy Bypass -Command "`$ws = New-Object -ComObject WScript.Shell; `$desk = if (`$env:PUBLIC) { \"`$env:PUBLIC\Desktop\" } else { 'C:\Users\Public\Desktop' }; if (-not (Test-Path `$desk)) { New-Item -ItemType Directory -Path `$desk -Force | Out-Null }; `$sc = `$ws.CreateShortcut(\"`$desk\$($sc.ShortcutName)\"); `$sc.TargetPath = '%WINDIR%\Setup\Scripts\$($sc.LauncherName)'; `$sc.WorkingDirectory = '%WINDIR%\Setup\Scripts'; `$sc.Description = '$($sc.Title)'; `$sc.IconLocation = '%SystemRoot%\System32\imageres.dll,109'; `$sc.Save()" >> "%LOG%" 2>&1
+"%PS%" -NoProfile -ExecutionPolicy Bypass -Command "`$ws = New-Object -ComObject WScript.Shell; `$sm = if (`$env:ProgramData) { \"`$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema\" } else { 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema' }; if (-not (Test-Path `$sm)) { New-Item -ItemType Directory -Path `$sm -Force | Out-Null }; `$sc = `$ws.CreateShortcut(\"`$sm\$($sc.ShortcutName)\"); `$sc.TargetPath = '%WINDIR%\Setup\Scripts\$($sc.LauncherName)'; `$sc.WorkingDirectory = '%WINDIR%\Setup\Scripts'; `$sc.Description = '$($sc.Title)'; `$sc.IconLocation = '%SystemRoot%\System32\imageres.dll,$iconNumber'; `$sc.Save()" >> "%LOG%" 2>&1
 "@ + "`r`n"
     }
 }
 
-# Acceso directo para Auditoría Post-Instalación
+# Acceso directo para Auditoria Post-Instalacion en Menu Inicio
 $tasksBlock += @"
-"%PS%" -NoProfile -ExecutionPolicy Bypass -Command "`$ws = New-Object -ComObject WScript.Shell; `$desk = if (`$env:PUBLIC) { \"`$env:PUBLIC\Desktop\" } else { 'C:\Users\Public\Desktop' }; if (-not (Test-Path `$desk)) { New-Item -ItemType Directory -Path `$desk -Force | Out-Null }; `$sc = `$ws.CreateShortcut(\"`$desk\Auditar Instalacion.lnk\"); `$sc.TargetPath = '%WINDIR%\Setup\Scripts\Auditar-Instalacion.cmd'; `$sc.WorkingDirectory = '%WINDIR%\Setup\Scripts'; `$sc.Description = 'Auditar y Diagnosticar Instalacion de Windows'; `$sc.IconLocation = '%SystemRoot%\System32\imageres.dll,104'; `$sc.Save()" >> "%LOG%" 2>&1
+"%PS%" -NoProfile -ExecutionPolicy Bypass -Command "`$ws = New-Object -ComObject WScript.Shell; `$sm = if (`$env:ProgramData) { \"`$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema\" } else { 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema' }; if (-not (Test-Path `$sm)) { New-Item -ItemType Directory -Path `$sm -Force | Out-Null }; `$sc = `$ws.CreateShortcut(\"`$sm\Auditar Instalacion.lnk\"); `$sc.TargetPath = '%WINDIR%\Setup\Scripts\Auditar-Instalacion.cmd'; `$sc.WorkingDirectory = '%WINDIR%\Setup\Scripts'; `$sc.Description = 'Auditar y Diagnosticar Instalacion de Windows'; `$sc.IconLocation = '%SystemRoot%\System32\imageres.dll,104'; `$sc.Save()" >> "%LOG%" 2>&1
 "@ + "`r`n"
 
 $optimizationsBlock = @"

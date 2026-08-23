@@ -1,3 +1,20 @@
+## [2026-08-22T22:35:00-03:00] Integración de Suite en Menú Inicio (Start Menu\Programs), Auditoría y Escritorio 100% Limpio
+
+- **Archivos Creados / Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Auditar-Instalacion.cmd`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se eliminó por completo la saturación de accesos directos y archivos `.cmd` en el Escritorio Público (`Desktop`), logrando una experiencia post-instalación 100% limpia y minimalista.
+  - Se implementó la integración oficial en el Menú Inicio bajo el estándar de Microsoft (`FOLDERID_CommonPrograms`):
+    - **Carpeta de Suite Creada:** `%ProgramData%\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema\`
+    - **Accesos Directos con Iconos de Sistema de Alta Resolución:**
+      1. 🔍 **`Auditar Instalacion.lnk`:** Ejecuta `Auditar-Instalacion.cmd` (que llama a `PostInstall-Diagnostics.ps1` elevado) con icono `%SystemRoot%\System32\imageres.dll,104`. Permite re-auditar el sistema bajo demanda en cualquier momento.
+      2. 🧹 **`Mantenimiento del Sistema.lnk`:** Ejecuta `Invoke-WindowsMaintenance.cmd` con icono `%SystemRoot%\System32\imageres.dll,54`.
+      3. ⚡ **`Optimizar Sistema (Opcional).lnk`:** Ejecuta `Win11-Debloat-v3-Adaptive.cmd` con icono `%SystemRoot%\System32\imageres.dll,109`.
+      4. 🌐 **`Optimizar Red y Latencia (Opcional).lnk`:** Ejecuta `Win11-Network-Diagnostics-Optimizer.cmd` con icono `%SystemRoot%\System32\imageres.dll,23`.
+    - **Búsqueda Instantánea de Windows:** Las 4 herramientas son indexadas automáticamente por Windows Search al presionar la tecla Windows y escribir su nombre.
+  - **Lanzador Local:** Se añadió [`scripts/Auditar-Instalacion.cmd`](file:///c:/OptimizedISO/scripts/Auditar-Instalacion.cmd) al repositorio local.
+  - **Validación AST:** **0 Errores de Parseo** en todos los scripts (`New-OptimizedWindowsISO-v2.ps1`, `Win11-Debloat-v3-Adaptive.ps1`, `Invoke-WindowsMaintenance.ps1`).
+- **Pendiente:** Compilación de ISO y prueba en Hyper-V.
+
 ## [2026-08-22T22:20:00-03:00] Arquitectura y Separación Limpia de Responsabilidades (SRP)
 
 - **Archivos Modificados:** `scripts/Invoke-WindowsMaintenance.ps1`, `MEMORY.md`
