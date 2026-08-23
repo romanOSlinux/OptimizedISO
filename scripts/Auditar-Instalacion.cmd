@@ -19,8 +19,12 @@ cd /d "%~dp0"
 
 if exist "%~dp0PostInstall-Diagnostics.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0PostInstall-Diagnostics.ps1" %*
+) else if exist "%WINDIR%\Setup\Scripts\PostInstall-Diagnostics.ps1" (
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\PostInstall-Diagnostics.ps1" %*
+) else if exist "C:\Windows\Setup\Scripts\PostInstall-Diagnostics.ps1" (
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\PostInstall-Diagnostics.ps1" %*
 ) else (
-    echo [ERROR] No se encontro PostInstall-Diagnostics.ps1 en el directorio actual: %~dp0
+    echo [ERROR] No se encontro PostInstall-Diagnostics.ps1 en %~dp0 ni en C:\Windows\Setup\Scripts\
     pause
     exit /b 1
 )
