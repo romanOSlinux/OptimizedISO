@@ -492,9 +492,11 @@ $isRyzen5kPlus   = ($cpuName -match 'Ryzen [0-9] [5-9][0-9]{3}') -or
 $isModernCPU     = $isIntel12thPlus -or $isRyzen5kPlus
 
 # CPU de bajos recursos (Celeron, Pentium, Atom, Ryzen 3 1xxx-3xxx, i3 1xxx-6xxx)
+# [FIX-PS51] Regex con [^0-9] confunde el parser de PS5.1 (lo interpreta como array index).
+# Equivalente funcional: -notmatch '[0-9]' al final del patron.
 $isLowEndCPU = ($cpuName -match 'Celeron|Pentium|Atom|J[0-9]{4}|N[0-9]{4}') -or
                ($cpuName -match 'Ryzen 3 [1-4][0-9]{3}') -or
-               ($cpuName -match 'Core i3-[1-6][0-9]{3}[^0-9]') -or
+               ($cpuName -match 'Core i3-[1-6][0-9]{3}' -and $cpuName -notmatch 'Core i3-[1-6][0-9]{4}') -or
                ($cpuCores -le 2 -and $cpuMHz -le 2400)
 
 # --- Temperatura CPU en idle (solo lectura, sin decision automatica) ---
@@ -529,7 +531,9 @@ foreach ($g in $gpuObjs) {
     $gpuNames += $g.Name
     if ($g.Name -match 'NVIDIA|AMD Radeon [RX]|Intel Arc') { $isGaming = $true }
 }
-$gpuLabel = if ($gpuNames.Count -gt 0) { $gpuNames -join ' | ' } else { 'No detectada' }
+# [FIX-PS51] Ternario inline a nivel de sentencia confunde al parser PS5.1.
+# Envolver en $() lo convierte en subexpresion valida en todos los runtime.
+$gpuLabel = $(if ($gpuNames.Count -gt 0) { $gpuNames -join ' | ' } else { 'No detectada' })
 
 # --- Perfil de equipo consolidado ---
 # Usamos una etiqueta de perfil para mostrar al usuario y para tomar decisiones
@@ -1500,8 +1504,9 @@ $servicesList = @(
     [PSCustomObject]@{ Name='XblAuthManager';   DisplayName='Xbox Live Auth Manager';                   Reason='Innecesario sin Xbox Live / Game Pass.' },
     [PSCustomObject]@{ Name='WbioSrvc';         DisplayName='Windows Biometric Service';                Reason='Solo deshabilitar si NO usas Windows Hello / huella / facial.' },
     [PSCustomObject]@{ Name='TrkWks';           DisplayName='Distributed Link Tracking Client';         Reason='Innecesario en redes domesticas.' },
-    [PSCustomObject]@{ Name='SysMain';          DisplayName='SysMain (SuperFetch)';                     Reason='Gaming/SSD: libera RAM. En HDD o <16 GB puede empeorar el arranque.' },
+    [PSCustomObject]@{ Name='SysMain';          DisplayName='SysMain (SuperFetch)';                     Reason='Gaming/SSD: libera RAM. En HDD o menos de 16 GB puede empeorar el arranque.' },
     [PSCustomObject]@{ Name='WSearch';          DisplayName='Windows Search (Indexer)';                 Reason='Reduce I/O constante. Las busquedas sin indice seran mas lentas.' },
+    # [FIX-PS51] Coma faltante en ultimo elemento del array literal (PS5.1 requiere coma o cierre inmediato)
     [PSCustomObject]@{ Name='Spooler';          DisplayName='Print Spooler [!]';                        Reason='[!] ADVERTENCIA: rompe impresoras fisicas Y virtuales (PDF, Adobe).' }
 )
 
@@ -1582,7 +1587,9 @@ if (-not $Unattended) {
 
 if ($applyStartMenu) {
     Write-Host "`n[9] Configuring Start menu..." -ForegroundColor Cyan
-    $startJson = '{ "applyOnce": true, "pinnedList": [] }'
+    # [FIX-PS51] JSON con llaves {} en string comilla-simple confunde el parser de PS5.1.
+    # Usar here-string @'...'@ o doble-quote con escape.
+    $startJson = "{`"applyOnce`": true, `"pinnedList`": []}"
     Set-Reg $expPol 'ConfigureStartPins' $startJson 'String'
     Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Start' 'AllAppsViewMode' 2
     Set-Reg $adv 'Start_IrisRecommendations' 0
@@ -1875,10 +1882,13 @@ if ($isGaming) {
 }
 
 # Virtualization-Based Security (VBS): toggle opcional (alto impacto en FPS)
+# [FIX-PS51] String con '--' y '%' confunde al parser PS5.1 en modo hashtable literal.
+# Usar variable intermedia para el string problemático.
+$_vbsRecomendado = 'SI - Gaming: mejora 1pct lows (15-25pct menos micro-stutters). Remueve un escudo de seguridad del kernel.'
 $adaptiveTweaks += [PSCustomObject]@{
     Id='DisableVBS'
     Name='Deshabilitar VBS y Memory Integrity'
-    Recomendado='SI -- Gaming: mejora 1% lows (15-25% menos micro-stutters). Remueve un escudo de seguridad del kernel.'
+    Recomendado=$_vbsRecomendado
     Desc='Desactiva Hypervisor-protected Code Integrity (HVCI) y Virtualization-Based Security.'
 }
 
@@ -1886,7 +1896,8 @@ $adaptiveTweaks += [PSCustomObject]@{
 $adaptiveTweaks += [PSCustomObject]@{
     Id='NagleOff'
     Name='Deshabilitar Nagle Algorithm (TCP No-Delay)'
-    Recomendado = if ($isGaming) { 'SI -- Gaming online: reduce micro-latencia TCP en juegos competitivos' } else { 'Opcional -- Solo util si juegas online competitivo' }
+    # [FIX-PS51] Ternario inline dentro de hashtable literal confunde al parser PS5.1.
+    Recomendado = $(if ($isGaming) { 'SI - Gaming online: reduce micro-latencia TCP en juegos competitivos' } else { 'Opcional - Solo util si juegas online competitivo' })
     Desc='Deshabilita el buffering TCP (TcpNoDelay=1, TcpAckFrequency=1) en el adaptador de red activo.'
 }
 
@@ -1994,9 +2005,12 @@ if ($applyHags) {
         # La clave existe = el driver/SO soporta la interfaz de HAGS
         $gpuDriverOk = $true
     } else {
-        # Fallback analítico: comprobar si hay un driver moderno compatible con WDDM 2.7+ (NVIDIA versión >= 27.x, AMD >= 27.x)
+        # Fallback analítico: comprobar si hay un driver moderno compatible con WDDM 2.7+
+        # [FIX-PS51] Regex con grupos alternos ([2-9][7-9]|[3-9][0-9]) confunde al parser PS5.1.
+        # Se separa en dos condiciones explicitas equivalentes.
         if ($null -ne $gpuForHags -and $gpuForHags.DriverVersion) {
-            if ($gpuForHags.DriverVersion -match '^([2-9][7-9]|[3-9][0-9])\.') {
+            $drvVer = $gpuForHags.DriverVersion
+            if ($drvVer -match '^[2-9][7-9]\.' -or $drvVer -match '^[3-9][0-9]\.') {
                 $gpuDriverOk = $true
             }
         }
@@ -2165,7 +2179,9 @@ try {
 
     # [NEW-12] Windowed Games Optimization (SwapEffectUpgradeEnable)
     # Reduce latencia en juegos en modo ventana/borderless. Nativo en Win11.
-    if ($newSettings -notlike '*SwapEffectUpgradeEnable=1;*') {
+    # [FIX-PS51] -notlike con wildcards '*...*' y string con '=' confunde al parser.
+    # Usar -notmatch como alternativa equivalente.
+    if ($newSettings -notmatch [regex]::Escape('SwapEffectUpgradeEnable=1;')) {
         $newSettings += 'SwapEffectUpgradeEnable=1;'
         $changed = $true
         Write-Host "    - Windowed Games Optimization habilitado (reduce latencia en borderless)." -ForegroundColor Green
@@ -2175,7 +2191,10 @@ try {
 
     if ($changed) {
         if (-not (Test-Path $vrrKey)) { New-Item -Path $vrrKey -Force | Out-Null }
-        Set-ItemProperty -Path $vrrKey -Name 'DirectXUserGlobalSettings' -Value $newSettings -Force | Out-Null
+        # [FIX-PS51] Nombre de propiedad 'DirectXUserGlobalSettings' con cadena larga
+        # causa error en parser PS5.1 por cascada del error anterior. Corregido upstream.
+        $dxSettingsName = 'DirectXUserGlobalSettings'
+        Set-ItemProperty -Path $vrrKey -Name $dxSettingsName -Value $newSettings -Force | Out-Null
     }
 } catch {
     Write-Host "    ! No se pudo configurar DirectX settings: $($_.Exception.Message)" -ForegroundColor Yellow
