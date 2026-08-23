@@ -1,4 +1,4 @@
-<#
+﻿<#
     Win11-Debloat-v3-Adaptive.ps1
     Fresh Windows 11 25H2 (build 26200) -- setup / debloat / privacy / gaming (adaptativo).
     Ejecutar elevado (Admin). Crea punto de restauracion antes de cualquier cambio.
@@ -919,25 +919,25 @@ $prerequisites += [PSCustomObject]@{
 }
 
 # 7. .NET Framework 3.5
-# [FIX-PS7] Get-WindowsOptionalFeature falla en PS7 con "Clase no registrada" (COMException).
-#   Fallback a DISM.exe si el cmdlet no funciona. Ref: GitHub PowerShell #17232
-# [FIX] Get-WindowsOptionalFeature lanza TerminatingError visible en transcript en PS7
-# porque el runtime escribe al host ANTES de que el catch pueda suprimirlo.
-# Solucion: suprimir el error stream del cmdlet antes de la llamada.
-$netfx3 = try {
-    Get-WindowsOptionalFeature -Online -FeatureName NetFx3 -ErrorAction SilentlyContinue 2>$null
-} catch {
-    $null  # Silenciar excepcion; fallback a DISM abajo
-}
-if ($null -eq $netfx3 -or $netfx3 -isnot [Microsoft.Dism.Commands.FeatureData]) {
-    $dismOut = & DISM.exe /Online /Get-FeatureInfo /FeatureName:NetFx3 2>&1
-    if ($dismOut -match 'State\s*:\s*Enabled|Estado\s*:\s*Habilitad') {
-        $netfx3 = [PSCustomObject]@{ State = 'Enabled' }
+# Detección primaria vía Registro oficial HKLM (instantáneo, sin COM ni dependencias de módulos).
+# Fallback a DISM.exe / Get-WindowsOptionalFeature si el registro no está presente.
+$netfx3Reg = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5' -ErrorAction SilentlyContinue
+$netfx3Installed = ($null -ne $netfx3Reg -and $netfx3Reg.Install -eq 1)
+if (-not $netfx3Installed) {
+    $netfx3 = try {
+        Get-WindowsOptionalFeature -Online -FeatureName NetFx3 -ErrorAction SilentlyContinue 2>$null
+    } catch {
+        $null
+    }
+    if ($null -ne $netfx3 -and $netfx3.State -eq 'Enabled') {
+        $netfx3Installed = $true
     } else {
-        $netfx3 = [PSCustomObject]@{ State = 'Disabled' }
+        $dismOut = & DISM.exe /Online /Get-FeatureInfo /FeatureName:NetFx3 2>&1
+        if ($dismOut -match 'State\s*:\s*Enabled|Estado\s*:\s*Habilitad') {
+            $netfx3Installed = $true
+        }
     }
 }
-$netfx3Installed = ($netfx3 -and $netfx3.State -eq 'Enabled')
 $prerequisites += [PSCustomObject]@{
     Componente = '.NET Framework 3.5 (Feature)'
     Estado     = if ($netfx3Installed) { 'OK' } else { 'FALTA' }
@@ -1040,19 +1040,17 @@ if ($missingPrereqs.Count -gt 0) {
                     Write-Host "    ! DirectX Legacy: $($_.Exception.Message)" -ForegroundColor Yellow
                 }
             } elseif ($prereq.Componente -match '\.NET Framework 3\.5') {
-                # .NET 3.5: via DISM (no necesita winget)
-                # [FIX-PS7] Enable-WindowsOptionalFeature falla en PS7. Fallback a DISM.exe
+                # .NET 3.5: via DISM.exe (robusto y universal en PS 5.1 y PS 7+)
                 try {
-                    Enable-WindowsOptionalFeature -Online -FeatureName NetFx3 -All -NoRestart -ErrorAction Stop
-                    Write-Host "    OK: .NET Framework 3.5 habilitado" -ForegroundColor Green
-                } catch {
-                    Write-Host "    Cmdlet fallo (PS7?). Intentando via DISM.exe..." -ForegroundColor DarkGray
                     $dismResult = & DISM.exe /Online /Enable-Feature /FeatureName:NetFx3 /All /NoRestart 2>&1
-                    if ($LASTEXITCODE -eq 0) {
-                        Write-Host "    OK: .NET Framework 3.5 habilitado (via DISM.exe)" -ForegroundColor Green
+                    if ($LASTEXITCODE -in @(0, 3010)) {
+                        Write-Host "    OK: .NET Framework 3.5 habilitado" -ForegroundColor Green
                     } else {
-                        Write-Host "    ! .NET 3.5: DISM exit $LASTEXITCODE" -ForegroundColor Yellow
+                        Enable-WindowsOptionalFeature -Online -FeatureName NetFx3 -All -NoRestart -ErrorAction Stop
+                        Write-Host "    OK: .NET Framework 3.5 habilitado (via cmdlet)" -ForegroundColor Green
                     }
+                } catch {
+                    Write-Host "    ! .NET 3.5: $($_.Exception.Message)" -ForegroundColor Yellow
                 }
             }
         }
@@ -2339,7 +2337,7 @@ try {
 # ============================================================
 $applyContextMenu = $true
 if (-not $Unattended) {
-    $choice = Read-Host "`n[15] Â¿Desea agregar funciones avanzadas al Menu Contextual? (PowerShell Admin, Flush DNS, God Mode, Bloc de Notas, Reiniciar Explorer, DISM+SFC) [Y/N] (Default: Y)"
+    $choice = Read-Host "`n[15] ¿Desea agregar funciones avanzadas al Menu Contextual? (PowerShell Admin, Flush DNS, God Mode, Bloc de Notas, Reiniciar Explorer, DISM+SFC) [Y/N] (Default: Y)"
     if ($choice -ne '' -and $choice -notmatch '^[yYsS]') {
         $applyContextMenu = $false
     }
@@ -2397,7 +2395,7 @@ if ($applyContextMenu) {
 # ============================================================
 $applyBrowsers = $true
 if (-not $Unattended) {
-    $choice = Read-Host "`n[16] Â¿Desea aplicar la optimizacion oficial de Navegadores (GPU, Sleeping Tabs, Limite de Cache, Cero Procesos de Fondo, Debloat) para Edge, Chrome, Firefox y Brave? [Y/N] (Default: Y)"
+    $choice = Read-Host "`n[16] ¿Desea aplicar la optimizacion oficial de Navegadores (GPU, Sleeping Tabs, Limite de Cache, Cero Procesos de Fondo, Debloat) para Edge, Chrome, Firefox y Brave? [Y/N] (Default: Y)"
     if ($choice -ne '' -and $choice -notmatch '^[yYsS]') {
         $applyBrowsers = $false
     }

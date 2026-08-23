@@ -3392,12 +3392,12 @@ if ($scriptsToInject.Count -eq 0) {
                     Title        = "Script Personalizado de Post-Instalacion"
                 }
             } else {
-                Write-Warn "Ruta invÃ¡lida. Se continuarÃ¡ sin inyecciÃ³n de scripts."
+                Write-Warn "Ruta invalida. Se continuara sin inyeccion de scripts."
             }
         }
 
         default {
-            Write-Warn "Se omitirÃ¡ la inyecciÃ³n de scripts post-instalaciÃ³n."
+            Write-Warn "Se omitira la inyeccion de scripts post-instalacion."
         }
     }
 }

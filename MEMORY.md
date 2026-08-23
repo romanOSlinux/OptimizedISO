@@ -1,3 +1,15 @@
+## [2026-08-23T03:10:00-03:00] Bugfix: Detección Universal de .NET 3.5 (NetFx3) y Blindaje UTF-8 BOM
+
+- **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Causa Raíz Identificada:**
+  - En la línea 932 de `Win11-Debloat-v3-Adaptive.ps1`, la expresión `if ($null -eq $netfx3 -or $netfx3 -isnot [Microsoft.Dism.Commands.FeatureData])` evaluaba directamente el acelerador de tipo `[Microsoft.Dism.Commands.FeatureData]`. En entornos PowerShell 7 (donde los cmdlets de DISM se ejecutan vía compatibilidad o fallan con COMException) o en sesiones de PowerShell 5.1 donde el módulo DISM no ha precargado ese tipo en el AppDomain, el motor de PowerShell arroja un error terminante `InvalidOperation: Unable to find type [Microsoft.Dism.Commands.FeatureData]`.
+- **Hitos Logrados:**
+  - **Detección Primaria Nativa vía Registro HKLM:** Se reemplazó la consulta propensa a errores COM por la lectura directa de `HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5\Install` (método oficial documentado por Microsoft), instantáneo y sin dependencias de módulos.
+  - **Fallback Robusto a DISM.exe / Cmdlet:** Si la clave de registro no existe, se consulta el estado mediante `DISM.exe /Online /Get-FeatureInfo` o el cmdlet sin invocar tipos .NET inexistentes.
+  - **Instalación Optimizada en Sección 0.A:** Invocación preferente de `DISM.exe /Online /Enable-Feature /FeatureName:NetFx3 /All /NoRestart` con manejo seguro de códigos de salida (`0`, `3010`) y fallback controlado.
+  - **Estandarización UTF-8 con BOM:** Re-aplicación estricta de codificación `UTF-8-BOM` (`0xEF, 0xBB, 0xBF`) y corrección de caracteres `¿` en prompts interactivos y scripts ISO.
+  - **Validación:** Comprobación AST en frío con Windows PowerShell 5.1 (`powershell.exe`) y PowerShell 7 (`pwsh`): **0 Errores sintácticos**, ejecución de prerrequisitos verificada con éxito.
+
 ## [2026-08-23T01:50:00-03:00] Implementacion del Toolkit Maestro romanOS, Hardening Desacoplado y Dashboard HTML
 
 - **Archivos Creados / Modificados:** `scripts/romanOS-Toolkit.ps1`, `scripts/romanOS-Toolkit.cmd`, `scripts/Invoke-WindowsSecurityHardening.ps1`, `scripts/Invoke-WindowsSecurityHardening.cmd`, `scripts/PostInstall-Diagnostics.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
