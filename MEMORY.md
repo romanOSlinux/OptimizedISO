@@ -1,3 +1,19 @@
+## [2026-08-22T21:25:00-03:00] Creación del Subsistema de Mantenimiento, Limpieza Profunda y Reparación (Invoke-WindowsMaintenance.ps1)
+
+- **Archivos Creados / Modificados:** `scripts/Invoke-WindowsMaintenance.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se diseñó e implementó [`scripts/Invoke-WindowsMaintenance.ps1`](file:///c:/OptimizedISO/scripts/Invoke-WindowsMaintenance.ps1) como un motor integral de mantenimiento y recuperación basado en fuentes oficiales de Microsoft Learn, Google Chromium y Mozilla:
+    1. **Módulo 1 (Residuos de Despliegue ISO/OOBE):** Purga de `$WINDOWS.~BT`, `$WINDOWS.~WS`, `$SysReset`, `$WinREAgent`, logs de `Panther`, `setupapi.offline.log`, `MoSetup` y desinstaladores estáticos de runtimes.
+    2. **Módulo 2 (WinSxS & Windows Update):** Pausa segura de servicios (`wuauserv`, `bits`, `dosvc`), purga de `SoftwareDistribution\Download`, caché de *Delivery Optimization*, ejecución oficial de DISM `StartComponentCleanup` (con soporte `/ResetBase`) y depuración de registros de eventos inflados (`wevtutil`).
+    3. **Módulo 3 (Saneamiento Inteligente de Apps & Registro):** Detección y purga de carpetas de paquetes AppX huérfanas en `AppData\Local\Packages` (comparando con `Get-AppxPackage -AllUsers`), reporte de desinstaladores huérfanos en registro y purga de colas de WER (`ReportArchive`/`ReportQueue`).
+    4. **Módulo 4 (Cachés de Rendimiento, GPU Shaders & Navegadores):** Reseteo de caches de shaders DirectX (`D3DSCache`), NVIDIA (`DXCache`) y AMD (`DxCache`); purga segura de cachés de navegadores (Edge, Chrome, Brave, Firefox) en `AppData\Local` protegiendo 100% las cookies, contraseñas, sesiones y favoritos; regeneración de caché de fuentes (`FntCache.dat`) y miniaturas (`IconCache.db`); y saneamiento de `%TEMP%` y `Windows\Temp`.
+    5. **Módulo 5 (Subsistema Oficial de Reparación y Salud):** Reparación de imagen con DISM (`/RestoreHealth`), SFC (`/scannow`), restauración de consistencia de repositorio WMI (`winmgmt /salvagerepository`), autoreparación NTFS en línea (`Repair-Volume -Scan`), reseteo de pila de red (Winsock, TCP/IP, DNS flush), catálogo criptográfico (`CryptSvc`/`catroot2`) y consulta de WinRE (`reagentc /info`).
+    6. **Módulo 6 (Almacenamiento, SSD TRIM & Rendimiento):** Detección de SSDs y ejecución de `Optimize-Volume -ReTrim`, depuración de instantáneas VSS obsoletas (`vssadmin delete shadows /oldest`) y precompilación de tareas .NET pendientes (`ngen.exe`).
+    7. **Dashboard Final:** Medición de espacio libre inicial vs. final con cálculo exacto de espacio liberado (MB/GB) y registro en log `C:\Logs\Maintenance_*.log`.
+  - **Integración en ISO (`New-OptimizedWindowsISO-v2.ps1`):** Reconocimiento automático de `Invoke-WindowsMaintenance.ps1`, opción de "Suite Completa" en el menú interactivo, generación de lanzador elevado `Mantenimiento y Reparacion.cmd` y acceso directo en el escritorio público.
+  - **Validación AST:** **0 Errores de Parseo** en todos los scripts (`New-OptimizedWindowsISO-v2.ps1`, `Win11-Debloat-v3-Adaptive.ps1`, `Invoke-WindowsMaintenance.ps1`).
+- **Pendiente:** Compilación de ISO y prueba en Hyper-V.
+
 ## [2026-08-22T20:55:00-03:00] Integración de 6 Funciones Nativas de Menú Contextual en ISO y Script Adaptivo
 
 - **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `MEMORY.md`

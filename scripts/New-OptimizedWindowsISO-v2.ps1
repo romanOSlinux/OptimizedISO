@@ -3206,11 +3206,12 @@ Write-OK "La edición de Windows y el disco se seleccionarán durante la instala
 $scriptsToInject = @()
 
 # Detectar scripts conocidos disponibles en el repositorio
-$debScriptCandidate = Join-Path $ScriptsDir "Win11-Debloat-v3-Adaptive.ps1"
-$netScriptCandidate = Join-Path $ScriptsDir "Win11-Network-Diagnostics-Optimizer.ps1"
-$legacyCandidate    = Join-Path $ScriptsDir "Windows${detectedVersion}_PostInstall_Optimizer.ps1"
+$debScriptCandidate   = Join-Path $ScriptsDir "Win11-Debloat-v3-Adaptive.ps1"
+$maintScriptCandidate = Join-Path $ScriptsDir "Invoke-WindowsMaintenance.ps1"
+$netScriptCandidate   = Join-Path $ScriptsDir "Win11-Network-Diagnostics-Optimizer.ps1"
+$legacyCandidate      = Join-Path $ScriptsDir "Windows${detectedVersion}_PostInstall_Optimizer.ps1"
 
-# Verificar si se pasó ruta explícita por parámetro CLI
+# Verificar si se pasÃ³ ruta explÃ­cita por parÃ¡metro CLI
 $paramScriptPath = if ($detectedVersion -eq "10") { $Win10ScriptPath } else { $Win11ScriptPath }
 
 if ($paramScriptPath) {
@@ -3223,42 +3224,74 @@ if ($paramScriptPath) {
             ShortcutName = "Optimizar Sistema (Opcional).lnk"
             Title        = "Optimizador Post-Instalacion de Windows $detectedVersion"
         }
-        Write-OK "Usando script especificado por parámetro: $resolvedPath"
+        Write-OK "Usando script especificado por parÃ¡metro: $resolvedPath"
     }
 }
 
-# Si no se pasó por parámetro, mostrar menú interactivo con scripts disponibles
+# Si no se pasÃ³ por parÃ¡metro, mostrar menÃº interactivo con scripts disponibles
 if ($scriptsToInject.Count -eq 0) {
     Write-Host ""
-    Write-Host "  SELECCIÓN DE SCRIPT(S) OPTIMIZADOR(ES) POST-INSTALACIÓN:" -ForegroundColor Cyan
-    Write-Host "  ──────────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
+    Write-Host "  SELECCIÃ“N DE SCRIPT(S) POST-INSTALACIÃ“N EN ESCRITORIO:" -ForegroundColor Cyan
+    Write-Host "  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€" -ForegroundColor DarkGray
     
-    $hasDeb = Test-Path $debScriptCandidate
-    $hasNet = Test-Path $netScriptCandidate
-    $hasLeg = Test-Path $legacyCandidate
+    $hasDeb   = Test-Path $debScriptCandidate
+    $hasMaint = Test-Path $maintScriptCandidate
+    $hasNet   = Test-Path $netScriptCandidate
+    $hasLeg   = Test-Path $legacyCandidate
 
+    if ($hasDeb -and $hasMaint) {
+        Write-Host "  [1] Suite Completa: Debloat + Mantenimiento/ReparaciÃ³n + Red [Recomendado]" -ForegroundColor Green
+    }
     if ($hasDeb) {
-        Write-Host "  [1] Win11-Debloat-v3-Adaptive.ps1 (Recomendado: Debloat y Optimización Adaptativa)" -ForegroundColor White
-    } else {
-        Write-Host "  [1] Script Optimizador Adaptativo" -ForegroundColor Gray
+        Write-Host "  [2] Win11-Debloat-v3-Adaptive.ps1 (Debloat y OptimizaciÃ³n Adaptativa)" -ForegroundColor White
     }
-
+    if ($hasMaint) {
+        Write-Host "  [3] Invoke-WindowsMaintenance.ps1 (Mantenimiento, Limpieza y ReparaciÃ³n)" -ForegroundColor White
+    }
     if ($hasNet) {
-        Write-Host "  [2] Win11-Network-Diagnostics-Optimizer.ps1 (Diagnóstico de Red y Baja Latencia)" -ForegroundColor White
+        Write-Host "  [4] Win11-Network-Diagnostics-Optimizer.ps1 (DiagnÃ³stico de Red y Latencia)" -ForegroundColor White
     }
 
-    if ($hasDeb -and $hasNet) {
-        Write-Host "  [3] Integrar ambos scripts (Lanzadores independientes en el Escritorio)" -ForegroundColor White
-    }
-
-    Write-Host "  [4] Seleccionar otro archivo .ps1 personalizado..." -ForegroundColor Yellow
-    Write-Host "  [0] Omitir inyección de scripts (Solo autounattend.xml y tweaks offline)" -ForegroundColor Gray
+    Write-Host "  [5] Seleccionar otro archivo .ps1 personalizado..." -ForegroundColor Yellow
+    Write-Host "  [0] Omitir inyecciÃ³n de scripts (Solo autounattend.xml y tweaks offline)" -ForegroundColor Gray
     Write-Host ""
 
-    $choice = Read-Host "  Seleccione una opción"
+    $choice = Read-Host "  Seleccione una opciÃ³n (Default: 1)"
+    if ($choice -eq '') { $choice = "1" }
 
     switch ($choice) {
         "1" {
+            # Suite Completa
+            if ($hasDeb) {
+                $scriptsToInject += @{
+                    Source       = $debScriptCandidate
+                    DestName     = [System.IO.Path]::GetFileName($debScriptCandidate)
+                    LauncherName = "Optimizar Windows (Opcional).cmd"
+                    ShortcutName = "Optimizar Sistema (Opcional).lnk"
+                    Title        = "Optimizador Adaptativo de Windows $detectedVersion"
+                }
+            }
+            if ($hasMaint) {
+                $scriptsToInject += @{
+                    Source       = $maintScriptCandidate
+                    DestName     = [System.IO.Path]::GetFileName($maintScriptCandidate)
+                    LauncherName = "Mantenimiento y Reparacion.cmd"
+                    ShortcutName = "Mantenimiento del Sistema.lnk"
+                    Title        = "Mantenimiento y Reparacion del Sistema"
+                }
+            }
+            if ($hasNet) {
+                $scriptsToInject += @{
+                    Source       = $netScriptCandidate
+                    DestName     = [System.IO.Path]::GetFileName($netScriptCandidate)
+                    LauncherName = "Optimizar Red y Latencia (Opcional).cmd"
+                    ShortcutName = "Optimizar Red y Latencia (Opcional).lnk"
+                    Title        = "Optimizador de Red y Baja Latencia"
+                }
+            }
+        }
+
+        "2" {
             $src = if ($hasDeb) { $debScriptCandidate } elseif ($hasLeg) { $legacyCandidate } else { $null }
             if ($src) {
                 $scriptsToInject += @{
@@ -3271,40 +3304,31 @@ if ($scriptsToInject.Count -eq 0) {
             }
         }
 
-        "2" {
-            if ($hasNet) {
-                $scriptsToInject += @{
-                    Source       = $netScriptCandidate
-                    DestName     = [System.IO.Path]::GetFileName($netScriptCandidate)
-                    LauncherName = "Optimizar Red y Latencia (Opcional).cmd"
-                    ShortcutName = "Optimizar Red y Latencia (Opcional).lnk"
-                    Title        = "Optimizador de Red y Baja Latencia"
-                }
-            }
-        }
-
         "3" {
-            if ($hasDeb) {
+            if ($hasMaint) {
                 $scriptsToInject += @{
-                    Source       = $debScriptCandidate
-                    DestName     = [System.IO.Path]::GetFileName($debScriptCandidate)
-                    LauncherName = "Optimizar Windows (Opcional).cmd"
-                    ShortcutName = "Optimizar Sistema (Opcional).lnk"
-                    Title        = "Optimizador Adaptativo de Windows $detectedVersion"
-                }
-            }
-            if ($hasNet) {
-                $scriptsToInject += @{
-                    Source       = $netScriptCandidate
-                    DestName     = [System.IO.Path]::GetFileName($netScriptCandidate)
-                    LauncherName = "Optimizar Red y Latencia (Opcional).cmd"
-                    ShortcutName = "Optimizar Red y Latencia (Opcional).lnk"
-                    Title        = "Optimizador de Red y Baja Latencia"
+                    Source       = $maintScriptCandidate
+                    DestName     = [System.IO.Path]::GetFileName($maintScriptCandidate)
+                    LauncherName = "Mantenimiento y Reparacion.cmd"
+                    ShortcutName = "Mantenimiento del Sistema.lnk"
+                    Title        = "Mantenimiento y Reparacion del Sistema"
                 }
             }
         }
 
         "4" {
+            if ($hasNet) {
+                $scriptsToInject += @{
+                    Source       = $netScriptCandidate
+                    DestName     = [System.IO.Path]::GetFileName($netScriptCandidate)
+                    LauncherName = "Optimizar Red y Latencia (Opcional).cmd"
+                    ShortcutName = "Optimizar Red y Latencia (Opcional).lnk"
+                    Title        = "Optimizador de Red y Baja Latencia"
+                }
+            }
+        }
+
+        "5" {
             Write-Host ""
             $manual = Read-Host "  Escriba la ruta completa del script .ps1"
             if ($manual -and (Test-Path $manual)) {
@@ -3316,12 +3340,12 @@ if ($scriptsToInject.Count -eq 0) {
                     Title        = "Script Personalizado de Post-Instalacion"
                 }
             } else {
-                Write-Warn "Ruta inválida. Se continuará sin inyección de scripts."
+                Write-Warn "Ruta invÃ¡lida. Se continuarÃ¡ sin inyecciÃ³n de scripts."
             }
         }
 
         default {
-            Write-Warn "Se omitirá la inyección de scripts post-instalación."
+            Write-Warn "Se omitirÃ¡ la inyecciÃ³n de scripts post-instalaciÃ³n."
         }
     }
 }
