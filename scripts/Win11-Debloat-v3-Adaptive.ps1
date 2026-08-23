@@ -61,7 +61,8 @@
 #>
 
 param(
-    [switch]$Unattended
+    [switch]$Unattended,
+    [switch]$BrowsersOnly
 )
 
 # ============================================================
@@ -94,6 +95,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     # FIX-PS51-2: Pasar argumentos como ARRAY en lugar de string plano, incluyendo -STA para WPF
     $argArray = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
     if ($Unattended) { $argArray += '-Unattended' }
+    if ($BrowsersOnly) { $argArray += '-BrowsersOnly' }
     Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs
     Exit
 }
@@ -305,6 +307,158 @@ function Set-Reg {
     } catch {
         Write-Host "  ! Set-Reg failed: $Path\$Name -> $($_.Exception.Message)" -ForegroundColor Yellow
     }
+}
+
+function Invoke-BrowserDebloat {
+    Write-Host "`n==========================================================================" -ForegroundColor Cyan
+    Write-Host "  OPTIMIZACION Y DEBLOAT OFICIAL DE NAVEGADORES (GPO)                     " -ForegroundColor Cyan
+    Write-Host "==========================================================================" -ForegroundColor Cyan
+
+    try {
+        # 16.A Microsoft Edge (HKLM\SOFTWARE\Policies\Microsoft\Edge)
+        # Ref: learn.microsoft.com/deployedge/microsoft-edge-policies
+        # --- Rendimiento de Video y Renderizado GPU ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HardwareAccelerationModeEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SmoothScrollingEnabled' 1 'DWord'
+        # --- Ahorro de Memoria RAM y Procesador ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'StartupBoostEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'BackgroundModeEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SleepingTabsEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SleepingTabsTimeout' 300 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EfficiencyModeEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EfficiencyModeOption' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'IntensiveWakeUpThrottlingEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPagePrerenderEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'DiskCacheSize' 268435456 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NetworkPredictionOptions' 2 'DWord'
+        # --- Debloat Visual: Sidebar, Shopping, Colecciones, Telemetria ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EdgeSidebarCustomizeEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EdgeShoppingAssistantEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EdgeCollectionsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ComposeInlineEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'DiagnosticData' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'PersonalizationReportingEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ShowRecommendationsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'UserFeedbackAllowed' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SpotlightExperiencesAndRecommendationsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ResolveNavigationErrorsUseWebService' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'AlternateErrorPagesEnabled' 0 'DWord'
+        # --- Debloat Visual: Copilot (sidebar, icono, config), NTP noticias, Bing ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'AllowCopilot' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ConfigureCopilot' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'Microsoft365CopilotChatIconEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPageContentEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPageQuickLinksEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPageHideDefaultTopSites' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'BingAdsSuppression' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SearchSuggestEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'AllowPrelaunch' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HideFirstRunExperience' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'TrackingPrevention' 3 'DWord'
+        Write-Host "  - Microsoft Edge: GPU + Sleeping Tabs + Copilot off + NTP limpia + Bing limpio." -ForegroundColor Green
+
+        # 16.A2 Windows Copilot y AI (system-wide, independiente del navegador)
+        # Ref: learn.microsoft.com/windows/client-management/mdm/policy-csp-windowsai
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 1 'DWord'
+        Set-Reg 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows AI' 'DisableAIDataAnalysis' 1 'DWord'
+        Write-Host "  - Windows Copilot y Windows AI: desactivados a nivel de SO (HKLM/HKCU)." -ForegroundColor Green
+
+        # 16.B Google Chrome (HKLM\SOFTWARE\Policies\Google\Chrome)
+        # Ref: chromeenterprise.google/policies/
+        # --- Rendimiento de Video y Renderizado GPU ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'HardwareAccelerationModeEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SmoothScrollingEnabled' 1 'DWord'
+        # --- Ahorro de Memoria RAM y Procesador ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'BackgroundModeEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'HighEfficiencyModeEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'NewTabPagePrerenderEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'DiskCacheSize' 268435456 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'NetworkPredictionOptions' 2 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PromotionalTabsEnabled' 0 'DWord'
+        # --- Debloat Visual: Shopping, Cast, Telemetria, Privacy Sandbox ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'ShoppingListEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'MetricsReportingEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SpellCheckServiceEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PrivacySandboxAdMeasurementEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PrivacySandboxAdTopicsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PrivacySandboxSiteTriggeredAttributionEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'AlternateErrorPagesEnabled' 0 'DWord'
+        # --- Debloat Visual: NTP, AI Gemini/Lens/Organize, Sign-in forzado ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'NTPContentSuggestionsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'NTPCardsVisible' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SearchSuggestEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'GenAiDefaultSettings' 2 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'GenAiHelpMeWriteSettings' 2 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'GenAiHistorySearchSettings' 2 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'GenAiTabOrganizationSettings' 2 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'BrowserSignin' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SyncDisabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'ShowCastIconInToolbar' 0 'DWord'
+        Write-Host "  - Google Chrome: GPU + Memory Saver + NTP limpia + AI Gemini/Lens off + Sign-in off." -ForegroundColor Green
+
+        # 16.C Mozilla Firefox (HKLM\SOFTWARE\Policies\Mozilla\Firefox)
+        # Ref: mozilla.github.io/policy-templates/
+        # --- Rendimiento de Video y Renderizado GPU ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'HardwareAcceleration' 1 'DWord'
+        # --- Privacidad, Telemetria y Ahorro de Recursos ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisableTelemetry' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisablePocket' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisableFirefoxStudies' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisableFeedbackCommands' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'BackgroundAppUpdate' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'OverrideFirstRunPage' '' 'String'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'OverridePostUpdatePage' '' 'String'
+        # --- Debloat Visual: UserMessaging (subclave separada, objeto JSON de Firefox) ---
+        # Ref: mozilla.github.io/policy-templates/#usermessaging
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'ExtensionRecommendations' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'FeatureRecommendations' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'MoreFromMozilla' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'SkipOnboarding' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'WhatsNew' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'UrlbarInterventions' 0 'DWord'
+        # --- Debloat Visual: FirefoxHome (NTP limpia sin historias ni patrocinados) ---
+        # Ref: mozilla.github.io/policy-templates/#firefoxhome
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome' 'Pocket' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome' 'SponsoredPocket' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome' 'Snippets' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome' 'SponsoredTopSites' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome' 'Highlights' 0 'DWord'
+        Write-Host "  - Mozilla Firefox: GPU + Pocket off + Telemetria off + NTP/UserMessaging limpio." -ForegroundColor Green
+
+        # 16.D Brave Browser (HKLM\SOFTWARE\Policies\BraveSoftware\Brave)
+        # Hereda todas las policies Chromium + agrega las propias Brave*
+        # Verificar resultados en brave://policy/
+        # --- Rendimiento de Video y Renderizado GPU ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'HardwareAccelerationModeEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'SmoothScrollingEnabled' 1 'DWord'
+        # --- Ahorro de Memoria RAM y Procesador ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BackgroundModeEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'DiskCacheSize' 268435456 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'MetricsReportingEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'IPFSDisabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'TorDisabled' 1 'DWord'
+        # --- Debloat Visual: Crypto Rewards/Wallet, VPN, Leo AI Chat, NTP patrocinado ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveRewardsDisabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveWalletDisabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveVPNDisabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveAIChatEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'NTPSponsoredImagesEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'PromotionalTabsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'SearchSuggestEnabled' 0 'DWord'
+        Write-Host "  - Brave Browser: GPU + Rewards/Wallet/VPN/Leo AI off + IPFS/Tor off + NTP limpia." -ForegroundColor Green
+
+        Write-Host "  [OK] Debloat visual de navegadores completado (Edge/Chrome/Firefox/Brave)." -ForegroundColor Green
+    } catch {
+        Write-Host "  ! Error aplicando directivas de navegadores: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
+if ($BrowsersOnly) {
+    Invoke-BrowserDebloat
+    Write-Host "`n==== Fin de Optimizacion de Navegadores $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ====" -ForegroundColor Cyan
+    Exit 0
 }
 
 # ============================================================
@@ -2402,147 +2556,7 @@ if (-not $Unattended) {
 }
 
 if ($applyBrowsers) {
-    Write-Host "`n[16] Aplicando directivas oficiales de rendimiento y debloat en Navegadores..." -ForegroundColor Cyan
-
-    try {
-        # 16.A Microsoft Edge (HKLM\SOFTWARE\Policies\Microsoft\Edge)
-        # Ref: learn.microsoft.com/deployedge/microsoft-edge-policies
-        # --- Rendimiento de Video y Renderizado GPU ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HardwareAccelerationModeEnabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SmoothScrollingEnabled' 1 'DWord'
-        # --- Ahorro de Memoria RAM y Procesador ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'StartupBoostEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'BackgroundModeEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SleepingTabsEnabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SleepingTabsTimeout' 300 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EfficiencyModeEnabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EfficiencyModeOption' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'IntensiveWakeUpThrottlingEnabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPagePrerenderEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'DiskCacheSize' 268435456 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NetworkPredictionOptions' 2 'DWord'
-        # --- Debloat Visual: Sidebar, Shopping, Colecciones, Telemetria ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EdgeSidebarCustomizeEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EdgeShoppingAssistantEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EdgeCollectionsEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ComposeInlineEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'DiagnosticData' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'PersonalizationReportingEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ShowRecommendationsEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'UserFeedbackAllowed' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SpotlightExperiencesAndRecommendationsEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ResolveNavigationErrorsUseWebService' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'AlternateErrorPagesEnabled' 0 'DWord'
-        # --- Debloat Visual: Copilot (sidebar, icono, config), NTP noticias, Bing ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'AllowCopilot' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ConfigureCopilot' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'Microsoft365CopilotChatIconEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPageContentEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPageQuickLinksEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPageHideDefaultTopSites' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'BingAdsSuppression' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SearchSuggestEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'AllowPrelaunch' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HideFirstRunExperience' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'TrackingPrevention' 3 'DWord'
-        Write-Host "  - Microsoft Edge: GPU + Sleeping Tabs + Copilot off + NTP limpia + Bing limpio." -ForegroundColor Green
-
-        # 16.A2 Windows Copilot y AI (system-wide, independiente del navegador)
-        # Ref: learn.microsoft.com/windows/client-management/mdm/policy-csp-windowsai
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 1 'DWord'
-        Set-Reg 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows AI' 'DisableAIDataAnalysis' 1 'DWord'
-        Write-Host "  - Windows Copilot y Windows AI: desactivados a nivel de SO (HKLM/HKCU)." -ForegroundColor Green
-
-        # 16.B Google Chrome (HKLM\SOFTWARE\Policies\Google\Chrome)
-        # Ref: chromeenterprise.google/policies/
-        # --- Rendimiento de Video y Renderizado GPU ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'HardwareAccelerationModeEnabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SmoothScrollingEnabled' 1 'DWord'
-        # --- Ahorro de Memoria RAM y Procesador ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'BackgroundModeEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'HighEfficiencyModeEnabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'NewTabPagePrerenderEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'DiskCacheSize' 268435456 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'NetworkPredictionOptions' 2 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PromotionalTabsEnabled' 0 'DWord'
-        # --- Debloat Visual: Shopping, Cast, Telemetria, Privacy Sandbox ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'ShoppingListEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'MetricsReportingEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SpellCheckServiceEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PrivacySandboxAdMeasurementEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PrivacySandboxAdTopicsEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PrivacySandboxSiteTriggeredAttributionEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'AlternateErrorPagesEnabled' 0 'DWord'
-        # --- Debloat Visual: NTP, AI Gemini/Lens/Organize, Sign-in forzado ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'NTPContentSuggestionsEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'NTPCardsVisible' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SearchSuggestEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'GenAiDefaultSettings' 2 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'GenAiHelpMeWriteSettings' 2 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'GenAiHistorySearchSettings' 2 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'GenAiTabOrganizationSettings' 2 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'BrowserSignin' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SyncDisabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'ShowCastIconInToolbar' 0 'DWord'
-        Write-Host "  - Google Chrome: GPU + Memory Saver + NTP limpia + AI Gemini/Lens off + Sign-in off." -ForegroundColor Green
-
-        # 16.C Mozilla Firefox (HKLM\SOFTWARE\Policies\Mozilla\Firefox)
-        # Ref: mozilla.github.io/policy-templates/
-        # --- Rendimiento de Video y Renderizado GPU ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'HardwareAcceleration' 1 'DWord'
-        # --- Privacidad, Telemetria y Ahorro de Recursos ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisableTelemetry' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisablePocket' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisableFirefoxStudies' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisableFeedbackCommands' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'BackgroundAppUpdate' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'OverrideFirstRunPage' '' 'String'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'OverridePostUpdatePage' '' 'String'
-        # --- Debloat Visual: UserMessaging (subclave separada, objeto JSON de Firefox) ---
-        # Ref: mozilla.github.io/policy-templates/#usermessaging
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'ExtensionRecommendations' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'FeatureRecommendations' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'MoreFromMozilla' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'SkipOnboarding' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'WhatsNew' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'UrlbarInterventions' 0 'DWord'
-        # --- Debloat Visual: FirefoxHome (NTP limpia sin historias ni patrocinados) ---
-        # Ref: mozilla.github.io/policy-templates/#firefoxhome
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome' 'Pocket' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome' 'SponsoredPocket' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome' 'Snippets' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome' 'SponsoredTopSites' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome' 'Highlights' 0 'DWord'
-        Write-Host "  - Mozilla Firefox: GPU + Pocket off + Telemetria off + NTP/UserMessaging limpio." -ForegroundColor Green
-
-        # 16.D Brave Browser (HKLM\SOFTWARE\Policies\BraveSoftware\Brave)
-        # Hereda todas las policies Chromium + agrega las propias Brave*
-        # Verificar resultados en brave://policy/
-        # --- Rendimiento de Video y Renderizado GPU ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'HardwareAccelerationModeEnabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'SmoothScrollingEnabled' 1 'DWord'
-        # --- Ahorro de Memoria RAM y Procesador ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BackgroundModeEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'DiskCacheSize' 268435456 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'MetricsReportingEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'IPFSDisabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'TorDisabled' 1 'DWord'
-        # --- Debloat Visual: Crypto Rewards/Wallet, VPN, Leo AI Chat, NTP patrocinado ---
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveRewardsDisabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveWalletDisabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveVPNDisabled' 1 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveAIChatEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'NTPSponsoredImagesEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'PromotionalTabsEnabled' 0 'DWord'
-        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'SearchSuggestEnabled' 0 'DWord'
-        Write-Host "  - Brave Browser: GPU + Rewards/Wallet/VPN/Leo AI off + IPFS/Tor off + NTP limpia." -ForegroundColor Green
-
-        Write-Host "  [OK] Debloat visual de navegadores completado (Edge/Chrome/Firefox/Brave)." -ForegroundColor Green
-    } catch {
-        Write-Host "  ! Error aplicando directivas de navegadores: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
+    Invoke-BrowserDebloat
 } else {
     Write-Host "`n[16] Omitiendo optimizacion de navegadores." -ForegroundColor Gray
 }

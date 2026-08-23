@@ -1,7 +1,9 @@
 ## [2026-08-23T03:25:00-03:00] Expansión Integral de Debloat, Reproducción de Video y Rendimiento de Navegadores
 
-- **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/romanOS-Toolkit.ps1`, `MEMORY.md`
 - **Hitos Logrados:**
+  - **Nuevo Parámetro `-BrowsersOnly`:** Se modularizó la lógica de optimización en `function Invoke-BrowserDebloat` y se agregó el parámetro `[switch]$BrowsersOnly` en `Win11-Debloat-v3-Adaptive.ps1`. Permite ejecutar exclusivamente la sección de debloat y rendimiento de navegadores de forma instantánea sin tocar otras partes del sistema operativo.
+  - **Integración en Hub Maestro (`romanOS-Toolkit.ps1`):** Se añadió la opción `[6] 🌐 Optimizar y Debloat de Navegadores` al menú principal interactivo y `[7]` al menú de Acciones Rápidas, además de soporte CLI directo: `.\romanOS-Toolkit.ps1 -Module Browsers`.
   - **Aceleración y Decodificación de Video por Hardware:** Se garantizó la activación de `HardwareAccelerationModeEnabled = 1` y `SmoothScrollingEnabled = 1` en todos los motores Chromium (Edge, Chrome, Brave) y `HardwareAcceleration = 1` en Firefox, asegurando renderizado fluido de video (VP9/AV1/H.264/HEVC) en GPU sin sobrecargar la CPU.
   - **Ahorro Agresivo de Memoria RAM y Procesador:**
     - Edge: `IntensiveWakeUpThrottlingEnabled = 1` (estrangula timers JS en pestañas de fondo a 1/min), `SleepingTabsEnabled = 1` (libera hasta 85% de RAM), `StartupBoostEnabled = 0` (ahorra 300-500MB en el arranque de Windows), `BackgroundModeEnabled = 0`, `NewTabPagePrerenderEnabled = 0`, `DiskCacheSize = 256MB`.

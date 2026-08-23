@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "Security", "Dashboards", "QuickActions")]
+    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "Security", "Dashboards", "QuickActions", "Browsers")]
     [string]$Module,
     [switch]$ShowDashboards
 )
@@ -199,7 +199,7 @@ function Invoke-OpenDashboards {
 
 function Show-QuickActionsMenu {
     Show-Header
-    Write-Host "  ACCIONES RAPIDAS DE SISTEMA (SISTEMA & RED):" -ForegroundColor Yellow
+    Write-Host "  ACCIONES RAPIDAS DE SISTEMA (SISTEMA, RED & NAVEGADORES):" -ForegroundColor Yellow
     Write-Host "  --------------------------------------------------------------------------" -ForegroundColor DarkGray
     Write-Host "  [1] Vaciar Cache DNS (ipconfig /flushdns)" -ForegroundColor White
     Write-Host "  [2] Reiniciar Explorador de Windows (explorer.exe)" -ForegroundColor White
@@ -207,6 +207,7 @@ function Show-QuickActionsMenu {
     Write-Host "  [4] Reparacion Rapida de Imagen (DISM RestoreHealth + SFC Scannow)" -ForegroundColor White
     Write-Host "  [5] Limpieza Inmediata de Shaders GPU (DirectX, NVIDIA, AMD)" -ForegroundColor White
     Write-Host "  [6] Ejecutar SSD TRIM en todas las unidades compatibles" -ForegroundColor White
+    Write-Host "  [7] Optimizar Navegadores Web (Video GPU, Menos RAM, Sin Copilot/IA)" -ForegroundColor White
     Write-Host "  [0] Volver al Menu Principal" -ForegroundColor Gray
     Write-Host ""
     
@@ -260,7 +261,22 @@ function Show-QuickActionsMenu {
             }
             pause
         }
+        "7" {
+            Invoke-BrowsersModule
+            pause
+        }
         default { return }
+    }
+}
+
+function Invoke-BrowsersModule {
+    $scriptFile = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
+    if ($scriptFile) {
+        Write-Host "`n[*] Iniciando Optimizacion y Debloat Oficial de Navegadores (Edge, Chrome, Firefox, Brave)...`n" -ForegroundColor Green
+        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -BrowsersOnly
+    } else {
+        Write-Host "[ERROR] No se encontro Win11-Debloat-v3-Adaptive.ps1" -ForegroundColor Red
+        pause
     }
 }
 
@@ -275,6 +291,7 @@ if ($Module) {
         "Diagnostics"  { Invoke-DiagnosticsModule; exit }
         "Security"     { Invoke-SecurityModule; exit }
         "Dashboards"   { Invoke-OpenDashboards; exit }
+        "Browsers"     { Invoke-BrowsersModule; exit }
         "QuickActions" { Show-QuickActionsMenu; exit }
     }
 }
@@ -293,12 +310,13 @@ while ($true) {
     Write-Host "  [3] 🧹 Mantenimiento & Limpieza Profunda (WinSxS DISM, Shaders, SSD TRIM)" -ForegroundColor White
     Write-Host "  [4] 📋 Auditoria Forense Post-Instalacion & Salud (Panther, CompactOS, PnP)" -ForegroundColor White
     Write-Host "  [5] 🛡️  Auditoria de Seguridad & Hardening (ASR, VBS, Protocolos On-Demand)" -ForegroundColor White
-    Write-Host "  [6] 📊 Generar y Abrir Dashboards HTML de Salud y Seguridad" -ForegroundColor Cyan
-    Write-Host "  [7] 🔧 Acciones Rapidas (Flush DNS, Restart Explorer, GodMode, Reparacion)" -ForegroundColor Yellow
+    Write-Host "  [6] 🌐 Optimizar y Debloat de Navegadores (GPU, Menos RAM, Sin Copilot/IA)" -ForegroundColor White
+    Write-Host "  [7] 📊 Generar y Abrir Dashboards HTML de Salud y Seguridad" -ForegroundColor Cyan
+    Write-Host "  [8] 🔧 Acciones Rapidas (Flush DNS, Restart Explorer, GodMode, Reparacion)" -ForegroundColor Yellow
     Write-Host "  [0] ❌ Salir del Toolkit" -ForegroundColor Gray
     Write-Host ""
     
-    $choice = Read-Host "  Seleccione una opcion [0-7]"
+    $choice = Read-Host "  Seleccione una opcion [0-8]"
     
     switch ($choice) {
         "1" { Invoke-GamingModule }
@@ -306,8 +324,9 @@ while ($true) {
         "3" { Invoke-MaintenanceModule }
         "4" { Invoke-DiagnosticsModule }
         "5" { Invoke-SecurityModule }
-        "6" { Invoke-OpenDashboards }
-        "7" { Show-QuickActionsMenu }
+        "6" { Invoke-BrowsersModule; pause }
+        "7" { Invoke-OpenDashboards }
+        "8" { Show-QuickActionsMenu }
         "0" {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit
