@@ -1,3 +1,16 @@
+## [2026-08-23T20:39:00-03:00] Unificación Visual Completa de la Suite romanOS — UI-Engine Central
+
+- **Archivos Creados:** `scripts/Core/UI-Engine.ps1`
+- **Archivos Modificados:** `scripts/romanOS-Toolkit.ps1`, `scripts/Get-EssentialRuntimes.ps1`, `scripts/Invoke-WindowsMaintenance.ps1`, `scripts/Win11-Network-Diagnostics-Optimizer.ps1`, `scripts/Invoke-WindowsSecurityHardening.ps1`, `scripts/PostInstall-Diagnostics.ps1`, `scripts/Get-OfficialWindowsISO.ps1`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Test-OptimizedISO-v2.ps1`
+- **Commits:** `4678313` (feat: unificación visual), `6e22922` (fix: test harness actualizado)
+- **Hitos Logrados:**
+  - **Motor Visual Centralizado (`scripts/Core/UI-Engine.ps1`):** 10 funciones estándar: `Show-UnifiedBanner` (ancho 74 cols, info de host en tiempo real), `Write-StepHeader`, `Write-SubStep`, `Write-OK`, `Write-Warn`, `Write-ErrorMsg`, `Write-Info`, `Show-UnifiedMenu` (marcos `┌──┐`), `Prompt-UnifiedYesNo`, `Show-UnifiedSummary`. Marcos box-drawing idénticos en toda la suite.
+  - **Micro-Fallback Independiente:** Cada script carga `UI-Engine.ps1` dinámicamente y soporta ejecución autónoma sin el repositorio completo.
+  - **9 Scripts Unificados:** romanOS-Toolkit, Get-EssentialRuntimes, Invoke-WindowsMaintenance, Win11-Network-Diagnostics-Optimizer, Invoke-WindowsSecurityHardening, PostInstall-Diagnostics, Get-OfficialWindowsISO, Win11-Debloat-v3-Adaptive, New-OptimizedWindowsISO-v2.
+  - **Inyección en ISO:** `New-OptimizedWindowsISO-v2.ps1` copia automáticamente `scripts\Core\` a `sources\$OEM$\$$\Setup\Scripts\Core\` para que la ISO generada incluya el motor visual en el sistema instalado.
+  - **Test Harness Actualizado:** `Test-OptimizedISO-v2.ps1` carga UI-Engine.ps1 + script principal en Fase 1 y usa nombres de funciones actualizados. Resultado: **140/140 PASS (100%)** en Windows PowerShell 5.1 nativo (`powershell.exe`).
+  - **UTF-8 BOM** aplicado en todos los archivos. 0 errores de parse AST.
+
 ## [2026-08-23T19:20:00-03:00] Corrección Integral y Validación Oficial de Get-EssentialRuntimes.ps1
 
 - **Archivos Modificados:** `scripts/Get-EssentialRuntimes.ps1`, `MEMORY.md`
