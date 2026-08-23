@@ -1,3 +1,13 @@
+## [2026-08-22T22:20:00-03:00] Arquitectura y Separación Limpia de Responsabilidades (SRP)
+
+- **Archivos Modificados:** `scripts/Invoke-WindowsMaintenance.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se consolidó la separación estricta de responsabilidades entre los componentes del ecosistema:
+    1. **`Invoke-WindowsMaintenance.ps1` (Motor Puro de Mantenimiento y Recuperación):** Dedicado al 100% al saneamiento de residuos ISO/OOBE, limpieza WinSxS (`DISM /StartComponentCleanup`), saneamiento de carpetas huérfanas AppX, purga segura de cachés volátiles de navegadores y GPU shaders, reparación integral del sistema (DISM, SFC, WMI, NTFS, Red) y optimización SSD TRIM. Se eliminó la inyección de directivas de registro de navegadores para evitar solapamientos.
+    2. **`Win11-Debloat-v3-Adaptive.ps1` (Motor Único de Debloat, Optimización y Tweaks):** Actúa como la **única fuente de verdad** para el debloat de aplicaciones, optimizaciones de hardware, gaming, menú contextual nativo y optimización/debloat oficial de navegadores web (GPO GPU/RAM/Sleeping Tabs).
+  - **Validación AST:** **0 Errores de Parseo** en todos los scripts (`New-OptimizedWindowsISO-v2.ps1`, `Win11-Debloat-v3-Adaptive.ps1`, `Invoke-WindowsMaintenance.ps1`).
+- **Pendiente:** Compilación de ISO y prueba en Hyper-V.
+
 ## [2026-08-22T22:05:00-03:00] Fortalecimiento de Auto-Elevación y Bypass de Políticas de Ejecución (ExecutionPolicy)
 
 - **Archivos Creados / Modificados:** `scripts/Invoke-WindowsMaintenance.ps1`, `scripts/Win11-Network-Diagnostics-Optimizer.ps1`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/Invoke-WindowsMaintenance.cmd`, `scripts/Win11-Debloat-v3-Adaptive.cmd`, `scripts/Win11-Network-Diagnostics-Optimizer.cmd`, `MEMORY.md`
