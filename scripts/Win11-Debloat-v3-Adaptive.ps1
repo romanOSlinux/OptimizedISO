@@ -56,7 +56,8 @@
      13. MMAgent tuning
      14. DISM component cleanup
      15. Funciones avanzadas de Menu Contextual (Interactivo)
-     16. Restart Explorer
+     16. Optimizacion y Debloat Oficial de Navegadores Web (GPO GPU/RAM)
+     17. Restart Explorer
 #>
 
 param(
@@ -2327,9 +2328,95 @@ if ($applyContextMenu) {
 #endregion
 
 # ============================================================
-#region 16. Restart Explorer
+#region 16. Optimizacion y Debloat Oficial de Navegadores Web (GPO)
+# Ref: learn.microsoft.com/deployedge/microsoft-edge-policies
+# Ref: chromeenterprise.google/policies/
+# Ref: mozilla.github.io/policy-templates/
 # ============================================================
-Write-Host "`n[16] Restarting Explorer to apply visual changes..." -ForegroundColor Cyan
+$applyBrowsers = $true
+if (-not $Unattended) {
+    $choice = Read-Host "`n[16] Â¿Desea aplicar la optimizacion oficial de Navegadores (GPU, Sleeping Tabs, Limite de Cache, Cero Procesos de Fondo, Debloat) para Edge, Chrome, Firefox y Brave? [Y/N] (Default: Y)"
+    if ($choice -ne '' -and $choice -notmatch '^[yYsS]') {
+        $applyBrowsers = $false
+    }
+}
+
+if ($applyBrowsers) {
+    Write-Host "`n[16] Aplicando directivas oficiales de rendimiento y debloat en Navegadores..." -ForegroundColor Cyan
+
+    try {
+        # 16.A Microsoft Edge (HKLM\SOFTWARE\Policies\Microsoft\Edge)
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HardwareAccelerationModeEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SmoothScrollingEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'StartupBoostEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'BackgroundModeEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SleepingTabsEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SleepingTabsTimeout' 300 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EfficiencyModeEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EfficiencyModeOption' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPagePrerenderEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'DiskCacheSize' 268435456 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NetworkPredictionOptions' 2 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HubsSidebarEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EdgeShoppingAssistantEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'EdgeCollectionsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ComposeInlineEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'DiagnosticData' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'PersonalizationReportingEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ShowRecommendationsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'UserFeedbackAllowed' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SpotlightExperiencesAndRecommendationsEnabled' 0 'DWord'
+        Write-Host "  - Microsoft Edge: Directivas de aceleracion GPU, Sleeping Tabs y Debloat aplicadas." -ForegroundColor Green
+
+        # 16.B Google Chrome (HKLM\SOFTWARE\Policies\Google\Chrome)
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'HardwareAccelerationModeEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SmoothScrollingEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'BackgroundModeEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'HighEfficiencyModeEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PromotionalTabsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'DiskCacheSize' 268435456 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'NetworkPredictionOptions' 2 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'ShoppingListEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'MetricsReportingEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SpellCheckServiceEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PrivacySandboxAdMeasurementEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PrivacySandboxAdTopicsEnabled' 0 'DWord'
+        Write-Host "  - Google Chrome: Directivas de aceleracion GPU, Memory Saver y Debloat aplicadas." -ForegroundColor Green
+
+        # 16.C Mozilla Firefox (HKLM\SOFTWARE\Policies\Mozilla\Firefox)
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'HardwareAcceleration' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisableTelemetry' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisablePocket' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisableFirefoxStudies' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisableFeedbackCommands' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'BackgroundAppUpdate' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'OverrideFirstRunPage' '' 'String'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'OverridePostUpdatePage' '' 'String'
+        Write-Host "  - Mozilla Firefox: Directivas de aceleracion y bloqueo de telemetria/Pocket aplicadas." -ForegroundColor Green
+
+        # 16.D Brave Browser (HKLM\SOFTWARE\Policies\BraveSoftware\Brave)
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'HardwareAccelerationModeEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'SmoothScrollingEnabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BackgroundModeEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'DiskCacheSize' 268435456 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'MetricsReportingEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveRewardsDisabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveWalletDisabled' 1 'DWord'
+        Write-Host "  - Brave Browser: Directivas de rendimiento y control de fondo aplicadas." -ForegroundColor Green
+
+        Write-Host "  [OK] Optimizacion oficial de navegadores completada con exito." -ForegroundColor Green
+    } catch {
+        Write-Host "  ! Error aplicando directivas de navegadores: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "`n[16] Omitiendo optimizacion de navegadores." -ForegroundColor Gray
+}
+#endregion
+
+# ============================================================
+#region 17. Restart Explorer
+# ============================================================
+Write-Host "`n[17] Restarting Explorer to apply visual changes..." -ForegroundColor Cyan
 Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue)) { Start-Process explorer.exe }
@@ -2357,6 +2444,7 @@ Write-Host ("  | Timer fix   : {0,-37} |" -f $(if($applyFixTimer){'Aplicado (bcd
 Write-Host ("  | Nagle TCP   : {0,-37} |" -f $(if($applyNagle){'Deshabilitado'}else{'Sin cambio'})) -ForegroundColor Gray
 Write-Host ("  | Ultimate PP : {0,-37} |" -f $(if($applyUltimate){'Activado'}else{'Omitido'}))  -ForegroundColor Gray
 Write-Host ("  | Menu Context: {0,-37} |" -f $(if($applyContextMenu){'Aplicado (6 funciones)'}else{'Omitido'}))  -ForegroundColor Gray
+Write-Host ("  | Navegadores : {0,-37} |" -f $(if($applyBrowsers){'Optimizado (GPO GPU/RAM)'}else{'Omitido'}))  -ForegroundColor Gray
 Write-Host "  +---------------------------------------------------------+" -ForegroundColor DarkCyan
 #endregion
 

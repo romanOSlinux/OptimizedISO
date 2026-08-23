@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Motor Integral de Mantenimiento, Limpieza Profunda y Reparacion de Windows (10/11).
     
@@ -56,6 +56,7 @@ param(
     [switch]$Full,
     [switch]$SkipDism,
     [switch]$SkipBrowsers,
+    [switch]$OptimizeBrowsers,
     [switch]$ResetBase
 )
 
@@ -75,9 +76,10 @@ if (-not $isAdmin) {
         if ($DeepClean)    { $argList += "-DeepClean" }
         if ($RepairOnly)   { $argList += "-RepairOnly" }
         if ($Full)         { $argList += "-Full" }
-        if ($SkipDism)     { $argList += "-SkipDism" }
-        if ($SkipBrowsers) { $argList += "-SkipBrowsers" }
-        if ($ResetBase)    { $argList += "-ResetBase" }
+        if ($SkipDism)         { $argList += "-SkipDism" }
+        if ($SkipBrowsers)     { $argList += "-SkipBrowsers" }
+        if ($OptimizeBrowsers) { $argList += "-OptimizeBrowsers" }
+        if ($ResetBase)        { $argList += "-ResetBase" }
 
         Start-Process powershell.exe -ArgumentList $argList -Verb RunAs
         exit 0
@@ -455,6 +457,59 @@ if ($runMod4) {
             }
         }
         Write-OK "Caches de navegadores purgadas de forma segura (Sesiones y Cookies protegidas)."
+
+        # Aplicar directivas oficiales de rendimiento GPO si corresponde
+        if ($OptimizeBrowsers -or $Full -or $DeepClean) {
+            Write-SubStep "Aplicando directivas oficiales de alto rendimiento GPO en Navegadores (GPU/SleepingTabs)..."
+            try {
+                # Microsoft Edge
+                $edgePol = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+                if (-not (Test-Path $edgePol)) { New-Item -Path $edgePol -Force | Out-Null }
+                Set-ItemProperty -Path $edgePol -Name 'HardwareAccelerationModeEnabled' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'SmoothScrollingEnabled' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'StartupBoostEnabled' -Value 0 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'BackgroundModeEnabled' -Value 0 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'SleepingTabsEnabled' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'SleepingTabsTimeout' -Value 300 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'EfficiencyModeEnabled' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'EfficiencyModeOption' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'DiskCacheSize' -Value 268435456 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'NetworkPredictionOptions' -Value 2 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'HubsSidebarEnabled' -Value 0 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'EdgeShoppingAssistantEnabled' -Value 0 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $edgePol -Name 'DiagnosticData' -Value 0 -Type DWord -Force | Out-Null
+
+                # Google Chrome
+                $chromePol = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+                if (-not (Test-Path $chromePol)) { New-Item -Path $chromePol -Force | Out-Null }
+                Set-ItemProperty -Path $chromePol -Name 'HardwareAccelerationModeEnabled' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $chromePol -Name 'SmoothScrollingEnabled' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $chromePol -Name 'BackgroundModeEnabled' -Value 0 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $chromePol -Name 'HighEfficiencyModeEnabled' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $chromePol -Name 'DiskCacheSize' -Value 268435456 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $chromePol -Name 'MetricsReportingEnabled' -Value 0 -Type DWord -Force | Out-Null
+
+                # Mozilla Firefox
+                $ffPol = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox"
+                if (-not (Test-Path $ffPol)) { New-Item -Path $ffPol -Force | Out-Null }
+                Set-ItemProperty -Path $ffPol -Name 'HardwareAcceleration' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $ffPol -Name 'DisableTelemetry' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $ffPol -Name 'DisablePocket' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $ffPol -Name 'BackgroundAppUpdate' -Value 0 -Type DWord -Force | Out-Null
+
+                # Brave Browser
+                $bravePol = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+                if (-not (Test-Path $bravePol)) { New-Item -Path $bravePol -Force | Out-Null }
+                Set-ItemProperty -Path $bravePol -Name 'HardwareAccelerationModeEnabled' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $bravePol -Name 'SmoothScrollingEnabled' -Value 1 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $bravePol -Name 'BackgroundModeEnabled' -Value 0 -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $bravePol -Name 'DiskCacheSize' -Value 268435456 -Type DWord -Force | Out-Null
+
+                Write-OK "Directivas oficiales de rendimiento GPO aplicadas en Navegadores."
+            } catch {
+                Write-Warn "Error aplicando directivas GPO de navegadores: $($_.Exception.Message)"
+            }
+        }
     } else {
         Write-Info "Limpieza de navegadores omitida por parametro -SkipBrowsers."
     }

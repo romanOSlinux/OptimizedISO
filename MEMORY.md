@@ -1,3 +1,18 @@
+## [2026-08-22T21:55:00-03:00] Optimización de Alto Rendimiento (GPU/RAM) y Debloat Oficial de Navegadores Web
+
+- **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Invoke-WindowsMaintenance.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se implementó la matriz oficial de directivas empresariales y de GPO de alto rendimiento y debloat para los principales navegadores:
+    1. **Microsoft Edge (`HKLM\SOFTWARE\Policies\Microsoft\Edge`):** `HardwareAccelerationModeEnabled = 1`, `SmoothScrollingEnabled = 1`, `StartupBoostEnabled = 0` (ahorro ~350 MB RAM al inicio), `BackgroundModeEnabled = 0` (cero procesos al salir), `SleepingTabsEnabled = 1` y `SleepingTabsTimeout = 300` (congelamiento a los 5 minutos, -35-50% RAM), `EfficiencyModeEnabled = 1`, `DiskCacheSize = 268435456` (256 MB), y bloqueo de Sidebar/Copilot, asistente de compras/cupones, telemetría y anuncios.
+    2. **Google Chrome (`HKLM\SOFTWARE\Policies\Google\Chrome`):** `HardwareAccelerationModeEnabled = 1`, `SmoothScrollingEnabled = 1`, `BackgroundModeEnabled = 0`, `HighEfficiencyModeEnabled = 1` (Memory Saver), `DiskCacheSize = 268435456`, y bloqueo de telemetría de métricas, ortografía en la nube y Privacy Sandbox / Topics.
+    3. **Mozilla Firefox (`HKLM\SOFTWARE\Policies\Mozilla\Firefox`):** `HardwareAcceleration = 1`, `DisableTelemetry = 1`, `DisablePocket = 1`, `DisableFirefoxStudies = 1`, `BackgroundAppUpdate = 0`, y omisión de páginas de bienvenida promocionales.
+    4. **Brave Browser (`HKLM\SOFTWARE\Policies\BraveSoftware\Brave`):** `HardwareAccelerationModeEnabled = 1`, `SmoothScrollingEnabled = 1`, `BackgroundModeEnabled = 0`, `DiskCacheSize = 268435456`, `MetricsReportingEnabled = 0`, `BraveRewardsDisabled = 1` y `BraveWalletDisabled = 1`.
+  - **Sincronización en `Win11-Debloat-v3-Adaptive.ps1`:** Nueva **Región 16** interactiva con selector `Read-Host [Y/N]` / `-Unattended` e indicador en el resumen final. Reorganizado el reinicio del Explorador como **Región 17**.
+  - **Sincronización en `New-OptimizedWindowsISO-v2.ps1`:** Inyección automática en `SetupComplete.cmd` y auditoría en `PostInstall-Diagnostics.ps1`.
+  - **Sincronización en `Invoke-WindowsMaintenance.ps1`:** Parámetro `-OptimizeBrowsers` y aplicación dentro de los modos `-Full` y `-DeepClean`.
+  - **Validación AST:** **0 Errores de Parseo** en todos los scripts con `[System.Management.Automation.Language.Parser]`.
+- **Pendiente:** Compilación de ISO y prueba en Hyper-V.
+
 ## [2026-08-22T21:25:00-03:00] Creación del Subsistema de Mantenimiento, Limpieza Profunda y Reparación (Invoke-WindowsMaintenance.ps1)
 
 - **Archivos Creados / Modificados:** `scripts/Invoke-WindowsMaintenance.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`

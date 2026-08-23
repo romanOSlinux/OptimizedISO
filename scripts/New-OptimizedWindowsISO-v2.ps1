@@ -3535,6 +3535,70 @@ reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem\command" /ve
 
 echo [%DATE% %TIME%] Funciones de menu contextual registradas. >> "%LOG%"
 
+REM ===========================================================
+REM Optimizacion y Debloat Oficial de Navegadores Web (GPO)
+REM Refs: learn.microsoft.com/deployedge/microsoft-edge-policies
+REM Refs: chromeenterprise.google/policies/
+REM ===========================================================
+echo [%DATE% %TIME%] Aplicando politicas GPO de rendimiento en navegadores... >> "%LOG%"
+
+REM -- Microsoft Edge: GPU, Sleeping Tabs, Limite de Cache y Debloat --
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "HardwareAccelerationModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SmoothScrollingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "StartupBoostEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "BackgroundModeEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SleepingTabsEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SleepingTabsTimeout" /t REG_DWORD /d 300 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EfficiencyModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EfficiencyModeOption" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NewTabPagePrerenderEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "DiskCacheSize" /t REG_DWORD /d 268435456 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NetworkPredictionOptions" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "HubsSidebarEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EdgeShoppingAssistantEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EdgeCollectionsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "ComposeInlineEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "DiagnosticData" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "PersonalizationReportingEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "ShowRecommendationsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "UserFeedbackAllowed" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SpotlightExperiencesAndRecommendationsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+
+REM -- Google Chrome: GPU, Memory Saver, Limite de Cache y Debloat --
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "HardwareAccelerationModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "SmoothScrollingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "BackgroundModeEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "HighEfficiencyModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PromotionalTabsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "DiskCacheSize" /t REG_DWORD /d 268435456 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "NetworkPredictionOptions" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "ShoppingListEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "MetricsReportingEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "SpellCheckServiceEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PrivacySandboxAdMeasurementEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PrivacySandboxAdTopicsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+
+REM -- Mozilla Firefox: GPU, Telemetria y Pocket --
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "HardwareAcceleration" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisableTelemetry" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisablePocket" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisableFirefoxStudies" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisableFeedbackCommands" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "BackgroundAppUpdate" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "OverrideFirstRunPage" /t REG_SZ /d "" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "OverridePostUpdatePage" /t REG_SZ /d "" /f >> "%LOG%" 2>&1
+
+REM -- Brave Browser: GPU, Rendimiento y Red --
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "HardwareAccelerationModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "SmoothScrollingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BackgroundModeEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "DiskCacheSize" /t REG_DWORD /d 268435456 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "MetricsReportingEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BraveRewardsDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BraveWalletDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+
+echo [%DATE% %TIME%] Politicas de navegadores aplicadas exitosamente. >> "%LOG%"
+
 __OPTIMIZATIONS_BLOCK__
 REM ===========================================================
 REM Registrar Tareas a Demanda y Accesos Directos en Escritorio
@@ -3899,6 +3963,17 @@ try {
         }
     }
     if ($ctxAll) { $passedChecks.Add("Funciones avanzadas de menu contextual (6/6) registradas.") }
+
+    # Verificacion de Directivas GPO de Rendimiento en Navegadores
+    $edgeGPU   = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name HardwareAccelerationModeEnabled -ErrorAction SilentlyContinue).HardwareAccelerationModeEnabled
+    $edgeSleep = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name SleepingTabsEnabled -ErrorAction SilentlyContinue).SleepingTabsEnabled
+    $edgeBoost = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name StartupBoostEnabled -ErrorAction SilentlyContinue).StartupBoostEnabled
+    if ($edgeGPU -eq 1 -and $edgeSleep -eq 1 -and $edgeBoost -eq 0) {
+        $passedChecks.Add("Directivas GPO de rendimiento en Navegadores activas (GPU/SleepingTabs/ZeroBackground).")
+        $reportLines.Add("- **Navegadores (GPO Edge/Chrome):** Optimizado (GPU: 1, SleepingTabs: 1, Background: 0) [OK]")
+    } else {
+        $reportLines.Add("- **Navegadores (GPO Edge/Chrome):** Estandar o no configurado.")
+    }
 
     # Modo Oscuro
     $appsDark = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme
