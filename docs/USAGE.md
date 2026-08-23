@@ -1,45 +1,41 @@
-# Guía de Uso: Creador de ISO Optimizada (Zero-Touch)
+# Guía Rápida de Uso: Creador de ISO Optimizada (Zero-Touch v2)
 
-Este documento explica cómo utilizar el script `New-OptimizedWindowsISO.ps1` para generar una imagen de Windows 10 u 11 completamente desatendida, con los scripts de optimización y limpieza (Debloat) preintegrados.
+> 💡 **Manual Completo y Detallado:** Para consultar la guía paso a paso de toda la suite (Toolkit Maestro, Mantenimiento, Red y Seguridad), consulta [`docs/MANUAL_DE_USO.md`](file:///c:/OptimizedISO/docs/MANUAL_DE_USO.md).
 
-> **Advertencia Importante:** La ISO generada con este script está configurada como **Zero-Touch**. Esto significa que al bootear desde el USB, **formateará automáticamente el Disco 0** e instalará Windows sin hacer preguntas. Úsala solo en equipos donde desees una instalación limpia completa.
+Este documento resume cómo utilizar el script maestro [`scripts/New-OptimizedWindowsISO-v2.ps1`](file:///c:/OptimizedISO/scripts/New-OptimizedWindowsISO-v2.ps1) para generar imágenes de Windows 10 u 11 completamente desatendidas con la suite de herramientas **romanOS Toolkit Maestro** preintegrada en el Menú Inicio.
+
+> **Advertencia Importante:** La ISO generada con este script está configurada como **Zero-Touch**. Al bootear desde el USB, **formateará automáticamente el Disco 0** e instalará Windows sin intervención humana. Úsala solo en equipos donde desees una instalación limpia completa.
 >
-> 💡 **Compatibilidad:** Probado y ajustado según las especificaciones oficiales de Microsoft ADK y Microsoft Learn para **Windows 10 y Windows 11 (23H2 / 24H2 / 25H2)**.
+> 💡 **Compatibilidad:** Probado y certificado para **Windows 11 (25H2 / 24H2 / 23H2 / LTSC 2024)** y **Windows 10 (22H2 / LTSC 2021)**.
 
 ---
 
 ## 🚀 Requisitos Previos
 
 1. **Abrir PowerShell como Administrador**
-2. **Dependencias:** El script necesita `7-Zip` para extraer ISOs y `oscdimg` para reempaquetarlas. Si no los tienes, el script puede instalarlos automáticamente con el parámetro `-AutoInstallDeps`.
+2. **Dependencias:** El script necesita `7-Zip` para extraer ISOs y `oscdimg` (Windows ADK) para reempaquetar. Si no los tienes, el script los detecta e instala automáticamente.
 
 ---
 
 ## 🛠️ Ejemplos de Uso
 
-### 1. El método más rápido (Todo por defecto)
+### 1. El método interactivo (Recomendado)
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO.ps1
+.\scripts\New-OptimizedWindowsISO-v2.ps1
 ```
-Preguntará dónde está tu ISO original y creará un usuario local llamado "Usuario" sin contraseña.
+Inicia el asistente en 6 pasos para seleccionar origen de ISO, suite de scripts, perfil de debloat (1, 2 o 3) y credenciales.
 
-### 2. Crear un usuario personalizado (Recomendado)
-
-```powershell
-.\scripts\New-OptimizedWindowsISO.ps1 -LocalUser "Roman" -LocalPassword "Secreta123"
-```
-
-### 3. Descargar la ISO oficial de Windows 11 automáticamente
+### 2. Descarga oficial automática y compilación directa
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO.ps1 -DownloadISO -WindowsVersion 11 -AutoInstallDeps -LocalUser "Roman"
+.\scripts\New-OptimizedWindowsISO-v2.ps1 -DownloadOfficialISO -LocalUser "Roman" -OptProfile 2
 ```
 
-### 4. Usar una ISO existente en tu disco
+### 3. Usar una ISO local existente
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO.ps1 -SourceISO "C:\Users\Roman\Downloads\Win11_Spanish_x64.iso" -LocalUser "Roman"
+.\scripts\New-OptimizedWindowsISO-v2.ps1 -SourceISO "C:\Users\Roman\Downloads\Win11_Spanish_x64.iso" -LocalUser "Roman"
 ```
 
 ### 5. Cambiar idioma y zona horaria
