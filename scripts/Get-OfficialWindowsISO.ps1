@@ -64,6 +64,36 @@ param(
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $ErrorActionPreference = 'Continue'
 
+# -----------------------------------------------------------------------------
+# CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
+# -----------------------------------------------------------------------------
+$uiEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+)
+$uiLoaded = $false
+foreach ($p in $uiEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $uiLoaded = $true
+        break
+    }
+}
+if (-not $uiLoaded) {
+    function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
+    function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
+    function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }
+    function Write-OK           { param($Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
+    function Write-Warn         { param($Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
+    function Write-ErrorMsg     { param($Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
+    function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
+    function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
+    function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
+    function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
+}
+
 #------------------------------------------------------------------------------
 # SUBSISTEMA DE LOGGING ESTRUCTURADO Y DIAGNÓSTICO
 #------------------------------------------------------------------------------
@@ -264,16 +294,18 @@ function Write-LogSummary {
         }
         [System.IO.File]::WriteAllText($script:AiSummaryFile, $sb.ToString(), [System.Text.Encoding]::UTF8)
     } catch {}
+
+    $logMap = @{}
+    if ($script:AiSummaryFile)  { $logMap["AI Diagnostic MD"] = $script:AiSummaryFile }
+    if ($script:LogFile)        { $logMap["Log Estructurado"] = $script:LogFile }
+    if ($script:TranscriptFile) { $logMap["Transcript"]       = $script:TranscriptFile }
+
+    $st = if ($script:LogErrors.Count -eq 0) { "SUCCESS" } else { "FAILED" }
+    Show-UnifiedSummary -Title "DESCARGADOR OFICIAL DE ISOs" -Status $st -DurationSeconds $totalDuration -ErrorsCount $script:LogErrors.Count -WarnsCount $script:LogWarns.Count -Logs $logMap
 }
 
 function Show-Header {
-    Clear-Host
-    Write-Host ""
-    Write-Host "  ╔══════════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "  ║       DESCARGADOR OFICIAL DE ISOs DE WINDOWS (MOTOR UNIFICADO)       ║" -ForegroundColor Cyan
-    Write-Host "  ║    (Microsoft Release Health + CDN Directo / MCT / Enlaces Web)      ║" -ForegroundColor Cyan
-    Write-Host "  ╚══════════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
-    Write-Host ""
+    Show-UnifiedBanner -Title "DESCARGADOR OFICIAL DE ISOs DE WINDOWS" -Subtitle "Microsoft Release Health + CDN Directo / MCT / Massgrave" -ShowSystemInfo
 }
 
 function Get-OnlineWindowsReleases {

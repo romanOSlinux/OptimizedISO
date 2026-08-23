@@ -31,6 +31,36 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 $ErrorActionPreference = 'Continue'
 
 # ============================================================
+# CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
+# ============================================================
+$uiEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+)
+$uiLoaded = $false
+foreach ($p in $uiEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $uiLoaded = $true
+        break
+    }
+}
+if (-not $uiLoaded) {
+    function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
+    function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
+    function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }
+    function Write-OK           { param($Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
+    function Write-Warn         { param($Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
+    function Write-ErrorMsg     { param($Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
+    function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
+    function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
+    function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
+    function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
+}
+
+# ============================================================
 # LOGGING ENGINE — Write-Log + Start-Transcript
 # Genera dos archivos con timestamp en C:\Logs\
 #   Network-Diagnostics_<ts>.log            ← log estructurado
@@ -147,26 +177,19 @@ function Write-LogSummary {
         if ($script:AiSummaryFile) {
             [System.IO.File]::WriteAllText($script:AiSummaryFile, $sb.ToString(), [System.Text.Encoding]::UTF8)
         }
-    } catch {}
+    $logMap = @{}
+    if ($script:AiSummaryFile)  { $logMap["AI Diagnostic MD"] = $script:AiSummaryFile }
+    if ($script:LogFile)        { $logMap["Log Estructurado"] = $script:LogFile }
+    if ($script:TranscriptFile) { $logMap["Transcript"]       = $script:TranscriptFile }
 
-    Write-Host ""
-    Write-Host "  ┌─ Logs generados (Listos para análisis por IA) ────────────────" -ForegroundColor DarkCyan
-    if ($script:AiSummaryFile)  { Write-Host "  │  AI Diagnostic MD : $script:AiSummaryFile  <-- Pásame este archivo" -ForegroundColor Green }
-    Write-Host "  │  Log estructurado : $script:LogFile" -ForegroundColor Cyan
-    Write-Host "  │  Transcript       : $script:TranscriptFile" -ForegroundColor Cyan
-    if ($script:LogErrors.Count -gt 0) {
-        Write-Host "  │" -ForegroundColor DarkCyan
-        Write-Host "  │  [$($script:LogErrors.Count) ERROR(S) detectados — revisa el reporte]" -ForegroundColor Red
-    } else {
-        Write-Host "  │  Sin errores detectados." -ForegroundColor Green
-    }
-    Write-Host "  └───────────────────────────────────────────────────────────────" -ForegroundColor DarkCyan
+    $st = if ($script:LogErrors.Count -eq 0) { "SUCCESS" } else { "FAILED" }
+    Show-UnifiedSummary -Title "DIAGNOSTICO DE RED" -Status $st -DurationSeconds $totalDuration -ErrorsCount $script:LogErrors.Count -WarnsCount $script:LogWarns.Count -Logs $logMap
 }
 
 try {
     Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null
 } catch {
-    Write-Host "  [LOG] Start-Transcript no disponible: $($_.Exception.Message)" -ForegroundColor DarkGray
+    Write-Info "Start-Transcript no disponible: $($_.Exception.Message)"
 }
 
 Write-LogEntry -Level "INIT" -Message ("=" * 64)
@@ -189,15 +212,12 @@ function Add-SummaryRecord {
 }
 
 try {
-    Write-Host "==========================================================" -ForegroundColor Magenta
-    Write-Host "   DIAGNOSTICO, PRUEBAS Y OPTIMIZACION DE RED (WIN 11 25H2)" -ForegroundColor Cyan
-    Write-Host "==========================================================" -ForegroundColor Magenta
-    Write-Host "Ejecutando en: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Gray
+    Show-UnifiedBanner -Title "DIAGNOSTICO, PRUEBAS Y OPTIMIZACION DE RED" -Subtitle "Inspeccion de Adaptadores, Latencia, DNS y Tweaks TCP/IP (Win 11 25H2)" -ShowSystemInfo
 
     # ================================================================
     # FASE 1: DIAGNOSTICO COMPLETO DE ADAPTADORES (LECTURA)
     # ================================================================
-    Write-Host "`n[1] Diagnostico e inspeccion de adaptadores de red..." -ForegroundColor Cyan
+    Write-StepHeader -StepNumber 1 -TotalSteps 4 -Message "Diagnostico e inspeccion de adaptadores de red"
     $adapters = Get-NetAdapter -Physical -ErrorAction SilentlyContinue
 
     if (-not $adapters) {
@@ -225,7 +245,7 @@ try {
     }
 
     # Configuracion de IP y DNS
-    Write-Host "`n[2] Analizando configuracion logica de red (IP/DNS)..." -ForegroundColor Cyan
+    Write-StepHeader -StepNumber 2 -TotalSteps 4 -Message "Analizando configuracion logica de red (IP/DNS)"
     $ipConfigs = Get-NetIPConfiguration -ErrorAction SilentlyContinue
     foreach ($cfg in $ipConfigs) {
         if ($cfg.NetProfile.IPv4Connectivity -eq 'Internet' -or $cfg.IPv4DefaultGateway) {
@@ -244,32 +264,32 @@ try {
     # ================================================================
     # FASE 2: PRUEBAS ACTIVAS DE CONECTIVIDAD (TESTS)
     # ================================================================
-    Write-Host "`n[3] Realizando pruebas activas de latencia y DNS..." -ForegroundColor Cyan
+    Write-StepHeader -StepNumber 3 -TotalSteps 4 -Message "Realizando pruebas activas de latencia y DNS"
     
     # 1. Test contra Cloudflare DNS
-    Write-Host "  - Probando conexion hacia Cloudflare DNS (1.1.1.1)..." -ForegroundColor Gray
+    Write-SubStep "Probando conexion hacia Cloudflare DNS (1.1.1.1)..."
     $t1 = Test-NetConnection -ComputerName 1.1.1.1 -ErrorAction SilentlyContinue
     if ($t1.PingSucceeded) {
-        Write-Host "    Ping exitoso. Latencia promedio: $($t1.PingReplyDetails.RoundTripTime) ms." -ForegroundColor Green
+        Write-OK "Ping exitoso. Latencia promedio: $($t1.PingReplyDetails.RoundTripTime) ms."
     } else {
-        Write-Host "    ! Fallo el ping a 1.1.1.1 (posible bloqueo ICMP o caida de red)." -ForegroundColor Red
+        Write-Warn "Fallo el ping a 1.1.1.1 (posible bloqueo ICMP o caida de red)."
     }
 
     # 2. Test de resolucion DNS
-    Write-Host "  - Midiendo velocidad de respuesta resolviendo 'google.com'..." -ForegroundColor Gray
+    Write-SubStep "Midiendo velocidad de respuesta resolviendo 'google.com'..."
     $dnsTime = Measure-Command {
         $dnsTest = [System.Net.Dns]::GetHostAddresses("google.com")
     }
     if ($dnsTest) {
-        Write-Host "    DNS resuelto con exito en $([math]::Round($dnsTime.TotalMilliseconds, 2)) ms." -ForegroundColor Green
+        Write-OK "DNS resuelto con exito en $([math]::Round($dnsTime.TotalMilliseconds, 2)) ms."
     } else {
-        Write-Host "    ! Error al resolver google.com." -ForegroundColor Red
+        Write-ErrorMsg "Error al resolver google.com."
     }
 
     # ================================================================
     # FASE 3: MENU DE OPTIMIZACIONES (GRANULAR E INTERACTIVO)
     # ================================================================
-    Write-Host "`n[4] Optimizaciones avanzadas de rendimiento..." -ForegroundColor Cyan
+    Write-StepHeader -StepNumber 4 -TotalSteps 4 -Message "Optimizaciones avanzadas de rendimiento de red"
 
     $selectedTweaks = $null
     $tweaksList = @(

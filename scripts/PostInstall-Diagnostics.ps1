@@ -15,6 +15,36 @@ param(
 
 $ErrorActionPreference = 'Continue'
 
+# -----------------------------------------------------------------------------
+# CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
+# -----------------------------------------------------------------------------
+$uiEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+)
+$uiLoaded = $false
+foreach ($p in $uiEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $uiLoaded = $true
+        break
+    }
+}
+if (-not $uiLoaded) {
+    function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
+    function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
+    function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }
+    function Write-OK           { param($Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
+    function Write-Warn         { param($Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
+    function Write-ErrorMsg     { param($Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
+    function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
+    function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
+    function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
+    function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
+}
+
 try {
     if (-not (Test-Path $OutputDir)) {
         New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
@@ -560,18 +590,12 @@ try {
     } catch {}
 
     # Salida en consola
-    Write-Host ""
-    Write-Host "==========================================================================" -ForegroundColor Cyan
-    Write-Host "  AUDITORIA POST-INSTALACION DE WINDOWS                                   " -ForegroundColor Cyan
-    Write-Host "==========================================================================" -ForegroundColor Cyan
-    Write-Host "  Estado: $finalStatus" -ForegroundColor $(if ($criticalErrors.Count -gt 0) { 'Red' } elseif ($warnings.Count -gt 0) { 'Yellow' } else { 'Green' })
-    Write-Host "  Verificaciones Aprobadas : $($passedChecks.Count)" -ForegroundColor Green
-    Write-Host "  Advertencias             : $($warnings.Count)" -ForegroundColor $(if ($warnings.Count -gt 0) { 'Yellow' } else { 'Gray' })
-    Write-Host "  Errores Criticos         : $($criticalErrors.Count)" -ForegroundColor $(if ($criticalErrors.Count -gt 0) { 'Red' } else { 'Gray' })
-    Write-Host "  Informe Markdown         : $desktopReportPath" -ForegroundColor Cyan
-    Write-Host "  Informe HTML Dashboard   : $desktopReportHtmlPath" -ForegroundColor Cyan
-    Write-Host "==========================================================================" -ForegroundColor Cyan
-    Write-Host ""
+    $logMap = @{
+        "Informe Markdown"       = $desktopReportPath
+        "Dashboard HTML"         = $desktopReportHtmlPath
+    }
+    $diagStatus = if ($criticalErrors.Count -gt 0) { "FAILED" } elseif ($warnings.Count -gt 0) { "WARNING" } else { "SUCCESS" }
+    Show-UnifiedSummary -Title "AUDITORIA POST-INSTALACION" -Status $diagStatus -DurationSeconds 0 -ErrorsCount $criticalErrors.Count -WarnsCount $warnings.Count -Logs $logMap
 
     if ($ShowInNotepad) {
         Start-Process -FilePath "notepad.exe" -ArgumentList $desktopReportPath

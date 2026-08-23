@@ -67,6 +67,35 @@ if (-not (Test-Path $DestinationPath)) {
     New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
 }
 
+# -----------------------------------------------------------------------------
+# CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
+# -----------------------------------------------------------------------------
+$uiEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+)
+$uiLoaded = $false
+foreach ($p in $uiEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $uiLoaded = $true
+        break
+    }
+}
+if (-not $uiLoaded) {
+    function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
+    function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
+    function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }
+    function Write-OK           { param($Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
+    function Write-Warn         { param($Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
+    function Write-ErrorMsg     { param($Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
+    function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
+    function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
+    function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
+}
+
 # ============================================================
 # LOGGING ENGINE — AI-Ready Diagnostic Report
 # ============================================================
@@ -163,18 +192,13 @@ function Write-LogSummary {
         }
     } catch {}
 
-    Write-Host ""
-    Write-Host "  ┌─ Logs generados (Listos para análisis por IA) ────────────────" -ForegroundColor DarkCyan
-    if ($script:AiSummaryFile)  { Write-Host "  │  AI Diagnostic MD : $script:AiSummaryFile  <-- Pásame este archivo" -ForegroundColor Green }
-    Write-Host "  │  Log estructurado : $script:LogFile" -ForegroundColor Cyan
-    Write-Host "  │  Transcript       : $script:TranscriptFile" -ForegroundColor Cyan
-    if ($script:LogErrors.Count -gt 0) {
-        Write-Host "  │" -ForegroundColor DarkCyan
-        Write-Host "  │  [$($script:LogErrors.Count) ERROR(S) detectados — revisa el reporte]" -ForegroundColor Red
-    } else {
-        Write-Host "  │  Descargas completadas sin errores." -ForegroundColor Green
-    }
-    Write-Host "  └───────────────────────────────────────────────────────────────" -ForegroundColor DarkCyan
+    $logMap = @{}
+    if ($script:AiSummaryFile)  { $logMap["AI Diagnostic MD"] = $script:AiSummaryFile }
+    if ($script:LogFile)        { $logMap["Log Estructurado"] = $script:LogFile }
+    if ($script:TranscriptFile) { $logMap["Transcript"]       = $script:TranscriptFile }
+
+    $st = if ($script:LogErrors.Count -eq 0) { "SUCCESS" } else { "FAILED" }
+    Show-UnifiedSummary -Title "DESCARGA DE RUNTIMES" -Status $st -DurationSeconds $totalDuration -ErrorsCount $script:LogErrors.Count -WarnsCount $script:LogWarns.Count -Logs $logMap
 }
 
 function Invoke-SafeDownload {
@@ -230,11 +254,8 @@ Write-LogEntry -Level "INIT" -Message "Get-EssentialRuntimes Download Log"
 Write-LogEntry -Level "INIT" -Message "PowerShell $($PSVersionTable.PSVersion) | Host: $env:COMPUTERNAME"
 Write-LogEntry -Level "INIT" -Message ("=" * 64)
 
-Write-Host ""
-Write-Host "╔══════════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║        DESCARGADOR DE RUNTIMES ESENCIALES PARA WINDOWS ISO           ║" -ForegroundColor Cyan
-Write-Host "╚══════════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
-Write-Host "  Destino: $DestinationPath" -ForegroundColor Gray
+Show-UnifiedBanner -Title "DESCARGADOR DE RUNTIMES ESENCIALES" -Subtitle "Integracion Oficial Microsoft CDN para Windows ISO" -ShowSystemInfo
+Write-Info "Carpeta de destino: $DestinationPath"
 Write-Host ""
 
 # Lista oficial de descargas de Microsoft CDN / aka.ms
@@ -441,17 +462,10 @@ if (-not $SkipDirectX) {
     }
 }
 
-# Resumen final
-Write-Host ""
-Write-Host "══════════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+# Resumen final de archivos y espacio
 $allFiles = Get-ChildItem -Path $DestinationPath -Recurse -File
 $totalSizeMB = [math]::Round(($allFiles | Measure-Object -Property Length -Sum).Sum / 1MB, 2)
-Write-Host "  Descargas finalizadas con éxito." -ForegroundColor Green
-Write-Host "  Archivos totales en Runtimes: $($allFiles.Count)" -ForegroundColor Gray
-Write-Host "  Espacio total en disco:       $totalSizeMB MB" -ForegroundColor Gray
-Write-Host "══════════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  La próxima vez que ejecutes 'New-OptimizedWindowsISO-v2.ps1', estos" -ForegroundColor White
-Write-Host "  runtimes se inyectarán automáticamente dentro de la ISO." -ForegroundColor White
-Write-Host ""
+Write-Info "Archivos totales en Runtimes: $($allFiles.Count) | Espacio total: $totalSizeMB MB"
+Write-Info "La proxima vez que ejecutes 'New-OptimizedWindowsISO-v2.ps1', se integraran automaticamente."
 
 Write-LogSummary

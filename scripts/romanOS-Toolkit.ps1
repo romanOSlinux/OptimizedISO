@@ -11,7 +11,7 @@
     procesos residentes.
 
 .PARAMETER Module
-    Nombre del modulo a ejecutar directamente (Gaming, Network, Maintenance, Diagnostics, Security, Dashboards).
+    Nombre del modulo a ejecutar directamente (Gaming, Network, Maintenance, Diagnostics, Security, Dashboards, Browsers, QuickActions).
 
 .PARAMETER ShowDashboards
     Genera y abre los dashboards HTML interactivos de salud y seguridad en el navegador.
@@ -40,7 +40,7 @@ try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAc
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     if ($PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC")) {
-        Write-Host "[!] Elevando privilegios de Administrador (UAC)..." -ForegroundColor Yellow
+        Write-Host "  [!] Elevando privilegios de Administrador (UAC)..." -ForegroundColor Yellow
         $scriptPath = $MyInvocation.MyCommand.Definition
         if (-not $scriptPath) { $scriptPath = $PSCommandPath }
         
@@ -55,6 +55,36 @@ if (-not $isAdmin) {
         }
         exit
     }
+}
+
+# -----------------------------------------------------------------------------
+# 1. CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
+# -----------------------------------------------------------------------------
+$uiEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+)
+$uiLoaded = $false
+foreach ($p in $uiEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $uiLoaded = $true
+        break
+    }
+}
+if (-not $uiLoaded) {
+    function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
+    function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
+    function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }
+    function Write-OK           { param($Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
+    function Write-Warn         { param($Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
+    function Write-ErrorMsg     { param($Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
+    function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
+    function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
+    function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
+    function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
 }
 
 # Resolucion de rutas de scripts hermanos
@@ -80,46 +110,15 @@ function Resolve-ToolScript {
 }
 
 # -----------------------------------------------------------------------------
-# 1. FUNCIONES AUXILIARES Y DASHBOARD DE ESTADO
-# -----------------------------------------------------------------------------
-function Show-Header {
-    Clear-Host
-    Write-Host ""
-    Write-Host "  ==========================================================================" -ForegroundColor Cyan
-    Write-Host "   ____                               ____    _____             _ _    _ _  " -ForegroundColor Cyan
-    Write-Host "  |  _ \ ___  _ __ ___   __ _ _ __   / __ \  |_   _|__   ___ | | | _(_) |_ " -ForegroundColor Cyan
-    Write-Host "  | |_) / _ \| '_ ` _ \ / _` | '_ \ / / _` |   | |/ _ \ / _ \| | |/ / | __|" -ForegroundColor Cyan
-    Write-Host "  |  _ < (_) | | | | | | (_| | | | | | (_| |   | | (_) | (_) | |   <| | |_ " -ForegroundColor Cyan
-    Write-Host "  |_| \_\___/|_| |_| |_|\__,_|_| |_|\ \__,_|   |_|\___/ \___/|_|_|\_\_|\__|" -ForegroundColor Cyan
-    Write-Host "                                     \____/                                " -ForegroundColor Cyan
-    Write-Host "  Toolkit Maestro de Optimizacion, Gaming, Mantenimiento y Seguridad        " -ForegroundColor DarkCyan
-    Write-Host "  ==========================================================================" -ForegroundColor Cyan
-    
-    # Telemetria rapida en encabezado
-    try {
-        $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
-        $sysDrive = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'" -ErrorAction SilentlyContinue
-        $freeGB = if ($sysDrive) { [math]::Round($sysDrive.FreeSpace / 1GB, 1) } else { "N/A" }
-        $totalGB = if ($sysDrive) { [math]::Round($sysDrive.Size / 1GB, 1) } else { "N/A" }
-        
-        Write-Host "  Sistema   : $($os.Caption) ($($os.OSArchitecture))" -ForegroundColor Gray
-        Write-Host "  Equipo    : $env:COMPUTERNAME | Usuario: $env:USERNAME" -ForegroundColor Gray
-        Write-Host "  Disco C:  : $freeGB GB libres de $totalGB GB" -ForegroundColor Gray
-    } catch {}
-    Write-Host "  --------------------------------------------------------------------------" -ForegroundColor DarkGray
-    Write-Host ""
-}
-
-# -----------------------------------------------------------------------------
 # 2. INVOCADORES DE MODULOS
 # -----------------------------------------------------------------------------
 function Invoke-GamingModule {
     $scriptFile = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
     if ($scriptFile) {
-        Write-Host "`n[*] Iniciando Modulo de Optimizacion y Debloat Adaptativo...`n" -ForegroundColor Green
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Modulo de Optimizacion y Debloat Adaptativo"
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
     } else {
-        Write-Host "[ERROR] No se encontro Win11-Debloat-v3-Adaptive.ps1" -ForegroundColor Red
+        Write-ErrorMsg "No se encontro Win11-Debloat-v3-Adaptive.ps1"
         pause
     }
 }
@@ -127,10 +126,10 @@ function Invoke-GamingModule {
 function Invoke-NetworkModule {
     $scriptFile = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
     if ($scriptFile) {
-        Write-Host "`n[*] Iniciando Modulo de Diagnostico de Red y Latencia...`n" -ForegroundColor Green
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Modulo de Diagnostico de Red y Latencia"
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
     } else {
-        Write-Host "[ERROR] No se encontro Win11-Network-Diagnostics-Optimizer.ps1" -ForegroundColor Red
+        Write-ErrorMsg "No se encontro Win11-Network-Diagnostics-Optimizer.ps1"
         pause
     }
 }
@@ -138,10 +137,10 @@ function Invoke-NetworkModule {
 function Invoke-MaintenanceModule {
     $scriptFile = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
     if ($scriptFile) {
-        Write-Host "`n[*] Iniciando Modulo de Mantenimiento y Reparacion...`n" -ForegroundColor Green
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Modulo de Mantenimiento y Reparacion"
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
     } else {
-        Write-Host "[ERROR] No se encontro Invoke-WindowsMaintenance.ps1" -ForegroundColor Red
+        Write-ErrorMsg "No se encontro Invoke-WindowsMaintenance.ps1"
         pause
     }
 }
@@ -149,10 +148,10 @@ function Invoke-MaintenanceModule {
 function Invoke-DiagnosticsModule {
     $scriptFile = Resolve-ToolScript "PostInstall-Diagnostics.ps1"
     if ($scriptFile) {
-        Write-Host "`n[*] Iniciando Modulo de Auditoria Post-Instalacion y Salud...`n" -ForegroundColor Green
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Modulo de Auditoria Post-Instalacion y Salud"
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -DesktopOutput
     } else {
-        Write-Host "[ERROR] No se encontro PostInstall-Diagnostics.ps1" -ForegroundColor Red
+        Write-ErrorMsg "No se encontro PostInstall-Diagnostics.ps1"
         pause
     }
 }
@@ -160,16 +159,27 @@ function Invoke-DiagnosticsModule {
 function Invoke-SecurityModule {
     $scriptFile = Resolve-ToolScript "Invoke-WindowsSecurityHardening.ps1"
     if ($scriptFile) {
-        Write-Host "`n[*] Iniciando Modulo de Auditoria de Seguridad Desacoplada...`n" -ForegroundColor Green
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Modulo de Auditoria de Seguridad Desacoplada"
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -ShowReport
     } else {
-        Write-Host "[ERROR] No se encontro Invoke-WindowsSecurityHardening.ps1" -ForegroundColor Red
+        Write-ErrorMsg "No se encontro Invoke-WindowsSecurityHardening.ps1"
+        pause
+    }
+}
+
+function Invoke-BrowsersModule {
+    $scriptFile = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Optimizacion Oficial de Navegadores (Edge, Chrome, Firefox, Brave)"
+        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -BrowsersOnly
+    } else {
+        Write-ErrorMsg "No se encontro Win11-Debloat-v3-Adaptive.ps1"
         pause
     }
 }
 
 function Invoke-OpenDashboards {
-    Write-Host "`n[*] Generando y abriendo Dashboards Visuales HTML...`n" -ForegroundColor Cyan
+    Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Generando y abriendo Dashboards Visuales HTML"
     
     $diagScript = Resolve-ToolScript "PostInstall-Diagnostics.ps1"
     $secScript  = Resolve-ToolScript "Invoke-WindowsSecurityHardening.ps1"
@@ -193,49 +203,54 @@ function Invoke-OpenDashboards {
     if (Test-Path $diagHtml) { Start-Process -FilePath $diagHtml }
     if (Test-Path $secHtml)  { Start-Process -FilePath $secHtml }
     
-    Write-Host "`n[OK] Dashboards abiertos en el navegador web local." -ForegroundColor Green
+    Write-OK "Dashboards HTML abiertos en el navegador web local."
     Start-Sleep -Seconds 2
 }
 
 function Show-QuickActionsMenu {
-    Show-Header
-    Write-Host "  ACCIONES RAPIDAS DE SISTEMA (SISTEMA, RED & NAVEGADORES):" -ForegroundColor Yellow
-    Write-Host "  --------------------------------------------------------------------------" -ForegroundColor DarkGray
-    Write-Host "  [1] Vaciar Cache DNS (ipconfig /flushdns)" -ForegroundColor White
-    Write-Host "  [2] Reiniciar Explorador de Windows (explorer.exe)" -ForegroundColor White
-    Write-Host "  [3] Abrir Panel de Control Maestro (God Mode)" -ForegroundColor White
-    Write-Host "  [4] Reparacion Rapida de Imagen (DISM RestoreHealth + SFC Scannow)" -ForegroundColor White
-    Write-Host "  [5] Limpieza Inmediata de Shaders GPU (DirectX, NVIDIA, AMD)" -ForegroundColor White
-    Write-Host "  [6] Ejecutar SSD TRIM en todas las unidades compatibles" -ForegroundColor White
-    Write-Host "  [7] Optimizar Navegadores Web (Video GPU, Menos RAM, Sin Copilot/IA)" -ForegroundColor White
-    Write-Host "  [0] Volver al Menu Principal" -ForegroundColor Gray
-    Write-Host ""
+    Show-UnifiedBanner -Title "ACCIONES RAPIDAS DE SISTEMA" -Subtitle "Herramientas de Mantenimiento Express"
     
-    $actChoice = Read-Host "  Seleccione una accion"
+    $quickOpts = @(
+        "Vaciar Cache DNS (ipconfig /flushdns)",
+        "Reiniciar Explorador de Windows (explorer.exe)",
+        "Abrir Panel de Control Maestro (God Mode)",
+        "Reparacion Rapida de Imagen (DISM RestoreHealth + SFC)",
+        "Limpieza Inmediata de Shaders GPU (DirectX, NVIDIA, AMD)",
+        "Ejecutar SSD TRIM en todas las unidades compatibles",
+        "Optimizar Navegadores Web (Video GPU, Menos RAM, Sin IA)"
+    )
+    
+    $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
+    
     switch ($actChoice) {
-        "1" {
-            Write-Host "`n[+] Vaciando cache DNS..." -ForegroundColor Cyan
+        1 {
+            Write-SubStep "Vaciando cache DNS..."
             ipconfig /flushdns
+            Write-OK "Cache DNS vaciada exitosamente."
             pause
         }
-        "2" {
-            Write-Host "`n[+] Reiniciando Explorador..." -ForegroundColor Cyan
+        2 {
+            Write-SubStep "Reiniciando Explorador..."
             Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
             Start-Sleep -Milliseconds 500
             Start-Process "explorer.exe"
+            Write-OK "Explorador de Windows reiniciado."
         }
-        "3" {
-            Write-Host "`n[+] Abriendo God Mode..." -ForegroundColor Cyan
+        3 {
+            Write-SubStep "Abriendo God Mode..."
             Start-Process "explorer.exe" -ArgumentList "shell:::{ED7BA470-8E54-465E-825C-99712043E01C}"
+            Write-OK "God Mode abierto."
         }
-        "4" {
-            Write-Host "`n[+] Ejecutando DISM y SFC..." -ForegroundColor Cyan
+        4 {
+            Write-StepHeader -StepNumber 1 -TotalSteps 2 -Message "Ejecutando DISM RestoreHealth"
             DISM /Online /Cleanup-Image /RestoreHealth
+            Write-StepHeader -StepNumber 2 -TotalSteps 2 -Message "Ejecutando SFC Scannow"
             sfc /scannow
+            Write-OK "Proceso de reparacion completado."
             pause
         }
-        "5" {
-            Write-Host "`n[+] Limpiando shaders GPU..." -ForegroundColor Cyan
+        5 {
+            Write-SubStep "Limpiando shaders GPU..."
             $shaderDirs = @(
                 "$env:LOCALAPPDATA\D3DSCache",
                 "$env:LOCALAPPDATA\NVIDIA\DXCache",
@@ -244,39 +259,29 @@ function Show-QuickActionsMenu {
             foreach ($sd in $shaderDirs) {
                 if (Test-Path $sd) {
                     Get-ChildItem -Path $sd -Recurse -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
-                    Write-Host "    - Limpiado: $sd" -ForegroundColor Gray
+                    Write-Info "Limpiado: $sd"
                 }
             }
-            Write-Host "[OK] Caché de shaders limpiada." -ForegroundColor Green
+            Write-OK "Cache de shaders GPU limpiada correctamente."
             pause
         }
-        "6" {
-            Write-Host "`n[+] Ejecutando ReTrim en volumenes SSD..." -ForegroundColor Cyan
+        6 {
+            Write-SubStep "Ejecutando ReTrim en volumenes SSD fijados..."
             try {
                 Get-Volume | Where-Object { $_.DriveType -eq 'Fixed' } | ForEach-Object {
                     Optimize-Volume -DriveLetter $_.DriveLetter -ReTrim -Verbose
                 }
+                Write-OK "SSD ReTrim finalizado."
             } catch {
-                Write-Host "Error ejecutando Optimize-Volume: $($_.Exception.Message)" -ForegroundColor Red
+                Write-ErrorMsg "Error ejecutando Optimize-Volume: $($_.Exception.Message)"
             }
             pause
         }
-        "7" {
+        7 {
             Invoke-BrowsersModule
             pause
         }
         default { return }
-    }
-}
-
-function Invoke-BrowsersModule {
-    $scriptFile = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
-    if ($scriptFile) {
-        Write-Host "`n[*] Iniciando Optimizacion y Debloat Oficial de Navegadores (Edge, Chrome, Firefox, Brave)...`n" -ForegroundColor Green
-        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -BrowsersOnly
-    } else {
-        Write-Host "[ERROR] No se encontro Win11-Debloat-v3-Adaptive.ps1" -ForegroundColor Red
-        pause
     }
 }
 
@@ -301,38 +306,46 @@ if ($ShowDashboards) {
     exit
 }
 
+# Si la entrada esta redirigida (sin terminal interactiva) y no se paso -Module, mostrar resumen y salir
+try {
+    if ([System.Console]::IsInputRedirected) {
+        Show-UnifiedBanner -Title "romanOS TOOLKIT MAESTRO" -Subtitle "Hub de Optimizacion, Gaming, Mantenimiento y Seguridad" -ShowSystemInfo
+        Write-Info "Ejecucion no interactiva detectada."
+        Write-Info "Uso desatendido: .\romanOS-Toolkit.ps1 -Module <Gaming|Network|Maintenance|Diagnostics|Security|Browsers|Dashboards|QuickActions>"
+        exit 0
+    }
+} catch {}
+
+$mainMenuOpts = @(
+    "Optimizacion Gaming & Hardware (HAGS, MSI Mode, Latencia, Debloat)",
+    "Diagnostico de Red & Latencia (Benchmarks DNS, TCP/IP, Sockets)",
+    "Mantenimiento & Limpieza Profunda (WinSxS DISM, Shaders, SSD TRIM)",
+    "Auditoria Forense Post-Instalacion & Salud (Panther, CompactOS, PnP)",
+    "Auditoria de Seguridad & Hardening (ASR, VBS, Protocolos On-Demand)",
+    "Optimizar y Debloat de Navegadores (GPU, Menos RAM, Sin Copilot/IA)",
+    "Generar y Abrir Dashboards HTML de Salud y Seguridad",
+    "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)"
+)
+
 while ($true) {
-    Show-Header
-    Write-Host "  MODULOS DEL TOOLKIT MAESTRO:" -ForegroundColor Cyan
-    Write-Host "  --------------------------------------------------------------------------" -ForegroundColor DarkGray
-    Write-Host "  [1] ⚡ Optimizacion Gaming & Hardware (HAGS, MSI Mode, Latencia, Debloat)" -ForegroundColor Green
-    Write-Host "  [2] 🌐 Diagnostico de Red & Latencia (Benchmarks DNS, TCP/IP, Sockets)" -ForegroundColor White
-    Write-Host "  [3] 🧹 Mantenimiento & Limpieza Profunda (WinSxS DISM, Shaders, SSD TRIM)" -ForegroundColor White
-    Write-Host "  [4] 📋 Auditoria Forense Post-Instalacion & Salud (Panther, CompactOS, PnP)" -ForegroundColor White
-    Write-Host "  [5] 🛡️  Auditoria de Seguridad & Hardening (ASR, VBS, Protocolos On-Demand)" -ForegroundColor White
-    Write-Host "  [6] 🌐 Optimizar y Debloat de Navegadores (GPU, Menos RAM, Sin Copilot/IA)" -ForegroundColor White
-    Write-Host "  [7] 📊 Generar y Abrir Dashboards HTML de Salud y Seguridad" -ForegroundColor Cyan
-    Write-Host "  [8] 🔧 Acciones Rapidas (Flush DNS, Restart Explorer, GodMode, Reparacion)" -ForegroundColor Yellow
-    Write-Host "  [0] ❌ Salir del Toolkit" -ForegroundColor Gray
-    Write-Host ""
-    
-    $choice = Read-Host "  Seleccione una opcion [0-8]"
+    Show-UnifiedBanner -Title "romanOS TOOLKIT MAESTRO" -Subtitle "Hub de Optimizacion, Gaming, Mantenimiento y Seguridad" -ShowSystemInfo
+    $choice = Show-UnifiedMenu -Title "MODULOS DEL TOOLKIT MAESTRO" -Options $mainMenuOpts -DefaultChoice 1 -AllowCancel -CancelText "Salir del Toolkit"
     
     switch ($choice) {
-        "1" { Invoke-GamingModule }
-        "2" { Invoke-NetworkModule }
-        "3" { Invoke-MaintenanceModule }
-        "4" { Invoke-DiagnosticsModule }
-        "5" { Invoke-SecurityModule }
-        "6" { Invoke-BrowsersModule; pause }
-        "7" { Invoke-OpenDashboards }
-        "8" { Show-QuickActionsMenu }
-        "0" {
+        1 { Invoke-GamingModule }
+        2 { Invoke-NetworkModule }
+        3 { Invoke-MaintenanceModule }
+        4 { Invoke-DiagnosticsModule }
+        5 { Invoke-SecurityModule }
+        6 { Invoke-BrowsersModule; pause }
+        7 { Invoke-OpenDashboards }
+        8 { Show-QuickActionsMenu }
+        0 {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit
         }
         default {
-            Write-Host "  Opcion invalida." -ForegroundColor Red
+            Write-Warn "Opcion no valida."
             Start-Sleep -Seconds 1
         }
     }

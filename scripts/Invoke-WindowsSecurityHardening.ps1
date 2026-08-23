@@ -78,6 +78,36 @@ if (-not $isAdmin -and ($ApplySafeHardening -or $ApplyStrictHardening)) {
     }
 }
 
+# -----------------------------------------------------------------------------
+# CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
+# -----------------------------------------------------------------------------
+$uiEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+)
+$uiLoaded = $false
+foreach ($p in $uiEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $uiLoaded = $true
+        break
+    }
+}
+if (-not $uiLoaded) {
+    function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
+    function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
+    function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }
+    function Write-OK           { param($Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
+    function Write-Warn         { param($Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
+    function Write-ErrorMsg     { param($Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
+    function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
+    function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
+    function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
+    function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
+}
+
 # Determinar directorio de salida
 if (-not $OutputDir) {
     if ($env:WINDIR -and (Test-Path "$env:WINDIR\Setup\Logs")) {
@@ -620,6 +650,8 @@ function Export-SecurityAuditReports {
 # -----------------------------------------------------------------------------
 # 5. FLUJO PRINCIPAL DE EJECUCION
 # -----------------------------------------------------------------------------
+Show-UnifiedBanner -Title "AUDITORIA DE SEGURIDAD Y HARDENING" -Subtitle "ASR, VBS/HVCI, Protocolos y Reduccion de Superficie de Ataque" -ShowSystemInfo
+
 if ($ApplySafeHardening) {
     Invoke-ApplySafeHardeningEngine
     Invoke-SecurityAuditEngine
@@ -628,7 +660,7 @@ if ($ApplySafeHardening) {
     Invoke-ApplySafeHardeningEngine
     # ASR Enforcement
     try {
-        Write-Host "  [+] Habilitando reglas ASR de Microsoft Defender en modo bloqueo..." -ForegroundColor White
+        Write-Info "Habilitando reglas ASR de Microsoft Defender en modo bloqueo..."
         foreach ($ruleId in $asrRulesCatalog.Keys) {
             Add-MpPreference -AttackSurfaceReductionRules_Ids $ruleId -AttackSurfaceReductionRules_Actions 1 -ErrorAction SilentlyContinue
         }
@@ -641,11 +673,10 @@ if ($ApplySafeHardening) {
     Export-SecurityAuditReports
     
     if (-not $NonInteractive -and -not $AuditOnly) {
-        Write-Host "  Desea aplicar el Hardening Seguro para Gaming (Cero impacto en FPS)? [S/N]" -ForegroundColor Yellow
-        $resp = Read-Host "  Seleccione una opcion"
-        if ($resp -match '^(S|s|Y|y)$') {
+        $applyChoice = Prompt-UnifiedYesNo -Prompt "¿Desea aplicar el Hardening Seguro para Gaming (Cero impacto en FPS)?" -Default $false
+        if ($applyChoice) {
             if (-not $isAdmin) {
-                Write-Host "  [!] Se requieren privilegios de Administrador para aplicar directivas en el registro..." -ForegroundColor Yellow
+                Write-Warn "Se requieren privilegios de Administrador para aplicar directivas en el registro..."
                 $scriptPath = $MyInvocation.MyCommand.Definition
                 if (-not $scriptPath) { $scriptPath = $PSCommandPath }
                 Start-Process -FilePath "powershell.exe" -ArgumentList @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath, '-ApplySafeHardening', '-ShowReport') -Verb RunAs
@@ -663,4 +694,4 @@ if ($ApplySafeHardening) {
     }
 }
 
-Write-Host "  Proceso finalizado exitosamente." -ForegroundColor Green
+Write-OK "Proceso de auditoria y hardening finalizado exitosamente."

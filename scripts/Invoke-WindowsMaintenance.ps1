@@ -104,41 +104,38 @@ try { Start-Transcript -Path $logFile -Append -Force | Out-Null } catch {}
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor 3072 -bor 12288 } catch {}
 
 # ============================================================
-# FUNCIONES DE INTERFAZ Y UTILIDADES
+# CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
 # ============================================================
-function Write-Header {
-    param([string]$Title)
-    Write-Host ""
-    Write-Host "  +-------------------------------------------------------------------------+" -ForegroundColor DarkCyan
-    Write-Host "  | $($Title.PadRight(71)) |" -ForegroundColor Cyan
-    Write-Host "  +-------------------------------------------------------------------------+" -ForegroundColor DarkCyan
-    Write-Host ""
+$uiEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+)
+$uiLoaded = $false
+foreach ($p in $uiEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $uiLoaded = $true
+        break
+    }
+}
+if (-not $uiLoaded) {
+    function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
+    function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
+    function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }
+    function Write-OK           { param($Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
+    function Write-Warn         { param($Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
+    function Write-ErrorMsg     { param($Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
+    function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
+    function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
+    function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
+    function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
 }
 
 function Write-Section {
     param([string]$Num, [string]$Title)
-    Write-Host ""
-    Write-Host "[$Num] $Title" -ForegroundColor Cyan
-}
-
-function Write-SubStep {
-    param([string]$Text)
-    Write-Host "  -> $Text" -ForegroundColor Gray
-}
-
-function Write-OK {
-    param([string]$Text)
-    Write-Host "  [OK] $Text" -ForegroundColor Green
-}
-
-function Write-Warn {
-    param([string]$Text)
-    Write-Host "  [!] $Text" -ForegroundColor Yellow
-}
-
-function Write-Info {
-    param([string]$Text)
-    Write-Host "  [i] $Text" -ForegroundColor DarkGray
+    Write-StepHeader -StepNumber ([int]$Num) -TotalSteps 6 -Message $Title
 }
 
 function Get-DriveFreeBytes {
@@ -189,11 +186,9 @@ function Remove-PathSilently {
 $initialFreeBytes = Get-DriveFreeBytes 'C'
 $osInfo = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
 
-Write-Header "MOTOR INTEGRAL DE MANTENIMIENTO Y REPARACION DE WINDOWS"
-Write-Host "  Sistema Operativo : $($osInfo.Caption) ($($osInfo.OSArchitecture))" -ForegroundColor White
-Write-Host "  Build / Version   : $($osInfo.Version) (Display: $($osInfo.BuildNumber))" -ForegroundColor Gray
-Write-Host "  Espacio Libre (C:): $(Format-Bytes $initialFreeBytes)" -ForegroundColor Yellow
-Write-Host "  Archivo de Log    : $logFile" -ForegroundColor DarkGray
+Show-UnifiedBanner -Title "MANTENIMIENTO Y REPARACION DE WINDOWS" -Subtitle "Optimizacion de Espacio, WinSxS, Shaders y Reparacion DISM" -ShowSystemInfo
+Write-Info "Espacio Libre Inicial (C:): $(Format-Bytes $initialFreeBytes)"
+Write-Info "Archivo de Registro: $logFile"
 
 # ============================================================
 # SELECCION DE MODO DE EJECUCION
@@ -217,28 +212,24 @@ if ($Full) {
     # Modo por defecto desatendido: Mantenimiento Completo
     $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod5 = $true; $runMod6 = $true
 } else {
-    # Menu interactivo por consola
-    Write-Host ""
-    Write-Host "  SELECCIONA EL TIPO DE OPERACION:" -ForegroundColor Cyan
-    Write-Host "  [1] Mantenimiento Completo Integral (Limpieza profunda + Reparacion + TRIM) [Recomendado]" -ForegroundColor White
-    Write-Host "  [2] Saneamiento Post-Instalacion ISO (Residuos OOBE, temporales, apps huerfanas, TRIM)" -ForegroundColor White
-    Write-Host "  [3] Limpieza Profunda de Almacenamiento (WinSxS, Windows Update, Caches, Shaders, Navegadores)" -ForegroundColor White
-    Write-Host "  [4] Solo Reparacion y Salud del Sistema (DISM RestoreHealth, SFC, WMI, NTFS Scan, Red)" -ForegroundColor White
-    Write-Host "  [5] Salir sin realizar cambios" -ForegroundColor Gray
-    Write-Host ""
-    $opc = Read-Host "  Ingresa una opcion [1-5] (Default: 1)"
-    if ($opc -eq '' -or $opc -eq '1') {
-        $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod5 = $true; $runMod6 = $true
-    } elseif ($opc -eq '2') {
-        $runMod1 = $true; $runMod3 = $true; $runMod4 = $true; $runMod6 = $true
-    } elseif ($opc -eq '3') {
-        $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod6 = $true
-    } elseif ($opc -eq '4') {
-        $runMod5 = $true
-    } else {
-        Write-Host "Operacion cancelada por el usuario." -ForegroundColor Yellow
-        try { Stop-Transcript | Out-Null } catch {}
-        exit 0
+    $maintOpts = @(
+        "Mantenimiento Completo Integral (Limpieza profunda + Reparacion + TRIM) [Recomendado]",
+        "Saneamiento Post-Instalacion ISO (Residuos OOBE, temporales, apps huerfanas, TRIM)",
+        "Limpieza Profunda de Almacenamiento (WinSxS, Windows Update, Shaders, Caches)",
+        "Solo Reparacion y Salud del Sistema (DISM RestoreHealth, SFC, WMI, Red)"
+    )
+    $choice = Show-UnifiedMenu -Title "TIPO DE OPERACION DE MANTENIMIENTO" -Options $maintOpts -DefaultChoice 1 -AllowCancel -CancelText "Salir sin realizar cambios"
+
+    switch ($choice) {
+        1 { $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod5 = $true; $runMod6 = $true }
+        2 { $runMod1 = $true; $runMod3 = $true; $runMod4 = $true; $runMod6 = $true }
+        3 { $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod6 = $true }
+        4 { $runMod5 = $true }
+        default {
+            Write-Warn "Operacion cancelada por el usuario."
+            try { Stop-Transcript | Out-Null } catch {}
+            exit 0
+        }
     }
 }
 
@@ -602,21 +593,16 @@ if ($runMod6) {
 $finalFreeBytes = Get-DriveFreeBytes 'C'
 $freedBytes     = $finalFreeBytes - $initialFreeBytes
 
-Write-Host ""
-Write-Host "  +-------------------------------------------------------------------------+" -ForegroundColor DarkCyan
-Write-Host "  |                       RESUMEN DE MANTENIMIENTO                          |" -ForegroundColor Cyan
-Write-Host "  +-------------------------------------------------------------------------+" -ForegroundColor DarkCyan
-Write-Host ("  | Espacio Libre Inicial : {0,-47} |" -f (Format-Bytes $initialFreeBytes)) -ForegroundColor White
-Write-Host ("  | Espacio Libre Final   : {0,-47} |" -f (Format-Bytes $finalFreeBytes))   -ForegroundColor White
+Write-Info "Espacio Libre Inicial : $(Format-Bytes $initialFreeBytes)"
+Write-Info "Espacio Libre Final   : $(Format-Bytes $finalFreeBytes)"
 if ($freedBytes -gt 0) {
-    Write-Host ("  | Espacio Total Liberado: {0,-47} |" -f "+$(Format-Bytes $freedBytes)") -ForegroundColor Green
+    Write-OK "Espacio Total Liberado: +$(Format-Bytes $freedBytes)"
 } else {
-    Write-Host ("  | Espacio Total Liberado: {0,-47} |" -f "Optimizacion de indices / 0 B netos") -ForegroundColor Gray
+    Write-Info "Espacio Total Liberado: Optimizacion de indices / 0 B netos"
 }
-Write-Host ("  | Log de Auditoria      : {0,-47} |" -f $logFile)                         -ForegroundColor DarkGray
-Write-Host "  +-------------------------------------------------------------------------+" -ForegroundColor DarkCyan
-Write-Host ""
+
+$logMap = @{ "Log de Auditoria" = $logFile }
+Show-UnifiedSummary -Title "MANTENIMIENTO WINDOWS" -Status "SUCCESS" -DurationSeconds 0 -ErrorsCount 0 -WarnsCount 0 -Logs $logMap
 Write-OK "Proceso de mantenimiento y reparacion completado con exito."
-Write-Host ""
 
 try { Stop-Transcript | Out-Null } catch {}

@@ -1,5 +1,7 @@
 # Referencia Rápida de Comandos — New-OptimizedWindowsISO.ps1
 
+> 💡 **Guía Completa de la Suite romanOS:** Para consultar todas las opciones de ejecución, menús interactivos y parámetros CLI de **todos los scripts del repositorio** (Toolkit Maestro, Debloat, Mantenimiento, Red, Seguridad, Diagnósticos y Compilación de ISOs), consulta la **[Guía Maestra de Lanzamiento y Comandos](GUIA_DE_EJECUCION_Y_COMANDOS.md)**.
+
 > Todos los comandos deben ejecutarse en **PowerShell como Administrador** desde la carpeta raíz del proyecto.
 >
 > ⚠️ La ISO resultante es **Zero-Touch**: formatea el Disco 0 sin preguntar.
