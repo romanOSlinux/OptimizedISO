@@ -3206,12 +3206,14 @@ Write-OK "La edición de Windows y el disco se seleccionarán durante la instala
 $scriptsToInject = @()
 
 # Detectar scripts conocidos disponibles en el repositorio
+$toolkitCandidate     = Join-Path $ScriptsDir "romanOS-Toolkit.ps1"
 $debScriptCandidate   = Join-Path $ScriptsDir "Win11-Debloat-v3-Adaptive.ps1"
 $maintScriptCandidate = Join-Path $ScriptsDir "Invoke-WindowsMaintenance.ps1"
 $netScriptCandidate   = Join-Path $ScriptsDir "Win11-Network-Diagnostics-Optimizer.ps1"
+$secScriptCandidate   = Join-Path $ScriptsDir "Invoke-WindowsSecurityHardening.ps1"
 $legacyCandidate      = Join-Path $ScriptsDir "Windows${detectedVersion}_PostInstall_Optimizer.ps1"
 
-# Verificar si se pasÃ³ ruta explÃ­cita por parÃ¡metro CLI
+# Verificar si se pasó ruta explícita por parámetro CLI
 $paramScriptPath = if ($detectedVersion -eq "10") { $Win10ScriptPath } else { $Win11ScriptPath }
 
 if ($paramScriptPath) {
@@ -3224,44 +3226,61 @@ if ($paramScriptPath) {
             ShortcutName = "Optimizar Sistema (Opcional).lnk"
             Title        = "Optimizador Post-Instalacion de Windows $detectedVersion"
         }
-        Write-OK "Usando script especificado por parÃ¡metro: $resolvedPath"
+        Write-OK "Usando script especificado por parámetro: $resolvedPath"
     }
 }
 
-# Si no se pasÃ³ por parÃ¡metro, mostrar menÃº interactivo con scripts disponibles
+# Si no se pasó por parámetro, mostrar menú interactivo con scripts disponibles
 if ($scriptsToInject.Count -eq 0) {
     Write-Host ""
-    Write-Host "  SELECCIÃ“N DE SCRIPT(S) POST-INSTALACIÃ“N EN ESCRITORIO:" -ForegroundColor Cyan
-    Write-Host "  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€" -ForegroundColor DarkGray
+    Write-Host "  SELECCIÓN DE SCRIPT(S) POST-INSTALACIÓN EN ESCRITORIO:" -ForegroundColor Cyan
+    Write-Host "  ──────────────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
     
-    $hasDeb   = Test-Path $debScriptCandidate
-    $hasMaint = Test-Path $maintScriptCandidate
-    $hasNet   = Test-Path $netScriptCandidate
-    $hasLeg   = Test-Path $legacyCandidate
+    $hasToolkit = Test-Path $toolkitCandidate
+    $hasDeb     = Test-Path $debScriptCandidate
+    $hasMaint   = Test-Path $maintScriptCandidate
+    $hasNet     = Test-Path $netScriptCandidate
+    $hasSec     = Test-Path $secScriptCandidate
+    $hasLeg     = Test-Path $legacyCandidate
 
-    if ($hasDeb -and $hasMaint) {
-        Write-Host "  [1] Suite Completa: Debloat + Mantenimiento/ReparaciÃ³n + Red [Recomendado]" -ForegroundColor Green
+    if ($hasToolkit -or ($hasDeb -and $hasMaint)) {
+        Write-Host "  [1] Suite Completa romanOS: Toolkit Maestro + Debloat + Mantenimiento + Red + Seguridad [Recomendado]" -ForegroundColor Green
+    }
+    if ($hasToolkit) {
+        Write-Host "  [2] romanOS-Toolkit.ps1 (Hub Maestro Orquestador Completo)" -ForegroundColor White
     }
     if ($hasDeb) {
-        Write-Host "  [2] Win11-Debloat-v3-Adaptive.ps1 (Debloat y OptimizaciÃ³n Adaptativa)" -ForegroundColor White
+        Write-Host "  [3] Win11-Debloat-v3-Adaptive.ps1 (Debloat y Optimización Adaptativa)" -ForegroundColor White
     }
     if ($hasMaint) {
-        Write-Host "  [3] Invoke-WindowsMaintenance.ps1 (Mantenimiento, Limpieza y ReparaciÃ³n)" -ForegroundColor White
+        Write-Host "  [4] Invoke-WindowsMaintenance.ps1 (Mantenimiento, Limpieza y Reparación)" -ForegroundColor White
     }
     if ($hasNet) {
-        Write-Host "  [4] Win11-Network-Diagnostics-Optimizer.ps1 (DiagnÃ³stico de Red y Latencia)" -ForegroundColor White
+        Write-Host "  [5] Win11-Network-Diagnostics-Optimizer.ps1 (Diagnóstico de Red y Latencia)" -ForegroundColor White
+    }
+    if ($hasSec) {
+        Write-Host "  [6] Invoke-WindowsSecurityHardening.ps1 (Auditoría de Seguridad y Hardening)" -ForegroundColor White
     }
 
-    Write-Host "  [5] Seleccionar otro archivo .ps1 personalizado..." -ForegroundColor Yellow
-    Write-Host "  [0] Omitir inyecciÃ³n de scripts (Solo autounattend.xml y tweaks offline)" -ForegroundColor Gray
+    Write-Host "  [7] Seleccionar otro archivo .ps1 personalizado..." -ForegroundColor Yellow
+    Write-Host "  [0] Omitir inyección de scripts (Solo autounattend.xml y tweaks offline)" -ForegroundColor Gray
     Write-Host ""
 
-    $choice = Read-Host "  Seleccione una opciÃ³n (Default: 1)"
+    $choice = Read-Host "  Seleccione una opción (Default: 1)"
     if ($choice -eq '') { $choice = "1" }
 
     switch ($choice) {
         "1" {
             # Suite Completa
+            if ($hasToolkit) {
+                $scriptsToInject += @{
+                    Source       = $toolkitCandidate
+                    DestName     = [System.IO.Path]::GetFileName($toolkitCandidate)
+                    LauncherName = "romanOS-Toolkit.cmd"
+                    ShortcutName = "romanOS Toolkit Maestro.lnk"
+                    Title        = "romanOS Toolkit Maestro (Hub Central)"
+                }
+            }
             if ($hasDeb) {
                 $scriptsToInject += @{
                     Source       = $debScriptCandidate
@@ -3289,9 +3308,30 @@ if ($scriptsToInject.Count -eq 0) {
                     Title        = "Optimizador de Red y Baja Latencia"
                 }
             }
+            if ($hasSec) {
+                $scriptsToInject += @{
+                    Source       = $secScriptCandidate
+                    DestName     = [System.IO.Path]::GetFileName($secScriptCandidate)
+                    LauncherName = "Auditoria de Seguridad (On-Demand).cmd"
+                    ShortcutName = "Auditoria de Seguridad (On-Demand).lnk"
+                    Title        = "Auditoria de Seguridad y Hardening Desacoplado"
+                }
+            }
         }
 
         "2" {
+            if ($hasToolkit) {
+                $scriptsToInject += @{
+                    Source       = $toolkitCandidate
+                    DestName     = [System.IO.Path]::GetFileName($toolkitCandidate)
+                    LauncherName = "romanOS-Toolkit.cmd"
+                    ShortcutName = "romanOS Toolkit Maestro.lnk"
+                    Title        = "romanOS Toolkit Maestro (Hub Central)"
+                }
+            }
+        }
+
+        "3" {
             $src = if ($hasDeb) { $debScriptCandidate } elseif ($hasLeg) { $legacyCandidate } else { $null }
             if ($src) {
                 $scriptsToInject += @{
@@ -3304,7 +3344,7 @@ if ($scriptsToInject.Count -eq 0) {
             }
         }
 
-        "3" {
+        "4" {
             if ($hasMaint) {
                 $scriptsToInject += @{
                     Source       = $maintScriptCandidate
@@ -3316,7 +3356,7 @@ if ($scriptsToInject.Count -eq 0) {
             }
         }
 
-        "4" {
+        "5" {
             if ($hasNet) {
                 $scriptsToInject += @{
                     Source       = $netScriptCandidate
@@ -3328,7 +3368,19 @@ if ($scriptsToInject.Count -eq 0) {
             }
         }
 
-        "5" {
+        "6" {
+            if ($hasSec) {
+                $scriptsToInject += @{
+                    Source       = $secScriptCandidate
+                    DestName     = [System.IO.Path]::GetFileName($secScriptCandidate)
+                    LauncherName = "Auditoria de Seguridad (On-Demand).cmd"
+                    ShortcutName = "Auditoria de Seguridad (On-Demand).lnk"
+                    Title        = "Auditoria de Seguridad y Hardening Desacoplado"
+                }
+            }
+        }
+
+        "7" {
             Write-Host ""
             $manual = Read-Host "  Escriba la ruta completa del script .ps1"
             if ($manual -and (Test-Path $manual)) {
@@ -3670,7 +3722,7 @@ if not exist "%START_MENU_TOOLS%" mkdir "%START_MENU_TOOLS%" >> "%LOG%" 2>&1
 if ($scriptsToInject.Count -gt 0) {
     foreach ($sc in $scriptsToInject) {
         $taskName = "Ejecutar_" + ($sc.DestName -replace '[^a-zA-Z0-9_]', '')
-        $iconNumber = if ($sc.DestName -match 'Maintenance') { "54" } elseif ($sc.DestName -match 'Network') { "23" } else { "109" }
+        $iconNumber = if ($sc.DestName -match 'Maintenance') { "54" } elseif ($sc.DestName -match 'Network') { "23" } elseif ($sc.DestName -match 'Security') { "105" } elseif ($sc.DestName -match 'Toolkit') { "109" } else { "109" }
         $tasksBlock += @"
 echo [%DATE% %TIME%] Configurando tarea a demanda para $($sc.DestName)... >> "%LOG%"
 schtasks /create /tn "$taskName" /tr "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"%SCRIPTS_DIR%\$($sc.DestName)\"" /sc ONCE /st 00:00 /ru "SYSTEM" /rl HIGHEST /f >> "%LOG%" 2>&1
@@ -4199,13 +4251,94 @@ try {
 
     $finalReport = ($reportLines[0..3] + $summaryLines + $reportLines[4..($reportLines.Count - 1)]) -join "`r`n"
 
-    # Guardar reportes en disco
+    # Guardar reportes en disco (Markdown)
     $systemReportPath = Join-Path $OutputDir "PostInstall_Report.md"
     [System.IO.File]::WriteAllText($systemReportPath, $finalReport, [System.Text.Encoding]::UTF8)
 
     $desktopReportPath = Join-Path $desktopPath "INFORME_INSTALACION.md"
     try {
         [System.IO.File]::WriteAllText($desktopReportPath, $finalReport, [System.Text.Encoding]::UTF8)
+    } catch {}
+
+    # Generar Dashboard HTML Offline
+    $htmlContent = @"
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>romanOS - Diagnostico y Auditoria Post-Instalacion</title>
+    <style>
+        :root { --bg-dark: #0b1329; --card-bg: #152238; --border-color: #243b55; --text-main: #f8fafc; --text-muted: #94a3b8; --accent: #38bdf8; --ok: #22c55e; --warn: #eab308; --danger: #ef4444; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); line-height: 1.6; padding: 30px 20px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header { border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.8rem; }
+        .header h1 span { color: var(--accent); }
+        .score-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; text-align: center; }
+        .card-number { font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; }
+        .card-label { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; }
+        .status-val { color: $(if ($criticalErrors.Count -gt 0) { 'var(--danger)' } elseif ($warnings.Count -gt 0) { 'var(--warn)' } else { 'var(--ok)' }); }
+        .ok-val { color: var(--ok); }
+        .warn-val { color: var(--warn); }
+        .danger-val { color: var(--danger); }
+        .section-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .section-title { font-size: 1.15rem; color: var(--accent); margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        pre { background-color: #0b1120; padding: 15px; border-radius: 8px; overflow-x: auto; font-family: Consolas, monospace; font-size: 0.88rem; color: #e2e8f0; white-space: pre-wrap; }
+        .footer { margin-top: 30px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1><span>📋 romanOS</span> Informe Post-Instalacion</h1>
+                <div style="color: var(--text-muted);">Auditoria Forense de Despliegue y Rendimiento</div>
+            </div>
+            <div style="color: var(--text-muted); text-align: right;">
+                <div><strong>Equipo:</strong> $env:COMPUTERNAME</div>
+                <div><strong>Fecha:</strong> $timestamp</div>
+            </div>
+        </div>
+
+        <div class="score-cards">
+            <div class="card">
+                <div class="card-number status-val">$finalStatus</div>
+                <div class="card-label">Estado General</div>
+            </div>
+            <div class="card">
+                <div class="card-number ok-val">$($passedChecks.Count)</div>
+                <div class="card-label">Verificaciones Aprobadas</div>
+            </div>
+            <div class="card">
+                <div class="card-number warn-val">$($warnings.Count)</div>
+                <div class="card-label">Advertencias</div>
+            </div>
+            <div class="card">
+                <div class="card-number danger-val">$($criticalErrors.Count)</div>
+                <div class="card-label">Errores Criticos</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title">📄 Informe Completo de Auditoria</div>
+            <pre>$finalReport</pre>
+        </div>
+
+        <div class="footer">
+            Generado por <strong>romanOS Toolkit Maestro</strong> &bull; Auditoria 100% Offline y Desacoplada.
+        </div>
+    </div>
+</body>
+</html>
+"@
+
+    $systemReportHtmlPath = Join-Path $OutputDir "PostInstall_Report.html"
+    $desktopReportHtmlPath = Join-Path $desktopPath "INFORME_INSTALACION.html"
+    [System.IO.File]::WriteAllText($systemReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
+    try {
+        [System.IO.File]::WriteAllText($desktopReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
     } catch {}
 
     # Salida en consola
@@ -4217,7 +4350,8 @@ try {
     Write-Host "  Verificaciones Aprobadas : $($passedChecks.Count)" -ForegroundColor Green
     Write-Host "  Advertencias             : $($warnings.Count)" -ForegroundColor $(if ($warnings.Count -gt 0) { 'Yellow' } else { 'Gray' })
     Write-Host "  Errores Criticos         : $($criticalErrors.Count)" -ForegroundColor $(if ($criticalErrors.Count -gt 0) { 'Red' } else { 'Gray' })
-    Write-Host "  Informe guardado en      : $desktopReportPath" -ForegroundColor Cyan
+    Write-Host "  Informe Markdown         : $desktopReportPath" -ForegroundColor Cyan
+    Write-Host "  Informe HTML Dashboard   : $desktopReportHtmlPath" -ForegroundColor Cyan
     Write-Host "==========================================================================" -ForegroundColor Cyan
     Write-Host ""
 

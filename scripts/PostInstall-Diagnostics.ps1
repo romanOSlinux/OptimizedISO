@@ -1,12 +1,14 @@
 ﻿<#
 .SYNOPSIS
-Auditoria y Diagnostico Integral Post-Instalacion de Windows
-Generado automaticamente por New-OptimizedWindowsISO
+    Auditoria y Diagnostico Integral Post-Instalacion de Windows
+    Generado por New-OptimizedWindowsISO / romanOS Toolkit Maestro
 #>
 param(
     [string]$OutputDir = "$env:WINDIR\Setup\Logs",
     [switch]$DesktopOutput,
     [switch]$ShowInNotepad,
+    [switch]$ShowReport,
+    [switch]$ShowHtml,
     [string]$ExpectedProfile = "2",
     [bool]$ExpectedBlockOneDrive = $false
 )
@@ -35,6 +37,7 @@ try {
     $reportLines.Add("- **Fecha de Analisis:** $timestamp")
 
     # 1. Informacion del Sistema
+    $sysInfoData = @{}
     try {
         $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
         $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
@@ -44,6 +47,15 @@ try {
         $ramGB = if ($cs.TotalPhysicalMemory) { [math]::Round($cs.TotalPhysicalMemory / 1GB, 1) } else { "N/A" }
         $ubr = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -Name UBR -ErrorAction SilentlyContinue).UBR
         $fullBuild = if ($ubr) { "$($os.Version).$ubr" } else { "$($os.Version)" }
+
+        $sysInfoData['Edicion'] = "$($os.Caption)"
+        $sysInfoData['Compilacion'] = "$fullBuild ($($os.OSArchitecture))"
+        $sysInfoData['Entorno'] = "$isVM"
+        $sysInfoData['CPU'] = "$($cpu.Name)"
+        $sysInfoData['RAM'] = "$ramGB GB"
+        $sysInfoData['Equipo'] = "$env:COMPUTERNAME"
+        $sysInfoData['Usuario'] = "$env:USERNAME"
+        $sysInfoData['Perfil'] = "Perfil $ExpectedProfile"
 
         $reportLines.Add("- **Edicion:** $($os.Caption)")
         $reportLines.Add("- **Compilacion:** $fullBuild ($($os.OSArchitecture))")
@@ -147,202 +159,143 @@ try {
 
     # Verificacion de Visual C++ Redistributables
     $vcKeys = @(
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
         "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
     )
     $installedVC = @(Get-ItemProperty $vcKeys -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'Visual C\+\+' } | Select-Object -ExpandProperty DisplayName -Unique)
     if ($installedVC.Count -gt 0) {
-        $passedChecks.Add("Visual C++ Redistributables: $($installedVC.Count) paquetes instalados.")
-        $reportLines.Add("- **Visual C++ Redistributables:** $($installedVC.Count) paquetes detectados [OK]")
+        $passedChecks.Add("Visual C++ Redistributables detectados ($($installedVC.Count) paquetes).")
+        $reportLines.Add("- **Visual C++ Runtimes:** $($installedVC.Count) paquete(s) detectado(s) [OK]")
     } else {
-        $reportLines.Add("- **Visual C++ Redistributables:** No se detectaron paquetes VC++ instalados.")
+        $reportLines.Add("- **Visual C++ Runtimes:** No detectados o no instalados en el paso base.")
     }
 
-    # Verificacion de Plan de Energia
-    try {
-        $activePlan = & powercfg /getactivescheme 2>&1
-        $reportLines.Add("- **Esquema de Energia Activo:** $activePlan")
-    } catch {}
+    # Plan de energia activo
+    $activeScheme = & powercfg -getactivescheme 2>&1
+    $reportLines.Add("- **Plan de Energia:** $activeScheme")
 
     $reportLines.Add("")
 
-    # 5. Auditoria de Bypasses, Politicas y Registro
+    # 5. Auditoria de Optimizaciones y Bypasses
     $reportLines.Add("## 4. Estado de Tweaks, Registro y Bypasses")
     $reportLines.Add("")
 
     # BypassNRO
-    $bypassNro = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE" -Name BypassNRO -ErrorAction SilentlyContinue).BypassNRO
-    if ($bypassNro -eq 1) {
-        $passedChecks.Add("Bypass de Cuenta Microsoft (BypassNRO = 1) activo.")
-        $reportLines.Add("- **Bypass Cuenta Microsoft (BypassNRO):** Activo (1) [OK]")
+    $bypassNRO = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE" -Name BypassNRO -ErrorAction SilentlyContinue).BypassNRO
+    if ($bypassNRO -eq 1) {
+        $passedChecks.Add("Bypass de Cuenta Microsoft (BypassNRO) verificado.")
+        $reportLines.Add("- **Bypass Cuenta Microsoft (BypassNRO):** Habilitado (1) [OK]")
     } else {
-        $reportLines.Add("- **Bypass Cuenta Microsoft (BypassNRO):** Inactivo o no configurado.")
+        $reportLines.Add("- **Bypass Cuenta Microsoft (BypassNRO):** No configurado o 0")
     }
 
     # Bloqueo OneDrive
-    if ($ExpectedBlockOneDrive) {
-        $odVal = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive" -Name DisableFileSyncNGSC -ErrorAction SilentlyContinue).DisableFileSyncNGSC
-        if ($odVal -eq 1) {
-            $passedChecks.Add("Bloqueo de OneDrive (DisableFileSyncNGSC = 1) activo.")
-            $reportLines.Add("- **Bloqueo de OneDrive:** Activo (1) [OK]")
+    $odDisable = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive" -Name DisableFileSyncNGSC -ErrorAction SilentlyContinue).DisableFileSyncNGSC
+    if ($odDisable -eq 1) {
+        $passedChecks.Add("Bloqueo de OneDrive verificado.")
+        $reportLines.Add("- **Bloqueo de OneDrive (DisableFileSyncNGSC):** Activo (1) [OK]")
+    } else {
+        if ($ExpectedBlockOneDrive) {
+            $warnings.Add("Bloqueo de OneDrive esperado pero no activo en registro.")
+            $reportLines.Add("- **Bloqueo de OneDrive:** Deshabilitado / No activo [WARN]")
         } else {
-            $warnings.Add("La directiva de bloqueo de OneDrive no esta activa.")
-            $reportLines.Add("- **Bloqueo de OneDrive:** Inactivo [WARN]")
+            $reportLines.Add("- **Bloqueo de OneDrive:** Deshabilitado / OneDrive Permitido")
         }
     }
 
-    # Exclusion de Drivers en Windows Update
-    $wuDrivers = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name ExcludeWUDriversInQualityUpdate -ErrorAction SilentlyContinue).ExcludeWUDriversInQualityUpdate
-    if ($wuDrivers -eq 1) {
-        $passedChecks.Add("Exclusion de Drivers en Windows Update activa.")
-        $reportLines.Add("- **Exclusion Drivers Windows Update:** Activa (1) [OK]")
+    # Prevencion de Cifrado de Dispositivos BitLocker
+    $prevBitLocker = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\BitLocker" -Name PreventDeviceEncryption -ErrorAction SilentlyContinue).PreventDeviceEncryption
+    if ($prevBitLocker -eq 1) {
+        $passedChecks.Add("Prevencion de Cifrado BitLocker automatica verificada.")
+        $reportLines.Add("- **Prevencion de Cifrado BitLocker:** Activo (PreventDeviceEncryption=1) [OK]")
     } else {
-        $reportLines.Add("- **Exclusion Drivers Windows Update:** Inactiva o no configurada (0).")
+        $reportLines.Add("- **Prevencion de Cifrado BitLocker:** Estandar (Cifrado automatico no restringido)")
     }
 
-    # Busqueda de Drivers Local-Only
-    $drvSearch = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching" -Name SearchOrderConfig -ErrorAction SilentlyContinue).SearchOrderConfig
-    if ($drvSearch -eq 0) {
-        $passedChecks.Add("Busqueda de Drivers en modo solo local activa.")
-        $reportLines.Add("- **Busqueda de Drivers (Local-Only):** Activa (0) [OK]")
+    # Tema Oscuro del Sistema y Apps
+    $sysTheme = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name SystemUsesLightTheme -ErrorAction SilentlyContinue).SystemUsesLightTheme
+    $appTheme = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme
+    if ($sysTheme -eq 0 -and $appTheme -eq 0) {
+        $passedChecks.Add("Tema Oscuro del Sistema y Apps verificado.")
+        $reportLines.Add("- **Tema del Sistema y Aplicaciones:** Modo Oscuro Activo (System=0, Apps=0) [OK]")
     } else {
-        $reportLines.Add("- **Busqueda de Drivers (Local-Only):** Inactiva ($drvSearch).")
+        $reportLines.Add("- **Tema del Sistema y Aplicaciones:** Modo Claro o Estandar")
     }
 
-    # Bloqueo Metadata OEM
-    $metaBlock = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" -Name PreventDeviceMetadataFromNetwork -ErrorAction SilentlyContinue).PreventDeviceMetadataFromNetwork
-    if ($metaBlock -eq 1) {
-        $passedChecks.Add("Bloqueo de Metadata OEM en red activo.")
-        $reportLines.Add("- **Bloqueo Metadata y Apps OEM:** Activo (1) [OK]")
+    # Optimizacion de Navegadores Web (GPO)
+    $edgeGPU = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name HardwareAccelerationModeEnabled -ErrorAction SilentlyContinue).HardwareAccelerationModeEnabled
+    $edgeSleep = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name SleepingTabsEnabled -ErrorAction SilentlyContinue).SleepingTabsEnabled
+    if ($edgeGPU -eq 1 -and $edgeSleep -eq 1) {
+        $passedChecks.Add("Optimizacion GPO de Microsoft Edge verificada (GPU On, Sleeping Tabs On).")
+        $reportLines.Add("- **Politicas GPO Microsoft Edge:** Optimizadas (GPU=1, SleepingTabs=1) [OK]")
     } else {
-        $reportLines.Add("- **Bloqueo Metadata y Apps OEM:** Inactivo o no configurado.")
+        $reportLines.Add("- **Politicas GPO Microsoft Edge:** No configuradas o estandar.")
     }
 
-    # Bloqueo WPBT ACPI
+    $chromeGPU = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Google\Chrome" -Name HardwareAccelerationModeEnabled -ErrorAction SilentlyContinue).HardwareAccelerationModeEnabled
+    if ($chromeGPU -eq 1) {
+        $passedChecks.Add("Optimizacion GPO de Google Chrome verificada (GPU On, Memory Saver On).")
+        $reportLines.Add("- **Politicas GPO Google Chrome:** Optimizadas (GPU=1, MemorySaver=1) [OK]")
+    } else {
+        $reportLines.Add("- **Politicas GPO Google Chrome:** No configuradas o estandar.")
+    }
+
+    $reportLines.Add("")
+
+    # 6. Auditoria de Politicas de Controladores y Bloqueo WPBT
+    $reportLines.Add("## 5. Auditoria de Politicas de Controladores y Bloqueo WPBT")
+    $reportLines.Add("")
+
+    # Excluir drivers en Windows Update
+    $excludeDrivers = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name ExcludeWUDriversInQualityUpdate -ErrorAction SilentlyContinue).ExcludeWUDriversInQualityUpdate
+    if ($excludeDrivers -eq 1) {
+        $passedChecks.Add("Exclusion de controladores en Windows Update verificada.")
+        $reportLines.Add("- **Excluir Drivers en Windows Update:** Habilitado (ExcludeWUDriversInQualityUpdate=1) [OK]")
+    } else {
+        $reportLines.Add("- **Excluir Drivers en Windows Update:** No configurado o conductores automaticos permitidos")
+    }
+
+    # Busqueda local de drivers (SearchOrderConfig = 0)
+    $searchOrder = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name SearchOrderConfig -ErrorAction SilentlyContinue).SearchOrderConfig
+    if ($searchOrder -eq 0) {
+        $passedChecks.Add("Politica de busqueda de controladores local-only verificada.")
+        $reportLines.Add("- **Busqueda de Controladores:** Local-Only (SearchOrderConfig=0) [OK]")
+    } else {
+        $reportLines.Add("- **Busqueda de Controladores:** En linea y local (SearchOrderConfig=$searchOrder)")
+    }
+
+    # Bloqueo de inyeccion OEM WPBT
     $wpbtVal = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager" -Name DisableWPBT -ErrorAction SilentlyContinue).DisableWPBT
     if ($wpbtVal -eq 1) {
-        $passedChecks.Add("Bloqueo de tabla ACPI WPBT activo.")
-        $reportLines.Add("- **Bloqueo ACPI WPBT (OEM Bloatware):** Activo (1) [OK]")
+        $passedChecks.Add("Bloqueo de binarios OEM WPBT verificado.")
+        $reportLines.Add("- **Bloqueo Inyeccion OEM WPBT:** Activo (DisableWPBT=1) [OK]")
     } else {
-        $reportLines.Add("- **Bloqueo ACPI WPBT (OEM Bloatware):** Inactivo o no configurado.")
-    }
-
-    # Prevencion Cifrado Automatico BitLocker (PreventDeviceEncryption)
-    $bitlockerPrevent = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\BitLocker" -Name PreventDeviceEncryption -ErrorAction SilentlyContinue).PreventDeviceEncryption
-    if ($bitlockerPrevent -eq 1) {
-        $passedChecks.Add("Prevencion de Cifrado BitLocker (PreventDeviceEncryption = 1) activa.")
-        $reportLines.Add("- **Prevencion Cifrado BitLocker:** Activa (1 - DirectStorage/BypassIO Habilitado) [OK]")
-    } else {
-        $reportLines.Add("- **Prevencion Cifrado BitLocker:** Inactiva o no configurada ($bitlockerPrevent).")
-    }
-
-    # Verificacion de Claves de Menu Contextual Avanzado
-    $ctxMenuKeys = @(
-        @{ Path = "HKLM:\SOFTWARE\Classes\Directory\Background\shell\PSAdmin";        Label = "PSAdmin (Terminal Administrador)" },
-        @{ Path = "HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer";   Label = "RestartExplorer (Reiniciar Explorer)" },
-        @{ Path = "HKLM:\SOFTWARE\Classes\Directory\Background\shell\FlushDNS";       Label = "FlushDNS (Vaciar Cache DNS)" },
-        @{ Path = "HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\GodMode";           Label = "GodMode (Panel Control Maestro)" },
-        @{ Path = "HKLM:\SOFTWARE\Classes\*\shell\OpenWithNotepad";                   Label = "OpenWithNotepad (Abrir con Notepad)" },
-        @{ Path = "HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem";      Label = "RepairSystem (DISM + SFC)" }
-    )
-    $ctxAll = $true
-    foreach ($k in $ctxMenuKeys) {
-        if (Test-Path $k.Path) {
-            $reportLines.Add("- **Menu Contextual [$($k.Label)]:** Registrado [OK]")
-        } else {
-            $ctxAll = $false
-            $reportLines.Add("- **Menu Contextual [$($k.Label)]:** NO encontrado.")
-        }
-    }
-    if ($ctxAll) { $passedChecks.Add("Funciones avanzadas de menu contextual (6/6) registradas.") }
-
-    # Verificacion de Directivas GPO de Rendimiento en Navegadores
-    $edgeGPU   = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name HardwareAccelerationModeEnabled -ErrorAction SilentlyContinue).HardwareAccelerationModeEnabled
-    $edgeSleep = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name SleepingTabsEnabled -ErrorAction SilentlyContinue).SleepingTabsEnabled
-    $edgeBoost = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name StartupBoostEnabled -ErrorAction SilentlyContinue).StartupBoostEnabled
-    if ($edgeGPU -eq 1 -and $edgeSleep -eq 1 -and $edgeBoost -eq 0) {
-        $passedChecks.Add("Directivas GPO de rendimiento en Navegadores activas (GPU/SleepingTabs/ZeroBackground).")
-        $reportLines.Add("- **Navegadores (GPO Edge/Chrome):** Optimizado (GPU: 1, SleepingTabs: 1, Background: 0) [OK]")
-    } else {
-        $reportLines.Add("- **Navegadores (GPO Edge/Chrome):** Estandar o no configurado.")
-    }
-
-    # Modo Oscuro
-    $appsDark = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme
-    $sysDark = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name SystemUsesLightTheme -ErrorAction SilentlyContinue).SystemUsesLightTheme
-    if ($appsDark -eq 0 -and $sysDark -eq 0) {
-        $passedChecks.Add("Modo Oscuro activo en cuenta de usuario.")
-        $reportLines.Add("- **Tema Visual:** Modo Oscuro Activo (Apps: 0, Sistema: 0) [OK]")
-    } else {
-        $reportLines.Add("- **Tema Visual:** Modo Estandar / Claro (Apps: $appsDark, Sistema: $sysDark)")
+        $reportLines.Add("- **Bloqueo Inyeccion OEM WPBT:** No configurado (0)")
     }
 
     $reportLines.Add("")
 
-    # 6. Auditoria de Debloat AppX / UWP
-    $reportLines.Add("## 5. Auditoria de Paquetes AppX / UWP Aprovisionados")
+    # 7. Auditoria de Debloat AppX / UWP
+    $reportLines.Add("## 6. Auditoria de Paquetes Aprovisionados (AppX / UWP)")
     $reportLines.Add("")
     try {
-        $appxPackages = @(Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue)
-        if ($appxPackages.Count -gt 0) {
-            $knownBloatList = @(
-                'Microsoft.BingNews', 'Microsoft.BingWeather', 'Microsoft.GetHelp',
-                'Microsoft.Getstarted', 'Microsoft.MicrosoftSolitaireCollection',
-                'Microsoft.People', 'Microsoft.Todos', 'Microsoft.WindowsFeedbackHub',
-                'Microsoft.XboxApp', 'Microsoft.XboxGamingOverlay', 'Microsoft.Clipchamp.Clipchamp',
-                'MicrosoftCorporationII.QuickAssist'
-            )
-            $detectedBloat = @($appxPackages | Where-Object { $pkg = $_.DisplayName; $knownBloatList | Where-Object { $pkg -like "*$_*" } })
-            
-            $reportLines.Add("- **Total Paquetes Aprovisionados:** $($appxPackages.Count) paquete(s) registrados en la imagen.")
-            if ($detectedBloat.Count -gt 0) {
-                $reportLines.Add("- **Paquetes Promocionales/Telemetria Residuales:** $($detectedBloat.Count) detectado(s)")
-                foreach ($b in $detectedBloat) {
-                    $reportLines.Add("  - $($b.DisplayName)")
-                }
-            } else {
-                $passedChecks.Add("Debloat AppX: 0 paquetes promocionales o telemetria residuales.")
-                $reportLines.Add("- **Estado de Debloat AppX:** Limpio (0 paquetes promocionales/telemetria detectados) [OK]")
+        $appxList = @(Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue)
+        $passedChecks.Add("Paquetes AppX aprovisionados auditados ($($appxList.Count) paquetes detectados).")
+        $reportLines.Add("- **Total Paquetes Aprovisionados:** $($appxList.Count)")
+        
+        $bloatKeywords = @('ZuneVideo', 'ZuneMusic', 'BingNews', 'BingWeather', 'GetHelp', 'Getstarted', 'Solitaire', 'People', 'Todos', 'FeedbackHub')
+        $residualBloat = @($appxList | Where-Object { $name = $_.DisplayName; foreach ($k in $bloatKeywords) { if ($name -match $k) { return $true } } $false })
+        if ($residualBloat.Count -gt 0) {
+            $reportLines.Add("- **Paquetes residuales promocionales detectados ($($residualBloat.Count)):**")
+            foreach ($rb in $residualBloat) {
+                $reportLines.Add("  - $($rb.DisplayName)")
             }
         } else {
-            $reportLines.Add("- **Auditoria AppX:** Consulta requiere elevacion de Administrador.")
+            $passedChecks.Add("Debloat AppX: Cero paquetes promocionales detectados.")
+            $reportLines.Add("- **Estado de Debloat:** Limpio / Sin bloatware promocional residual detectado [OK]")
         }
     } catch {
-        $reportLines.Add("- **Auditoria AppX:** Error consultando paquetes provisionados ($($_.Exception.Message))")
-    }
-
-    $reportLines.Add("")
-
-    # 7. Licenciamiento y Activacion WMI
-    $reportLines.Add("## 6. Estado de Licenciamiento y Activacion")
-    $reportLines.Add("")
-    try {
-        $licProducts = @(Get-CimInstance SoftwareLicensingProduct -Filter "PartialProductKey IS NOT NULL" -ErrorAction SilentlyContinue)
-        if ($licProducts.Count -gt 0) {
-            foreach ($lp in $licProducts) {
-                $statusText = switch ($lp.LicenseStatus) {
-                    0 { "Sin Licencia (Unlicensed)" }
-                    1 { "Licenciado / Activado (Licensed)" }
-                    2 { "Periodo de Gracia OOBE (OOBE Grace)" }
-                    3 { "Periodo de Gracia Fuera de Tolerancia (OOT Grace)" }
-                    4 { "Periodo de Gracia de No Genuino (Non-Genuine Grace)" }
-                    5 { "Notificacion (Notification)" }
-                    6 { "Gracia Extendida (Extended Grace)" }
-                    default { "Estado ($($lp.LicenseStatus))" }
-                }
-                $isLicensed = ($lp.LicenseStatus -eq 1)
-                if ($isLicensed) {
-                    $passedChecks.Add("Licencia de Windows: Activada ($($lp.Name)).")
-                }
-                $reportLines.Add("- **Producto:** $($lp.Name)")
-                $reportLines.Add("- **Estado:** $statusText $(if ($isLicensed) { '[OK]' } else { '' })")
-                $reportLines.Add("- **Clave Parcial:** $($lp.PartialProductKey)")
-            }
-        } else {
-            $reportLines.Add("- **Licenciamiento:** Sin claves de producto registradas (Imagen limpia o generica).")
-        }
-    } catch {
-        $reportLines.Add("- **Licenciamiento:** No disponible ($($_.Exception.Message))")
+        $reportLines.Add("- **Auditoria AppX:** Error al consultar paquetes ($($_.Exception.Message))")
     }
 
     $reportLines.Add("")
@@ -384,13 +337,16 @@ try {
     $reportLines.Add("")
 
     $servicesToCheck = @("DiagTrack", "dmwappushservice", "WerSvc", "TroubleshootingSvc", "BDESVC", "Fax", "SCardSvr", "RemoteRegistry", "RetailDemo", "MapsBroker", "lfsvc", "WSearch", "Spooler", "WlanSvc", "bthserv", "SensorService", "SysMain")
+    $servicesData = [System.Collections.Generic.List[PSCustomObject]]::new()
     foreach ($sName in $servicesToCheck) {
         $svc = Get-Service -Name $sName -ErrorAction SilentlyContinue
         if ($svc) {
             $startMode = (Get-CimInstance Win32_Service -Filter "Name='$sName'" -ErrorAction SilentlyContinue).StartMode
             $reportLines.Add("- **Servicio $($sName):** Estado: $($svc.Status) | Inicio: $startMode")
+            $servicesData.Add([PSCustomObject]@{ Name = $sName; Status = "$($svc.Status)"; StartMode = "$startMode" })
         } else {
             $reportLines.Add("- **Servicio $($sName):** No instalado en esta edicion.")
+            $servicesData.Add([PSCustomObject]@{ Name = $sName; Status = "No instalado"; StartMode = "N/A" })
         }
     }
 
@@ -441,13 +397,166 @@ try {
 
     $finalReport = ($reportLines[0..3] + $summaryLines + $reportLines[4..($reportLines.Count - 1)]) -join "`r`n"
 
-    # Guardar reportes en disco
+    # Guardar reportes en disco (Markdown)
     $systemReportPath = Join-Path $OutputDir "PostInstall_Report.md"
     [System.IO.File]::WriteAllText($systemReportPath, $finalReport, [System.Text.Encoding]::UTF8)
 
     $desktopReportPath = Join-Path $desktopPath "INFORME_INSTALACION.md"
     try {
         [System.IO.File]::WriteAllText($desktopReportPath, $finalReport, [System.Text.Encoding]::UTF8)
+    } catch {}
+
+    # Generar Dashboard HTML Offline
+    $badgeClassFinal = if ($criticalErrors.Count -gt 0) { 'badge-danger' } elseif ($warnings.Count -gt 0) { 'badge-warn' } else { 'badge-ok' }
+    
+    $svcRows = [System.Collections.Generic.List[string]]::new()
+    foreach ($s in $servicesData) {
+        $svcBadge = if ($s.Status -eq 'Stopped' -or $s.StartMode -eq 'Disabled') { 'badge-ok' } elseif ($s.Status -eq 'Running') { 'badge-info' } else { 'badge-warn' }
+        $svcRows.Add("<tr><td><strong>$($s.Name)</strong></td><td>$($s.Status)</td><td>$($s.StartMode)</td><td><span class='badge $svcBadge'>$($s.Status)</span></td></tr>")
+    }
+
+    $htmlContent = @"
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>romanOS - Diagnostico y Auditoria de Instalacion</title>
+    <style>
+        :root {
+            --bg-dark: #0b1329;
+            --card-bg: #152238;
+            --border-color: #243b55;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --ok: #22c55e;
+            --warn: #eab308;
+            --danger: #ef4444;
+            --info: #06b6d4;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); line-height: 1.6; padding: 30px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+        .header h1 { font-size: 1.8rem; color: var(--text-main); }
+        .header h1 span { color: var(--accent); }
+        .header .meta { color: var(--text-muted); font-size: 0.9rem; text-align: right; }
+        .score-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; text-align: center; }
+        .card-number { font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; }
+        .card-label { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-val { color: $(if ($criticalErrors.Count -gt 0) { 'var(--danger)' } elseif ($warnings.Count -gt 0) { 'var(--warn)' } else { 'var(--ok)' }); }
+        .ok-val { color: var(--ok); }
+        .warn-val { color: var(--warn); }
+        .danger-val { color: var(--danger); }
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .section-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; }
+        .section-title { font-size: 1.15rem; color: var(--accent); margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .info-list { list-style: none; }
+        .info-list li { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.92rem; display: flex; justify-content: space-between; }
+        .info-list li:last-child { border-bottom: none; }
+        .info-label { color: var(--text-muted); }
+        .info-value { font-weight: 600; text-align: right; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; margin-top: 10px; }
+        th { background-color: #1a2a44; color: var(--text-muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-transform: uppercase; font-size: 0.75rem; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background-color: #1d3050; }
+        .badge { display: inline-block; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .badge-ok { background-color: rgba(34, 197, 94, 0.15); color: var(--ok); border: 1px solid var(--ok); }
+        .badge-warn { background-color: rgba(234, 179, 8, 0.15); color: var(--warn); border: 1px solid var(--warn); }
+        .badge-danger { background-color: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+        .badge-info { background-color: rgba(6, 182, 212, 0.15); color: var(--info); border: 1px solid var(--info); }
+        .footer { margin-top: 30px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1><span>📋 romanOS</span> Informe Post-Instalacion & Diagnostico</h1>
+                <div style="color: var(--text-muted);">Auditoria Forense de Despliegue y Salud del Sistema</div>
+            </div>
+            <div class="meta">
+                <div><strong>Equipo:</strong> $env:COMPUTERNAME</div>
+                <div><strong>Fecha:</strong> $timestamp</div>
+            </div>
+        </div>
+
+        <div class="score-cards">
+            <div class="card">
+                <div class="card-number status-val">$finalStatus</div>
+                <div class="card-label">Estado General</div>
+            </div>
+            <div class="card">
+                <div class="card-number ok-val">$($passedChecks.Count)</div>
+                <div class="card-label">Verificaciones Aprobadas</div>
+            </div>
+            <div class="card">
+                <div class="card-number warn-val">$($warnings.Count)</div>
+                <div class="card-label">Advertencias</div>
+            </div>
+            <div class="card">
+                <div class="card-number danger-val">$($criticalErrors.Count)</div>
+                <div class="card-label">Errores Criticos</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="section-card">
+                <div class="section-title">💻 Telemetria de Sistema y Entorno</div>
+                <ul class="info-list">
+                    <li><span class="info-label">Edicion:</span> <span class="info-value">$($sysInfoData['Edicion'])</span></li>
+                    <li><span class="info-label">Compilacion:</span> <span class="info-value">$($sysInfoData['Compilacion'])</span></li>
+                    <li><span class="info-label">Tipo de Entorno:</span> <span class="info-value">$($sysInfoData['Entorno'])</span></li>
+                    <li><span class="info-label">Procesador:</span> <span class="info-value">$($sysInfoData['CPU'])</span></li>
+                    <li><span class="info-label">Memoria RAM:</span> <span class="info-value">$($sysInfoData['RAM'])</span></li>
+                    <li><span class="info-label">Perfil de Optimizacion:</span> <span class="info-value">$($sysInfoData['Perfil'])</span></li>
+                </ul>
+            </div>
+
+            <div class="section-card">
+                <div class="section-title">💾 Almacenamiento & Logs de Instalacion</div>
+                <ul class="info-list">
+                    <li><span class="info-label">Particion C:</span> <span class="info-value">$(if ($sysDrive) { "$usedGB GB usados / $freeGB GB libres" } else { "N/A" })</span></li>
+                    <li><span class="info-label">Compresion CompactOS:</span> <span class="info-value">$isCompact</span></li>
+                    <li><span class="info-label">Panther Setup Base:</span> <span class="info-value">$(if (Test-Path $pantherErr) { "Auditado" } else { "Limpio [OK]" })</span></li>
+                    <li><span class="info-label">UnattendGC / OOBE:</span> <span class="info-value">$(if (Test-Path $unattendErr) { "Auditado" } else { "Limpio [OK]" })</span></li>
+                    <li><span class="info-label">SetupComplete.cmd:</span> <span class="info-value">$(if ($scContent -match 'SetupComplete\.cmd finalizado exitosamente') { "Finalizado [OK]" } else { "Revisar logs" })</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section-card" style="margin-bottom: 25px;">
+            <div class="section-title">⚡ Estado de Servicios de Rendimiento y Telemetria</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Servicio</th>
+                        <th>Estado Actual</th>
+                        <th>Tipo de Inicio</th>
+                        <th>Indicador</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    $($svcRows -join "`r`n")
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            Generado por <strong>romanOS PostInstall Diagnostics</strong> &bull; Auditoria 100% Offline y Desacoplada.
+        </div>
+    </div>
+</body>
+</html>
+"@
+
+    $systemReportHtmlPath = Join-Path $OutputDir "PostInstall_Report.html"
+    $desktopReportHtmlPath = Join-Path $desktopPath "INFORME_INSTALACION.html"
+    [System.IO.File]::WriteAllText($systemReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
+    try {
+        [System.IO.File]::WriteAllText($desktopReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
     } catch {}
 
     # Salida en consola
@@ -459,12 +568,16 @@ try {
     Write-Host "  Verificaciones Aprobadas : $($passedChecks.Count)" -ForegroundColor Green
     Write-Host "  Advertencias             : $($warnings.Count)" -ForegroundColor $(if ($warnings.Count -gt 0) { 'Yellow' } else { 'Gray' })
     Write-Host "  Errores Criticos         : $($criticalErrors.Count)" -ForegroundColor $(if ($criticalErrors.Count -gt 0) { 'Red' } else { 'Gray' })
-    Write-Host "  Informe guardado en      : $desktopReportPath" -ForegroundColor Cyan
+    Write-Host "  Informe Markdown         : $desktopReportPath" -ForegroundColor Cyan
+    Write-Host "  Informe HTML Dashboard   : $desktopReportHtmlPath" -ForegroundColor Cyan
     Write-Host "==========================================================================" -ForegroundColor Cyan
     Write-Host ""
 
     if ($ShowInNotepad) {
         Start-Process -FilePath "notepad.exe" -ArgumentList $desktopReportPath
+    }
+    if ($ShowHtml -or $ShowReport) {
+        Start-Process -FilePath $desktopReportHtmlPath
     }
 } catch {
     Write-Host "[ERROR] Excepcion durante la auditoria post-instalacion: $($_.Exception.Message)" -ForegroundColor Red

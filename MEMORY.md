@@ -1,3 +1,14 @@
+## [2026-08-23T01:50:00-03:00] Implementacion del Toolkit Maestro romanOS, Hardening Desacoplado y Dashboard HTML
+
+- **Archivos Creados / Modificados:** `scripts/romanOS-Toolkit.ps1`, `scripts/romanOS-Toolkit.cmd`, `scripts/Invoke-WindowsSecurityHardening.ps1`, `scripts/Invoke-WindowsSecurityHardening.cmd`, `scripts/PostInstall-Diagnostics.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Hub Maestro Orquestador (`romanOS-Toolkit.ps1` / `.cmd`):** Se implemento un panel central interactivo bajo demanda (*zero-resident footprint*) que orquesta la ejecucion de la suite completa (Gaming, Red, Mantenimiento, Auditoria de Instalacion, Hardening de Seguridad y Acciones Rapidas).
+  - **Auditor de Seguridad y Hardening Desacoplado (`Invoke-WindowsSecurityHardening.ps1` / `.cmd`):** Modulo independiente de solo lectura on-demand que audita el estado de reglas ASR (Defender), VBS/HVCI, SecureBoot, TPM 2.0, protocolos vulnerables (SMBv1, LLMNR, NetBIOS), LSA Protection (RunAsPPL), UAC y telemetria, permitiendo hardening seguro de bajo impacto sin penalizar el rendimiento ni la compatibilidad con juegos/anti-cheats.
+  - **Dashboards Visuales HTML Offline:** Se integro la generacion automatica de reportes interactivos HTML oscuros y offline en `PostInstall-Diagnostics.ps1` (y en la plantilla inyectada de `New-OptimizedWindowsISO-v2.ps1`) y en `Invoke-WindowsSecurityHardening.ps1`.
+  - **Integracion en Menú Inicio de la ISO:** Actualizacion del menu selector de scripts en `New-OptimizedWindowsISO-v2.ps1` (Opcion 1: Suite Completa romanOS) con inyeccion de accesos directos de alta resolucion en `%ProgramData%\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema\`.
+  - **Cumplimiento Estricto de la Regla 4:** Validacion sintactica AST y ejecucion en frio en Windows PowerShell 5.1 (`powershell.exe`) con 0 errores y codificacion garantizada UTF-8 con BOM (`0xEF, 0xBB, 0xBF`).
+- **Pendiente:** Compilacion de ISO y prueba en Hyper-V.
+
 ## [2026-08-23T00:35:00-03:00] Blindaje de Reglas del Agente: Codificación UTF-8 BOM, Validación PS 5.1 y Flag STA
 
 - **Archivos Modificados:** `.agents/AGENTS.md`, `.agents/skills/powershell-windows/SKILL.md`, `.agents/skills/code-review/SKILL.md`, `MEMORY.md`
