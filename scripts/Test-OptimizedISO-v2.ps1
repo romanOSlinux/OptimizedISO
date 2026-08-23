@@ -37,7 +37,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 29
+$EXPECTED_FUNCS  = 39
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -276,35 +276,48 @@ Write-HarnessHeader2 "FASE 1: Carga Dinamica via AST (Sin ejecucion del Main Bod
 $loadedCount = 0
 $loadErrors  = 0
 
-try {
-    $rawContent = Get-Content $TargetScript -Raw -ErrorAction Stop
-    $ast = [System.Management.Automation.Language.Parser]::ParseInput($rawContent, [ref]$null, [ref]$null)
-    $funcDefs = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)
+# Scripts a cargar: motor visual (UI-Engine) + script principal
+$UIEngine = Join-Path (Split-Path $TargetScript -Parent) 'Core\UI-Engine.ps1'
+$scriptsToLoad = @($UIEngine, $TargetScript)
 
-    foreach ($fd in $funcDefs) {
-        try {
-            $sb = [ScriptBlock]::Create($fd.Extent.Text)
-            . $sb
-            $loadedCount++
-        } catch {
-            $loadErrors++
-            Write-Host "    [CARGA-ERROR] $($fd.Name): $($_.Exception.Message)" -ForegroundColor Red
-        }
+foreach ($scriptPath in $scriptsToLoad) {
+    if (-not (Test-Path $scriptPath -PathType Leaf)) {
+        Write-Host "    [SKIP] No encontrado: $scriptPath" -ForegroundColor DarkGray
+        continue
     }
-    Write-Host "    Funciones AST detectadas : $($funcDefs.Count)" -ForegroundColor DarkGray
-    Write-Host "    Funciones cargadas OK    : $loadedCount" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { "Green" } else { "Yellow" })
-} catch {
-    Write-Host "    [FATAL] Error de parsing: $($_.Exception.Message)" -ForegroundColor Red
-    exit 1
-}
+    try {
+        $rawContent = Get-Content $scriptPath -Raw -ErrorAction Stop
+        $ast = [System.Management.Automation.Language.Parser]::ParseInput($rawContent, [ref]$null, [ref]$null)
+        $funcDefs = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)
 
-Assert-Equal "27 funciones cargadas via AST" $loadedCount $EXPECTED_FUNCS
+        foreach ($fd in $funcDefs) {
+            try {
+                $sb = [ScriptBlock]::Create($fd.Extent.Text)
+                . $sb
+                $loadedCount++
+            } catch {
+                $loadErrors++
+                Write-Host "    [CARGA-ERROR] $($fd.Name): $($_.Exception.Message)" -ForegroundColor Red
+            }
+        }
+        Write-Host "    $(Split-Path $scriptPath -Leaf): $($funcDefs.Count) funciones cargadas" -ForegroundColor DarkGray
+    } catch {
+        Write-Host "    [FATAL] Error de parsing en $(Split-Path $scriptPath -Leaf): $($_.Exception.Message)" -ForegroundColor Red
+        exit 1
+    }
+}
+Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
+
+Assert-Equal "39 funciones cargadas via AST (Core + UI Engine)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
+# Funciones del UI-Engine (Core)
 $expectedList = @(
-    "Initialize-Log", "Write-LogEntry", "Write-LogSummary", "Write-Banner", "Write-Step",
-    "Write-OK", "Write-Warn", "Write-Info", "Write-ErrorMsg", "Test-Admin", "Test-7ZipInstalled",
+    "Show-UnifiedBanner", "Write-StepHeader", "Write-SubStep", "Write-OK", "Write-Warn",
+    "Write-ErrorMsg", "Write-Info", "Show-UnifiedMenu", "Prompt-UnifiedYesNo", "Show-UnifiedSummary",
+    # Funciones de New-OptimizedWindowsISO-v2.ps1
+    "Initialize-Log", "Write-LogEntry", "Write-LogSummary", "Test-Admin", "Test-7ZipInstalled",
     "Test-OSCDImgInstalled", "Install-Dependencies", "Test-MinimumFreeSpace",
     "Convert-BuildToWindowsVersion", "Get-WimImageList", "Detect-WindowsVersion",
     "Get-OnlineWindowsReleases", "Invoke-OfficialWindowsDownload", "Resolve-SourceISO",
