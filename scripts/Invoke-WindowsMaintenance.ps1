@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Motor Integral de Mantenimiento, Limpieza Profunda y Reparacion de Windows (10/11).
     
@@ -74,7 +74,7 @@ if (-not $isAdmin) {
     $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
     $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
     try {
-        $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $myScript)
+        $argList = @("-STA", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $myScript)
         if ($Unattended)       { $argList += "-Unattended" }
         if ($PostInstall)      { $argList += "-PostInstall" }
         if ($DeepClean)        { $argList += "-DeepClean" }

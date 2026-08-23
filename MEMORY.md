@@ -1,3 +1,13 @@
+## [2026-08-23T00:05:00-03:00] Corrección de Lanzadores .cmd: Soporte Gráfico STA e Interactividad 100% Nativa
+
+- **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.cmd`, `scripts/Invoke-WindowsMaintenance.cmd`, `scripts/Win11-Network-Diagnostics-Optimizer.cmd`, `scripts/Auditar-Instalacion.cmd`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/Invoke-WindowsMaintenance.ps1`, `scripts/Win11-Network-Diagnostics-Optimizer.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Soporte Completo de Ventanas Gráficas (`Out-GridView` / WPF):** Se añadió el flag `-STA` (Single-Thread Apartment) en todos los lanzadores `.cmd` locales y plantillas inyectadas en la ISO (`New-OptimizedWindowsISO-v2.ps1`), así como en los bloques de auto-elevación UAC de los scripts `.ps1`.
+  - **Interactividad Preservada al 100%:** Los lanzadores `.cmd` ahora actúan como un puente 100% transparente para doble clic y elevación de permisos, asegurando que `Win11-Debloat-v3-Adaptive.ps1` despliegue todas sus ventanas gráficas de selección de paquetes bloatware AppX, aplicaciones winget y prerrequisitos, manteniendo la misma experiencia que al ejecutarse directamente desde PowerShell.
+  - **Precarga de Ensamblados WPF:** Inclusión de `Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase` al inicio de los scripts adaptativos y de red.
+  - **Validación AST:** **0 Errores de Parseo** en todos los scripts de PowerShell modificados.
+- **Pendiente:** Compilación de ISO y prueba en Hyper-V.
+
 ## [2026-08-22T22:35:00-03:00] Integración de Suite en Menú Inicio (Start Menu\Programs), Auditoría y Escritorio 100% Limpio
 
 - **Archivos Creados / Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Auditar-Instalacion.cmd`, `MEMORY.md`

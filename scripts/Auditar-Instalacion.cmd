@@ -18,7 +18,7 @@ if %errorlevel% neq 0 (
 cd /d "%~dp0"
 
 if exist "%~dp0PostInstall-Diagnostics.ps1" (
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0PostInstall-Diagnostics.ps1" %*
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0PostInstall-Diagnostics.ps1" %*
 ) else (
     echo [ERROR] No se encontro PostInstall-Diagnostics.ps1 en el directorio actual: %~dp0
     pause

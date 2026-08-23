@@ -1,4 +1,4 @@
-﻿#Requires -RunAsAdministrator
+#Requires -RunAsAdministrator
 
 <#
 .SYNOPSIS
@@ -3382,9 +3382,9 @@ if %errorlevel% neq 0 (
 cd /d "%WINDIR%\Setup\Scripts"
 
 if exist "%WINDIR%\Setup\Scripts\$($sc.DestName)" (
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\$($sc.DestName)"
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\$($sc.DestName)"
 ) else if exist "C:\Windows\Setup\Scripts\$($sc.DestName)" (
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\$($sc.DestName)"
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\$($sc.DestName)"
 ) else (
     echo [ERROR] No se encontro el script en C:\Windows\Setup\Scripts\$($sc.DestName)
     pause
@@ -3429,9 +3429,9 @@ if %errorlevel% neq 0 (
 cd /d "%WINDIR%\Setup\Scripts"
 
 if exist "%WINDIR%\Setup\Scripts\PostInstall-Diagnostics.ps1" (
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\PostInstall-Diagnostics.ps1"
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\PostInstall-Diagnostics.ps1"
 ) else if exist "C:\Windows\Setup\Scripts\PostInstall-Diagnostics.ps1" (
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\PostInstall-Diagnostics.ps1"
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\PostInstall-Diagnostics.ps1"
 ) else (
     echo [ERROR] No se encontro PostInstall-Diagnostics.ps1 en C:\Windows\Setup\Scripts\
     pause
@@ -4250,7 +4250,7 @@ if %errorLevel% neq 0 (
 )
 cd /d "%~dp0"
 title Auditoria y Diagnostico Post-Instalacion de Windows
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\PostInstall-Diagnostics.ps1" -DesktopOutput -ShowInNotepad
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\PostInstall-Diagnostics.ps1" -DesktopOutput -ShowInNotepad
 pause
 '@
 

@@ -1,4 +1,4 @@
-﻿<#
+<#
     Win11-Debloat-v3-Adaptive.ps1
     Fresh Windows 11 25H2 (build 26200) -- setup / debloat / privacy / gaming (adaptativo).
     Ejecutar elevado (Admin). Crea punto de restauracion antes de cualquier cambio.
@@ -77,6 +77,11 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = 3072  # Tls12 como minimo seguro
 }
 
+# Precarga de ensamblados WPF para soporte garantizado de interfaz grafica (Out-GridView)
+try {
+    Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase -ErrorAction SilentlyContinue
+} catch {}
+
 # ============================================================
 # Comprobar privilegios de Administrador y auto-elevar
 # ============================================================
@@ -86,10 +91,8 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     Write-Warning "Este script debe ejecutarse como Administrador. Reiniciando con privilegios elevados..."
     $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
     $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
-    # FIX-PS51-2: Pasar argumentos como ARRAY en lugar de string plano.
-    # En PS 5.1, un string con comillas anidadas en -ArgumentList provoca
-    # que powershell.exe no encuentre el archivo si la ruta tiene espacios.
-    $argArray = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
+    # FIX-PS51-2: Pasar argumentos como ARRAY en lugar de string plano, incluyendo -STA para WPF
+    $argArray = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
     if ($Unattended) { $argArray += '-Unattended' }
     Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs
     Exit

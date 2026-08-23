@@ -18,7 +18,7 @@ if %errorlevel% neq 0 (
 cd /d "%~dp0"
 
 if exist "%~dp0Win11-Network-Diagnostics-Optimizer.ps1" (
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Win11-Network-Diagnostics-Optimizer.ps1" %*
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0Win11-Network-Diagnostics-Optimizer.ps1" %*
 ) else (
     echo [ERROR] No se encontro Win11-Network-Diagnostics-Optimizer.ps1 en el directorio actual: %~dp0
     pause
