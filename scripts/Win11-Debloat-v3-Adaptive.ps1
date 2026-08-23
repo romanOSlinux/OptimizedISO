@@ -80,6 +80,8 @@ try {
 # ============================================================
 # Comprobar privilegios de Administrador y auto-elevar
 # ============================================================
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Warning "Este script debe ejecutarse como Administrador. Reiniciando con privilegios elevados..."
     $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"

@@ -1,4 +1,4 @@
-<#
+﻿<#
     Win11-Network-Diagnostics-Optimizer.ps1
     Herramienta avanzada de Diagnostico, Pruebas y Optimizacion de Conectividad en Windows 11 (25H2 Ready).
     Ejecutar elevado (Admin). Guarda logs en C:\Logs\Network-Diagnostics.log
@@ -11,13 +11,15 @@ param(
 # ============================================================
 # Comprobar privilegios de Administrador y auto-elevar
 # ============================================================
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Warning "Este script requiere privilegios de Administrador. Reiniciando de forma elevada..."
-    $psExe = (Get-Process -Id $PID).Path
+    $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
     $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
-    $argList = "-NoProfile -ExecutionPolicy Bypass -File `"$myScript`""
-    if ($Unattended) { $argList += " -Unattended" }
-    Start-Process -FilePath $psExe -ArgumentList $argList -Verb RunAs
+    $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
+    if ($Unattended) { $argList += '-Unattended' }
+    Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
     Exit
 }
 

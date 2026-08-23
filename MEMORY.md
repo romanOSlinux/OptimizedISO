@@ -1,3 +1,14 @@
+## [2026-08-22T22:05:00-03:00] Fortalecimiento de Auto-Elevación y Bypass de Políticas de Ejecución (ExecutionPolicy)
+
+- **Archivos Creados / Modificados:** `scripts/Invoke-WindowsMaintenance.ps1`, `scripts/Win11-Network-Diagnostics-Optimizer.ps1`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/Invoke-WindowsMaintenance.cmd`, `scripts/Win11-Debloat-v3-Adaptive.cmd`, `scripts/Win11-Network-Diagnostics-Optimizer.cmd`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se implementó un esquema de triple seguridad para garantizar la ejecución en cualquier PC sin importar las restricciones de políticas de seguridad locales (`Restricted`, `AllSigned`, `RemoteSigned` o cuentas de usuario estándar):
+    1. **Bypass a Nivel de Proceso (`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`):** Incorporado en la cabecera de todos los scripts `.ps1` para eludir restricciones de ejecución en la sesión actual sin requerir elevación previa ni modificar el registro del sistema.
+    2. **Auto-Elevación UAC Robusta:** Si el script se ejecuta sin privilegios de Administrador, relanza el proceso pasando los argumentos como un `Array` tipado (`@('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)`), garantizando compatibilidad total con rutas con espacios y Windows PowerShell 5.1 / PowerShell 7+.
+    3. **Lanzadores `.cmd` Universales de Doble Clic:** Se generaron archivos `.cmd` en la carpeta `scripts\` (`Invoke-WindowsMaintenance.cmd`, `Win11-Debloat-v3-Adaptive.cmd`, `Win11-Network-Diagnostics-Optimizer.cmd`) que verifican privilegios con `net session`, elevan automáticamente vía UAC y ejecutan el script `.ps1` asociado con `-NoProfile -ExecutionPolicy Bypass`.
+  - **Validación AST:** **0 Errores de Parseo** en todos los scripts (`New-OptimizedWindowsISO-v2.ps1`, `Win11-Debloat-v3-Adaptive.ps1`, `Invoke-WindowsMaintenance.ps1`).
+- **Pendiente:** Compilación de ISO y prueba en Hyper-V.
+
 ## [2026-08-22T21:55:00-03:00] Optimización de Alto Rendimiento (GPU/RAM) y Debloat Oficial de Navegadores Web
 
 - **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Invoke-WindowsMaintenance.ps1`, `MEMORY.md`

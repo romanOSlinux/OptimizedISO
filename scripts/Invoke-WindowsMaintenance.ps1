@@ -63,28 +63,33 @@ param(
 # ============================================================
 # 0. PRE-FLIGHT: ELEVACION DE PRIVILEGIOS Y CONFIGURACION BASE
 # ============================================================
+# Forzar Bypass de ExecutionPolicy en el proceso actual
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+
 $ErrorActionPreference = 'Continue'
 
-# Verificar privilegios de Administrador
+# Verificar privilegios de Administrador y auto-elevar con Bypass de ExecutionPolicy
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Write-Host "Elevando privilegios a Administrador..." -ForegroundColor Yellow
+    Write-Host "Elevando privilegios a Administrador (Bypass ExecutionPolicy)..." -ForegroundColor Yellow
+    $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
+    $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
     try {
-        $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"")
-        if ($Unattended)   { $argList += "-Unattended" }
-        if ($PostInstall)  { $argList += "-PostInstall" }
-        if ($DeepClean)    { $argList += "-DeepClean" }
-        if ($RepairOnly)   { $argList += "-RepairOnly" }
-        if ($Full)         { $argList += "-Full" }
+        $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $myScript)
+        if ($Unattended)       { $argList += "-Unattended" }
+        if ($PostInstall)      { $argList += "-PostInstall" }
+        if ($DeepClean)        { $argList += "-DeepClean" }
+        if ($RepairOnly)       { $argList += "-RepairOnly" }
+        if ($Full)             { $argList += "-Full" }
         if ($SkipDism)         { $argList += "-SkipDism" }
         if ($SkipBrowsers)     { $argList += "-SkipBrowsers" }
         if ($OptimizeBrowsers) { $argList += "-OptimizeBrowsers" }
         if ($ResetBase)        { $argList += "-ResetBase" }
 
-        Start-Process powershell.exe -ArgumentList $argList -Verb RunAs
+        Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
         exit 0
     } catch {
-        Write-Error "Este script requiere ejecutarse con privilegios de Administrador."
+        Write-Error "No se pudo elevar privilegios. Ejecute PowerShell como Administrador."
         exit 1
     }
 }
