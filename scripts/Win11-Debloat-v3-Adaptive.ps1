@@ -2408,6 +2408,7 @@ if ($applyBrowsers) {
 
     try {
         # 16.A Microsoft Edge (HKLM\SOFTWARE\Policies\Microsoft\Edge)
+        # Ref: learn.microsoft.com/deployedge/microsoft-edge-policies
         Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HardwareAccelerationModeEnabled' 1 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SmoothScrollingEnabled' 1 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'StartupBoostEnabled' 0 'DWord'
@@ -2428,9 +2429,27 @@ if ($applyBrowsers) {
         Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ShowRecommendationsEnabled' 0 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'UserFeedbackAllowed' 0 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SpotlightExperiencesAndRecommendationsEnabled' 0 'DWord'
-        Write-Host "  - Microsoft Edge: Directivas de aceleracion GPU, Sleeping Tabs y Debloat aplicadas." -ForegroundColor Green
+        # --- Debloat Visual: Copilot (sidebar, icono, config), NTP noticias, Bing ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'AllowCopilot' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'ConfigureCopilot' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'Microsoft365CopilotChatIconEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPageContentEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPageQuickLinksEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'NewTabPageHideDefaultTopSites' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'BingAdsSuppression' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'SearchSuggestEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'AllowPrelaunch' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'HideFirstRunExperience' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' 'TrackingPrevention' 3 'DWord'
+        Write-Host "  - Microsoft Edge: GPU + Sleeping Tabs + Copilot off + NTP limpia + Bing limpio." -ForegroundColor Green
+
+        # 16.A2 Windows Copilot (system-wide, independiente del navegador)
+        # Ref: learn.microsoft.com/windows/client-management/mdm/policy-csp-windowsai
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 1 'DWord'
+        Write-Host "  - Windows Copilot (sistema): desactivado a nivel de SO." -ForegroundColor Green
 
         # 16.B Google Chrome (HKLM\SOFTWARE\Policies\Google\Chrome)
+        # Ref: chromeenterprise.google/policies/
         Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'HardwareAccelerationModeEnabled' 1 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SmoothScrollingEnabled' 1 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'BackgroundModeEnabled' 0 'DWord'
@@ -2443,9 +2462,17 @@ if ($applyBrowsers) {
         Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SpellCheckServiceEnabled' 0 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PrivacySandboxAdMeasurementEnabled' 0 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'PrivacySandboxAdTopicsEnabled' 0 'DWord'
-        Write-Host "  - Google Chrome: Directivas de aceleracion GPU, Memory Saver y Debloat aplicadas." -ForegroundColor Green
+        # --- Debloat Visual: NTP, AI Gemini/Lens, Sign-in forzado ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'NTPContentSuggestionsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SearchSuggestEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'GenAiDefaultSettings' 2 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'BrowserSignin' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'SyncDisabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Google\Chrome' 'ShowCastIconInToolbar' 0 'DWord'
+        Write-Host "  - Google Chrome: GPU + Memory Saver + NTP limpia + AI off + Sign-in off." -ForegroundColor Green
 
         # 16.C Mozilla Firefox (HKLM\SOFTWARE\Policies\Mozilla\Firefox)
+        # Ref: mozilla.github.io/policy-templates/
         Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'HardwareAcceleration' 1 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisableTelemetry' 1 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'DisablePocket' 1 'DWord'
@@ -2454,9 +2481,16 @@ if ($applyBrowsers) {
         Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'BackgroundAppUpdate' 0 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'OverrideFirstRunPage' '' 'String'
         Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox' 'OverridePostUpdatePage' '' 'String'
-        Write-Host "  - Mozilla Firefox: Directivas de aceleracion y bloqueo de telemetria/Pocket aplicadas." -ForegroundColor Green
+        # --- Debloat Visual: UserMessaging (subclave separada, objeto JSON de Firefox) ---
+        # Ref: mozilla.github.io/policy-templates/#usermessaging
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'ExtensionRecommendations' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'MoreFromMozilla' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging' 'SkipOnboarding' 1 'DWord'
+        Write-Host "  - Mozilla Firefox: GPU + Pocket off + Telemetria off + UserMessaging limpio." -ForegroundColor Green
 
         # 16.D Brave Browser (HKLM\SOFTWARE\Policies\BraveSoftware\Brave)
+        # Hereda todas las policies Chromium + agrega las propias Brave*
+        # Verificar resultados en brave://policy/
         Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'HardwareAccelerationModeEnabled' 1 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'SmoothScrollingEnabled' 1 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BackgroundModeEnabled' 0 'DWord'
@@ -2464,9 +2498,15 @@ if ($applyBrowsers) {
         Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'MetricsReportingEnabled' 0 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveRewardsDisabled' 1 'DWord'
         Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveWalletDisabled' 1 'DWord'
-        Write-Host "  - Brave Browser: Directivas de rendimiento y control de fondo aplicadas." -ForegroundColor Green
+        # --- Debloat Visual: VPN, Leo AI Chat, NTP patrocinado ---
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveVPNDisabled' 1 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'BraveAIChatEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'NTPSponsoredImagesEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'PromotionalTabsEnabled' 0 'DWord'
+        Set-Reg 'HKLM:\SOFTWARE\Policies\BraveSoftware\Brave' 'SearchSuggestEnabled' 0 'DWord'
+        Write-Host "  - Brave Browser: GPU + Rewards/Wallet/VPN/Leo AI off + NTP patrocinada off." -ForegroundColor Green
 
-        Write-Host "  [OK] Optimizacion oficial de navegadores completada con exito." -ForegroundColor Green
+        Write-Host "  [OK] Debloat visual de navegadores completado (Edge/Chrome/Firefox/Brave)." -ForegroundColor Green
     } catch {
         Write-Host "  ! Error aplicando directivas de navegadores: $($_.Exception.Message)" -ForegroundColor Yellow
     }
@@ -2506,7 +2546,7 @@ Write-Host ("  | Timer fix   : {0,-37} |" -f $(if($applyFixTimer){'Aplicado (bcd
 Write-Host ("  | Nagle TCP   : {0,-37} |" -f $(if($applyNagle){'Deshabilitado'}else{'Sin cambio'})) -ForegroundColor Gray
 Write-Host ("  | Ultimate PP : {0,-37} |" -f $(if($applyUltimate){'Activado'}else{'Omitido'}))  -ForegroundColor Gray
 Write-Host ("  | Menu Context: {0,-37} |" -f $(if($applyContextMenu){'Aplicado (6 funciones)'}else{'Omitido'}))  -ForegroundColor Gray
-Write-Host ("  | Navegadores : {0,-37} |" -f $(if($applyBrowsers){'Optimizado (GPO GPU/RAM)'}else{'Omitido'}))  -ForegroundColor Gray
+Write-Host ("  | Navegadores : {0,-37} |" -f $(if($applyBrowsers){'GPO Render+Debloat Visual (4 browsers)'}else{'Omitido'}))  -ForegroundColor Gray
 Write-Host "  +---------------------------------------------------------+" -ForegroundColor DarkCyan
 #endregion
 
