@@ -57,6 +57,10 @@ $log = "$logDir\Setup-Windows.log"
 ```
 
 ## Reglas y Buenas Prácticas
+- **Codificación:** Todo archivo `.ps1` debe guardarse **siempre en UTF-8 con BOM (`UTF-8-BOM`)**. Sin BOM, Windows PowerShell 5.1 decodifica caracteres multi-byte como ANSI Windows-1252, corrompiendo las comillas y rompiendo el script.
+- **Validación en Runtime Real:** Probar siempre los scripts invocando directamente `powershell.exe` (Windows PowerShell 5.1) y no únicamente en el entorno del asistente (PowerShell 7).
+- **Lanzadores `.cmd` y GUI:** Al invocar PowerShell desde CMD para scripts con interfaz gráfica (`Out-GridView`, WPF), pasar siempre el flag `-STA` (`powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File ...`).
 - **Paths en Windows usan `\`** (backslash).
 - **Scripts con `#Requires -RunAsAdministrator`** necesitan PowerShell elevado.
 - Mantener `$ErrorActionPreference = 'Continue'` según diseño del proyecto.
+

@@ -24,3 +24,13 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 ## 3. Protocolo de Auditoría y Corrección de Código
 - **Un intento informado y fundamentado:** Entender el contexto completo y las fuentes antes de realizar cambios de código.
 - **Explicidad de cambios:** Al realizar correcciones, detallar exactamente qué problema técnico resuelve cada modificación y en qué documento/fuente oficial se fundamenta.
+
+## 4. Estandarización de Codificación y Validación en Windows PowerShell 5.1
+- **Codificación Obligatoria UTF-8 con BOM (`UTF-8-BOM`):** Todo script de PowerShell (`.ps1`, `.psm1`, `.psd1`) DEBE ser creado y guardado estrictamente en formato UTF-8 con BOM (`0xEF, 0xBB, 0xBF`). Está estrictamente prohibido guardar scripts en UTF-8 sin BOM (UTF-8 puro), ya que Windows PowerShell 5.1 (`powershell.exe`) cae por defecto en la página de códigos ANSI del sistema (Windows-1252), provocando colapso de comillas y errores fatales de sintaxis ante caracteres especiales, acentos o emojis.
+- **Validación Obligatoria en el Runtime de Destino (Windows PowerShell 5.1):**
+  1. Está terminantemente prohibido asumir que un script funciona solo porque el parser AST de PowerShell 7 (`pwsh`) no arroja errores.
+  2. Todo script nuevo o modificado DEBE ser probado en frío directamente contra el ejecutable de destino de Windows:
+     `& "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -STA -NoProfile -ExecutionPolicy Bypass -Command "& { & 'ruta\script.ps1' -WhatIf }"`
+  3. Comprobar explícitamente que la salida no contenga errores de `ParserError`, `ParseException` ni excepciones de caracteres/comillas antes de reportar éxito al usuario.
+- **Soporte Gráfico STA Obligatorio en Lanzadores:** Todo comando batch (`.cmd`), tarea programada o acceso directo que invoque un script de PowerShell con interfaz gráfica o `Out-GridView` DEBE incluir explícitamente el flag `-STA`.
+

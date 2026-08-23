@@ -1,3 +1,11 @@
+## [2026-08-23T00:35:00-03:00] Blindaje de Reglas del Agente: Codificación UTF-8 BOM, Validación PS 5.1 y Flag STA
+
+- **Archivos Modificados:** `.agents/AGENTS.md`, `.agents/skills/powershell-windows/SKILL.md`, `.agents/skills/code-review/SKILL.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Nueva Regla 4 en `.agents/AGENTS.md`:** Se formalizó la obligatoriedad incondicional de guardar todos los scripts en UTF-8 con BOM (`UTF-8-BOM`), la prohibición estricta de declarar éxito sin pruebas en el runtime real (`powershell.exe` - Windows PowerShell 5.1) y el requerimiento del flag `-STA` en todos los lanzadores `.cmd`.
+  - **Actualización de Skills:** Se actualizaron las directrices de `powershell-windows` y la checklist de `code-review` con verificación obligatoria de codificación y prueba en frío de ejecución en Windows PowerShell 5.1 antes de entregar código.
+- **Pendiente:** Compilación de ISO y prueba en Hyper-V.
+
 ## [2026-08-23T00:30:00-03:00] Solución Universal de Codificación: Estandarización UTF-8 con BOM en Scripts
 
 - **Archivos Modificados:** Todos los scripts `.ps1` en `scripts/`, `MEMORY.md`
