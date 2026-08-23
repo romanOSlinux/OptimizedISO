@@ -1,3 +1,21 @@
+## [2026-08-23T19:20:00-03:00] Corrección Integral y Validación Oficial de Get-EssentialRuntimes.ps1
+
+- **Archivos Modificados:** `scripts/Get-EssentialRuntimes.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Reemplazo de URLs Obsoletas (Fix HTTP 404):** Se actualizaron las URLs de Visual C++ 2013 (x64/x86) y 2012 Update 4 (x64/x86) con los permalinks oficiales verificados de Microsoft Learn (`aka.ms/highdpimfc2013*` y `download.microsoft.com/.../VSU_4/vcredist_*`).
+  - **Soporte para Runtimes Legacy:** Se añadieron paquetes redistribuibles oficiales para Visual C++ 2010 SP1 (x64/x86) y Visual C++ 2008 SP1 (x64/x86) bajo el parámetro `-IncludeLegacy`.
+  - **Solución a `InvalidOperationException` en Logging:** Se desacopló la mutación de `$script:LogErrors` dentro de la función `Write-LogSummary`, garantizando generación limpia del reporte diagnóstico `AI_SUMMARY.md`.
+  - **Nuevo Motor de Descarga Robusto (`Invoke-SafeDownload`):** Implementación de `HttpWebRequest` con User-Agent moderno, timeout configurable, limpieza inmediata de temporales en caso de fallo y validación de integridad previa antes de omitir descargas existentes.
+  - **Extracción Inteligente de DirectX:** Detección multi-ruta de 7-Zip (`Program Files`, `PATH`) para extracción instantánea sin bloqueos en segundo plano de IExpress.
+  - **Validación Exitosa en PowerShell 5.1:** Ejecución en frío en `powershell.exe` completando la descarga de los 11 paquetes redistribuibles con estado `SUCCESS ✅` y codificación UTF-8 con BOM.
+
+## [2026-08-23T03:30:00-03:00] Creación de Guía Maestra de Lanzamiento, Comandos y Recetario
+
+- **Archivos Creados / Modificados:** `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `docs/COMMANDS.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Manual Maestro Centralizado (`docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`):** Se creó una documentación integral y detallada con tabla comparativa de todas las herramientas, parámetros CLI exhaustivos, opciones de menús interactivos, lanzadores `.cmd`, opciones rápidas y recetario de casos de uso frecuentes para toda la suite romanOS (Toolkit, Debloat, Red, Mantenimiento, Seguridad, Diagnósticos, Compilador ISO, Descargador de ISOs, Runtimes, Hyper-V y Testing).
+  - **Referencia Cruzada en `docs/COMMANDS.md`:** Se actualizó la cabecera de `COMMANDS.md` enlazando directamente a la guía maestra.
+
 ## [2026-08-23T03:25:00-03:00] Expansión Integral de Debloat, Reproducción de Video y Rendimiento de Navegadores
 
 - **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/romanOS-Toolkit.ps1`, `MEMORY.md`
