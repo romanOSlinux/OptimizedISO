@@ -1,4 +1,4 @@
-﻿<#
+<#
     Win11-Debloat-v3-Adaptive.ps1
     Fresh Windows 11 25H2 (build 26200) -- setup / debloat / privacy / gaming (adaptativo).
     Ejecutar elevado (Admin). Crea punto de restauracion antes de cualquier cambio.
@@ -272,7 +272,36 @@ function Set-Reg {
             }
         }
         if (-not (Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
-        New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
+
+        # [FIX] Claves HKLM\...\Policies requieren abrir con WriteKey explicitamente.
+        # New-ItemProperty con -Force falla con "Unauthorized operation" si el token
+        # de Administrators no tiene SetValue sobre la clave (aunque sea miembro del grupo).
+        # Solucion: abrir la clave directamente con .NET para garantizar acceso de escritura.
+        if ($Path -match '(?i)^HKLM:') {
+            $hivePath = $Path -replace '(?i)^HKLM:\\?', ''
+            $hive = [Microsoft.Win32.Registry]::LocalMachine
+            try {
+                $key = $hive.OpenSubKey($hivePath, $true)  # $true = writable
+                if ($null -ne $key) {
+                    $regType = switch ($Type) {
+                        'DWord'          { [Microsoft.Win32.RegistryValueKind]::DWord }
+                        'QWord'          { [Microsoft.Win32.RegistryValueKind]::QWord }
+                        'String'         { [Microsoft.Win32.RegistryValueKind]::String }
+                        'ExpandString'   { [Microsoft.Win32.RegistryValueKind]::ExpandString }
+                        'MultiString'    { [Microsoft.Win32.RegistryValueKind]::MultiString }
+                        'Binary'         { [Microsoft.Win32.RegistryValueKind]::Binary }
+                        default          { [Microsoft.Win32.RegistryValueKind]::DWord }
+                    }
+                    $key.SetValue($Name, $Value, $regType)
+                    $key.Close()
+                    return  # exito via .NET, no necesitamos New-ItemProperty
+                }
+            } catch {
+                # Si .NET falla tambien, caemos al New-ItemProperty estandar
+            }
+        }
+
+        New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $Type -Force -ErrorAction Stop | Out-Null
     } catch {
         Write-Host "  ! Set-Reg failed: $Path\$Name -> $($_.Exception.Message)" -ForegroundColor Yellow
     }
@@ -888,14 +917,20 @@ $prerequisites += [PSCustomObject]@{
 # 7. .NET Framework 3.5
 # [FIX-PS7] Get-WindowsOptionalFeature falla en PS7 con "Clase no registrada" (COMException).
 #   Fallback a DISM.exe si el cmdlet no funciona. Ref: GitHub PowerShell #17232
+# [FIX] Get-WindowsOptionalFeature lanza TerminatingError visible en transcript en PS7
+# porque el runtime escribe al host ANTES de que el catch pueda suprimirlo.
+# Solucion: suprimir el error stream del cmdlet antes de la llamada.
 $netfx3 = try {
-    Get-WindowsOptionalFeature -Online -FeatureName NetFx3 -ErrorAction Stop
+    Get-WindowsOptionalFeature -Online -FeatureName NetFx3 -ErrorAction SilentlyContinue 2>$null
 } catch {
+    $null  # Silenciar excepcion; fallback a DISM abajo
+}
+if ($null -eq $netfx3 -or $netfx3 -isnot [Microsoft.Dism.Commands.FeatureData]) {
     $dismOut = & DISM.exe /Online /Get-FeatureInfo /FeatureName:NetFx3 2>&1
     if ($dismOut -match 'State\s*:\s*Enabled|Estado\s*:\s*Habilitad') {
-        [PSCustomObject]@{ State = 'Enabled' }
+        $netfx3 = [PSCustomObject]@{ State = 'Enabled' }
     } else {
-        [PSCustomObject]@{ State = 'Disabled' }
+        $netfx3 = [PSCustomObject]@{ State = 'Disabled' }
     }
 }
 $netfx3Installed = ($netfx3 -and $netfx3.State -eq 'Enabled')
@@ -1642,8 +1677,11 @@ $sysMainNowDisabled = ($null -ne (Get-Service SysMain -EA SilentlyContinue)) -an
                       ((Get-Service SysMain -EA SilentlyContinue).StartType -eq 'Disabled')
 if ($sysMainNowDisabled -and -not $isHDD) {
     # SysMain off + SSD: sin compresion (CPU libre mas valioso que RAM comprimida en SSD rapido)
-    try { Disable-MMAgent -MemoryCompression -ErrorAction Stop; Write-Host "    - MemoryCompression DESACTIVADO (SysMain off + SSD)." -ForegroundColor Green } catch {}
-    try { Disable-MMAgent -PageCombining    -ErrorAction Stop; Write-Host "    - PageCombining DESACTIVADO." -ForegroundColor Green } catch {}
+    # [FIX] Disable-MMAgent falla con TerminatingError visible en transcript cuando el
+    # servicio subyacente (SysMain/MMAgent) ya esta deshabilitado. Usar SilentlyContinue
+    # y suprimir stream de error del host para evitar ruido en el log.
+    try { Disable-MMAgent -MemoryCompression -ErrorAction SilentlyContinue 2>$null; Write-Host "    - MemoryCompression DESACTIVADO (SysMain off + SSD)." -ForegroundColor Green } catch {}
+    try { Disable-MMAgent -PageCombining    -ErrorAction SilentlyContinue 2>$null; Write-Host "    - PageCombining DESACTIVADO." -ForegroundColor Green } catch {}
 } elseif ($isLowRAM -and $isHDD) {
     # Poca RAM + HDD: MANTENER compresion (comprimir es mas rapido que paginar al HDD)
     try { Enable-MMAgent -MemoryCompression -ErrorAction SilentlyContinue; Write-Host "    - MemoryCompression ACTIVO (HDD + poca RAM: mejor comprimir que paginar)." -ForegroundColor Green } catch {}
