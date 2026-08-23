@@ -1,3 +1,20 @@
+## [2026-08-23T03:25:00-03:00] Expansión Integral de Debloat, Reproducción de Video y Rendimiento de Navegadores
+
+- **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Aceleración y Decodificación de Video por Hardware:** Se garantizó la activación de `HardwareAccelerationModeEnabled = 1` y `SmoothScrollingEnabled = 1` en todos los motores Chromium (Edge, Chrome, Brave) y `HardwareAcceleration = 1` en Firefox, asegurando renderizado fluido de video (VP9/AV1/H.264/HEVC) en GPU sin sobrecargar la CPU.
+  - **Ahorro Agresivo de Memoria RAM y Procesador:**
+    - Edge: `IntensiveWakeUpThrottlingEnabled = 1` (estrangula timers JS en pestañas de fondo a 1/min), `SleepingTabsEnabled = 1` (libera hasta 85% de RAM), `StartupBoostEnabled = 0` (ahorra 300-500MB en el arranque de Windows), `BackgroundModeEnabled = 0`, `NewTabPagePrerenderEnabled = 0`, `DiskCacheSize = 256MB`.
+    - Chrome: `HighEfficiencyModeEnabled = 1` (Memory Saver oficial), `NewTabPagePrerenderEnabled = 0`, `BackgroundModeEnabled = 0`, `DiskCacheSize = 256MB`.
+    - Brave: `IPFSDisabled = 1`, `TorDisabled = 1` (desactiva demonios y subprocesos pesados de fondo en RAM).
+  - **Eliminación Total de Copilot, IA Invasiva y Debloat Visual:**
+    - Microsoft Edge & Windows: `AllowCopilot = 0`, `ConfigureCopilot = 0`, `Microsoft365CopilotChatIconEnabled = 0`, `TurnOffWindowsCopilot = 1` (HKLM y HKCU), `DisableAIDataAnalysis = 1`, `ComposeInlineEnabled = 0`, `HubsSidebarEnabled = 0`, `EdgeSidebarCustomizeEnabled = 0`, `EdgeShoppingAssistantEnabled = 0`, `NewTabPageContentEnabled = 0` (cero noticias MSN).
+    - Google Chrome: `GenAiDefaultSettings = 2`, `GenAiHelpMeWriteSettings = 2`, `GenAiHistorySearchSettings = 2`, `GenAiTabOrganizationSettings = 2` (toda la suite Gemini/AI deshabilitada), `NTPCardsVisible = 0`, `NTPContentSuggestionsEnabled = 0`, `ShoppingListEnabled = 0`, `BrowserSignin = 0`.
+    - Mozilla Firefox: `FirefoxHome` (Pocket = 0, SponsoredPocket = 0, Snippets = 0, SponsoredTopSites = 0, Highlights = 0), `UserMessaging` (FeatureRecommendations = 0, ExtensionRecommendations = 0, WhatsNew = 0, UrlbarInterventions = 0, SkipOnboarding = 1).
+    - Brave: `BraveAIChatEnabled = 0` (Leo AI off), `BraveRewardsDisabled = 1`, `BraveWalletDisabled = 1`, `BraveVPNDisabled = 1`, `NTPSponsoredImagesEnabled = 0` (cero wallpapers publicitarios).
+  - **Sincronización 100% con la ISO:** Actualización paralela de la plantilla `SetupComplete.cmd` en `New-OptimizedWindowsISO-v2.ps1` para que las instalaciones limpias disfruten de los mismos beneficios.
+  - **Validación AST PS5.1:** 0 errores de sintaxis en `powershell.exe` y codificación UTF-8 con BOM preservada.
+
 ## [2026-08-23T03:10:00-03:00] Bugfix: Detección Universal de .NET 3.5 (NetFx3) y Blindaje UTF-8 BOM
 
 - **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`

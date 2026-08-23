@@ -3633,7 +3633,7 @@ REM Refs: chromeenterprise.google/policies/
 REM ===========================================================
 echo [%DATE% %TIME%] Aplicando politicas GPO de rendimiento en navegadores... >> "%LOG%"
 
-REM -- Microsoft Edge: GPU, Sleeping Tabs, Limite de Cache y Debloat --
+REM -- Microsoft Edge: GPU, Sleeping Tabs, Limite de Cache y Debloat Completo --
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "HardwareAccelerationModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SmoothScrollingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "StartupBoostEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
@@ -3642,10 +3642,12 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SleepingTabsEnabled" /t REG_
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SleepingTabsTimeout" /t REG_DWORD /d 300 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EfficiencyModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EfficiencyModeOption" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "IntensiveWakeUpThrottlingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NewTabPagePrerenderEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "DiskCacheSize" /t REG_DWORD /d 268435456 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NetworkPredictionOptions" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "HubsSidebarEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EdgeSidebarCustomizeEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EdgeShoppingAssistantEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EdgeCollectionsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "ComposeInlineEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
@@ -3654,22 +3656,53 @@ reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "PersonalizationReportingEnab
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "ShowRecommendationsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "UserFeedbackAllowed" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SpotlightExperiencesAndRecommendationsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "ResolveNavigationErrorsUseWebService" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "AlternateErrorPagesEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "AllowCopilot" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "ConfigureCopilot" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "Microsoft365CopilotChatIconEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NewTabPageContentEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NewTabPageQuickLinksEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NewTabPageHideDefaultTopSites" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "BingAdsSuppression" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SearchSuggestEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "AllowPrelaunch" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "HideFirstRunExperience" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "TrackingPrevention" /t REG_DWORD /d 3 /f >> "%LOG%" 2>&1
 
-REM -- Google Chrome: GPU, Memory Saver, Limite de Cache y Debloat --
+REM -- Windows Copilot y AI (System-wide) --
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows AI" /v "DisableAIDataAnalysis" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+
+REM -- Google Chrome: GPU, Memory Saver, Limite de Cache, AI off y Debloat --
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "HardwareAccelerationModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "SmoothScrollingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "BackgroundModeEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "HighEfficiencyModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PromotionalTabsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "NewTabPagePrerenderEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "DiskCacheSize" /t REG_DWORD /d 268435456 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "NetworkPredictionOptions" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PromotionalTabsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "ShoppingListEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "MetricsReportingEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "SpellCheckServiceEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PrivacySandboxAdMeasurementEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PrivacySandboxAdTopicsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PrivacySandboxSiteTriggeredAttributionEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "AlternateErrorPagesEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "NTPContentSuggestionsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "NTPCardsVisible" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "SearchSuggestEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "GenAiDefaultSettings" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "GenAiHelpMeWriteSettings" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "GenAiHistorySearchSettings" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "GenAiTabOrganizationSettings" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "BrowserSignin" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "SyncDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "ShowCastIconInToolbar" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 
-REM -- Mozilla Firefox: GPU, Telemetria y Pocket --
+REM -- Mozilla Firefox: GPU, Telemetria, UserMessaging y FirefoxHome --
 reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "HardwareAcceleration" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisableTelemetry" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisablePocket" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
@@ -3678,15 +3711,33 @@ reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisableFeedbackCommands" /t
 reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "BackgroundAppUpdate" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "OverrideFirstRunPage" /t REG_SZ /d "" /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "OverridePostUpdatePage" /t REG_SZ /d "" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "ExtensionRecommendations" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "FeatureRecommendations" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "MoreFromMozilla" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "SkipOnboarding" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "WhatsNew" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "UrlbarInterventions" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome" /v "Pocket" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome" /v "SponsoredPocket" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome" /v "Snippets" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome" /v "SponsoredTopSites" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome" /v "Highlights" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 
-REM -- Brave Browser: GPU, Rendimiento y Red --
+REM -- Brave Browser: GPU, Rewards, Wallet, Leo AI, IPFS, Tor y NTP --
 reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "HardwareAccelerationModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "SmoothScrollingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BackgroundModeEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "DiskCacheSize" /t REG_DWORD /d 268435456 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "MetricsReportingEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "IPFSDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "TorDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BraveRewardsDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BraveWalletDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BraveVPNDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BraveAIChatEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "NTPSponsoredImagesEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "PromotionalTabsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "SearchSuggestEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 
 echo [%DATE% %TIME%] Politicas de navegadores aplicadas exitosamente. >> "%LOG%"
 
