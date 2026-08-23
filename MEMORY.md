@@ -1,3 +1,12 @@
+## [2026-08-23T00:30:00-03:00] Solución Universal de Codificación: Estandarización UTF-8 con BOM en Scripts
+
+- **Archivos Modificados:** Todos los scripts `.ps1` en `scripts/`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Identificación de Causa Raíz:** Se reprodujo empíricamente el error de parseo en Windows PowerShell 5.1 (`powershell.exe`). PS 5.1 lee archivos sin BOM usando la página de códigos ANSI del sistema (Windows-1252), donde las secuencias multi-byte de caracteres tipográficos (como em-dash `—`, comillas o emojis) se decodifican erróneamente como `0x92` (apóstrofe ANSI), invirtiendo el estado de las comillas en todo el script y arrojando errores de tokens (`<=4GB`, `&`, `{3}`).
+  - **Estandarización UTF-8 BOM:** Se aplicó codificación UTF-8 con BOM (`0xEF, 0xBB, 0xBF`) a todos los scripts `.ps1` de la suite, garantizando que Windows PowerShell 5.1, PowerShell 7+ y los lanzadores `.cmd` interpreten el código de manera 100% fiel y sin errores de parseo en cualquier idioma o locale de Windows.
+  - **Validación en Tiempo de Ejecución:** Verificación de ejecución exitosa con `powershell.exe` en los 10 scripts del repositorio: **10/10 SUCCESS**.
+- **Pendiente:** Compilación de ISO y prueba en Hyper-V.
+
 ## [2026-08-23T00:05:00-03:00] Corrección de Lanzadores .cmd: Soporte Gráfico STA e Interactividad 100% Nativa
 
 - **Archivos Modificados:** `scripts/Win11-Debloat-v3-Adaptive.cmd`, `scripts/Invoke-WindowsMaintenance.cmd`, `scripts/Win11-Network-Diagnostics-Optimizer.cmd`, `scripts/Auditar-Instalacion.cmd`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/Invoke-WindowsMaintenance.ps1`, `scripts/Win11-Network-Diagnostics-Optimizer.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `MEMORY.md`

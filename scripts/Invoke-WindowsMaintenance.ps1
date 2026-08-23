@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Motor Integral de Mantenimiento, Limpieza Profunda y Reparacion de Windows (10/11).
     

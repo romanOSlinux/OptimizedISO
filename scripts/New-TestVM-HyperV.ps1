@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Crea, configura e inicia una Máquina Virtual de prueba en Hyper-V (Gen 2 UEFI + TPM 2.0).
 

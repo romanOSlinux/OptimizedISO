@@ -1,4 +1,4 @@
-<#
+﻿<#
     Win11-Network-Diagnostics-Optimizer.ps1
     Herramienta avanzada de Diagnostico, Pruebas y Optimizacion de Conectividad en Windows 11 (25H2 Ready).
     Ejecutar elevado (Admin). Guarda logs en C:\Logs\Network-Diagnostics.log

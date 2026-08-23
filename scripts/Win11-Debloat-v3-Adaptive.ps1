@@ -1,4 +1,4 @@
-<#
+﻿<#
     Win11-Debloat-v3-Adaptive.ps1
     Fresh Windows 11 25H2 (build 26200) -- setup / debloat / privacy / gaming (adaptativo).
     Ejecutar elevado (Admin). Crea punto de restauracion antes de cualquier cambio.

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Descargador Unificado de ISOs Oficiales de Windows (Motor Inteligente Multicanal)
 

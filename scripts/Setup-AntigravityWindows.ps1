@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 Configura automáticamente las directivas, reglas y skills de Antigravity en Windows.
 
