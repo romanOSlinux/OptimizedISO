@@ -47,5 +47,9 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **Higiene Automática de `.gitignore`:** Ante cualquier nueva herramienta o script que descargue artefactos pesados en tiempo de ejecución, el agente DEBE asegurar que las rutas de descarga queden explícitamente ignoradas en `.gitignore`.
 - **Commits y Push Periódicos:** Mantener sincronizado el repositorio con el remoto (`origin`) mediante commits atómicos y limpios exclusivamente de código fuente (`.ps1`, `.cmd`, `.xml`), documentación (`.md`) y configuración.
 
-
-
+## 7. Transparencia y Notificación Obligatoria de Pruebas y Tareas en Segundo Plano
+- **Aviso de Inicio Obligatorio:** Antes de lanzar cualquier prueba unitaria, suite de pruebas (`Invoke-TestSuite.ps1`, `Test-OptimizedISO-v2.ps1`), comando de larga duración o tarea en segundo plano, el agente DEBE emitir un mensaje breve y visible al usuario indicando:
+  `⏳ Iniciando prueba / tarea: [Nombre del test o script]...`
+- **Aviso de Finalización Obligatorio:** Tan pronto como la prueba o comando concluya, el agente DEBE notificar su finalización y el resultado obtenido:
+  `✅ Prueba finalizada: [Nombre del test o script] — Resultado: [PASS / FAIL / Métricas].`
+- **Cero Tareas Fantasma:** Está prohibido dejar tareas en segundo plano corriendo sin supervisión o sin que el usuario esté informado de su ejecución y término.

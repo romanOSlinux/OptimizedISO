@@ -27,6 +27,11 @@ Checklist obligatorio antes de commitear o reportar tareas como completadas.
 - [ ] ¿Las operaciones destructivas cuentan con validación de existencia previa?
 - [ ] ¿No se modificó código funcional existente sin justificación técnica?
 
+### 4. Transparencia y Notificación de Pruebas
+- [ ] ¿Se notificó al usuario con `⏳ Iniciando prueba...` antes de ejecutar cualquier suite o comando en background?
+- [ ] ¿Se notificó al usuario con `✅ Prueba finalizada...` con el resumen del resultado tras concluir?
+- [ ] ¿Se verificó que no quedaron tareas en segundo plano colgadas (`manage_task list`)?
+
 ---
 
 ## Verificación Rápida
