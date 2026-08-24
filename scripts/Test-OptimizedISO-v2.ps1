@@ -37,7 +37,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 41
+$EXPECTED_FUNCS  = 42
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -308,7 +308,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "41 funciones cargadas via AST (Core + UI Engine)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "42 funciones cargadas via AST (Core + UI Engine)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -324,7 +324,7 @@ $expectedList = @(
     "Expand-WindowsIso", "Invoke-RegUnloadHive", "Add-ImageInstallToAutounattend",
     "Invoke-FallbackSelectionMenu", "Invoke-SelectionMenu", "Invoke-WizardConfig",
     "Invoke-DeploymentChoices", "Invoke-MonitoredProcess", "Invoke-SafeWimDismount",
-    "Test-MsuIsPsfFormat", "Get-WimPatchLevel"
+    "Test-MsuIsPsfFormat", "Get-WimPatchLevel", "Resolve-RuntimesDirectory"
 )
 foreach ($fn in $expectedList) {
     Assert-True "Funcion '$fn' disponible" ($null -ne (Get-Command $fn -ErrorAction SilentlyContinue))
@@ -601,6 +601,40 @@ if ($diagMatch.Success) {
 } else {
     Assert-True "PostInstall: No se pudo extraer la plantilla para pruebas unitarias" $false
 }
+
+# --- FASE 2L: SUBSISTEMA DE RESOLUCION DE RUNTIMES (PLAN-0006) ---
+Write-HarnessHeader2 "FASE 2L: Resolucion y Diagnostico de Runtimes (Resolve-RuntimesDirectory)"
+$runtimesMockDir = Join-Path $TEMP_ROOT "MockRuntimes"
+$runtimesEmptyDir = Join-Path $TEMP_ROOT "EmptyRuntimes"
+New-Item -ItemType Directory -Path $runtimesMockDir -Force | Out-Null
+New-Item -ItemType Directory -Path $runtimesEmptyDir -Force | Out-Null
+
+# Crear archivos simulados de runtimes
+[System.IO.File]::WriteAllBytes((Join-Path $runtimesMockDir "vc_redist.x64.exe"), [byte[]](0x4D, 0x5A))
+[System.IO.File]::WriteAllBytes((Join-Path $runtimesMockDir "dxsetup.exe"), [byte[]](0x4D, 0x5A))
+
+# Test 1: Resolucion con carpeta mock con instaladores
+$mockRes = Resolve-RuntimesDirectory -ExplicitPath $runtimesMockDir
+Assert-True "Resolve-RuntimesDirectory: Detecta carpeta mock con instaladores (Found = True)" ($mockRes.Found -eq $true)
+Assert-Equal "Resolve-RuntimesDirectory: Conteo de archivos correcto" $mockRes.FileCount 2
+Assert-True "Resolve-RuntimesDirectory: Flag HasVcRedist es True" ($mockRes.HasVcRedist -eq $true)
+Assert-True "Resolve-RuntimesDirectory: Flag HasDirectX es True" ($mockRes.HasDirectX -eq $true)
+Assert-Equal "Resolve-RuntimesDirectory: Path coincide con carpeta resuelta" $mockRes.Path (Resolve-Path $runtimesMockDir).Path
+
+# Test 2: Resolucion con carpeta vacia
+$emptyRes = Resolve-RuntimesDirectory -ExplicitPath $runtimesEmptyDir
+Assert-False "Resolve-RuntimesDirectory: Carpeta sin instaladores retorna Found = False" ($emptyRes.Found -eq $true)
+Assert-Equal "Resolve-RuntimesDirectory: FileCount es 0 en carpeta vacia" $emptyRes.FileCount 0
+
+# Test 3: Resolucion con ruta invalida/inexistente
+$invalidRes = Resolve-RuntimesDirectory -ExplicitPath "C:\Ruta_Inexistente_Fake_$(Get-Random)"
+Assert-False "Resolve-RuntimesDirectory: Ruta inexistente retorna Found = False" ($invalidRes.Found -eq $true)
+Assert-Equal "Resolve-RuntimesDirectory: FileCount es 0 en ruta inexistente" $invalidRes.FileCount 0
+
+# Test 4: Resolucion automatica sin parametro explicito
+$autoRes = Resolve-RuntimesDirectory
+Assert-NotNull "Resolve-RuntimesDirectory: Retorna objeto no nulo en exploracion automatica" $autoRes
+Assert-True "Resolve-RuntimesDirectory: Objeto contiene propiedad Found" ($null -ne $autoRes.PSObject.Properties['Found'])
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"

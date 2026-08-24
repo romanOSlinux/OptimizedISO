@@ -833,6 +833,69 @@ function Get-WimPatchLevel {
     return $result
 }
 
+# -----------------------------------------------------------------------------
+# FUNCIÓN AUXILIAR: Resolución y diagnóstico de la carpeta de Runtimes
+# Explora rutas explícitas, relativas al espacio de trabajo y directorios
+# estándar del repositorio para localizar paquetes redistribuibles (.exe, .msi, .cab).
+# Devuelve objeto: @{ Path; Found; FileCount; HasVcRedist; HasDirectX; Files }
+# -----------------------------------------------------------------------------
+function Resolve-RuntimesDirectory {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$ExplicitPath = ""
+    )
+
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    if (-not [string]::IsNullOrWhiteSpace($ExplicitPath)) {
+        $candidates.Add($ExplicitPath)
+    } else {
+        $candidates.Add((Join-Path (Get-Location) "Runtimes"))
+        $candidates.Add((Join-Path (Get-Location) "scripts\Runtimes"))
+        if ($ScriptsDir) {
+            $candidates.Add((Join-Path $ScriptsDir "Runtimes"))
+            $candidates.Add((Join-Path (Split-Path -Parent $ScriptsDir) "Runtimes"))
+        }
+        if ($PSScriptRoot) {
+            $candidates.Add((Join-Path $PSScriptRoot "Runtimes"))
+            $candidates.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Runtimes"))
+        }
+        $candidates.Add("C:\OptimizedISO\scripts\Runtimes")
+        $candidates.Add("C:\OptimizedISO\Runtimes")
+        $candidates.Add("C:\scripts\Runtimes")
+        $candidates.Add("C:\Runtimes")
+    }
+
+    foreach ($cand in $candidates) {
+        if ($cand -and (Test-Path $cand)) {
+            $files = Get-ChildItem -Path $cand -Recurse -File -ErrorAction SilentlyContinue |
+                Where-Object { $_.Extension -in '.exe', '.msi', '.cab' }
+
+            if ($files -and $files.Count -gt 0) {
+                $hasVc = ($files | Where-Object { $_.Name -match 'vc_redist' }).Count -gt 0
+                $hasDx = ($files | Where-Object { $_.Name -match 'dxsetup|d3dx' }).Count -gt 0
+                return [PSCustomObject]@{
+                    Path        = (Resolve-Path $cand).Path
+                    Found       = $true
+                    FileCount   = $files.Count
+                    HasVcRedist = $hasVc
+                    HasDirectX  = $hasDx
+                    Files       = $files
+                }
+            }
+        }
+    }
+
+    return [PSCustomObject]@{
+        Path        = $null
+        Found       = $false
+        FileCount   = 0
+        HasVcRedist = $false
+        HasDirectX  = $false
+        Files       = @()
+    }
+}
+
 function Invoke-SafeWimDismount {
 
     [CmdletBinding()]
@@ -3210,6 +3273,101 @@ Write-LogEntry -Level "INFO" -Message "OutputDir: $OutputDir"
 Write-LogEntry -Level "INFO" -Message "Timestamp build: $Timestamp"
 
 #------------------------------------------------------------------------------
+# DIAGNÓSTICO PRE-VUELO DE RECURSOS OPCIONALES (Paso 0)
+#------------------------------------------------------------------------------
+
+Write-Host ""
+Write-Host "  ══ Diagnóstico Pre-vuelo de Recursos Opcionales ══" -ForegroundColor Cyan
+
+# 1. Runtimes esenciales (VC++ / DirectX)
+$runtimesInfo = Resolve-RuntimesDirectory -ExplicitPath $RuntimesPath
+if ($runtimesInfo.Found) {
+    $detailList = [System.Collections.Generic.List[string]]::new()
+    if ($runtimesInfo.HasVcRedist) { $detailList.Add("Visual C++") }
+    if ($runtimesInfo.HasDirectX)  { $detailList.Add("DirectX") }
+    $detailStr = if ($detailList.Count -gt 0) { " ($($detailList -join ' + '))" } else { "" }
+    Write-OK "Runtimes Esenciales : Encontrados en '$($runtimesInfo.Path)' [$($runtimesInfo.FileCount) archivos$detailStr]"
+    Write-LogEntry -Level "INFO" -Message "Runtimes resueltos: $($runtimesInfo.Path) ($($runtimesInfo.FileCount) archivos)"
+} else {
+    Write-Info "Runtimes Esenciales : No detectados (Opcional - ejecute Get-EssentialRuntimes.ps1 si los requiere)"
+    Write-LogEntry -Level "INFO" -Message "Runtimes no detectados. Se omitirá pre-carga."
+}
+
+# 2. Actualizaciones acumulativas (Updates/)
+$candidateUpdates = [System.Collections.Generic.List[string]]::new()
+if (-not [string]::IsNullOrWhiteSpace($UpdatesPath)) {
+    $candidateUpdates.Add($UpdatesPath)
+} else {
+    $candidateUpdates.Add((Join-Path (Get-Location) "Updates"))
+    $candidateUpdates.Add((Join-Path (Get-Location) "scripts\Updates"))
+    if ($ScriptsDir) {
+        $candidateUpdates.Add((Join-Path $ScriptsDir "Updates"))
+        $candidateUpdates.Add((Join-Path (Split-Path -Parent $ScriptsDir) "Updates"))
+    }
+    if ($PSScriptRoot) {
+        $candidateUpdates.Add((Join-Path $PSScriptRoot "Updates"))
+        $candidateUpdates.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Updates"))
+    }
+    $candidateUpdates.Add("C:\OptimizedISO\scripts\Updates")
+    $candidateUpdates.Add("C:\OptimizedISO\Updates")
+    $candidateUpdates.Add("C:\scripts\Updates")
+}
+
+$resolvedUpdatesDir = $null
+foreach ($candUpd in $candidateUpdates) {
+    if ($candUpd -and (Test-Path $candUpd)) {
+        $updCount = (Get-ChildItem -Path $candUpd -Include *.msu, *.cab -Recurse -File -ErrorAction SilentlyContinue).Count
+        if ($updCount -gt 0) {
+            $resolvedUpdatesDir = (Resolve-Path $candUpd).Path
+            Write-OK "Actualizaciones (MSU): Encontradas en '$resolvedUpdatesDir' [$updCount paquetes listos para inyección]"
+            Write-LogEntry -Level "INFO" -Message "Updates resueltos: $resolvedUpdatesDir ($updCount paquetes)"
+            break
+        }
+    }
+}
+if (-not $resolvedUpdatesDir) {
+    Write-Info "Actualizaciones (MSU): No detectadas (Opcional - ejecute Get-WindowsUpdates.ps1 si requiere parches offline)"
+    Write-LogEntry -Level "INFO" -Message "Updates no detectados. Se omitirá slipstreaming offline."
+}
+
+# 3. Controladores adicionales (Drivers/)
+$candidateDrivers = [System.Collections.Generic.List[string]]::new()
+if (-not [string]::IsNullOrWhiteSpace($DriversPath)) {
+    $candidateDrivers.Add($DriversPath)
+} else {
+    $candidateDrivers.Add((Join-Path (Get-Location) "Drivers"))
+    $candidateDrivers.Add((Join-Path (Get-Location) "scripts\Drivers"))
+    if ($ScriptsDir) {
+        $candidateDrivers.Add((Join-Path $ScriptsDir "Drivers"))
+        $candidateDrivers.Add((Join-Path (Split-Path -Parent $ScriptsDir) "Drivers"))
+    }
+    if ($PSScriptRoot) {
+        $candidateDrivers.Add((Join-Path $PSScriptRoot "Drivers"))
+        $candidateDrivers.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Drivers"))
+    }
+    $candidateDrivers.Add("C:\OptimizedISO\scripts\Drivers")
+    $candidateDrivers.Add("C:\OptimizedISO\Drivers")
+    $candidateDrivers.Add("C:\scripts\Drivers")
+}
+$resolvedDriversDir = $null
+foreach ($candDrv in $candidateDrivers) {
+    if ($candDrv -and (Test-Path $candDrv)) {
+        $drvCount = (Get-ChildItem -Path $candDrv -Include *.inf -Recurse -File -ErrorAction SilentlyContinue).Count
+        if ($drvCount -gt 0) {
+            $resolvedDriversDir = (Resolve-Path $candDrv).Path
+            Write-OK "Controladores (INF) : Encontrados en '$resolvedDriversDir' [$drvCount drivers .inf]"
+            Write-LogEntry -Level "INFO" -Message "Drivers resueltos: $resolvedDriversDir ($drvCount drivers)"
+            break
+        }
+    }
+}
+if (-not $resolvedDriversDir) {
+    Write-Info "Controladores (INF) : No detectados (Opcional - coloque drivers .inf en Drivers/ si los requiere)"
+    Write-LogEntry -Level "INFO" -Message "Drivers no detectados. Se omitirá inyección de drivers."
+}
+Write-Host ""
+
+#------------------------------------------------------------------------------
 # 1/6 - EXTRAER ISO
 #------------------------------------------------------------------------------
 
@@ -3608,35 +3766,20 @@ pause >nul
 # ------------------------------------------------------------------
 # Copiar Runtimes esenciales a sources\$OEM$\$$\Setup\Scripts\Runtimes si existen
 # ------------------------------------------------------------------
-$resolvedRuntimesDir = $null
-$candidateRuntimes = @(
-    $RuntimesPath,
-    (Join-Path $ScriptsDir "Runtimes"),
-    (Join-Path (Split-Path -Parent $ScriptsDir) "Runtimes")
-)
-
-foreach ($cand in $candidateRuntimes) {
-    if ($cand -and (Test-Path $cand)) {
-        $resolvedRuntimesDir = $cand
-        break
-    }
+if (-not $runtimesInfo) {
+    $runtimesInfo = Resolve-RuntimesDirectory -ExplicitPath $RuntimesPath
 }
 
-if ($resolvedRuntimesDir) {
-    $runtimeFiles = Get-ChildItem -Path $resolvedRuntimesDir -Include *.exe, *.msi -Recurse -ErrorAction SilentlyContinue
-    if ($runtimeFiles.Count -gt 0) {
-        $destRuntimesDir = Join-Path $OEMScriptsDir "Runtimes"
-        $destRuntimesDir1 = Join-Path $OEMScriptsDir1 "Runtimes"
-        if (-not (Test-Path $destRuntimesDir)) { New-Item -ItemType Directory -Path $destRuntimesDir -Force | Out-Null }
-        if (-not (Test-Path $destRuntimesDir1)) { New-Item -ItemType Directory -Path $destRuntimesDir1 -Force | Out-Null }
-        Copy-Item -Path "$resolvedRuntimesDir\*" -Destination $destRuntimesDir -Recurse -Force
-        Copy-Item -Path "$resolvedRuntimesDir\*" -Destination $destRuntimesDir1 -Recurse -Force
-        Write-OK "Runtimes esenciales inyectados en `$OEM$ ($($runtimeFiles.Count) archivos encontrados)."
-    } else {
-        Write-Host "    Carpeta Runtimes encontrada pero sin instaladores .exe/.msi." -ForegroundColor DarkYellow
-    }
+if ($runtimesInfo.Found -and (Test-Path $runtimesInfo.Path)) {
+    $destRuntimesDir  = Join-Path $OEMScriptsDir "Runtimes"
+    $destRuntimesDir1 = Join-Path $OEMScriptsDir1 "Runtimes"
+    if (-not (Test-Path $destRuntimesDir))  { New-Item -ItemType Directory -Path $destRuntimesDir -Force | Out-Null }
+    if (-not (Test-Path $destRuntimesDir1)) { New-Item -ItemType Directory -Path $destRuntimesDir1 -Force | Out-Null }
+    Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $destRuntimesDir -Recurse -Force
+    Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $destRuntimesDir1 -Recurse -Force
+    Write-OK "Runtimes esenciales inyectados en `$OEM$ ($($runtimesInfo.FileCount) archivos copiados)."
 } else {
-    Write-Host "    Carpeta 'Runtimes' no encontrada. Se omite pre-carga de VC++/DirectX en `$OEM$." -ForegroundColor Gray
+    Write-Host "    Carpeta 'Runtimes' no detectada. Se omite pre-carga en `$OEM$." -ForegroundColor Gray
 }
 
 #------------------------------------------------------------------------------
@@ -5786,6 +5929,17 @@ if ($wimFile) {
                                  Write-Warn "Error aplicando tweaks visuales offline: $($_.Exception.Message)"
                              } finally {
                                  if ($hiveLoaded) {
+                                     # Inyectar Runtimes esenciales directamente en el WIM montado (Doble Inyección)
+                                     if ($runtimesInfo -and $runtimesInfo.Found -and (Test-Path $runtimesInfo.Path)) {
+                                         $wimRuntimesDest = Join-Path $wimScriptsDir "Runtimes"
+                                         if (-not (Test-Path $wimRuntimesDest)) {
+                                             New-Item -ItemType Directory -Path $wimRuntimesDest -Force | Out-Null
+                                         }
+                                         Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $wimRuntimesDest -Recurse -Force
+                                         Write-OK "Inyectado en WIM índice ${wimIndex}: Runtimes Esenciales ($($runtimesInfo.FileCount) archivos)"
+                                     }
+
+                                     $dismountSuccess = Invoke-SafeWimDismount -MountDir $WimMountDir -Action Save -ScratchDirectory $ScratchDir
                                      Write-Host "    Descargando colmena NTUSER.DAT..." -ForegroundColor Gray
 
                                      $unloaded = Invoke-RegUnloadHive -HiveName "HKLM\OfflineDefaultUser"

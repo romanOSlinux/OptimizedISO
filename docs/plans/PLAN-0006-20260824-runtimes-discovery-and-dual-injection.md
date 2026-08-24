@@ -1,7 +1,7 @@
 # PLAN-0006 — Detección Inteligente y Doble Inyección de Runtimes (OEM + WIM Offline)
 
 **Fecha:** 2026-08-24  
-**Estado:** PENDIENTE  
+**Estado:** COMPLETADO  
 **Autor:** Antigravity (par de programación IA)  
 **Rama objetivo:** `feat/runtimes-discovery-and-dual-injection`
 
@@ -44,33 +44,45 @@ Insertar en la sección de funciones auxiliares:
 function Resolve-RuntimesDirectory {
     [CmdletBinding()]
     param(
+        [Parameter(Mandatory = $false)]
         [string]$ExplicitPath = ""
     )
 
-    $candidates = @(
-        $ExplicitPath,
-        (Join-Path (Get-Location) "Runtimes"),
-        (Join-Path (Get-Location) "scripts\Runtimes"),
-        (Join-Path $ScriptsDir "Runtimes"),
-        (Join-Path (Split-Path -Parent $ScriptsDir) "Runtimes"),
-        "C:\OptimizedISO\scripts\Runtimes",
-        "C:\OptimizedISO\Runtimes",
-        "C:\scripts\Runtimes",
-        "C:\Runtimes"
-    )
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    if (-not [string]::IsNullOrWhiteSpace($ExplicitPath)) {
+        $candidates.Add($ExplicitPath)
+    } else {
+        $candidates.Add((Join-Path (Get-Location) "Runtimes"))
+        $candidates.Add((Join-Path (Get-Location) "scripts\Runtimes"))
+        if ($ScriptsDir) {
+            $candidates.Add((Join-Path $ScriptsDir "Runtimes"))
+            $candidates.Add((Join-Path (Split-Path -Parent $ScriptsDir) "Runtimes"))
+        }
+        if ($PSScriptRoot) {
+            $candidates.Add((Join-Path $PSScriptRoot "Runtimes"))
+            $candidates.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Runtimes"))
+        }
+        $candidates.Add("C:\OptimizedISO\scripts\Runtimes")
+        $candidates.Add("C:\OptimizedISO\Runtimes")
+        $candidates.Add("C:\scripts\Runtimes")
+        $candidates.Add("C:\Runtimes")
+    }
 
     foreach ($cand in $candidates) {
         if ($cand -and (Test-Path $cand)) {
             $files = Get-ChildItem -Path $cand -Recurse -File -ErrorAction SilentlyContinue |
                 Where-Object { $_.Extension -in '.exe', '.msi', '.cab' }
 
-            if ($files.Count -gt 0) {
+            if ($files -and $files.Count -gt 0) {
+                $hasVc = ($files | Where-Object { $_.Name -match 'vc_redist' }).Count -gt 0
+                $hasDx = ($files | Where-Object { $_.Name -match 'dxsetup|d3dx' }).Count -gt 0
                 return [PSCustomObject]@{
-                    Path               = (Resolve-Path $cand).Path
-                    Found              = $true
-                    FileCount          = $files.Count
-                    HasVcRedist        = ($files | Where-Object { $_.Name -match 'vc_redist' }).Count -gt 0
-                    HasDirectX         = ($files | Where-Object { $_.Name -match 'dxsetup|d3dx' }).Count -gt 0
+                    Path        = (Resolve-Path $cand).Path
+                    Found       = $true
+                    FileCount   = $files.Count
+                    HasVcRedist = $hasVc
+                    HasDirectX  = $hasDx
+                    Files       = $files
                 }
             }
         }
@@ -82,6 +94,7 @@ function Resolve-RuntimesDirectory {
         FileCount   = 0
         HasVcRedist = $false
         HasDirectX  = $false
+        Files       = @()
     }
 }
 ```
@@ -163,3 +176,4 @@ if ($runtimesInfo.Found) {
 | Fecha | Estado | Detalle |
 | :--- | :--- | :--- |
 | 2026-08-24 | PENDIENTE | Creación formal del plan para resolver detección y doble inyección de Runtimes. |
+| 2026-08-24 | COMPLETADO | Implementación de `Resolve-RuntimesDirectory`, pre-vuelo de recursos, doble inyección OEM+WIM y pruebas unitarias (154/154 PASS). |
