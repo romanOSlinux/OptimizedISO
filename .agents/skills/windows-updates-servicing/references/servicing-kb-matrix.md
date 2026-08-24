@@ -62,3 +62,39 @@ DISM /Unmount-Image /MountDir:"C:\Build\Mount" /Commit
 | `3010` | Éxito con reinicio requerido | Tratar como éxito (`Success = $true`). |
 | `0x800f081f` | Archivo de origen no encontrado / Dependencia faltante | Falta SSU o Checkpoint KB5043080 previo. |
 | `0x800f0823` | Paquete no aplicable a esta arquitectura/edición | Verificar si la build coincide con la ISO montada. |
+
+---
+
+## 4. Checkpoint Cumulative Updates (24H2 / 25H2 / LTSC 2024)
+
+A partir de Windows 11 24H2, Microsoft introdujo el modelo de **Checkpoint CU**: la LCU mensual se construye sobre una base delta (el Checkpoint), no sobre RTM. El Checkpoint debe aplicarse **antes** de la LCU.
+
+### KB requerido por versión
+
+| Versión de Windows | Checkpoint KB | Obligatorio | Orden |
+|-------------------|--------------|-------------|-------|
+| Win 11 25H2 (26120+) | KB5043080 | ✅ Sí | Antes de LCU |
+| Win 11 24H2 (26100) | KB5043080 | ✅ Sí | Antes de LCU |
+| Win 11 LTSC 2024 (26100) | KB5043080 | ✅ Sí | Antes de LCU |
+| Win 11 23H2 (22631) | No requerido | ❌ No | — |
+| Win 10 22H2 (19045) | No requerido | ❌ No | — |
+| Win 10 LTSC 2021 (19044) | No requerido | ❌ No | — |
+
+### Formato PSF del MSU — advertencia crítica
+
+> **Confirmado empíricamente 2026-08-24:** El MSU de KB5043080 usa **formato WIM como contenedor**, no CAB estándar.
+
+El archivo `windows11.0-kb5043080-x64.msu` contiene internamente:
+```
+├── SSU-26100.1738-x64.cab         ← SSU bundled (se aplica automáticamente)
+├── Windows11.0-KB5043080-x64.psf  ← PAYLOAD real (Patch Storage Format)
+├── Windows11.0-KB5043080-x64.wim  ← WIM auxiliar del parche
+└── wsusscan.cab / metadatos
+```
+
+**⚠️ No extraer con `expand.exe`** — el archivo no contiene un `.cab` de payload.  
+**✅ Usar siempre `dism.exe /Add-Package /IgnoreCheck`** con el `.msu` completo.
+
+El slipstreaming inteligente en `New-OptimizedWindowsISO-v2.ps1` detecta automáticamente  
+el formato PSF mediante la firma de archivo `MSWIM\0\0\0` y usa la ruta correcta.
+

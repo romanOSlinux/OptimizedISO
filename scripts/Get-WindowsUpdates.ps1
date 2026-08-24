@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Get-WindowsUpdates.ps1 - Descargador Automatizado de Actualizaciones Oficiales de Windows (MSU/CAB)
     Motor de Consulta en Tiempo Real al Microsoft Update Catalog
@@ -59,7 +59,7 @@ param(
     [string]$Architecture = "amd64",
 
     [Parameter()]
-    [ValidateSet("All", "LCUOnly", "DotNetOnly", "SafeOSOnly")]
+    [ValidateSet("All", "LCUOnly", "DotNetOnly", "SafeOSOnly", "CheckpointOnly")]
     [string]$PackageType = "All",
 
     [Parameter()]
@@ -75,7 +75,10 @@ param(
     [switch]$Unattended,
 
     [Parameter()]
-    [int]$DownloadTimeoutSeconds = 1800
+    [int]$DownloadTimeoutSeconds = 1800,
+
+    [Parameter()]
+    [string]$SourceWIM = ""   # Ruta a install.wim para auditar KB instalados antes de descargar
 )
 
 # -----------------------------------------------------------------------------
@@ -555,23 +558,26 @@ $archTag = switch ($Architecture) {
 $searchMatrix = switch ($Version) {
     "11_25H2" {
         @{
-            LCU    = "Cumulative Update Windows 11 25H2 $archTag"
-            DotNet = "Cumulative Update .NET Framework Windows 11 25H2 $archTag"
-            SafeOS = "Safe OS Dynamic Update Windows 11 25H2 $archTag"
+            LCU        = "Cumulative Update Windows 11 25H2 $archTag"
+            Checkpoint = "Windows11.0-KB5043080-$archTag"   # Checkpoint CU obligatorio para 25H2
+            DotNet     = "Cumulative Update .NET Framework Windows 11 25H2 $archTag"
+            SafeOS     = "Safe OS Dynamic Update Windows 11 25H2 $archTag"
         }
     }
     "11_24H2" {
         @{
-            LCU    = "Cumulative Update Windows 11 24H2 $archTag"
-            DotNet = "Cumulative Update for .NET Framework 3.5 and 4.8.1 for Windows 11, version 24H2 for $archTag"
-            SafeOS = "Safe OS Dynamic Update for Windows 11, version 24H2 for $archTag"
+            LCU        = "Cumulative Update Windows 11 24H2 $archTag"
+            Checkpoint = "Windows11.0-KB5043080-$archTag"   # Checkpoint CU obligatorio para 24H2
+            DotNet     = "Cumulative Update for .NET Framework 3.5 and 4.8.1 for Windows 11, version 24H2 for $archTag"
+            SafeOS     = "Safe OS Dynamic Update for Windows 11, version 24H2 for $archTag"
         }
     }
     "11_LTSC_2024" {
         @{
-            LCU    = "Cumulative Update Windows 11 24H2 $archTag"
-            DotNet = "Cumulative Update for .NET Framework 3.5 and 4.8.1 for Windows 11, version 24H2 for $archTag"
-            SafeOS = "Safe OS Dynamic Update for Windows 11, version 24H2 for $archTag"
+            LCU        = "Cumulative Update Windows 11 24H2 $archTag"
+            Checkpoint = "Windows11.0-KB5043080-$archTag"   # Checkpoint CU obligatorio para LTSC 2024
+            DotNet     = "Cumulative Update for .NET Framework 3.5 and 4.8.1 for Windows 11, version 24H2 for $archTag"
+            SafeOS     = "Safe OS Dynamic Update for Windows 11, version 24H2 for $archTag"
         }
     }
     "11_23H2" {
@@ -606,6 +612,30 @@ Show-UnifiedBanner -Title "romanOS - WINDOWS UPDATES ENGINE" -Subtitle "Obtenci�
 Write-StepHeader -StepNumber 1 -TotalSteps 3 -Message "Consultando Catálogo Oficial de Microsoft Update"
 
 $packagesToDownload = [System.Collections.Generic.List[PSObject]]::new()
+
+# 0. Auditoría previa opcional: inspeccionar WIM base si se proporcionó -SourceWIM
+$wimAuditKBs = [System.Collections.Generic.List[string]]::new()
+if ($SourceWIM -and (Test-Path $SourceWIM)) {
+    Write-StepHeader -StepNumber 0 -TotalSteps 3 -Message "Auditando nivel de parche del WIM base: $SourceWIM"
+    $wimAuditMount = Join-Path $env:TEMP "WimAudit_$(Get-Date -Format 'yyyyMMddHHmmss')"
+    New-Item -ItemType Directory -Path $wimAuditMount -Force | Out-Null
+    try {
+        & dism.exe /Mount-Image /ImageFile:"$SourceWIM" /Index:1 /MountDir:"$wimAuditMount" /ReadOnly 2>&1 | Out-Null
+        $pkgLines = & dism.exe /Image:"$wimAuditMount" /Get-Packages /Format:Table 2>&1 | ForEach-Object { "$_" }
+        foreach ($line in $pkgLines) {
+            if ($line -match 'KB(\d{7,})') {
+                $kb = "KB$($Matches[1])"
+                if (-not $wimAuditKBs.Contains($kb)) { $wimAuditKBs.Add($kb) }
+            }
+        }
+        Write-OK "WIM base auditado. KBs instalados: $($wimAuditKBs -join ', ')"
+    } catch {
+        Write-Warn "No se pudo auditar el WIM base: $($_.Exception.Message)"
+    } finally {
+        & dism.exe /Unmount-Image /MountDir:"$wimAuditMount" /Discard 2>&1 | Out-Null
+        Remove-Item $wimAuditMount -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
 
 # 1. Búsqueda de LCU (Latest Cumulative Update)
 if ($PackageType -in @("All", "LCUOnly")) {
@@ -663,6 +693,30 @@ if ($PackageType -in @("All", "DotNetOnly")) {
         })
     } else {
         Write-Warn "No se encontró actualización acumulativa de .NET Framework específica en el catálogo."
+    }
+}
+
+# 2b. Búsqueda de Checkpoint Cumulative Update (KB5043080) — obligatorio para 24H2/25H2/LTSC 2024
+if ($searchMatrix.ContainsKey('Checkpoint') -and $PackageType -in @("All", "LCUOnly", "CheckpointOnly")) {
+    Write-SubStep "Buscando Checkpoint CU (KB5043080) — prerequisito obligatorio para LCU..."
+    $chkItems = Search-MicrosoftUpdateCatalog -Query $searchMatrix.Checkpoint
+    $chkMatch = $chkItems | Where-Object { $_.KB -eq "KB5043080" -or $_.Title -match 'KB5043080' } | Select-Object -First 1
+    if ($chkMatch) {
+        # Si se auditó el WIM y el Checkpoint ya está instalado, omitirlo
+        if ($wimAuditKBs.Contains("KB5043080")) {
+            Write-Info "Checkpoint KB5043080 ya presente en el WIM base. Omitiendo descarga."
+        } else {
+            Write-OK "Checkpoint Identificado: $($chkMatch.KB) - $($chkMatch.Title) ($($chkMatch.Size))"
+            $packagesToDownload.Add([PSCustomObject]@{
+                Type  = "Checkpoint"
+                Id    = $chkMatch.Id
+                KB    = $chkMatch.KB
+                Title = $chkMatch.Title
+                Size  = $chkMatch.Size
+            })
+        }
+    } else {
+        Write-Warn "No se encontró Checkpoint KB5043080 en el catálogo. Puede que ya esté incluido en la ISO base."
     }
 }
 
