@@ -1,4 +1,4 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 
 <#
 .SYNOPSIS
@@ -805,14 +805,24 @@ function Get-WimPatchLevel {
         }
 
         # Intentar obtener UBR del registro offline
+        # IMPORTANTE: reg.exe unload va en finally para garantizar liberación del hive
         try {
             $swPath = Join-Path $MountDir "Windows\System32\config\SOFTWARE"
             if (Test-Path $swPath) {
-                & reg.exe load "HKLM\_WIMPATCH_TMP" "$swPath" 2>&1 | Out-Null
-                $ubr = (Get-ItemProperty "HKLM:\_WIMPATCH_TMP\Microsoft\Windows NT\CurrentVersion" `
-                    -Name UBR -ErrorAction SilentlyContinue).UBR
-                & reg.exe unload "HKLM\_WIMPATCH_TMP" 2>&1 | Out-Null
-                if ($ubr) { $result.UBR = [int]$ubr }
+                $hiveLoaded = $false
+                try {
+                    & reg.exe load "HKLM\_WIMPATCH_TMP" "$swPath" 2>&1 | Out-Null
+                    $hiveLoaded = $true
+                    $ubr = (Get-ItemProperty "HKLM:\_WIMPATCH_TMP\Microsoft\Windows NT\CurrentVersion" `
+                        -Name UBR -ErrorAction SilentlyContinue).UBR
+                    if ($ubr) { $result.UBR = [int]$ubr }
+                } finally {
+                    if ($hiveLoaded) {
+                        [GC]::Collect()
+                        [GC]::WaitForPendingFinalizers()
+                        & reg.exe unload "HKLM\_WIMPATCH_TMP" 2>&1 | Out-Null
+                    }
+                }
             }
         } catch {}
 
