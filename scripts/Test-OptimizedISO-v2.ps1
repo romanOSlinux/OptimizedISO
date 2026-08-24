@@ -37,7 +37,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 39
+$EXPECTED_FUNCS  = 41
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -308,7 +308,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "39 funciones cargadas via AST (Core + UI Engine)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "41 funciones cargadas via AST (Core + UI Engine)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -323,7 +323,8 @@ $expectedList = @(
     "Get-OnlineWindowsReleases", "Invoke-OfficialWindowsDownload", "Resolve-SourceISO",
     "Expand-WindowsIso", "Invoke-RegUnloadHive", "Add-ImageInstallToAutounattend",
     "Invoke-FallbackSelectionMenu", "Invoke-SelectionMenu", "Invoke-WizardConfig",
-    "Invoke-DeploymentChoices", "Invoke-MonitoredProcess", "Invoke-SafeWimDismount"
+    "Invoke-DeploymentChoices", "Invoke-MonitoredProcess", "Invoke-SafeWimDismount",
+    "Test-MsuIsPsfFormat", "Get-WimPatchLevel"
 )
 foreach ($fn in $expectedList) {
     Assert-True "Funcion '$fn' disponible" ($null -ne (Get-Command $fn -ErrorAction SilentlyContinue))
