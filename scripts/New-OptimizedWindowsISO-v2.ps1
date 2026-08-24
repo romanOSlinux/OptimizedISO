@@ -120,6 +120,9 @@ Ruta a la carpeta Runtimes/ que contiene Visual C++ y DirectX redistribuibles.
 .PARAMETER DriversPath
 Ruta a la carpeta Drivers/ que contiene controladores (.inf) para inyección offline.
 
+.PARAMETER UpdatesPath
+Ruta a la carpeta Updates/ que contiene paquetes de actualización oficiales (.msu/.cab) para inyección offline.
+
 .EXAMPLE
 # Modo Asistente Interactivo Completo (con descarga dinámica de ISO si no se especifica SourceISO):
 .\New-OptimizedWindowsISO-v2.ps1
@@ -235,6 +238,9 @@ param(
 
     [Parameter()]
     [string]$DriversPath = "",
+
+    [Parameter()]
+    [string]$UpdatesPath = "",
 
     [Parameter()]
     [switch]$ZeroTouch,
@@ -4981,35 +4987,63 @@ if ($wimFile) {
                     }
 
                     #==================================================================
-                    # SLIPSTREAMING DE ACTUALIZACIONES
+                    # SLIPSTREAMING DE ACTUALIZACIONES (WINDOWS UPDATES)
                     #==================================================================
 
-                    $UpdatesDir   = Join-Path $ScriptsDir "Updates"
+                    $resolvedUpdatesDir = $null
+                    $candidateUpdates = @(
+                        $UpdatesPath,
+                        (Join-Path $ScriptsDir "Updates"),
+                        (Join-Path (Split-Path -Parent $ScriptsDir) "Updates"),
+                        "C:\OptimizedISO\Updates"
+                    )
+
+                    foreach ($cand in $candidateUpdates) {
+                        if ($cand -and (Test-Path $cand)) {
+                            $resolvedUpdatesDir = $cand
+                            break
+                        }
+                    }
+
                     $successCount = 0
                     $failCount    = 0
 
                     Write-Host ""
                     Write-Host "    ══ Slipstreaming de actualizaciones ══" -ForegroundColor Cyan
 
-                    if (-not (Test-Path $UpdatesDir)) {
+                    if (-not $resolvedUpdatesDir) {
                         Write-Host "    Carpeta 'Updates' no encontrada. Slipstreaming omitido." -ForegroundColor DarkYellow
-                        Write-Host "    Para inyectar parches, cree la carpeta y coloque archivos .msu/.cab." -ForegroundColor Gray
+                        Write-Host "    Para inyectar parches, descarguelos con Get-WindowsUpdates.ps1 o coloquew archivos .msu/.cab en 'Updates\'." -ForegroundColor Gray
                     } else {
-                        $packages = Get-ChildItem -Path $UpdatesDir -Include *.msu, *.cab -Recurse -ErrorAction SilentlyContinue
+                        $packages = Get-ChildItem -Path $resolvedUpdatesDir -Include *.msu, *.cab -Recurse -ErrorAction SilentlyContinue
 
                         if ($packages.Count -eq 0) {
-                            Write-Host "    Carpeta 'Updates' encontrada pero sin archivos .msu/.cab." -ForegroundColor DarkYellow
+                            Write-Host "    Carpeta '$resolvedUpdatesDir' encontrada pero sin archivos .msu/.cab." -ForegroundColor DarkYellow
                         } else {
-                            # Ordenación simple: SSU primero, luego resto.
-                            # Nota: esto es una heurística por nombre de archivo.
+                            # Ordenación técnica oficial:
+                            # 1. SSU (Servicing Stack)
+                            # 2. Checkpoint Packages (ej. KB5043080)
+                            # 3. LCU (Latest Cumulative Update de Windows)
+                            # 4. Actualizaciones de .NET Framework
+                            # 5. SafeOS y paquetes complementarios
                             $orderedPackages = $packages | Sort-Object {
-                                if ($_.Name -match 'ssu|servicing.?stack') { 0 } else { 1 }
+                                if ($_.Name -match 'ssu|servicing.?stack') {
+                                    0
+                                } elseif ($_.Name -match 'kb5043080|checkpoint') {
+                                    1
+                                } elseif ($_.Name -match 'windows1[01].*-kb\d+' -and $_.Name -notmatch 'ndp|dotnet|\.net') {
+                                    2
+                                } elseif ($_.Name -match 'ndp|dotnet|\.net') {
+                                    3
+                                } else {
+                                    4
+                                }
                             }, Name
 
                             $total = $orderedPackages.Count
 
-                            Write-Host "    Encontrados $total paquete(s)." -ForegroundColor Gray
-                            Write-Host "    Orden: SSU primero, luego LCU/otros." -ForegroundColor Gray
+                            Write-Host "    Encontrados $total paquete(s) en '$resolvedUpdatesDir'." -ForegroundColor Gray
+                            Write-Host "    Orden de inyección: SSU -> Checkpoints -> LCU -> .NET -> Complementarios." -ForegroundColor Gray
 
                             $ssuCount = @($orderedPackages | Where-Object { $_.Name -match 'ssu|servicing.?stack' }).Count
 

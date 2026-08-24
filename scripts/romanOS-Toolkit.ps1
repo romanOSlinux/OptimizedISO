@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "Security", "Dashboards", "QuickActions", "Browsers")]
+    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "Security", "Dashboards", "QuickActions", "Browsers", "Updates")]
     [string]$Module,
     [switch]$ShowDashboards
 )
@@ -178,6 +178,17 @@ function Invoke-BrowsersModule {
     }
 }
 
+function Invoke-UpdatesModule {
+    $scriptFile = Resolve-ToolScript "Get-WindowsUpdates.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Descargador Oficial de Windows Updates (MSU/CAB)"
+        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
+    } else {
+        Write-ErrorMsg "No se encontro Get-WindowsUpdates.ps1"
+        pause
+    }
+}
+
 function Invoke-OpenDashboards {
     Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Generando y abriendo Dashboards Visuales HTML"
     
@@ -250,23 +261,23 @@ function Show-QuickActionsMenu {
             pause
         }
         5 {
-            Write-SubStep "Limpiando shaders GPU..."
+            Write-SubStep "Limpiando caches de Shaders DirectX/NVIDIA/AMD..."
             $shaderDirs = @(
                 "$env:LOCALAPPDATA\D3DSCache",
                 "$env:LOCALAPPDATA\NVIDIA\DXCache",
-                "$env:LOCALAPPDATA\AMD\DxCache"
+                "$env:LOCALAPPDATA\AMD\DxCache",
+                "$env:LOCALAPPDATA\Temp"
             )
             foreach ($sd in $shaderDirs) {
                 if (Test-Path $sd) {
-                    Get-ChildItem -Path $sd -Recurse -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
-                    Write-Info "Limpiado: $sd"
+                    Get-ChildItem -Path $sd -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
                 }
             }
-            Write-OK "Cache de shaders GPU limpiada correctamente."
+            Write-OK "Caches de Shaders limpiadas."
             pause
         }
         6 {
-            Write-SubStep "Ejecutando ReTrim en volumenes SSD fijados..."
+            Write-SubStep "Ejecutando SSD TRIM (Optimize-Volume -ReTrim)..."
             try {
                 Get-Volume | Where-Object { $_.DriveType -eq 'Fixed' } | ForEach-Object {
                     Optimize-Volume -DriveLetter $_.DriveLetter -ReTrim -Verbose
@@ -297,6 +308,7 @@ if ($Module) {
         "Security"     { Invoke-SecurityModule; exit }
         "Dashboards"   { Invoke-OpenDashboards; exit }
         "Browsers"     { Invoke-BrowsersModule; exit }
+        "Updates"      { Invoke-UpdatesModule; exit }
         "QuickActions" { Show-QuickActionsMenu; exit }
     }
 }
@@ -311,7 +323,7 @@ try {
     if ([System.Console]::IsInputRedirected) {
         Show-UnifiedBanner -Title "romanOS TOOLKIT MAESTRO" -Subtitle "Hub de Optimizacion, Gaming, Mantenimiento y Seguridad" -ShowSystemInfo
         Write-Info "Ejecucion no interactiva detectada."
-        Write-Info "Uso desatendido: .\romanOS-Toolkit.ps1 -Module <Gaming|Network|Maintenance|Diagnostics|Security|Browsers|Dashboards|QuickActions>"
+        Write-Info "Uso desatendido: .\romanOS-Toolkit.ps1 -Module <Gaming|Network|Maintenance|Diagnostics|Security|Browsers|Updates|Dashboards|QuickActions>"
         exit 0
     }
 } catch {}
@@ -323,6 +335,7 @@ $mainMenuOpts = @(
     "Auditoria Forense Post-Instalacion & Salud (Panther, CompactOS, PnP)",
     "Auditoria de Seguridad & Hardening (ASR, VBS, Protocolos On-Demand)",
     "Optimizar y Debloat de Navegadores (GPU, Menos RAM, Sin Copilot/IA)",
+    "Descargar Windows Updates Oficiales (MSU/CAB para Slipstream en ISO)",
     "Generar y Abrir Dashboards HTML de Salud y Seguridad",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)"
 )
@@ -338,8 +351,9 @@ while ($true) {
         4 { Invoke-DiagnosticsModule }
         5 { Invoke-SecurityModule }
         6 { Invoke-BrowsersModule; pause }
-        7 { Invoke-OpenDashboards }
-        8 { Show-QuickActionsMenu }
+        7 { Invoke-UpdatesModule }
+        8 { Invoke-OpenDashboards }
+        9 { Show-QuickActionsMenu }
         0 {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

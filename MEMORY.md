@@ -1,3 +1,16 @@
+## [2026-08-23T22:25:00-03:00] Descargador Oficial de Windows Updates, Integración en ISO, Sistema de Planes y Reglas de Desarrollo
+
+- **Archivos Creados:** `scripts/Get-WindowsUpdates.ps1`, `scripts/Get-WindowsUpdates.cmd`, `docs/plans/README.md`, `docs/plans/PLAN-0001-20260823-hwid-integration.md`
+- **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/romanOS-Toolkit.ps1`, `scripts/HWID_Activation.cmd`, `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `.agents/AGENTS.md`, `.agents/skills/git-workflow/SKILL.md`, `.gitignore`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Descargador Oficial de Windows Updates (`scripts/Get-WindowsUpdates.ps1`):** Scraping y descarga automatizada directa desde Microsoft Update Catalog y CDN oficial de Microsoft. Soporta Windows 11 (25H2, 24H2, 23H2, LTSC 2024) y Windows 10 (22H2, LTSC 2021). Descarga LCU, SSU, .NET Framework Cumulative Updates y SafeOS Dynamic Updates (.cab). Incluye cálculo de velocidad en streaming, validación de firmas digitales de Microsoft (`Get-AuthenticodeSignature`), generación de `Updates_Manifest.json` y reporte `AI_SUMMARY.md`.
+  - **Integración en Generador de ISO (`New-OptimizedWindowsISO-v2.ps1`):** Parámetro `-UpdatesPath` con matriz de búsqueda multi-ruta (`.\Updates`, `C:\OptimizedISO\Updates`, etc.) y ordenamiento técnico DISM estricto (SSU → Checkpoint Base KB5043080 → LCU Mensual → .NET Framework → SafeOS WinRE).
+  - **Integración en Hub Maestro (`romanOS-Toolkit.ps1`):** Opción `[7] 📦 Descargar Windows Updates Oficiales (MSU/CAB)` en menú interactivo y parámetro CLI `-Module Updates`.
+  - **Reparación de `HWID_Activation.cmd`:** Corrección de terminación de línea `CRLF` requerida por el parser de MAS v3.12.
+  - **Sistema Permanente de Planes de Implementación (`docs/plans/`):** Creación del índice `README.md` y registro del `PLAN-0001-20260823-hwid-integration.md`. Establecida la Regla 5 en `AGENTS.md` para persistencia obligatoria en Git de todos los planes futuros.
+  - **Regla 6: Repositorio como Entorno de Desarrollo Exclusivo:** Formalización en `.agents/AGENTS.md`, `.agents/skills/git-workflow/SKILL.md` y `.gitignore` de la prohibición de commitear binarios pesados (`.iso`, `.wim`, `.esd`, `.vhd`, `.msu`, `.cab`, `vc_redist*.exe`, `DirectX/`), garantizando que este espacio se mantenga 100% como carpeta de ingeniería de software y autoría de scripts.
+  - **Codificación y Compatibilidad:** UTF-8 con BOM en todos los scripts de PowerShell y validación sintáctica 0 AST Errors en Windows PowerShell 5.1 (`powershell.exe`).
+
 ## [2026-08-23T20:39:00-03:00] Unificación Visual Completa de la Suite romanOS — UI-Engine Central
 
 - **Archivos Creados:** `scripts/Core/UI-Engine.ps1`

@@ -71,3 +71,14 @@ git add scripts/New-OptimizedWindowsISO-v2.ps1 scripts/Win11-Debloat-v3-Adaptive
 # Crear commit con mensaje descriptivo y convencional
 git commit -m "fix(ui): revertir menus contextuales y restaurar interfaz estandar"
 ```
+
+---
+
+## 5. Entorno de Desarrollo y Exclusión Estricta de Binarios
+
+Este repositorio es una carpeta de **desarrollo, ingeniería y autoría de scripts**, no de producción masiva de ISOs:
+
+- **Prohibido versionar binarios:** Nunca hacer `git add` a `.iso`, `.wim`, `.esd`, `.vhd`, `.vhdx`, `.msu`, `.cab`, `vc_redist*.exe` ni `DirectX/`.
+- **Higiene en descargas:** Toda herramienta que descargue binarios en runtime debe tener su carpeta de salida incluida en `.gitignore` (`Updates/`, `Runtimes/*.exe`, etc.).
+- **Trazabilidad de código:** Solo se versionan scripts (`.ps1`, `.cmd`), configuraciones (`.xml`), documentación (`.md`) y planes (`docs/plans/`).
+

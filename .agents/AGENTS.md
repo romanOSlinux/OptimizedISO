@@ -41,4 +41,11 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **Commit atómico:** Los planes deben commitearse junto con el commit del hito al que pertenecen, o en un commit separado `docs(plans): agregar PLAN-NNNN ...` si son previos a la implementación.
 - **Nunca dejar planes solo en artifacts de conversación:** Los artifacts de sesión son efímeros. El repositorio Git es la única fuente de verdad para los planes.
 
+## 6. Naturaleza del Repositorio: Entorno de Desarrollo y Autoría de Código
+- **Propósito Exclusivo:** Este repositorio es un espacio de **desarrollo, ingeniería de software, autoría de scripts y documentación**. NO es un entorno de producción masiva ni un almacén de artefactos binarios.
+- **Prohibición de Binarios Pesados en Git:** Está terminantemente prohibido añadir al control de versiones de Git (`git add`) archivos binarios pesados, tales como imágenes ISO (`.iso`), imágenes WIM (`.wim`, `.esd`), paquetes de actualización de Windows (`.msu`, `.cab`), instaladores de runtimes redistribuibles (`vc_redist*.exe`, `DirectX/`), discos virtuales (`.vhd`, `.vhdx`) o carpetas temporales de prueba (`pruebadeblot/`).
+- **Higiene Automática de `.gitignore`:** Ante cualquier nueva herramienta o script que descargue artefactos pesados en tiempo de ejecución, el agente DEBE asegurar que las rutas de descarga queden explícitamente ignoradas en `.gitignore`.
+- **Commits y Push Periódicos:** Mantener sincronizado el repositorio con el remoto (`origin`) mediante commits atómicos y limpios exclusivamente de código fuente (`.ps1`, `.cmd`, `.xml`), documentación (`.md`) y configuración.
+
+
 
