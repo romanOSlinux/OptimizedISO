@@ -9,11 +9,12 @@
 
 ## Descripción del Problema
 
-El pipeline actual de `New-OptimizedWindowsISO-v2.ps1` aplica slipstreaming de forma **ciega**: inyecta todos los paquetes `.msu`/`.cab` presentes en la carpeta `Updates/` sin verificar si el WIM base ya los contiene. Esto genera tres problemas concretos:
+El pipeline actual de `New-OptimizedWindowsISO-v2.ps1` aplica slipstreaming de forma **ciega**: inyecta todos los paquetes `.msu`/`.cab` presentes en la carpeta `Updates/` sin verificar si el WIM base ya los contiene. Esto genera cuatro problemas concretos:
 
 1. **Paquetes redundantes:** Si la ISO de Microsoft ya incluye una LCU reciente, DISM fallará silenciosamente (`0x800f0823` / "ya instalado") sin que el usuario sepa por qué.
 2. **Paquetes más antiguos que la ISO:** Si el usuario descargó updates antes de que saliera una ISO más nueva, DISM los rechazará sin diagnóstico claro.
 3. **Sin diagnóstico de nivel de parche:** No existe forma de saber a qué UBR (Update Build Revision) está el WIM antes de procesar.
+4. **Bug de formato PSF confirmado empíricamente (2026-08-24):** El fallback de extracción `.cab` del script rompe con los **Checkpoint Cumulative Updates** (KB5043080). Estos paquetes usan formato PSF (*Patch Storage Format*) + WIM interno, no un `.cab` extraíble con `expand.exe`. El script actualmente reporta `ERROR: no se encontró .cab válido` y descarta el paquete silenciosamente, dejando el WIM sin el prerequisito obligatorio para la LCU.
 
 Adicionalmente, `Get-WindowsUpdates.ps1` siempre descarga el paquete **más reciente del catálogo** sin conocer el nivel real de la ISO de destino.
 
@@ -128,6 +129,135 @@ Agregar sección con el KB exacto del Checkpoint por versión:
 
 ---
 
+### Componente 5 — Fix Bug PSF: Fallback de extracción `.cab` en Checkpoint Updates ⚠️ URGENTE
+
+> **Causa raíz verificada empíricamente el 2026-08-24.**  
+> Archivo afectado: `New-OptimizedWindowsISO-v2.ps1` líneas **5080–5111**.
+
+#### Análisis del MSU KB5043080 (confirmado con 7-Zip)
+
+```
+windows11.0-kb5043080-x64.msu  (510 MB, contenedor formato WIM)
+├── DesktopDeployment.cab           ← metadatos deployment
+├── DesktopDeployment_x86.cab       ← metadatos x86
+├── SSU-26100.1738-x64.cab         ← SSU empaquetado DENTRO del MSU
+├── Windows11.0-KB5043080-x64.psf  ← PAYLOAD REAL (PSF, no .cab)
+├── Windows11.0-KB5043080-x64.wim  ← WIM auxiliar del parche
+├── onepackage.AggregatedMetadata.cab
+└── wsusscan.cab                    ← excluido correctamente
+```
+
+**El problema:** `expand.exe -F:*` no entiende el formato WIM del contenedor MSU.  
+El `Get-ChildItem *.cab` posterior no encuentra ningún `.cab` de payload útil.  
+Resultado: el paquete se descarta con `ERROR: no se encontró .cab válido`.  
+
+**La raíz:** Los Checkpoint CU usan formato **PSF + WIM**, no el `.cab` monolítico de las LCU estándar. DISM debe procesar el `.msu` completo directamente — jamás puede extraerse el payload manualmente.
+
+#### Lógica del fix: función `Test-MsuIsPsfFormat`
+
+Antes de ejecutar el fallback `expand.exe`, detectar si el `.msu` es de tipo PSF:
+
+```powershell
+function Test-MsuIsPsfFormat {
+    param([string]$MsuPath)
+    # Estrategia 1: buscar la firma WIM en los primeros bytes del .msu
+    # Un MSU de tipo PSF/Checkpoint tiene header WIM (MSWIM\x00\x00\x00)
+    $header = [System.IO.File]::ReadAllBytes($MsuPath) | Select-Object -First 8
+    $wimMagic = [byte[]]@(0x4D,0x53,0x57,0x49,0x4D,0x00,0x00,0x00)  # "MSWIM\0\0\0"
+    $isPsf = ($header[0..7] -join ',') -eq ($wimMagic -join ',')
+    return $isPsf
+}
+```
+
+#### Nuevo flujo del fallback en el bucle de slipstreaming
+
+```
+Para cada $pkg en $orderedPackages:
+
+  1. Intentar DISM /Add-Package con el .msu directo
+     → Exit 0 o 3010: OK
+     → Falla: continuar con fallback
+
+  2. Si es .msu → Test-MsuIsPsfFormat
+
+     a. Es PSF (Checkpoint CU):
+        → Reintentar DISM /Add-Package /IgnoreCheck /NoRestart
+        → Si falla igual: Write-Warn "Checkpoint PSF requiere WIM base compatible"
+          + registrar en log de errores con código DISM exacto
+          + NO intentar extract .cab (no existe)
+
+     b. Es MSU estándar:
+        → expand.exe -F:* → buscar .cab → DISM /Add-Package con .cab
+        → (flujo actual, sin cambios)
+```
+
+#### Cambio de código — ubicación exacta (L.5080–5111)
+
+**Antes (código actual):**
+```powershell
+if ($pkg.Extension -eq ".msu") {
+    Write-Host " WARN"
+    Write-Host "      Intentando extraer .cab interno..."
+    $cabExtractDir = Join-Path $ScratchDir "Extracted_$($pkg.Name)"
+    New-Item -ItemType Directory -Path $cabExtractDir -Force | Out-Null
+    & expand.exe -F:* "$($pkg.FullName)" "$cabExtractDir" 2>&1 | Out-Null
+    $cabFile = Get-ChildItem -Path $cabExtractDir -Filter "*.cab" |
+        Where-Object { $_.Name -notmatch 'WSUSSCAN' } |
+        Select-Object -First 1
+    if ($cabFile) { ... } else {
+        $failCount++
+        Write-Host "      ERROR: no se encontró .cab válido dentro del .msu."
+    }
+}
+```
+
+**Después (con detección PSF):**
+```powershell
+if ($pkg.Extension -eq ".msu") {
+    Write-Host " WARN" -ForegroundColor Yellow
+    $isPsf = Test-MsuIsPsfFormat -MsuPath $pkg.FullName
+
+    if ($isPsf) {
+        # Checkpoint/PSF: DISM debe recibir el .msu completo con /IgnoreCheck
+        Write-Host "      Formato PSF detectado (Checkpoint CU). Reintentando con /IgnoreCheck..." -ForegroundColor DarkYellow
+        $dismRetryRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+            -ArgumentList @("/Image:$WimMountDir", "/Add-Package",
+                            "/PackagePath:$($pkg.FullName)",
+                            "/IgnoreCheck", "/NoRestart",
+                            "/ScratchDir:$ScratchDir", "/LogPath:$dismLog") `
+            -AllowExitCodes @(0, 3010) `
+            -TaskDescription "Slipstreaming PSF Checkpoint $($pkg.Name)" `
+            -TimeoutSeconds 1800 `
+            -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+        if ($dismRetryRes.Success) {
+            $successCount++
+            Write-Host "      OK (PSF Checkpoint aplicado)." -ForegroundColor Green
+        } else {
+            $failCount++
+            Write-Host "      ERROR PSF. ExitCode: $($dismRetryRes.ExitCode). Ver: $dismLog" -ForegroundColor Red
+        }
+    } else {
+        # MSU estándar: extraer .cab interno con expand.exe (flujo original)
+        Write-Host "      Intentando extraer .cab interno..." -ForegroundColor Gray
+        $cabExtractDir = Join-Path $ScratchDir "Extracted_$($pkg.Name)"
+        New-Item -ItemType Directory -Path $cabExtractDir -Force | Out-Null
+        & expand.exe -F:* "$($pkg.FullName)" "$cabExtractDir" 2>&1 | Out-Null
+        $cabFile = Get-ChildItem -Path $cabExtractDir -Filter "*.cab" |
+            Where-Object { $_.Name -notmatch 'WSUSSCAN' } |
+            Select-Object -First 1
+        if ($cabFile) { <# DISM /Add-Package con .cab — igual que antes #> }
+        else {
+            $failCount++
+            Write-Host "      ERROR: no se encontró .cab válido dentro del .msu." -ForegroundColor Red
+        }
+    }
+}
+```
+
+> **Nota sobre `/IgnoreCheck`:** Este flag indica a DISM que omita la validación de pre-requisitos en el paquete y confíe en que el entorno es compatible. Es seguro para Checkpoint CU porque el MSU ya lleva el SSU empaquetado (`SSU-26100.1738-x64.cab`) en su interior y DISM lo aplica automáticamente antes del payload principal.
+
+---
+
 ## Diagrama del Nuevo Flujo
 
 ```
@@ -163,25 +293,41 @@ Get-WindowsUpdates.ps1  (con -SourceWIM opcional)
 
 ## Archivos Afectados
 
-| Archivo | Tipo de cambio |
-|---------|---------------|
-| `scripts/New-OptimizedWindowsISO-v2.ps1` | MODIFY — función Get-WimPatchLevel + slipstreaming inteligente (L.4957–5128) |
-| `scripts/Get-WindowsUpdates.ps1` | MODIFY — parámetro -SourceWIM + descarga de Checkpoint KB5043080 |
-| `.agents/skills/windows-updates-servicing/references/servicing-kb-matrix.md` | MODIFY — tabla Checkpoint KB por versión |
-| `docs/plans/README.md` | MODIFY — registro de este plan |
+| Archivo | Tipo de cambio | Prioridad |
+|---------|---------------|----------|
+| `scripts/New-OptimizedWindowsISO-v2.ps1` | MODIFY — función `Test-MsuIsPsfFormat` + fix fallback PSF (L.5080–5111) | 🔴 URGENTE |
+| `scripts/New-OptimizedWindowsISO-v2.ps1` | MODIFY — función `Get-WimPatchLevel` + slipstreaming inteligente (L.4957) | 🟡 NORMAL |
+| `scripts/Get-WindowsUpdates.ps1` | MODIFY — parámetro `-SourceWIM` + descarga de Checkpoint KB5043080 | 🟡 NORMAL |
+| `.agents/skills/windows-updates-servicing/references/servicing-kb-matrix.md` | MODIFY — tabla Checkpoint KB por versión + nota PSF | 🟢 DOC |
+| `docs/plans/README.md` | MODIFY — registro de este plan | 🟢 DOC |
 
 ---
 
 ## Orden de Implementación
 
+> Los pasos marcados con 🔴 son bloqueantes y deben ir primero.
+
 ```
-1. Implementar Get-WimPatchLevel (función aislada, testeable)
-2. Integrar en el bucle de slipstreaming de New-OptimizedWindowsISO-v2.ps1
-3. Agregar -SourceWIM + auditoría a Get-WindowsUpdates.ps1
-4. Agregar descarga de Checkpoint KB5043080 a Get-WindowsUpdates.ps1
-5. Actualizar servicing-kb-matrix.md con tabla de Checkpoints
-6. Validar con Test-OptimizedISO-v2.ps1 + Invoke-TestSuite.ps1
-7. Commit atómico + actualizar estado del plan a COMPLETADO
+── FASE 1: Fix urgente (bloquea el slipstreaming de KB5043080) ─────────────
+🔴 1. Agregar función Test-MsuIsPsfFormat a New-OptimizedWindowsISO-v2.ps1
+🔴 2. Refactorizar fallback de extracción .cab (L.5080–5111) con detección PSF
+🔴 3. Validar empíricamente con el MSU real:
+       C:\scripts\Updates\11_24H2_amd64\windows11.0-kb5043080-x64_*.msu
+🔴 4. Commit atómico: fix(slipstream): detectar formato PSF en Checkpoint CU
+
+── FASE 2: Auditoría previa del WIM ────────────────────────────────────────
+🟡 5. Implementar Get-WimPatchLevel (función aislada)
+🟡 6. Integrar en el bucle de slipstreaming (insertar en L.4957)
+🟡 7. Commit atómico: feat(slipstream): auditoria previa WIM Get-WimPatchLevel
+
+── FASE 3: Mejoras a Get-WindowsUpdates.ps1 ────────────────────────────────
+🟡 8. Agregar descarga automática de Checkpoint KB5043080 al $searchMatrix
+🟡 9. Agregar parámetro -SourceWIM + lógica de auditoría previa
+🟡 10. Commit atómico: feat(updates): descargar Checkpoint y soporte -SourceWIM
+
+── FASE 4: Documentación ───────────────────────────────────────────────────
+🟢 11. Actualizar servicing-kb-matrix.md con tabla Checkpoints + nota PSF
+🟢 12. Commit atómico + actualizar estado del plan a COMPLETADO
 ```
 
 ---
@@ -211,11 +357,20 @@ Get-WindowsUpdates.ps1  (con -SourceWIM opcional)
 
 | Riesgo | Mitigación |
 |--------|-----------|
+| Header WIM del .msu difiere en versiones futuras | `Test-MsuIsPsfFormat` usa los primeros 8 bytes (`MSWIM\0\0\0`); estable desde Windows 11 21H2 |
+| `/IgnoreCheck` aplica paquete incompatible | DISM igual reportará error si el paquete es realmente incompatible; `/IgnoreCheck` solo omite la validación de prerequisitos declarados, no la de arquitectura |
 | `DISM /Get-Packages` lento en imágenes grandes | Ejecutar solo 1 vez por índice WIM; cachear resultado en `$wimPatchLevel` |
 | Nombre de archivo KB no estándar → no se detecta | Parsear también `Package_for_RollupFix` del output de DISM, no solo el nombre del archivo |
 | WIM en formato ESD (no montable con DISM) | Ya manejado: el script actual omite inyección en ESD; la auditoría también se omite |
 | Checkpoint KB5043080 no disponible en catálogo | Fallback: advertir pero no bloquear el pipeline; el Checkpoint puede ya estar en la ISO |
 
 ---
+
+## Historial de Revisiones
+
+| Fecha | Cambio |
+|-------|-------|
+| 2026-08-24 | Creación inicial del plan (Componentes 1–4) |
+| 2026-08-24 | Agregado Componente 5: fix bug PSF confirmado empíricamente con KB5043080 (MSU tipo WIM/PSF, `expand.exe` incompatible) |
 
 *Plan generado el 2026-08-24. Estado inicial: PENDIENTE.*
