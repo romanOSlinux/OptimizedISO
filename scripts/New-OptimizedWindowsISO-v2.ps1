@@ -5337,6 +5337,9 @@ if ($wimFile) {
                                 $label = if ($pkg.Name -match 'ssu|servicing.?stack') { "[SSU]" } elseif ($pkg.Name -match 'kb5043080|checkpoint') { "[CHK]" } else { "[PKG]" }
                                 $sizeMB = [math]::Round($pkg.Length / 1MB, 1)
 
+                                # Timeout dinámico según el tamaño del paquete (paquetes acumulativos >1.5 GB reciben 2400s / 40m)
+                                $pkgTimeout = if ($sizeMB -gt 1500) { 2400 } else { 1200 }
+
                                 # Verificar si el KB ya está instalado en el WIM base
                                 $pkgKB = if ($pkg.Name -match 'KB(\d{7,})') { "KB$($Matches[1])" } else { "" }
                                 if ($pkgKB -and $wimPatchLevel -and $wimPatchLevel.InstalledKBs.Contains($pkgKB)) {
@@ -5355,7 +5358,7 @@ if ($wimFile) {
                                         -ArgumentList @("/Image:$WimMountDir", "/Add-Package", "/PackagePath:$($pkg.FullName)", "/ScratchDir:$ScratchDir", "/LogPath:$dismLog") `
                                         -AllowExitCodes @(0, 3010) `
                                         -TaskDescription "Slipstreaming paquete $($pkg.Name)" `
-                                        -TimeoutSeconds 900 `
+                                        -TimeoutSeconds $pkgTimeout `
                                         -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
                                     if ($dismRes.Success) {
@@ -5388,7 +5391,7 @@ if ($wimFile) {
                                                     ) `
                                                     -AllowExitCodes @(0, 3010) `
                                                     -TaskDescription "Slipstreaming PSF Checkpoint $($pkg.Name)" `
-                                                    -TimeoutSeconds 1800 `
+                                                    -TimeoutSeconds $pkgTimeout `
                                                     -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
                                                 if ($dismPsfRes.Success) {
@@ -5949,17 +5952,6 @@ if ($wimFile) {
                                  Write-Warn "Error aplicando tweaks visuales offline: $($_.Exception.Message)"
                              } finally {
                                  if ($hiveLoaded) {
-                                     # Inyectar Runtimes esenciales directamente en el WIM montado (Doble Inyección)
-                                     if ($runtimesInfo -and $runtimesInfo.Found -and (Test-Path $runtimesInfo.Path)) {
-                                         $wimRuntimesDest = Join-Path $wimScriptsDir "Runtimes"
-                                         if (-not (Test-Path $wimRuntimesDest)) {
-                                             New-Item -ItemType Directory -Path $wimRuntimesDest -Force | Out-Null
-                                         }
-                                         Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $wimRuntimesDest -Recurse -Force
-                                         Write-OK "Inyectado en WIM índice ${wimIndex}: Runtimes Esenciales ($($runtimesInfo.FileCount) archivos)"
-                                     }
-
-                                     $dismountSuccess = Invoke-SafeWimDismount -MountDir $WimMountDir -Action Save -ScratchDirectory $ScratchDir
                                      Write-Host "    Descargando colmena NTUSER.DAT..." -ForegroundColor Gray
 
                                      $unloaded = Invoke-RegUnloadHive -HiveName "HKLM\OfflineDefaultUser"
@@ -5977,13 +5969,23 @@ if ($wimFile) {
                      }
 
                      #==================================================================
-                     # INYECTAR SCRIPTS Y SetupComplete.cmd EN WIM
+                     # INYECTAR SCRIPTS, RUNTIMES Y SetupComplete.cmd EN WIM
                      #==================================================================
 
                      $wimScriptsDir = Join-Path $WimMountDir "Windows\Setup\Scripts"
 
                      if (-not (Test-Path $wimScriptsDir)) {
                          New-Item -ItemType Directory -Path $wimScriptsDir -Force | Out-Null
+                     }
+
+                     # Inyectar Runtimes esenciales directamente en el WIM montado (Doble Inyección Garantizada)
+                     if ($runtimesInfo -and $runtimesInfo.Found -and (Test-Path $runtimesInfo.Path)) {
+                         $wimRuntimesDest = Join-Path $wimScriptsDir "Runtimes"
+                         if (-not (Test-Path $wimRuntimesDest)) {
+                             New-Item -ItemType Directory -Path $wimRuntimesDest -Force | Out-Null
+                         }
+                         Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $wimRuntimesDest -Recurse -Force
+                         Write-OK "Inyectado en WIM índice ${wimIndex}: Runtimes Esenciales ($($runtimesInfo.FileCount) archivos)"
                      }
 
                      foreach ($script in $scriptsToInject) {

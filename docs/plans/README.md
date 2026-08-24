@@ -23,6 +23,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0005 | [PLAN-0005-20260824-wim-preaudit-smart-slipstream.md](PLAN-0005-20260824-wim-preaudit-smart-slipstream.md) | 2026-08-24 | Auditoría Previa del WIM y Slipstreaming Inteligente | COMPLETADO |
 | 0006 | [PLAN-0006-20260824-runtimes-discovery-and-dual-injection.md](PLAN-0006-20260824-runtimes-discovery-and-dual-injection.md) | 2026-08-24 | Detección Inteligente y Doble Inyección de Runtimes (OEM + WIM Offline) | COMPLETADO |
 | 0007 | [PLAN-0007-20260824-unify-iso-visual-engine.md](PLAN-0007-20260824-unify-iso-visual-engine.md) | 2026-08-24 | Unificación del Motor Visual y Formato de Consola (UI-Engine) en New-OptimizedWindowsISO-v2.ps1 | COMPLETADO |
+| 0008 | [PLAN-0008-20260824-fix-updates-slipstreaming-and-wim-runtimes.md](PLAN-0008-20260824-fix-updates-slipstreaming-and-wim-runtimes.md) | 2026-08-24 | Corrección de Slipstreaming de Updates e Inyección Offline Estructural de Runtimes en WIM | COMPLETADO |
 
 ---
 
