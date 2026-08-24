@@ -1,7 +1,7 @@
 # PLAN-0005 — Auditoría Previa del WIM y Slipstreaming Inteligente
 
 **Fecha:** 2026-08-24  
-**Estado:** PENDIENTE  
+**Estado:** COMPLETADO  
 **Autor:** Antigravity (par de programación IA)  
 **Rama objetivo:** `feat/wim-preaudit-smart-slipstream`
 
@@ -372,5 +372,6 @@ Get-WindowsUpdates.ps1  (con -SourceWIM opcional)
 |-------|-------|
 | 2026-08-24 | Creación inicial del plan (Componentes 1–4) |
 | 2026-08-24 | Agregado Componente 5: fix bug PSF confirmado empíricamente con KB5043080 (MSU tipo WIM/PSF, `expand.exe` incompatible) |
+| 2026-08-24 | **IMPLEMENTADO** — commits: `0817efe` (FASE 1+2), `3a86cd3` (FASE 3+4) |
 
-*Plan generado el 2026-08-24. Estado inicial: PENDIENTE.*
+*Plan generado el 2026-08-24. Estado final: COMPLETADO.*

@@ -20,7 +20,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0002 | [PLAN-0002-20260823-skills-optimization.md](PLAN-0002-20260823-skills-optimization.md) | 2026-08-23 | Optimización Integral de Skills y Agentes del Proyecto | COMPLETADO |
 | 0003 | [PLAN-0003-20260823-skills-and-test-orchestrator.md](PLAN-0003-20260823-skills-and-test-orchestrator.md) | 2026-08-23 | Expansión de Skills Especializadas, Orquestador Maestro de Pruebas y Hooks | COMPLETADO |
 | 0004 | [PLAN-0004-20260823-smoke-test-new-skills-and-orchestrator.md](PLAN-0004-20260823-smoke-test-new-skills-and-orchestrator.md) | 2026-08-23 | Prueba de Humo y Verificación Funcional de Nuevas Skills y Orquestador | COMPLETADO |
-| 0005 | [PLAN-0005-20260824-wim-preaudit-smart-slipstream.md](PLAN-0005-20260824-wim-preaudit-smart-slipstream.md) | 2026-08-24 | Auditoría Previa del WIM y Slipstreaming Inteligente | PENDIENTE |
+| 0005 | [PLAN-0005-20260824-wim-preaudit-smart-slipstream.md](PLAN-0005-20260824-wim-preaudit-smart-slipstream.md) | 2026-08-24 | Auditoría Previa del WIM y Slipstreaming Inteligente | COMPLETADO |
 
 ---
 
