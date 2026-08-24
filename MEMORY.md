@@ -1,3 +1,16 @@
+## [2026-08-23T23:01:00-03:00] Ejecución Integral de Batería de Pruebas, Corrección AST y Certificación PS5.1
+
+- **Archivos Modificados:** `scripts/Win11-Network-Diagnostics-Optimizer.ps1`, `OptimizedISO-Package/Modules/OptimizedISOHelpers.psm1`, `.agents/skills/powershell-windows/scripts/Test-ScriptAstAndBom.ps1`, `MEMORY.md`
+- **Commits:** `da849d9` (fix(core): corregir bloque try-catch en Network Optimizer, aplicar UTF-8 BOM y extender batch scanner)
+- **Hitos Logrados:**
+  - **Detección y Corrección Inmediata de Sintaxis AST:** La ejecución de la batería de pruebas reveló un bloque `try` sin cerrar en `Write-LogSummary` dentro de `scripts/Win11-Network-Diagnostics-Optimizer.ps1` (introducido en refactorización previa de logs), el cual fue corregido y probado inmediatamente.
+  - **Estandarización UTF-8 BOM:** Se aplicó codificación UTF-8 con BOM a `OptimizedISO-Package/Modules/OptimizedISOHelpers.psm1`.
+  - **Ampliación de Helper de Testing (`Test-ScriptAstAndBom.ps1`):** Soporte automático de escaneo por lotes de todo el árbol de trabajo y manejo interactivo seguro sin bloqueos en `stdin`.
+  - **Validación AST y BOM 100% PASS:** 19/19 scripts evaluados exitosamente en Windows PowerShell 5.1 (`powershell.exe`).
+  - **Test Harness `Test-OptimizedISO-v2.ps1` 100% PASS:** 140 pruebas ejecutadas (139 PASS, 0 FAIL, 1 SKIP por módulo opcional). Reporte guardado en `Log/TestHarness_20260823_225740.md`.
+  - **Validación de Entorno ADK y Git Hygiene:** `Test-AdkEnvironment.ps1` y `Test-GitWorkspaceHygiene.ps1` ejecutados con estado 100% OK (cero binarios pesados rastreados y herramientas listas).
+  - **Sincronización:** Cambios commiteados y pusheados a `origin/feature/offline-ui-tweaks`.
+
 ## [2026-08-23T22:38:00-03:00] Optimización Integral de Skills y Agentes según Estándares Oficiales de Antigravity
 
 - **Archivos Creados:** `.agents/skills/powershell-windows/scripts/Test-ScriptAstAndBom.ps1`, `.agents/skills/powershell-windows/references/registry-dism-matrix.md`, `.agents/skills/windows-adk-hyperv/scripts/Test-AdkEnvironment.ps1`, `.agents/skills/windows-adk-hyperv/references/oscdimg-hyperv-reference.md`, `.agents/skills/git-workflow/scripts/Test-GitWorkspaceHygiene.ps1`, `.agents/skills/git-workflow/references/git-commands-cheatsheet.md`, `.agents/skills/project-audit/references/autounattend-schema.md`, `docs/plans/PLAN-0002-20260823-skills-optimization.md`
