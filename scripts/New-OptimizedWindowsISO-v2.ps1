@@ -259,20 +259,46 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # -----------------------------------------------------------------------------
-# CARGA DE MOTOR VISUAL UNIFICADO (Core\UI-Engine.ps1)
+# CARGA DE MOTOR VISUAL UNIFICADO (Core\UI-Engine.ps1) O MICRO-FALLBACK STANDALONE
 # -----------------------------------------------------------------------------
-$uiEnginePaths = @(
-    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
-    (Join-Path $PSScriptRoot "UI-Engine.ps1"),
-    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
-    "C:\OptimizedISO\scripts\Core\UI-Engine.ps1",
-    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
-)
+$uiEnginePaths = [System.Collections.Generic.List[string]]::new()
+if ($PSScriptRoot) {
+    $uiEnginePaths.Add((Join-Path $PSScriptRoot "Core\UI-Engine.ps1"))
+    $uiEnginePaths.Add((Join-Path $PSScriptRoot "UI-Engine.ps1"))
+    $uiEnginePaths.Add((Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"))
+    $uiEnginePaths.Add((Join-Path (Split-Path $PSScriptRoot -Parent) "Core\UI-Engine.ps1"))
+}
+$loc = Get-Location
+if ($loc) {
+    $uiEnginePaths.Add((Join-Path $loc.Path "Core\UI-Engine.ps1"))
+    $uiEnginePaths.Add((Join-Path $loc.Path "scripts\Core\UI-Engine.ps1"))
+    $uiEnginePaths.Add((Join-Path $loc.Path "UI-Engine.ps1"))
+}
+$uiEnginePaths.Add("C:\OptimizedISO\scripts\Core\UI-Engine.ps1")
+$uiEnginePaths.Add("C:\scripts\Core\UI-Engine.ps1")
+$uiEnginePaths.Add("C:\scripts\UI-Engine.ps1")
+$uiEnginePaths.Add("C:\Windows\Setup\Scripts\Core\UI-Engine.ps1")
+
+$uiLoaded = $false
 foreach ($p in $uiEnginePaths) {
     if ($p -and (Test-Path $p)) {
         . $p
+        $uiLoaded = $true
         break
     }
+}
+
+if (-not $uiLoaded) {
+    function Show-UnifiedBanner  { param($Title, $Subtitle = "", [switch]$ShowSystemInfo, [switch]$NoClear) Write-Host "`n=== $Title $(if($Subtitle){"($Subtitle)"}) ===`n" -ForegroundColor Cyan }
+    function Write-StepHeader    { param([int]$StepNumber, [int]$TotalSteps, [string]$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
+    function Write-SubStep       { param([string]$Message) Write-Host "  -> $Message" -ForegroundColor Gray }
+    function Write-OK            { param([string]$Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
+    function Write-Warn          { param([string]$Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
+    function Write-ErrorMsg      { param([string]$Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
+    function Write-Info          { param([string]$Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
+    function Prompt-UnifiedYesNo { param($Prompt, [bool]$Default = $true) $d = if ($Default) { "S" } else { "N" }; $r = Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if ([string]::IsNullOrWhiteSpace($r)) { return $Default }; return ($r -match '^(s|si|y|yes)$') }
+    function Show-UnifiedMenu    { param($Title, $Options, [int]$DefaultChoice = 1, [switch]$AllowCancel, [string]$CancelText = "Salir") for ($i = 0; $i -lt $Options.Count; $i++) { Write-Host "  [$($i+1)] $($Options[$i])" }; if ($AllowCancel) { Write-Host "  [0] $CancelText" }; $r = Read-Host "  Opción"; if (-not $r) { return $DefaultChoice }; return [int]$r }
+    function Show-UnifiedSummary { param($Title, $Status, $DurationSeconds, $ErrorsCount, $WarnsCount, $Logs) Write-Host "`n=== $Title : $Status ($($DurationSeconds)s) ===`n" -ForegroundColor Cyan }
 }
 
 #------------------------------------------------------------------------------
@@ -281,8 +307,10 @@ foreach ($p in $uiEnginePaths) {
 
 $ScriptsDir = if ($PSScriptRoot) {
     $PSScriptRoot
-} else {
+} elseif ($MyInvocation.MyCommand.Path) {
     Split-Path -Parent $MyInvocation.MyCommand.Path
+} else {
+    (Get-Location).Path
 }
 
 $Timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
