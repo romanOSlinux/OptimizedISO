@@ -177,6 +177,9 @@ function Write-LogSummary {
         if ($script:AiSummaryFile) {
             [System.IO.File]::WriteAllText($script:AiSummaryFile, $sb.ToString(), [System.Text.Encoding]::UTF8)
         }
+    } catch {
+        Write-LogEntry -Level "WARN" -Message "No se pudo generar el reporte AI Summary: $($_.Exception.Message)"
+    }
     $logMap = @{}
     if ($script:AiSummaryFile)  { $logMap["AI Diagnostic MD"] = $script:AiSummaryFile }
     if ($script:LogFile)        { $logMap["Log Estructurado"] = $script:LogFile }

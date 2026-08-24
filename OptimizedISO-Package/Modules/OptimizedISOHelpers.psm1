@@ -1,4 +1,4 @@
-function Write-Log {
+﻿function Write-Log {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Path,
