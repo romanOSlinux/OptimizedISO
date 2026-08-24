@@ -1,4 +1,4 @@
-﻿#Requires -RunAsAdministrator
+#Requires -RunAsAdministrator
 
 <#
 .SYNOPSIS
@@ -738,7 +738,93 @@ function Invoke-MonitoredProcess {
     }
 }
 
+# -----------------------------------------------------------------------------
+# FUNCIÓN AUXILIAR: Detección de formato PSF en Checkpoint Cumulative Updates
+# Los MSU de tipo Checkpoint (KB5043080) usan un contenedor WIM interno cuyo
+# payload es un .psf (Patch Storage Format), no un .cab extraíble con expand.exe.
+# Detección: los primeros 8 bytes del archivo son la firma WIM: MSWIM\0\0\0
+# -----------------------------------------------------------------------------
+function Test-MsuIsPsfFormat {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$MsuPath
+    )
+
+    try {
+        if (-not (Test-Path $MsuPath)) { return $false }
+        $stream = [System.IO.File]::OpenRead($MsuPath)
+        $header = New-Object byte[] 8
+        [void]$stream.Read($header, 0, 8)
+        $stream.Close()
+
+        # Firma WIM: 4D 53 57 49 4D 00 00 00  ("MSWIM\0\0\0")
+        $wimMagic = [byte[]]@(0x4D, 0x53, 0x57, 0x49, 0x4D, 0x00, 0x00, 0x00)
+        for ($j = 0; $j -lt 8; $j++) {
+            if ($header[$j] -ne $wimMagic[$j]) { return $false }
+        }
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+# -----------------------------------------------------------------------------
+# FUNCIÓN AUXILIAR: Auditoría de nivel de parche en WIM montado
+# Ejecuta DISM /Get-Packages sobre la imagen montada y extrae los KBs instalados
+# buscando entradas Package_for_RollupFix (LCU) y Package_for_KB (otros).
+# Devuelve hashtable: @{ InstalledKBs = @("KB5043080","KB5058411",...); UBR = 3374 }
+# -----------------------------------------------------------------------------
+function Get-WimPatchLevel {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$MountDir
+    )
+
+    $result = @{
+        InstalledKBs = [System.Collections.Generic.List[string]]::new()
+        UBR          = 0
+        RawOutput    = ""
+    }
+
+    try {
+        $dismOutput = & dism.exe /Image:"$MountDir" /Get-Packages /Format:Table 2>&1 |
+            ForEach-Object { "$_" }
+
+        $result.RawOutput = $dismOutput -join "`n"
+
+        foreach ($line in $dismOutput) {
+            # Extraer cualquier mención a KBXXXXXX en nombre de paquete
+            if ($line -match 'KB(\d{7,})') {
+                $kb = "KB$($Matches[1])"
+                if (-not $result.InstalledKBs.Contains($kb)) {
+                    $result.InstalledKBs.Add($kb)
+                }
+            }
+        }
+
+        # Intentar obtener UBR del registro offline
+        try {
+            $swPath = Join-Path $MountDir "Windows\System32\config\SOFTWARE"
+            if (Test-Path $swPath) {
+                & reg.exe load "HKLM\_WIMPATCH_TMP" "$swPath" 2>&1 | Out-Null
+                $ubr = (Get-ItemProperty "HKLM:\_WIMPATCH_TMP\Microsoft\Windows NT\CurrentVersion" `
+                    -Name UBR -ErrorAction SilentlyContinue).UBR
+                & reg.exe unload "HKLM\_WIMPATCH_TMP" 2>&1 | Out-Null
+                if ($ubr) { $result.UBR = [int]$ubr }
+            }
+        } catch {}
+
+    } catch {
+        Write-Warn "Get-WimPatchLevel: error consultando DISM /Get-Packages - $($_.Exception.Message)"
+    }
+
+    return $result
+}
+
 function Invoke-SafeWimDismount {
+
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -4956,6 +5042,23 @@ if ($wimFile) {
                     Write-OK "WIM índice $wimIndex$imgNameStr montado."
 
                     #==================================================================
+                    # AUDITORÍA PREVIA: nivel de parche actual del WIM base
+                    #==================================================================
+
+                    Write-Host ""
+                    Write-Host "    ══ Auditoría de Nivel de Parche del WIM Base ══" -ForegroundColor Cyan
+                    $wimPatchLevel = Get-WimPatchLevel -MountDir $WimMountDir
+
+                    if ($wimPatchLevel.InstalledKBs.Count -gt 0) {
+                        $kbList = $wimPatchLevel.InstalledKBs -join ", "
+                        $ubrStr = if ($wimPatchLevel.UBR -gt 0) { " (UBR: $($wimPatchLevel.UBR))" } else { "" }
+                        Write-Host "    KBs en WIM base$ubrStr : $kbList" -ForegroundColor DarkGray
+                        Write-Info "Slipstreaming omitirá paquetes ya presentes en el WIM."
+                    } else {
+                        Write-Host "    No se detectaron KBs en el WIM base (imagen sin parchear o DISM no devolvió datos)." -ForegroundColor DarkGray
+                    }
+
+                    #==================================================================
                     # HABILITACIÓN OFFLINE DE .NET FRAMEWORK 3.5 (NetFx3)
                     #==================================================================
 
@@ -5058,8 +5161,17 @@ if ($wimFile) {
                             foreach ($pkg in $orderedPackages) {
                                 $i++
 
-                                $label = if ($pkg.Name -match 'ssu|servicing.?stack') { "[SSU]" } else { "[PKG]" }
+                                $label = if ($pkg.Name -match 'ssu|servicing.?stack') { "[SSU]" } elseif ($pkg.Name -match 'kb5043080|checkpoint') { "[CHK]" } else { "[PKG]" }
                                 $sizeMB = [math]::Round($pkg.Length / 1MB, 1)
+
+                                # Verificar si el KB ya está instalado en el WIM base
+                                $pkgKB = if ($pkg.Name -match 'KB(\d{7,})') { "KB$($Matches[1])" } else { "" }
+                                if ($pkgKB -and $wimPatchLevel -and $wimPatchLevel.InstalledKBs.Contains($pkgKB)) {
+                                    Write-Host "    [$i/$total] $label $($pkg.Name) ($sizeMB MB)..." -ForegroundColor DarkGray -NoNewline
+                                    Write-Host " OMITIDO (ya en WIM)" -ForegroundColor DarkCyan
+                                    $successCount++
+                                    continue
+                                }
 
                                 Write-Host "    [$i/$total] $label $($pkg.Name) ($sizeMB MB)..." -ForegroundColor Gray -NoNewline
 
@@ -5079,35 +5191,72 @@ if ($wimFile) {
                                     } else {
                                         if ($pkg.Extension -eq ".msu") {
                                             Write-Host " WARN" -ForegroundColor Yellow
-                                            Write-Host "      Intentando extraer .cab interno..." -ForegroundColor Gray
 
-                                            $cabExtractDir = Join-Path $ScratchDir "Extracted_$($pkg.Name)"
-                                            New-Item -ItemType Directory -Path $cabExtractDir -Force | Out-Null
+                                            # Detectar si el .msu es un Checkpoint CU (formato PSF/WIM)
+                                            # Los Checkpoint CU (ej. KB5043080) tienen cabecera WIM (MSWIM\0\0\0)
+                                            # y NO contienen un .cab extraíble con expand.exe.
+                                            $isPsf = Test-MsuIsPsfFormat -MsuPath $pkg.FullName
 
-                                            & expand.exe -F:* "$($pkg.FullName)" "$cabExtractDir" 2>&1 | Out-Null
+                                            if ($isPsf) {
+                                                # === RUTA PSF: Checkpoint Cumulative Update ===
+                                                # El MSU ya contiene el SSU bundled internamente.
+                                                # DISM debe procesar el .msu completo con /IgnoreCheck.
+                                                Write-Host "      [PSF] Checkpoint CU detectado. Reintentando con /IgnoreCheck..." -ForegroundColor DarkYellow
 
-                                            $cabFile = Get-ChildItem -Path $cabExtractDir -Filter "*.cab" |
-                                                Where-Object { $_.Name -notmatch 'WSUSSCAN' } |
-                                                Select-Object -First 1
-
-                                            if ($cabFile) {
-                                                $dismCabRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
-                                                    -ArgumentList @("/Image:$WimMountDir", "/Add-Package", "/PackagePath:$($cabFile.FullName)", "/ScratchDir:$ScratchDir", "/LogPath:$dismLog") `
+                                                $dismPsfRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                                                    -ArgumentList @(
+                                                        "/Image:$WimMountDir",
+                                                        "/Add-Package",
+                                                        "/PackagePath:$($pkg.FullName)",
+                                                        "/IgnoreCheck",
+                                                        "/NoRestart",
+                                                        "/ScratchDir:$ScratchDir",
+                                                        "/LogPath:$dismLog"
+                                                    ) `
                                                     -AllowExitCodes @(0, 3010) `
-                                                    -TaskDescription "Slipstreaming .cab extraído de $($pkg.Name)" `
-                                                    -TimeoutSeconds 900 `
+                                                    -TaskDescription "Slipstreaming PSF Checkpoint $($pkg.Name)" `
+                                                    -TimeoutSeconds 1800 `
                                                     -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
-                                                if ($dismCabRes.Success) {
+                                                if ($dismPsfRes.Success) {
                                                     $successCount++
-                                                    Write-Host "      OK usando .cab extraído." -ForegroundColor Green
+                                                    Write-Host "      OK (Checkpoint PSF aplicado)." -ForegroundColor Green
                                                 } else {
                                                     $failCount++
-                                                    Write-Host "      ERROR también con .cab. Exit code: $($dismCabRes.ExitCode)." -ForegroundColor Red
+                                                    Write-Host "      ERROR PSF. ExitCode: $($dismPsfRes.ExitCode). Log: $dismLog" -ForegroundColor Red
                                                 }
                                             } else {
-                                                $failCount++
-                                                Write-Host "      ERROR: no se encontró .cab válido dentro del .msu." -ForegroundColor Red
+                                                # === RUTA ESTÁNDAR: MSU con .cab extraíble ===
+                                                Write-Host "      Intentando extraer .cab interno..." -ForegroundColor Gray
+
+                                                $cabExtractDir = Join-Path $ScratchDir "Extracted_$($pkg.Name)"
+                                                New-Item -ItemType Directory -Path $cabExtractDir -Force | Out-Null
+
+                                                & expand.exe -F:* "$($pkg.FullName)" "$cabExtractDir" 2>&1 | Out-Null
+
+                                                $cabFile = Get-ChildItem -Path $cabExtractDir -Filter "*.cab" |
+                                                    Where-Object { $_.Name -notmatch 'WSUSSCAN' } |
+                                                    Select-Object -First 1
+
+                                                if ($cabFile) {
+                                                    $dismCabRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                                                        -ArgumentList @("/Image:$WimMountDir", "/Add-Package", "/PackagePath:$($cabFile.FullName)", "/ScratchDir:$ScratchDir", "/LogPath:$dismLog") `
+                                                        -AllowExitCodes @(0, 3010) `
+                                                        -TaskDescription "Slipstreaming .cab extraído de $($pkg.Name)" `
+                                                        -TimeoutSeconds 900 `
+                                                        -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+
+                                                    if ($dismCabRes.Success) {
+                                                        $successCount++
+                                                        Write-Host "      OK usando .cab extraído." -ForegroundColor Green
+                                                    } else {
+                                                        $failCount++
+                                                        Write-Host "      ERROR también con .cab. Exit code: $($dismCabRes.ExitCode)." -ForegroundColor Red
+                                                    }
+                                                } else {
+                                                    $failCount++
+                                                    Write-Host "      ERROR: no se encontró .cab válido dentro del .msu." -ForegroundColor Red
+                                                }
                                             }
                                         } else {
                                             $failCount++
