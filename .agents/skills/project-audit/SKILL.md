@@ -1,21 +1,29 @@
 ---
 name: project-audit
-description: "Procedimiento para auditar la estructura, seguridad y optimización de proyectos de personalización de Windows e imágenes ISO."
+description: >-
+  Activate this skill when auditing the architecture and integrity of the ISO generator,
+  verifying autounattend.xml syntax and schema, inspecting $OEM$ directory structure,
+  or reviewing registry servicing safety protocols.
 ---
 
-# Auditoría de Proyecto OptimizedISO
+# Auditoría de Proyecto romanOS / OptimizedISO
 
-Procedimiento estándar para auditar la integridad de scripts, archivos XML y configuraciones del proyecto.
+Procedimiento para auditar la integridad de scripts, plantillas XML y configuraciones de la ISO.
 
 ## Áreas de Auditoría Críticas
-1. **Sintaxis XML de `autounattend.xml`:**
-   - Validar namespaces (`wcm:action`, `xmlns:wcm`, `xmlns:xsi`).
-   - Validar codificación UTF-8 sin BOM.
-   - Layout de particiones UEFI/GPT (WinRE 500 MB TypeID `de94bba4...`, InstallTo PartitionID 4).
-2. **Estructura `$OEM$`:**
-   - `sources\$OEM$\$$\Setup\Scripts` para scripts de sistema.
-   - `sources\$OEM$\$1\Users\Public\Desktop` para accesos directos y lanzadores de usuario.
+
+1. **Esquema `autounattend.xml`:**
+   - Validar codificación UTF-8 sin BOM (requerimiento de Windows Setup).
+   - Validar layout UEFI/GPT de 4 particiones (WinRE = TypeID `de94bba4...`, InstallTo PartitionID = 4).
+   - Validar que no existan directivas inválidas como `<WillContinueOnFailure>`.
+2. **Estructura de Inyección `$OEM$`:**
+   - `$OEM$\$$\Setup\Scripts` para scripts de sistema y `SetupComplete.cmd`.
+   - `$OEM$\$$\Setup\Scripts\Core` para el motor gráfico unificado (`UI-Engine.ps1`).
 3. **Servicing de Registro Offline:**
-   - Verificar siempre el desmonte seguro de hives con `reg.exe unload` y Garbage Collection `[GC]::Collect()`.
-4. **Comprobación de herramientas de compilación:**
-   - Detectar presencia de `oscdimg.exe` en Windows ADK (`amd64` y `arm64`).
+   - Confirmar desmonte estricto de hives temporales con `reg.exe unload` y Garbage Collection.
+
+---
+
+## Documentación y Referencias Técnicas
+
+- [Esquema de Particionado y XML de autounattend](./references/autounattend-schema.md)

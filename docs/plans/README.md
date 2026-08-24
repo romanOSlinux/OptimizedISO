@@ -17,6 +17,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | # | Archivo | Fecha | Título | Estado |
 |---|---|---|---|---|
 | 0001 | [PLAN-0001-20260823-hwid-integration.md](PLAN-0001-20260823-hwid-integration.md) | 2026-08-23 | Integración Opcional HWID Activation en ISO | PENDIENTE |
+| 0002 | [PLAN-0002-20260823-skills-optimization.md](PLAN-0002-20260823-skills-optimization.md) | 2026-08-23 | Optimización Integral de Skills y Agentes del Proyecto | COMPLETADO |
 
 ---
 

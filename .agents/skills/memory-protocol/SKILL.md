@@ -1,25 +1,26 @@
 ---
 name: memory-protocol
-description: "Protocolo detallado para gestionar el archivo MEMORY.md de bitácora de proyecto: formato, rotación, archivado, y reglas de escritura para agentes de IA."
+description: >-
+  Activate this skill when recording project milestones, updating MEMORY.md,
+  rotating logs, or ensuring cross-session state continuity for AI pair-programming.
 ---
 
 # Protocolo de Memoria Activa (MEMORY.md)
 
-Instrucciones detalladas para gestionar la bitácora `MEMORY.md` en el proyecto.
+Estándar para mantener la bitácora técnica y la continuidad de decisiones del proyecto.
 
-## Propósito
+## Reglas de Registro Obligatorias
 
-`MEMORY.md` es el mecanismo de continuidad entre sesiones de trabajo con agentes de IA. Permite que un agente nuevo entienda rápidamente qué se hizo, qué decisiones se tomaron, y qué quedó pendiente.
+1. **Cronología Inversa:** El bloque más nuevo siempre va al inicio de `MEMORY.md` (debajo del título).
+2. **Timestamp y Formato ISO 8601:** `## [YYYY-MM-DDTHH:mm:ss-03:00] Título del Hito`.
+3. **Estructura por Bloque:**
+   - **Archivos Creados / Modificados:** Lista exacta de rutas.
+   - **Commits:** Hash y mensaje si aplica.
+   - **Hitos Logrados:** Viñetas técnicas de lo implementado y validado.
+4. **Registro antes de Terminar:** Ninguna sesión debe finalizar sin actualizar `MEMORY.md`.
 
-## Reglas de escritura
+---
 
-1. **Cronología inversa:** El bloque más nuevo siempre va arriba (después del header).
-2. **Timestamp obligatorio:** Usar formato ISO 8601 con zona horaria del usuario (`-03:00`).
-3. **Brevedad:** Máximo 5-8 viñetas por bloque.
-4. **No duplicar:** Referenciar archivos en lugar de copiar código extenso.
-5. **Registrar antes de terminar:** Nunca finalizar una sesión de trabajo sin agregar un bloque.
+## Cuándo Consultar MEMORY.md
 
-## Cuándo leer MEMORY.md
-
-- **Siempre** al iniciar cualquier tarea en un proyecto.
-- Es la primera acción antes de investigar código o hacer cambios.
+- **Paso Inicial Obligatorio:** Al comenzar una nueva conversación, leer el bloque superior de `MEMORY.md` para situar el contexto sin rehacer trabajo previo.

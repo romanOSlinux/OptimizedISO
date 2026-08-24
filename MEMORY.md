@@ -1,3 +1,17 @@
+## [2026-08-23T22:38:00-03:00] Optimización Integral de Skills y Agentes según Estándares Oficiales de Antigravity
+
+- **Archivos Creados:** `.agents/skills/powershell-windows/scripts/Test-ScriptAstAndBom.ps1`, `.agents/skills/powershell-windows/references/registry-dism-matrix.md`, `.agents/skills/windows-adk-hyperv/scripts/Test-AdkEnvironment.ps1`, `.agents/skills/windows-adk-hyperv/references/oscdimg-hyperv-reference.md`, `.agents/skills/git-workflow/scripts/Test-GitWorkspaceHygiene.ps1`, `.agents/skills/git-workflow/references/git-commands-cheatsheet.md`, `.agents/skills/project-audit/references/autounattend-schema.md`, `docs/plans/PLAN-0002-20260823-skills-optimization.md`
+- **Archivos Modificados:** `.agents/skills/powershell-windows/SKILL.md`, `.agents/skills/windows-adk-hyperv/SKILL.md`, `.agents/skills/git-workflow/SKILL.md`, `.agents/skills/code-review/SKILL.md`, `.agents/skills/debug-strategy/SKILL.md`, `.agents/skills/project-audit/SKILL.md`, `.agents/skills/memory-protocol/SKILL.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Refinamiento de Frontmatters con Triggers Explícitos:** Se actualizaron los campos `description` de las 7 skills del proyecto redactados en tercera persona con condiciones de activación (*triggers*) precisas para optimizar la divulgación progresiva y ahorrar tokens.
+  - **Scripts Helpers Ejecutables (`scripts/`):**
+    - `Test-ScriptAstAndBom.ps1`: Validador automático de codificación UTF-8 con BOM y análisis sintáctico AST sin errores en Windows PowerShell 5.1.
+    - `Test-AdkEnvironment.ps1`: Diagnóstico instantáneo de presencia de ADK (`oscdimg.exe`), DISM, módulo Hyper-V y espacio en disco C:.
+    - `Test-GitWorkspaceHygiene.ps1`: Comprobación automatizada de working tree, commits pendientes y cero binarios pesados rastreados.
+  - **Documentación Modular y Divulgación Progresiva (`references/`):** Se crearon hojas de referencia dedicadas para matrices de registro/DISM, esquemas XML de particionado UEFI GPT para `autounattend.xml`, flags El Torito para `oscdimg` y comandos de Git.
+  - **Validación Empírica Exitosa en PS 5.1:** Todos los scripts auxiliares fueron validados en frío contra `powershell.exe` nativo de Windows con estado 100% PASS y codificación UTF-8 con BOM.
+  - **Plan PLAN-0002 Registrado y Completado:** Registrado formalmente en `docs/plans/` con trazabilidad permanente.
+
 ## [2026-08-23T22:25:00-03:00] Descargador Oficial de Windows Updates, Integración en ISO, Sistema de Planes y Reglas de Desarrollo
 
 - **Archivos Creados:** `scripts/Get-WindowsUpdates.ps1`, `scripts/Get-WindowsUpdates.cmd`, `docs/plans/README.md`, `docs/plans/PLAN-0001-20260823-hwid-integration.md`

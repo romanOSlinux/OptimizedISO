@@ -1,44 +1,32 @@
 ---
 name: windows-adk-hyperv
-description: "Flujos de trabajo para compilar ISOs con Windows ADK (oscdimg), montar/desmontar imágenes WIM con DISM y automatizar pruebas en Hyper-V."
+description: >-
+  Activate this skill when compiling bootable Windows ISOs with Windows ADK (oscdimg.exe),
+  mounting or unmounting WIM/ESD images with DISM, configuring El Torito multi-boot,
+  or provisioning and troubleshooting Hyper-V Gen2 virtual machines.
 ---
 
-# Windows ADK y Hyper-V Automation
+# Windows ADK y Automatización Hyper-V
 
-Skill para operar compilaciones y pruebas automatizadas en entornos nativos de Windows 11.
+Flujos de trabajo para compilar imágenes ISO de Windows y validar instalaciones en Hyper-V.
 
-## 1. Localización y Parámetros de `oscdimg.exe`
+## Diagnóstico Rápido del Entorno
 
-Ubicaciones estándar en Windows 11:
-- `C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe`
-- `C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\arm64\Oscdimg\oscdimg.exe`
-
-Flags para arranque dual El Torito (UEFI + BIOS):
+Para verificar la presencia de `oscdimg.exe`, DISM y el estado de Hyper-V:
 ```powershell
-$oscdimgArgs = @(
-    "-m", "-o", "-u2", "-udfver102",
-    "-bootdata:2#p0,e,b`"$bootEtfs`"#pEF,e,b`"$bootEfis`"",
-    "`"$isoSourceDir`"",
-    "`"$destinationIso`""
-)
-& $oscdimg $oscdimgArgs
+& ".agents/skills/windows-adk-hyperv/scripts/Test-AdkEnvironment.ps1"
 ```
 
-## 2. Automatización de Pruebas de Arranque en Hyper-V
+---
 
-Creación y arranque de VM UEFI Gen2 con TPM para probar ISOs desatendidas:
-```powershell
-$vmName = "TestVM_Optimized"
-$vhdPath = "$HOME\Virtual Machines\$vmName.vhdx"
+## Procedimientos Clave
 
-New-VM -Name $vmName -MemoryStartupBytes 4GB -Generation 2 -NewVHDPath $vhdPath -NewVHDSizeBytes 60GB
-Set-VMProcessor -VMName $vmName -Count 4
-Set-VMKeyProtector -VMName $vmName -NewLocalKeyProtector
-Enable-VMTPM -VMName $vmName
+1. **Montaje WIM Seguro:** Siempre usar `-Action Discard` en caso de error y asegurar que los identificadores de archivo se liberen con Garbage Collection `[GC]::Collect()`.
+2. **Flags de Compilación:** Utilizar siempre el formato multi-boot El Torito (`bootdata:2#p0...#pEF...`) para compatibilidad BIOS y UEFI.
+3. **VMs de Prueba en Hyper-V:** Generación 2 con TPM habilitado (`Enable-VMTPM`) y plantilla `MicrosoftWindows`.
 
-Add-VMDvdDrive -VMName $vmName -Path $isoPath
-$dvd = Get-VMDvdDrive -VMName $vmName
-Set-VMFirmware -VMName $vmName -FirstBootDevice $dvd
+---
 
-Start-VM -Name $vmName
-```
+## Documentación y Referencias Técnicas
+
+- [Referencia Técnica de oscdimg y Hyper-V](./references/oscdimg-hyperv-reference.md)

@@ -1,21 +1,31 @@
 ---
 name: debug-strategy
-description: "Estrategia de debugging sistemático para evitar loops de trial-and-error. Leer error, reproducir, aislar, corregir, verificar. Un cambio a la vez."
+description: >-
+  Activate this skill when diagnosing script errors, PowerShell runtime exceptions,
+  DISM failure exit codes, test harness failures, or unexpected build issues,
+  to follow a systematic reproduce-isolate-fix-verify cycle.
 ---
 
-# Debugging Sistemático
+# Metodología de Debugging Sistemático
 
-Skill para diagnosticar errores de forma eficiente sin desperdiciar tokens.
+Protocolo para aislar y resolver fallos rápidamente sin caer en bucles de prueba y error.
 
-## Protocolo de 5 pasos
+## Protocolo de 5 Pasos
 
-1. **Leer el error completo:** Identificar archivo, línea, tipo de error y código de retorno de DISM/PowerShell.
-2. **Reproducir:** Ejecutar el comando exacto.
-3. **Aislar la causa:** Separar problemas de permisos, paths, sintaxis o dependencias de Windows ADK.
-4. **Corregir con precisión:** Aplicar un solo cambio fundamentado a la vez.
-5. **Verificar:** Confirmar resolución antes de continuar.
+1. **Lectura Completa del Error:** Identificar el número de línea exacto, el mensaje de excepción y el código de salida (ej. DISM `0x800f081f`, `3010`, `ParserError`).
+2. **Reproducción Aislada:** Replicar el error con un comando mínimo en frío directamente contra el ejecutable de destino (`powershell.exe`).
+3. **Aislamiento de Causa Raíz:** Usar `git diff` contra el último commit funcional para identificar el cambio que introdujo la regresión.
+4. **Corrección Focalizada:** Aplicar **un solo cambio fundamentado** a la vez.
+5. **Verificación Empírica:** Ejecutar la prueba nuevamente y confirmar 0 errores antes de dar la tarea por concluida.
 
-## Anti-patrones
-- ❌ No realizar cambios especulativos aleatorios.
-- ❌ No silenciar errores con try/catch vacíos sin logging.
-- ❌ Si un fallo persiste tras 2 intentos, pausar y consultar al usuario.
+---
+
+## Códigos de Retorno Frecuentes en DISM
+
+| Código | Significado | Solución Técnica |
+| :--- | :--- | :--- |
+| `0` | Éxito | Continuar proceso. |
+| `3010` | Éxito con reinicio requerido | Tratar como éxito (`Success = True`). |
+| `0x800f081f` | Archivos de origen no encontrados | Verificar ruta de imagen o paquete MSU/CAB. |
+| `0x80070005` | Acceso denegado | Verificar elevación de Administrador. |
+| `0x80070020` | Proceso bloqueado por otro handle | Forzar garbage collection y liberar colmenas con `reg.exe unload`. |

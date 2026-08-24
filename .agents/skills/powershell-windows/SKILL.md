@@ -1,66 +1,32 @@
 ---
 name: powershell-windows
-description: "Contexto para scripts PowerShell orientados a Windows: sintaxis PS, manipulación de registry, DISM, debloat, y diferencias clave con bash. El target es Windows."
+description: >-
+  Activate this skill when writing, debugging, or reviewing PowerShell scripts for Windows,
+  including registry manipulation, DISM servicing, AppX debloat, WinSxS cleanup, and
+  enforcing UTF-8 BOM encoding and Windows PowerShell 5.1 compatibility.
 ---
 
-# PowerShell para Windows
+# PowerShell para Windows (Estándar romanOS)
 
-Skill para asistir al usuario con scripts PowerShell para sistemas Windows.
+Guía de desarrollo y ejecución de scripts PowerShell nativos en Windows 10/11 y PowerShell 5.1.
 
-## Contexto importante
+## Reglas Obligatorias de Codificación y Runtime
 
-- **El código PowerShell es para Windows**.
-- En Windows, utilizar PowerShell 5.1 o PowerShell 7+.
-- Soporta cmdlets de administración de DISM, registro y WMI.
+1. **UTF-8 con BOM Obligatorio:** Todo script `.ps1`, `.psm1`, `.psd1` DEBE guardarse en formato `UTF-8 con BOM` (`0xEF, 0xBB, 0xBF`).
+2. **Compatibilidad PS 5.1:** Probar siempre en frío contra `$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe`.
+3. **STA en Lanzadores:** Todo `.cmd` con UI debe usar `-STA -NoProfile -ExecutionPolicy Bypass`.
 
-## Sintaxis clave de PowerShell
+---
 
-| Concepto | Bash | PowerShell |
-|---|---|---|
-| Variables | `$var` | `$var` (igual, pero scope es diferente) |
-| Asignación | `var="valor"` | `$var = "valor"` |
-| Comparación | `-eq` (numérico), `==` (string) | `-eq`, `-ne`, `-gt`, `-lt` (para todo) |
-| String interp. | `"Hola $var"` | `"Hola $var"` (comillas dobles interpolan, simples NO) |
-| Arrays | `arr=(a b c)` | `$arr = @("a", "b", "c")` |
-| Hashtables | `declare -A` | `@{ key = "val" }` |
-| Pipes | Pasan texto | **Pasan objetos** |
-| Nulo | `-z "$var"` | `$null -eq $var` |
-| Error handling | `set -e` / `trap` | `$ErrorActionPreference` / `try/catch` |
-| Elevation | `sudo` | `Start-Process -Verb RunAs` |
+## Verificación Rápida de AST y BOM
 
-## Patrones comunes en los scripts del proyecto
-
-### Manipulación de Registry
+Para validar cualquier script sin improvisar comandos, ejecuta el helper de la skill:
 ```powershell
-$path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows"
-if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
-Set-ItemProperty -Path $path -Name "DisableTelemetry" -Value 1 -Type DWord
+& ".agents/skills/powershell-windows/scripts/Test-ScriptAstAndBom.ps1" -FilePath "scripts/MiScript.ps1"
 ```
 
-### Remover Appx (Bloatware)
-```powershell
-Get-AppxPackage -Name "*BingWeather*" -AllUsers | Remove-AppxPackage -AllUsers
-Get-AppxProvisionedPackage -Online | Where-Object DisplayName -Like "*Xbox*" | Remove-AppxProvisionedPackage -Online
-```
+---
 
-### Operaciones DISM
-```powershell
-DISM /Online /Disable-Feature /FeatureName:"WindowsMediaPlayer" /NoRestart
-```
+## Documentación y Referencias Técnicas
 
-### Logging pattern
-```powershell
-$logDir = "C:\Logs"
-if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-$log = "$logDir\Setup-Windows.log"
-"Mensaje" | Tee-Object -FilePath $log -Append
-```
-
-## Reglas y Buenas Prácticas
-- **Codificación:** Todo archivo `.ps1` debe guardarse **siempre en UTF-8 con BOM (`UTF-8-BOM`)**. Sin BOM, Windows PowerShell 5.1 decodifica caracteres multi-byte como ANSI Windows-1252, corrompiendo las comillas y rompiendo el script.
-- **Validación en Runtime Real:** Probar siempre los scripts invocando directamente `powershell.exe` (Windows PowerShell 5.1) y no únicamente en el entorno del asistente (PowerShell 7).
-- **Lanzadores `.cmd` y GUI:** Al invocar PowerShell desde CMD para scripts con interfaz gráfica (`Out-GridView`, WPF), pasar siempre el flag `-STA` (`powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File ...`).
-- **Paths en Windows usan `\`** (backslash).
-- **Scripts con `#Requires -RunAsAdministrator`** necesitan PowerShell elevado.
-- Mantener `$ErrorActionPreference = 'Continue'` según diseño del proyecto.
-
+- [Matriz de Claves de Registro y Comandos DISM](./references/registry-dism-matrix.md)
