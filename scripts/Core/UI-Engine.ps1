@@ -40,8 +40,8 @@ function Show-UnifiedBanner {
         try { Clear-Host -ErrorAction SilentlyContinue } catch {}
     }
 
-    $w = $script:UI_BoxWidth
-    $border = "═" * ($w - 2)
+    $w = if ($script:UI_BoxWidth -and $script:UI_BoxWidth -gt 10) { $script:UI_BoxWidth } else { 74 }
+    $border = "═" * [math]::Max(1, ($w - 2))
 
     Write-Host ""
     Write-Host "  ╔$border╗" -ForegroundColor DarkCyan
@@ -265,9 +265,9 @@ function Show-UnifiedSummary {
         [hashtable]$Logs = @{}
     )
 
-    $w = $script:UI_BoxWidth
-    $border = "═" * ($w - 2)
-    $innerW = $w - 4
+    $w = if ($script:UI_BoxWidth -and $script:UI_BoxWidth -gt 10) { $script:UI_BoxWidth } else { 74 }
+    $border = "═" * [math]::Max(1, ($w - 2))
+    $innerW = [math]::Max(1, ($w - 4))
 
     Write-Host ""
     Write-Host "  ╔$border╗" -ForegroundColor DarkCyan

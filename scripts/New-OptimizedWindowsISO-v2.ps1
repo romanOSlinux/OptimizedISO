@@ -258,6 +258,23 @@ $ErrorActionPreference = 'Continue'
 # TLS 1.2 para posibles descargas HTTPS en PowerShell 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+# -----------------------------------------------------------------------------
+# CARGA DE MOTOR VISUAL UNIFICADO (Core\UI-Engine.ps1)
+# -----------------------------------------------------------------------------
+$uiEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "C:\OptimizedISO\scripts\Core\UI-Engine.ps1",
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+)
+foreach ($p in $uiEnginePaths) {
+    if ($p -and (Test-Path $p)) {
+        . $p
+        break
+    }
+}
+
 #------------------------------------------------------------------------------
 # RUTAS DE TRABAJO
 #------------------------------------------------------------------------------
@@ -476,19 +493,25 @@ function Write-LogSummary {
         Write-Warn "Error generando reporte Markdown AI_SUMMARY: $($_.Exception.Message)"
     }
 
-    # Mostrar rutas de log en consola
-    Write-Host ""
-    Write-Host "  ┌─ Logs generados (Listos para análisis por IA) ────────────────" -ForegroundColor DarkCyan
-    if ($script:AiSummaryFile)  { Write-Host "  │  AI Diagnostic MD : $script:AiSummaryFile  <-- Pásame este archivo" -ForegroundColor Green }
-    if ($script:LogFile)        { Write-Host "  │  Log estructurado : $script:LogFile" -ForegroundColor Cyan }
-    if ($script:TranscriptFile) { Write-Host "  │  Transcript       : $script:TranscriptFile" -ForegroundColor Cyan }
-    if ($script:LogErrors.Count -gt 0) {
-        Write-Host "  │" -ForegroundColor DarkCyan
-        Write-Host "  │  [$($script:LogErrors.Count) ERROR(S) detectados — revisa el reporte para detalles]" -ForegroundColor Red
+    # Mostrar resumen estructurado mediante UI-Engine
+    $overallStatus = if ($script:LogErrors.Count -eq 0) {
+        if ($script:LogWarns.Count -gt 0) { "WARNING" } else { "SUCCESS" }
     } else {
-        Write-Host "  │  Sin errores registrados." -ForegroundColor Green
+        "FAILED"
     }
-    Write-Host "  └───────────────────────────────────────────────────────────────" -ForegroundColor DarkCyan
+
+    $logsHash = [ordered]@{
+        "AI Diagnostic MD" = $script:AiSummaryFile
+        "Log estructurado" = $script:LogFile
+        "Transcript"       = $script:TranscriptFile
+    }
+
+    Show-UnifiedSummary -Title "GENERADOR DE ISO OPTIMIZADA (v2)" `
+                        -Status $overallStatus `
+                        -DurationSeconds $totalDuration `
+                        -ErrorsCount $script:LogErrors.Count `
+                        -WarnsCount $script:LogWarns.Count `
+                        -Logs $logsHash
 }
 
 #------------------------------------------------------------------------------
@@ -497,23 +520,20 @@ function Write-LogSummary {
 #------------------------------------------------------------------------------
 
 function Write-Banner {
-    try {
-        Clear-Host -ErrorAction SilentlyContinue
-    } catch {
-        # Si la consola no soporta Clear-Host, continuar igualmente.
-    }
-
-    Write-Host @"
-╔══════════════════════════════════════════════════════════════════════╗
-║      GENERADOR DE ISO OPTIMIZADA DE WINDOWS — VERSIÓN 2.0 (v2)       ║
-║   (Descarga Oficial en Vivo + Layout WinRE + Dark Mode + Debloat)    ║
-╚══════════════════════════════════════════════════════════════════════╝
-"@ -ForegroundColor Magenta
+    Show-UnifiedBanner -Title "GENERADOR DE ISO OPTIMIZADA DE WINDOWS" `
+                       -Subtitle "romanOS v2.0 • Descarga Oficial + Layout WinRE + Dark Mode + Debloat" `
+                       -ShowSystemInfo
 }
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "`n>>> $Message" -ForegroundColor Cyan
+
+    if ($Message -match '^(\d+)/(\d+)\s*-\s*(.*)$') {
+        Write-StepHeader -StepNumber ([int]$matches[1]) -TotalSteps ([int]$matches[2]) -Message $matches[3]
+    } else {
+        Write-Host ""
+        Write-Host ">>> $Message" -ForegroundColor Cyan
+    }
     Write-Host "    $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor Gray
     Write-LogEntry -Level "STEP" -Message $Message
 
@@ -1582,7 +1602,7 @@ function Invoke-WizardConfig {
     $border = "═" * $winWidth
 
     Write-Host ""
-    Write-Host "  ╔$border╗" -ForegroundColor Magenta
+    Write-Host "  ╔$border╗" -ForegroundColor DarkCyan
 
     $h1 = "  ASISTENTE DE CONFIGURACIÓN"
 
@@ -1592,7 +1612,7 @@ function Invoke-WizardConfig {
         $h1 = $h1.PadRight($winWidth)
     }
 
-    Write-Host "  ║ $h1║" -ForegroundColor Magenta
+    Write-Host "  ║ $h1║" -ForegroundColor Cyan
 
     $h2 = "  Configure idioma, zona horaria y cuenta de usuario."
 
@@ -1602,8 +1622,8 @@ function Invoke-WizardConfig {
         $h2 = $h2.PadRight($winWidth)
     }
 
-    Write-Host "  ║ $h2║" -ForegroundColor DarkGray
-    Write-Host "  ╚$border╝" -ForegroundColor Magenta
+    Write-Host "  ║ $h2║" -ForegroundColor DarkCyan
+    Write-Host "  ╚$border╝" -ForegroundColor DarkCyan
     Write-Host ""
 
     #==========================================================================
@@ -2028,7 +2048,7 @@ function Invoke-WizardConfig {
     # RESUMEN
     #==========================================================================
 
-    Write-Host "  ╔$border╗" -ForegroundColor DarkGreen
+    Write-Host "  ╔$border╗" -ForegroundColor DarkCyan
 
     $rTitle = "  RESUMEN DE CONFIGURACIÓN"
 
@@ -2038,8 +2058,8 @@ function Invoke-WizardConfig {
         $rTitle = $rTitle.PadRight($winWidth)
     }
 
-    Write-Host "  ║ $rTitle║" -ForegroundColor Green
-    Write-Host "  ╠$border╣" -ForegroundColor DarkGreen
+    Write-Host "  ║ $rTitle║" -ForegroundColor Cyan
+    Write-Host "  ╠$border╣" -ForegroundColor DarkCyan
 
     $kbFinal = if ($script:KeyboardOverride) {
         $script:KeyboardOverride
@@ -2085,7 +2105,7 @@ function Invoke-WizardConfig {
         Write-Host "  ║ $line║" -ForegroundColor White
     }
 
-    Write-Host "  ╚$border╝" -ForegroundColor DarkGreen
+    Write-Host "  ╚$border╝" -ForegroundColor DarkCyan
     Write-Host ""
 
     Write-Host "  ¿Continuar con esta configuración? [S/N]: " -ForegroundColor Yellow -NoNewline
