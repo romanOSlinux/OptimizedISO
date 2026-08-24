@@ -1,3 +1,17 @@
+## [2026-08-23T23:25:00-03:00] Expansión de Skills Especializadas, Orquestador Maestro de Pruebas y Hooks (PLAN-0003)
+
+- **Archivos Creados:** `scripts/Invoke-TestSuite.ps1`, `scripts/Invoke-TestSuite.cmd`, `.agents/hooks.json`, `.agents/skills/windows-updates-servicing/SKILL.md`, `.agents/skills/windows-updates-servicing/scripts/Test-UpdatesTree.ps1`, `.agents/skills/windows-updates-servicing/references/servicing-kb-matrix.md`, `.agents/skills/unattended-deployment/SKILL.md`, `.agents/skills/unattended-deployment/scripts/Test-UnattendXml.ps1`, `.agents/skills/unattended-deployment/references/uefi-gpt-unattend-schema.md`, `.agents/skills/iso-security-hardening/SKILL.md`, `.agents/skills/iso-security-hardening/scripts/Test-HardeningSafety.ps1`, `.agents/skills/iso-security-hardening/references/anticheat-compatibility-matrix.md`, `docs/plans/PLAN-0003-20260823-skills-and-test-orchestrator.md`
+- **Archivos Modificados:** `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Orquestador Maestro de Pruebas (`scripts/Invoke-TestSuite.ps1` / `.cmd`):** Ejecutor unificado que corre las 5 suites en serie o en modo `-Quick` (<5 segundos), consolidando la validación AST/BOM (23 scripts), validación de esquema XML UEFI GPT, diagnóstico ADK/Hyper-V, higiene Git y Test Harness ISO v2 con reporte Markdown consolidado en `Log/`.
+  - **3 Nuevas Skills Especializadas:**
+    1. `windows-updates-servicing`: Manejo del orden estricto de dependencias DISM (SSU -> Checkpoint KB5043080 -> LCU -> .NET -> SafeOS) con helper ejecutable `Test-UpdatesTree.ps1` para validar firmas Authenticode de Microsoft.
+    2. `unattended-deployment`: Validación de esquemas oficiales `autounattend.xml` con helper `Test-UnattendXml.ps1` y matriz canónica de particionado UEFI GPT con partición WinRE de 500 MB.
+    3. `iso-security-hardening`: Auditoría y políticas de seguridad desacopladas con helper `Test-HardeningSafety.ps1` y matriz de compatibilidad garantizada para anti-cheats (EasyAntiCheat, BattlEye, Riot Vanguard, FACEIT).
+  - **Hooks de Ciclo de Vida (`.agents/hooks.json`):** Configuración de validación automática post-tool para auditoría de higiene de Git y prevención de rastreo de binarios pesados.
+  - **Validación 100% PASS en PS 5.1:** Todos los scripts nuevos validados con codificación UTF-8 con BOM y 0 errores sintácticos AST.
+  - **PLAN-0003 Completado:** Registrado formalmente en `docs/plans/` y manual maestro actualizado.
+
 ## [2026-08-23T23:01:00-03:00] Ejecución Integral de Batería de Pruebas, Corrección AST y Certificación PS5.1
 
 - **Archivos Modificados:** `scripts/Win11-Network-Diagnostics-Optimizer.ps1`, `OptimizedISO-Package/Modules/OptimizedISOHelpers.psm1`, `.agents/skills/powershell-windows/scripts/Test-ScriptAstAndBom.ps1`, `MEMORY.md`

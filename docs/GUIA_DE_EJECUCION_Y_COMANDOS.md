@@ -19,7 +19,8 @@ Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros
 | **`Get-WindowsUpdates.ps1`** | `Get-WindowsUpdates.cmd` | Descarga de Windows Updates oficiales (MSU/CAB) para ISO | `-Version`, `-PackageType`, `-OutputDir`, `-Unattended` |
 | **`Get-EssentialRuntimes.ps1`** | *(Ejecutar en PS Admin)* | Descarga de paquetes redistribuibles (VC++, DirectX, .NET) | `-DownloadDir`, `-SkipDirectX`, `-SkipDotNet` |
 | **`New-TestVM-HyperV.ps1`** | *(Ejecutar en PS Admin)* | Despliegue automatizado de VM de prueba en Hyper-V (Gen 2) | `-ISOPath`, `-MemoryGB`, `-CPUCount`, `-DiskSizeGB` |
-| **`Test-OptimizedISO-v2.ps1`** | *(Ejecutar en PS Admin)* | Suite de pruebas unitarias y validación del compilador | `-Phase1`, `-Phase2`, `-Phase3`, `-Phase4` |
+| **`Test-OptimizedISO-v2.ps1`** | *(Ejecutar en PS Admin)* | Suite de pruebas unitarias y validación del compilador | `-LogDir`, `-TargetScript` |
+| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (5 Fases) | `-Quick`, `-LogDir` |
 
 ---
 
@@ -326,6 +327,21 @@ Ejecuta el arnés de pruebas de regresión para validar la sintaxis, módulos y 
 
 # Probar solo la Fase 1 (Sintaxis y Prerrequisitos)
 & "C:\OptimizedISO\scripts\Test-OptimizedISO-v2.ps1" -Phase1
+```
+
+---
+
+## 13. Orquestador Maestro de Pruebas: `Invoke-TestSuite.ps1`
+
+Ejecuta la suite integral de pruebas del proyecto en un solo paso, consolidando la validación sintáctica AST, codificación UTF-8 BOM, esquema XML de despliegue desatendido, entorno de compilación ADK/DISM, higiene de Git y el Test Harness completo de la ISO:
+
+```powershell
+# 1. Ejecución completa con reporte Markdown consolidado:
+& "C:\OptimizedISO\scripts\Invoke-TestSuite.ps1"
+# O doble clic en: C:\OptimizedISO\scripts\Invoke-TestSuite.cmd
+
+# 2. Modo Rápido (AST/BOM, XML, Entorno y Git en < 5 segundos):
+& "C:\OptimizedISO\scripts\Invoke-TestSuite.ps1" -Quick
 ```
 
 ---

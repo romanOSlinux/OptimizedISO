@@ -1,0 +1,17 @@
+{
+  "git-hygiene-guard": {
+    "description": "Valida higiene de Git y previene rastreo accidental de binarios pesados",
+    "PostToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .agents/skills/git-workflow/scripts/Test-GitWorkspaceHygiene.ps1",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
