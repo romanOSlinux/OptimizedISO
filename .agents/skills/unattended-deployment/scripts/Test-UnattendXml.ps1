@@ -72,12 +72,14 @@ foreach ($p in $passes) {
     }
 }
 
-# Validación de layout UEFI GPT
+# Validación de layout de particionado
 $createParts = $xmlDoc.SelectNodes("//u:CreatePartition", $nsMgr)
 if ($createParts.Count -ge 4) {
-    Write-Host "  ✅ Particionado GPT : $($createParts.Count) particiones definidas (WinRE, EFI, MSR, Windows)." -ForegroundColor Green
+    Write-Host "  ✅ Particionado GPT : $($createParts.Count) particiones definidas (WinRE 500MB, EFI, MSR, Windows)." -ForegroundColor Green
+} elseif ($createParts.Count -eq 0) {
+    Write-Host "  ℹ️ Particionado     : Modo Asistido / Seguro (0 particiones fijas; selección manual de disco en OOBE sin riesgo de borrado accidental)." -ForegroundColor Cyan
 } else {
-    Write-Host "  ⚠️ Particionado GPT : $($createParts.Count) particiones detectadas (se recomiendan 4 para UEFI)." -ForegroundColor Yellow
+    Write-Host "  ⚠️ Particionado GPT : $($createParts.Count) partición(es) detectadas (se recomiendan 4 para despliegue UEFI 100% automatizado)." -ForegroundColor Yellow
 }
 
 # Validación de etiquetas obsoletas / problemáticas
