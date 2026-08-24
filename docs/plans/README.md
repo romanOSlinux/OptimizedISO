@@ -21,6 +21,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0003 | [PLAN-0003-20260823-skills-and-test-orchestrator.md](PLAN-0003-20260823-skills-and-test-orchestrator.md) | 2026-08-23 | Expansión de Skills Especializadas, Orquestador Maestro de Pruebas y Hooks | COMPLETADO |
 | 0004 | [PLAN-0004-20260823-smoke-test-new-skills-and-orchestrator.md](PLAN-0004-20260823-smoke-test-new-skills-and-orchestrator.md) | 2026-08-23 | Prueba de Humo y Verificación Funcional de Nuevas Skills y Orquestador | COMPLETADO |
 | 0005 | [PLAN-0005-20260824-wim-preaudit-smart-slipstream.md](PLAN-0005-20260824-wim-preaudit-smart-slipstream.md) | 2026-08-24 | Auditoría Previa del WIM y Slipstreaming Inteligente | COMPLETADO |
+| 0006 | [PLAN-0006-20260824-runtimes-discovery-and-dual-injection.md](PLAN-0006-20260824-runtimes-discovery-and-dual-injection.md) | 2026-08-24 | Detección Inteligente y Doble Inyección de Runtimes (OEM + WIM Offline) | PENDIENTE |
 
 ---
 
