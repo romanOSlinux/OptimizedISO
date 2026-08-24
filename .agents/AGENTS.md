@@ -34,3 +34,11 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
   3. Comprobar explícitamente que la salida no contenga errores de `ParserError`, `ParseException` ni excepciones de caracteres/comillas antes de reportar éxito al usuario.
 - **Soporte Gráfico STA Obligatorio en Lanzadores:** Todo comando batch (`.cmd`), tarea programada o acceso directo que invoque un script de PowerShell con interfaz gráfica o `Out-GridView` DEBE incluir explícitamente el flag `-STA`.
 
+## 5. Trazabilidad de Planes de Implementación
+- **Almacenamiento Obligatorio en el Repositorio:** Todo plan de implementación generado para este proyecto DEBE guardarse en `docs/plans/` con el formato de nombre `PLAN-<NNNN>-<YYYYMMDD>-<slug>.md`.
+- **Registro en el Índice:** Cada plan nuevo DEBE ser registrado en `docs/plans/README.md` con su número correlativo, fecha, título y estado.
+- **Convención de Estados:** `PENDIENTE` → `EN PROGRESO` → `COMPLETADO` / `CANCELADO`. El estado debe actualizarse cuando cambie.
+- **Commit atómico:** Los planes deben commitearse junto con el commit del hito al que pertenecen, o en un commit separado `docs(plans): agregar PLAN-NNNN ...` si son previos a la implementación.
+- **Nunca dejar planes solo en artifacts de conversación:** Los artifacts de sesión son efímeros. El repositorio Git es la única fuente de verdad para los planes.
+
+
