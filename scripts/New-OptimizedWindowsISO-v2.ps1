@@ -5910,6 +5910,9 @@ if ($wimFile) {
                             $hiveLoaded = $false
 
                             try {
+                                # Descarga preventiva por si una sesión previa dejó HKLM\OfflineDefaultUser tomada
+                                [void](Invoke-RegUnloadHive -HiveName "HKLM\OfflineDefaultUser" -RetryCount 2 -RetryDelaySeconds 1)
+
                                 Write-Host "    Cargando NTUSER.DAT del usuario default..." -ForegroundColor Gray
 
                                 $procLoad = Start-Process -FilePath "reg.exe" `
@@ -5917,6 +5920,17 @@ if ($wimFile) {
                                                           -Wait `
                                                           -PassThru `
                                                           -NoNewWindow
+
+                                if ($procLoad.ExitCode -ne 0) {
+                                    # Segundo intento: forzar recolección de basura, re-descargar y reintentar
+                                    [void](Invoke-RegUnloadHive -HiveName "HKLM\OfflineDefaultUser" -RetryCount 3 -RetryDelaySeconds 1)
+                                    Start-Sleep -Milliseconds 500
+                                    $procLoad = Start-Process -FilePath "reg.exe" `
+                                                              -ArgumentList @("load", "HKLM\OfflineDefaultUser", $ntuserPath) `
+                                                              -Wait `
+                                                              -PassThru `
+                                                              -NoNewWindow
+                                }
 
                                 if ($procLoad.ExitCode -eq 0) {
                                     $hiveLoaded = $true
@@ -6088,11 +6102,17 @@ if ($wimFile) {
                                      }
 
                                      Write-OK "Tweaks visuales inyectados en Default User."
+                                     Add-AuditRecord -Resource "Tweaks Visuales (Default User)" -Target "WIM Idx $wimIndex" `
+                                                     -Status "OK" -Details "Modo Oscuro, Transparencia y optimizaciones inyectadas en NTUSER.DAT"
                                  } else {
                                      Write-Warn "No se pudo cargar NTUSER.DAT. Exit code: $($procLoad.ExitCode)."
+                                     Add-AuditRecord -Resource "Tweaks Visuales (Default User)" -Target "WIM Idx $wimIndex" `
+                                                     -Status "WARN" -Details "No se pudo montar NTUSER.DAT (Exit code: $($procLoad.ExitCode))"
                                  }
                              } catch {
                                  Write-Warn "Error aplicando tweaks visuales offline: $($_.Exception.Message)"
+                                 Add-AuditRecord -Resource "Tweaks Visuales (Default User)" -Target "WIM Idx $wimIndex" `
+                                                 -Status "FAIL" -Details $_.Exception.Message
                              } finally {
                                  if ($hiveLoaded) {
                                      Write-Host "    Descargando colmena NTUSER.DAT..." -ForegroundColor Gray
@@ -6108,6 +6128,8 @@ if ($wimFile) {
                              }
                          } else {
                              Write-Warn "No se encontró NTUSER.DAT en: $ntuserPath"
+                             Add-AuditRecord -Resource "Tweaks Visuales (Default User)" -Target "WIM Idx $wimIndex" `
+                                             -Status "WARN" -Details "Archivo NTUSER.DAT no encontrado en $ntuserPath"
                          }
                      }
 
