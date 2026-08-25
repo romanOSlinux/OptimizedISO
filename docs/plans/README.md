@@ -25,6 +25,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0007 | [PLAN-0007-20260824-unify-iso-visual-engine.md](PLAN-0007-20260824-unify-iso-visual-engine.md) | 2026-08-24 | Unificación del Motor Visual y Formato de Consola (UI-Engine) en New-OptimizedWindowsISO-v2.ps1 | COMPLETADO |
 | 0008 | [PLAN-0008-20260824-fix-updates-slipstreaming-and-wim-runtimes.md](PLAN-0008-20260824-fix-updates-slipstreaming-and-wim-runtimes.md) | 2026-08-24 | Corrección de Slipstreaming de Updates e Inyección Offline Estructural de Runtimes en WIM | COMPLETADO |
 | 0009 | [PLAN-0009-20260824-comprehensive-build-audit-logging.md](PLAN-0009-20260824-comprehensive-build-audit-logging.md) | 2026-08-24 | Logging de Auditoría Integral del Build ISO (Matriz de Recursos + SHA-256 + UBR + Drivers) | COMPLETADO |
+| 0010 | [PLAN-0010-20260824-integrate-iso-cleanup-and-rescue-utility.md](PLAN-0010-20260824-integrate-iso-cleanup-and-rescue-utility.md) | 2026-08-24 | Integración y Estandarización de la Utilidad de Limpieza y Rescate de Residuos (Limpiar-ResiduosWinISO.ps1) | PENDIENTE |
 
 ---
 
