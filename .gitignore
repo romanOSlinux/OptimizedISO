@@ -27,6 +27,7 @@ Log/*.log
 Log/*_transcript.log
 Log/TestHarness_*.md
 Log/TestSuite_Consolidated_*.md
+log_prueba_ISO/
 *.tmp
 
 # VS Code / IDE settings locales

@@ -347,6 +347,14 @@ $script:LogSteps        = [System.Collections.Generic.List[PSObject]]::new()
 $script:CurrentStepObj  = $null
 $script:BuildStartTime  = Get-Date
 
+# ---- Matriz de Auditoría de Recursos (PLAN-0009) ----
+$script:AuditResources = [System.Collections.Generic.List[PSObject]]::new()
+$script:WimUbrBefore   = $null   # UBR del WIM antes del slipstream
+$script:WimUbrAfter    = $null   # UBR del WIM después del slipstream
+$script:IsoSha256      = $null   # Hash SHA-256 de la ISO final
+$script:IsoSizeBytes   = $null   # Tamaño en bytes de la ISO final
+$script:UefiBoot       = $null   # Tipo de sector UEFI inyectado
+
 function Initialize-Log {
     param([string]$OutputDirectory)
 
@@ -400,6 +408,24 @@ function Write-LogEntry {
     }
 }
 
+function Add-AuditRecord {
+    param(
+        [string]$Resource,
+        [string]$Target,
+        [ValidateSet("OK","WARN","SKIP","FAIL")] [string]$Status,
+        [string]$Details = ""
+    )
+    $script:AuditResources.Add([PSCustomObject]@{
+        Resource = $Resource
+        Target   = $Target
+        Status   = $Status
+        Details  = $Details
+    })
+    # Propagar a acumuladores existentes para que aparezcan en el resumen actual
+    if ($Status -eq "FAIL") { $script:LogErrors.Add("[AUDIT] $Resource ($Target): $Details") }
+    if ($Status -eq "WARN") { $script:LogWarns.Add("[AUDIT] $Resource ($Target): $Details") }
+}
+
 function Write-LogSummary {
     $totalDuration = [math]::Round(((Get-Date) - $script:BuildStartTime).TotalSeconds, 1)
 
@@ -432,6 +458,21 @@ function Write-LogSummary {
         foreach ($w in $warnSnapshot) {
             Write-LogEntry -Level "WARN" -Message $w -NoAccumulate
         }
+    }
+
+    if ($script:AuditResources.Count -gt 0) {
+        Write-LogEntry -Level "INIT" -Message "--- MATRIZ DE AUDITORIA DE RECURSOS ---" -NoAccumulate
+        foreach ($rec in $script:AuditResources) {
+            $level = switch ($rec.Status) { "OK"{"OK"}; "WARN"{"WARN"}; "FAIL"{"ERROR"}; default{"INFO"} }
+            Write-LogEntry -Level $level -NoAccumulate `
+                           -Message "[$($rec.Status)] $($rec.Resource) -> $($rec.Target): $($rec.Details)"
+        }
+    }
+
+    if ($script:IsoSha256) {
+        Write-LogEntry -Level "OK"   -Message "ISO SHA-256: $script:IsoSha256" -NoAccumulate
+        Write-LogEntry -Level "INFO" -Message "ISO Tamano : $([math]::Round($script:IsoSizeBytes / 1GB, 2)) GB" -NoAccumulate
+        Write-LogEntry -Level "INFO" -Message "UEFI Boot  : $script:UefiBoot" -NoAccumulate
     }
 
     if ($script:LogErrors.Count -eq 0) {
@@ -486,6 +527,27 @@ function Write-LogSummary {
             $cleanName = ($st.Name -replace '\|', '-').Trim()
             $cleanNote = ($st.Note -replace '\|', '-').Trim()
             [void]$sb.AppendLine("| $cleanName | $stBadge | $($st.ElapsedSec)s | $cleanNote |")
+        }
+
+        if ($script:AuditResources.Count -gt 0) {
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("## Injected Resources & Build Audit")
+            [void]$sb.AppendLine("| Resource | Target | Status | Details |")
+            [void]$sb.AppendLine("|---|---|---|---|")
+            foreach ($rec in $script:AuditResources) {
+                $badge = switch ($rec.Status) { "OK"{"OK ✅"}; "WARN"{"WARN ⚠️"}; "SKIP"{"SKIP ⚪"}; "FAIL"{"FAIL ❌"} }
+                [void]$sb.AppendLine("| $($rec.Resource -replace '\|','-') | $($rec.Target -replace '\|','-') | $badge | $($rec.Details -replace '\|','-') |")
+            }
+        }
+
+        if ($script:IsoSha256) {
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("## ISO Integrity")
+            [void]$sb.AppendLine("| Property | Value |")
+            [void]$sb.AppendLine("|---|---|")
+            [void]$sb.AppendLine("| Size | $([math]::Round($script:IsoSizeBytes / 1GB, 2)) GB |")
+            [void]$sb.AppendLine("| SHA-256 | ``$script:IsoSha256`` |")
+            [void]$sb.AppendLine("| UEFI Bootloader | $script:UefiBoot |")
         }
 
         if ($script:LogErrors.Count -gt 0) {
@@ -3826,8 +3888,12 @@ if ($runtimesInfo.Found -and (Test-Path $runtimesInfo.Path)) {
     Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $destRuntimesDir -Recurse -Force
     Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $destRuntimesDir1 -Recurse -Force
     Write-OK "Runtimes esenciales inyectados en `$OEM$ ($($runtimesInfo.FileCount) archivos copiados)."
+    Add-AuditRecord -Resource "Runtimes (VC++ / DirectX)" -Target '$OEM$' -Status "OK" `
+                    -Details "$($runtimesInfo.FileCount) archivos desde '$($runtimesInfo.Path)'"
 } else {
     Write-Host "    Carpeta 'Runtimes' no detectada. Se omite pre-carga en `$OEM$." -ForegroundColor Gray
+    Add-AuditRecord -Resource "Runtimes (VC++ / DirectX)" -Target '$OEM$' -Status "SKIP" `
+                    -Details "Carpeta Runtimes/ no detectada. Ejecute Get-EssentialRuntimes.ps1"
 }
 
 #------------------------------------------------------------------------------
@@ -5249,6 +5315,8 @@ if ($wimFile) {
                     Write-Host ""
                     Write-Host "    ══ Auditoría de Nivel de Parche del WIM Base ══" -ForegroundColor Cyan
                     $wimPatchLevel = Get-WimPatchLevel -MountDir $WimMountDir
+                    $script:WimUbrBefore = $wimPatchLevel.UBR
+                    Write-LogEntry -Level "INFO" -Message "UBR WIM Inicial (Idx $wimIndex): $($wimPatchLevel.UBR)"
 
                     if ($wimPatchLevel.InstalledKBs.Count -gt 0) {
                         $kbList = $wimPatchLevel.InstalledKBs -join ", "
@@ -5520,11 +5588,22 @@ if ($wimFile) {
 
                                 if ($dismDrv.Success) {
                                     Write-OK "Controladores inyectados exitosamente en la imagen WIM ($($driverFiles.Count) archivos .inf)."
+                                    $driversInjected = @(Get-WindowsDriver -Path $WimMountDir -ErrorAction SilentlyContinue)
+                                    $unsignedDrivers  = @($driversInjected | Where-Object { -not $_.Signed })
+                                    Add-AuditRecord -Resource "Drivers INF offline" -Target "WIM Idx $wimIndex" `
+                                                    -Status (if ($unsignedDrivers.Count -gt 0) { "WARN" } else { "OK" }) `
+                                                    -Details "$($driversInjected.Count) driver(s) | $($unsignedDrivers.Count) sin firma WHQL (riesgo BSOD 0xc0000428)"
                                 } else {
                                     Write-Warn "DISM Add-Driver devolvió exit code: $($dismDrv.ExitCode). Revise $dismDriverLog."
+                                    Add-AuditRecord -Resource "Drivers INF offline" -Target "WIM Idx $wimIndex" `
+                                                    -Status "FAIL" `
+                                                    -Details "DISM Add-Driver falló con exit code: $($dismDrv.ExitCode)"
                                 }
                             } catch {
                                 Write-Warn "Error inyectando controladores offline: $($_.Exception.Message)"
+                                Add-AuditRecord -Resource "Drivers INF offline" -Target "WIM Idx $wimIndex" `
+                                                -Status "FAIL" `
+                                                -Details $_.Exception.Message
                             }
                         } else {
                             Write-Host "    Carpeta 'Drivers' encontrada pero sin archivos .inf." -ForegroundColor DarkYellow
@@ -5727,28 +5806,47 @@ if ($wimFile) {
 
                             if ($selectedToRemove -and @($selectedToRemove).Count -gt 0) {
                                 Write-Host "    Eliminando $(@($selectedToRemove).Count) paquetes..." -ForegroundColor Cyan
+                                $appxOk   = 0
+                                $appxFail = 0
 
                                 foreach ($pkg in $selectedToRemove) {
                                     try {
                                         Remove-AppxProvisionedPackage -Path $WimMountDir `
                                                                       -PackageName $pkg.PackageName `
                                                                       -ErrorAction Stop | Out-Null
-
+                                        $appxOk++
                                         Write-Host "      Eliminado: $($pkg.Name)" -ForegroundColor Green
                                     } catch {
+                                        $appxFail++
                                         Write-Host "      Error eliminando $($pkg.Name): $($_.Exception.Message)" -ForegroundColor Yellow
+                                        Write-LogEntry -Level "WARN" -Message "Error eliminando AppX $($pkg.Name): $($_.Exception.Message)"
                                     }
                                 }
+
+                                $appxStatus = if ($appxFail -gt 0 -and $appxOk -eq 0) { "FAIL" } `
+                                              elseif ($appxFail -gt 0) { "WARN" } else { "OK" }
+                                Add-AuditRecord -Resource "AppX Debloat offline" -Target "WIM Idx $wimIndex" `
+                                                -Status $appxStatus `
+                                                -Details "$appxOk eliminados, $appxFail fallidos de $(@($selectedToRemove).Count)"
 
                                 Write-OK "Debloat offline completado."
                             } else {
                                 Write-Host "    Sin selección. Conservando paquetes." -ForegroundColor Gray
+                                Add-AuditRecord -Resource "AppX Debloat offline" -Target "WIM Idx $wimIndex" `
+                                                -Status "SKIP" `
+                                                -Details "Sin selección o perfil conservador. 0 paquetes eliminados"
                             }
                         } else {
                             Write-Host "    No hay paquetes removibles." -ForegroundColor Gray
+                            Add-AuditRecord -Resource "AppX Debloat offline" -Target "WIM Idx $wimIndex" `
+                                            -Status "SKIP" `
+                                            -Details "No se detectaron paquetes removibles"
                         }
                     } catch {
                         Write-Warn "No se pudo obtener la lista de paquetes AppX provisionados: $($_.Exception.Message)"
+                        Add-AuditRecord -Resource "AppX Debloat offline" -Target "WIM Idx $wimIndex" `
+                                        -Status "FAIL" `
+                                        -Details $_.Exception.Message
                     }
 
                     #==================================================================
@@ -5779,6 +5877,23 @@ if ($wimFile) {
                                 Write-Warn "Error ejecutando ResetBase: $($_.Exception.Message)"
                             }
                         }
+                    }
+
+                    #==================================================================
+                    # AUDITORÍA POSTERIOR: nivel de parche final del WIM
+                    #==================================================================
+
+                    if ($successCount -gt 0 -or $failCount -gt 0) {
+                        $wimPatchPost = Get-WimPatchLevel -MountDir $WimMountDir
+                        $script:WimUbrAfter = $wimPatchPost.UBR
+                        $ubrStatus = if ($wimPatchPost.UBR -gt $script:WimUbrBefore) { "OK" } elseif ($failCount -gt 0) { "WARN" } else { "OK" }
+                        Add-AuditRecord -Resource "Windows Updates (UBR)" -Target "WIM Idx $wimIndex" `
+                                        -Status $ubrStatus `
+                                        -Details "UBR: $($script:WimUbrBefore) → $($wimPatchPost.UBR) | KBs: $($wimPatchPost.InstalledKBs -join ', ')"
+                    } else {
+                        Add-AuditRecord -Resource "Windows Updates (UBR)" -Target "WIM Idx $wimIndex" `
+                                        -Status "SKIP" `
+                                        -Details "Sin actualizaciones inyectadas (UBR base: $($script:WimUbrBefore))"
                     }
 
                     #==================================================================
@@ -6014,6 +6129,11 @@ if ($wimFile) {
                          }
                          Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $wimRuntimesDest -Recurse -Force
                          Write-OK "Inyectado en WIM índice ${wimIndex}: Runtimes Esenciales ($($runtimesInfo.FileCount) archivos)"
+                         Add-AuditRecord -Resource "Runtimes (VC++ / DirectX)" -Target "WIM Idx $wimIndex" `
+                                         -Status "OK" -Details "$($runtimesInfo.FileCount) archivos en $wimRuntimesDest"
+                     } else {
+                         Add-AuditRecord -Resource "Runtimes (VC++ / DirectX)" -Target "WIM Idx $wimIndex" `
+                                         -Status "SKIP" -Details "No disponibles para inyección offline"
                      }
 
                      foreach ($script in $scriptsToInject) {
@@ -6026,8 +6146,12 @@ if ($wimFile) {
                          $setupCmdDest = Join-Path $wimScriptsDir "SetupComplete.cmd"
                          $setupCompleteContent | Out-File -FilePath $setupCmdDest -Encoding ASCII -Force
                          Write-OK "Inyectado en WIM índice ${wimIndex}: SetupComplete.cmd"
+                         Add-AuditRecord -Resource "SetupComplete.cmd" -Target "WIM Idx $wimIndex" `
+                                         -Status "OK" -Details "Inyectado en Windows\Setup\Scripts"
                      } else {
                          Write-Warn "No existe contenido de SetupComplete.cmd para inyectar."
+                         Add-AuditRecord -Resource "SetupComplete.cmd" -Target "WIM Idx $wimIndex" `
+                                         -Status "WARN" -Details "No existe contenido de SetupComplete.cmd para inyectar"
                      }
 
                      if ($postInstallDiagContent) {
@@ -6061,6 +6185,8 @@ if ($wimFile) {
                      }
                  } catch {
                      Write-Warn "Error inyectando en WIM índice ${wimIndex}: $($_.Exception.Message)"
+                     Add-AuditRecord -Resource "WIM Servicing" -Target "WIM Idx $wimIndex" `
+                                     -Status "FAIL" -Details $_.Exception.Message
 
                      Invoke-SafeWimDismount -MountDir $WimMountDir -Action Discard -ScratchDirectory $ScratchDir | Out-Null
                  }
@@ -6354,12 +6480,24 @@ if (-not $oscdimg) {
     Write-Warn "Instálalo con:"
     Write-Warn "winget install -e --id Microsoft.OSCDIMG"
     Write-Warn "O instala el Windows ADK Deployment Tools."
+    Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "SKIP" `
+                    -Details "oscdimg.exe no disponible"
 } elseif (-not (Test-Path $biosBootFile) -or (-not $uefiBootFile) -or (-not (Test-Path $uefiBootFile))) {
     Write-Warn "Faltan archivos de arranque críticos en la ISO extraída o en el sistema."
     Write-Warn "Ruta BIOS esperada: $biosBootFile"
     Write-Warn "Ruta UEFI esperada: $($candidateUefiBoot -join ' O ')"
     Write-Warn "No se generará una ISO no arrancable."
+    Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "FAIL" `
+                    -Details "Faltan archivos de arranque críticos (BIOS/UEFI)"
 } else {
+    $script:UefiBoot = if ($uefiBootFile -like '*efisys_noprompt.bin*') {
+        "efisys_noprompt.bin (Arranque directo, sin prompt)"
+    } else {
+        "efisys.bin (Con prompt — puede requerir interacción)"
+    }
+    Add-AuditRecord -Resource "UEFI Bootloader" -Target "El Torito" -Status "OK" `
+                    -Details $script:UefiBoot
+
     Write-Host "    Usando oscdimg: $oscdimg" -ForegroundColor Gray
     Write-Host "    Etiqueta ISO: $isoLabel" -ForegroundColor Gray
     Write-Host "    BIOS boot: $biosBootFile" -ForegroundColor Gray
@@ -6402,21 +6540,33 @@ if (-not $oscdimg) {
             Write-OK "ISO creada exitosamente: $outputISO"
 
             try {
+                $isoItem = Get-Item $outputISO
+                $script:IsoSizeBytes = $isoItem.Length
                 $isoHash = Get-FileHash -Path $outputISO -Algorithm SHA256 -ErrorAction Stop
-                Write-Host "    SHA256: $($isoHash.Hash)" -ForegroundColor DarkGray
+                $script:IsoSha256 = $isoHash.Hash
+                Write-Host "    SHA256: $($script:IsoSha256)" -ForegroundColor DarkGray
+                Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "OK" `
+                                -Details "$([math]::Round($isoItem.Length / 1GB, 2)) GB | SHA-256: $($script:IsoSha256)"
             } catch {
-                # Hash opcional; no bloquear si falla.
+                Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "OK" `
+                                -Details "Creada exitosamente (Hash SHA-256 no calculado)"
             }
         } elseif ($oscdRes.TimedOut) {
             Write-ErrorMsg "La compilación de la ISO con oscdimg superó el tiempo límite (${timeoutSec}s) y fue cancelada."
+            Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "FAIL" `
+                            -Details "oscdimg superó el tiempo límite (${timeoutSec}s)"
         } else {
             Write-Warn "oscdimg falló con código de salida: $($oscdRes.ExitCode)"
             Write-Warn "CMD ejecutado: $batLine"
             if ($oscdRes.StdErr) { Write-Warn "Detalle error oscdimg: $($oscdRes.StdErr)" }
             Write-Warn "Revisa espacio en disco, permisos de escritura y que la carpeta ISO_Files esté completa."
+            Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "FAIL" `
+                            -Details "oscdimg falló con exit code: $($oscdRes.ExitCode)"
         }
     } catch {
         Write-Warn "Error ejecutando oscdimg: $($_.Exception.Message)"
+        Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "FAIL" `
+                        -Details $_.Exception.Message
     } finally {
         if ($tempBat -and (Test-Path $tempBat)) {
             Remove-Item -Path $tempBat -Force -ErrorAction SilentlyContinue

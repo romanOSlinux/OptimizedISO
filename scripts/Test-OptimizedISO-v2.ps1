@@ -37,7 +37,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 52
+$EXPECTED_FUNCS  = 53
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -53,6 +53,12 @@ $script:LogErrors         = [System.Collections.Generic.List[string]]::new()
 $script:LogWarns          = [System.Collections.Generic.List[string]]::new()
 $script:LogSteps          = [System.Collections.Generic.List[PSObject]]::new()
 $script:CurrentStepObj    = $null
+$script:AuditResources    = [System.Collections.Generic.List[PSObject]]::new()
+$script:WimUbrBefore      = $null
+$script:WimUbrAfter       = $null
+$script:IsoSha256         = $null
+$script:IsoSizeBytes      = $null
+$script:UefiBoot          = $null
 $script:DownloadStartTime = Get-Date
 $script:StartTime         = Get-Date
 $script:IsoMountPath      = $null
@@ -308,7 +314,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "52 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "53 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -317,7 +323,7 @@ $expectedList = @(
     "Show-UnifiedBanner", "Write-StepHeader", "Write-SubStep", "Write-OK", "Write-Warn",
     "Write-ErrorMsg", "Write-Info", "Show-UnifiedMenu", "Prompt-UnifiedYesNo", "Show-UnifiedSummary",
     # Funciones de New-OptimizedWindowsISO-v2.ps1
-    "Initialize-Log", "Write-LogEntry", "Write-LogSummary", "Test-Admin", "Test-7ZipInstalled",
+    "Initialize-Log", "Write-LogEntry", "Add-AuditRecord", "Write-LogSummary", "Test-Admin", "Test-7ZipInstalled",
     "Test-OSCDImgInstalled", "Install-Dependencies", "Test-MinimumFreeSpace",
     "Convert-BuildToWindowsVersion", "Get-WimImageList", "Detect-WindowsVersion",
     "Get-OnlineWindowsReleases", "Invoke-OfficialWindowsDownload", "Resolve-SourceISO",
@@ -635,6 +641,30 @@ Assert-Equal "Resolve-RuntimesDirectory: FileCount es 0 en ruta inexistente" $in
 $autoRes = Resolve-RuntimesDirectory
 Assert-NotNull "Resolve-RuntimesDirectory: Retorna objeto no nulo en exploracion automatica" $autoRes
 Assert-True "Resolve-RuntimesDirectory: Objeto contiene propiedad Found" ($null -ne $autoRes.PSObject.Properties['Found'])
+
+# --- FASE 2M: SUBSISTEMA DE AUDITORIA DE RECURSOS (PLAN-0009) ---
+Write-HarnessHeader2 "FASE 2M: Sistema de Auditoria de Recursos (Add-AuditRecord)"
+$script:AuditResources = [System.Collections.Generic.List[PSObject]]::new()
+$script:LogErrors = [System.Collections.Generic.List[string]]::new()
+$script:LogWarns  = [System.Collections.Generic.List[string]]::new()
+$script:IsoSha256 = $null; $script:IsoSizeBytes = $null
+$script:UefiBoot  = $null; $script:WimUbrBefore = $null; $script:WimUbrAfter = $null
+
+Assert-True  "Add-AuditRecord: funcion disponible" ($null -ne (Get-Command Add-AuditRecord -ErrorAction SilentlyContinue))
+Add-AuditRecord -Resource "TestRecurso" -Target "WIM Idx 10" -Status "OK" -Details "123 archivos"
+Assert-Equal "Add-AuditRecord: registro en AuditResources"        $script:AuditResources.Count 1
+Assert-Equal "Add-AuditRecord: Resource correcto"                  $script:AuditResources[0].Resource "TestRecurso"
+Assert-Equal "Add-AuditRecord: Status correcto"                    $script:AuditResources[0].Status "OK"
+Assert-Equal "Add-AuditRecord: OK no propaga a LogErrors"          $script:LogErrors.Count 0
+Assert-Equal "Add-AuditRecord: OK no propaga a LogWarns"           $script:LogWarns.Count 0
+Add-AuditRecord -Resource "AppX" -Target "WIM Idx 10" -Status "WARN" -Details "3 protegidos"
+Assert-Equal "Add-AuditRecord: WARN propaga a LogWarns"            $script:LogWarns.Count 1
+Add-AuditRecord -Resource "ISO Final" -Target "C:\out.iso" -Status "FAIL" -Details "error"
+Assert-Equal "Add-AuditRecord: FAIL propaga a LogErrors"           $script:LogErrors.Count 1
+$script:IsoSha256 = "ABC123"; $script:IsoSizeBytes = 4500000000; $script:UefiBoot = "efisys_noprompt.bin"
+Assert-True  "AuditResources: IsoSha256 configurable"              ($null -ne $script:IsoSha256)
+Assert-True  "AuditResources: UefiBoot configurable"               ($null -ne $script:UefiBoot)
+Assert-True  "AuditResources: IsoSizeBytes positivo"               ($script:IsoSizeBytes -gt 0)
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
