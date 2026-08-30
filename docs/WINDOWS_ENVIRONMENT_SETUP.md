@@ -30,6 +30,7 @@ winget install --id Microsoft.PowerShell -e --source winget --accept-package-agr
 winget install --id Microsoft.WindowsTerminal -e --source winget --accept-package-agreements --accept-source-agreements
 winget install --id 7zip.7zip -e --source winget --accept-package-agreements --accept-source-agreements
 winget install --id Microsoft.VisualStudioCode -e --source winget --accept-package-agreements --accept-source-agreements
+winget install --id Microsoft.WindowsADK -e --source winget --accept-package-agreements --accept-source-agreements
 ```
 
 ---
@@ -40,9 +41,12 @@ El **Windows Assessment and Deployment Kit (Windows ADK)** es el paquete oficial
 
 * **Fuente Oficial:** [Microsoft Learn: Descargar e instalar Windows ADK](https://learn.microsoft.com/es-es/windows-hardware/get-started/adk-install)
 
-### Opción A: Instalación Automatizada con PowerShell (Recomendada)
-Ejecuta en PowerShell como Administrador:
+### Opción A: Instalación Automática mediante Winget (Recomendada)
+```powershell
+winget install --id Microsoft.WindowsADK -e --source winget --accept-package-agreements --accept-source-agreements
+```
 
+### Opción B: Instalación Automatizada con Script de PowerShell
 ```powershell
 $adkUrl = "https://go.microsoft.com/fwlink/?linkid=2271337" # ADK para Windows 11 24H2/25H2
 $adkInstaller = "$env:TEMP\adksetup.exe"
@@ -57,12 +61,6 @@ if (Test-Path $oscdimgPath) {
 }
 ```
 
-### Opción B: Instalación Manual con Interfaz Gráfica
-1. Descarga el instalador desde la página oficial de [Windows ADK](https://learn.microsoft.com/es-es/windows-hardware/get-started/adk-install).
-2. Ejecuta `adksetup.exe`.
-3. Selecciona únicamente la casilla: **"Herramientas de implementación" (Deployment Tools)**.
-4. Completa la instalación.
-
 ---
 
 ## 4. Habilitación de Hyper-V y Windows Sandbox
@@ -73,7 +71,7 @@ Ejecuta en PowerShell como Administrador:
 
 ```powershell
 # Habilitar Hyper-V completo (Administrador de Hyper-V y Módulo PowerShell)
-Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All -NoRestart
 
 # Habilitar Plataforma de Máquina Virtual y Windows Sandbox
 Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -All -NoRestart
@@ -81,28 +79,19 @@ Enable-WindowsOptionalFeature -Online -FeatureName "Containers-DisposableClientV
 
 Write-Host ">>> Componentes habilitados. Reinicia tu equipo para aplicar los cambios." -ForegroundColor Yellow
 ```
-*(Es obligatorio reiniciar el ordenador tras este paso).*
+*(Es necesario reiniciar el ordenador tras habilitar Hyper-V por primera vez).*
 
 ---
 
-## 5. Instalación y Configuración de Antigravity en Windows
+## 5. Inicialización del Entorno de Antigravity con 1 Comando
 
-1. **Descarga / Instalación:**
-   - Instala la aplicación oficial de **Antigravity IDE** para Windows (o la extensión correspondiente de Antigravity en VS Code).
-2. **Configuración de Git en Windows:**
-   Abre una terminal y configura tu identidad de Git:
-   ```bash
-   git config --global user.name "Tu Nombre"
-   git config --global user.email "tu-email@dominio.com"
-   git config --global core.autocrlf true
-   ```
-3. **Clonar el Proyecto (Rama de Trabajo):**
-   ```powershell
-   cd C:\
-   git clone -b feature/offline-ui-tweaks https://github.com/romanOSlinux/OptimizedISO.git C:\OptimizedISO
-   ```
-4. **Abrir en Antigravity:**
-   Inicia Antigravity y abre la carpeta `C:\OptimizedISO`.
+El proyecto incluye un script autónomo de configuración que enlaza todas las reglas, skills y hooks de Antigravity en tu perfil de Windows:
+
+```powershell
+cd C:\OptimizedISO
+.\scripts\Setup-AntigravityWindows.ps1 -InstallPrerequisites -SetExecutionPolicy
+```
+*(O ejecuta con doble clic el archivo `C:\OptimizedISO\scripts\Setup-AntigravityWindows.cmd`)*.
 
 ---
 
@@ -117,42 +106,38 @@ cd C:\OptimizedISO
 ```
 
 * El script ofrecerá descargar en vivo la última ISO oficial de Microsoft Learn o utilizar una que ya tengas descargada.
-* Te permitirá seleccionar qué optimizadores integrar (Win11-Debloat-v3-Adaptive.ps1, de red, o ambos).
+* Te permitirá seleccionar qué optimizadores integrar (`Win11-Debloat-v3-Adaptive.ps1`, de red, o ambos).
 * Generará la ISO final en `$HOME\Desktop\WinISO_Optimizado\`.
 
-### B. Probar la ISO Generada en Hyper-V (Script de 1 Línea)
-
-Para probar la ISO creada en una Máquina Virtual con UEFI y TPM en Hyper-V, ejecuta:
+### B. Probar la ISO Generada en Hyper-V con el Automatizador
+Ejecuta el script de aprovisionamiento de VM de prueba incluido en el proyecto:
 
 ```powershell
-$isoPath = "$HOME\Desktop\WinISO_Optimizado\Windows_11_Optimizado.iso"
-$vmName  = "Test_Optimized_Win11"
-
-# Crear VM Gen2 (UEFI) con 4GB RAM y disco de 60GB
-New-VM -Name $vmName -MemoryStartupBytes 4GB -Generation 2 -NewVHDPath "$HOME\Virtual Machines\$vmName.vhdx" -NewVHDSizeBytes 60GB -SwitchName (Get-VMSwitch | Select-Object -First 1 -ExpandProperty Name)
-Set-VMProcessor -VMName $vmName -Count 4
-Set-VMMemory -VMName $vmName -DynamicMemoryEnabled $false
-Set-VMKeyProtector -VMName $vmName -NewLocalKeyProtector
-Enable-VMTPM -VMName $vmName
-
-# Asignar ISO y configurar arranque
-Add-VMDvdDrive -VMName $vmName -Path $isoPath
-$dvd = Get-VMDvdDrive -VMName $vmName
-Set-VMFirmware -VMName $vmName -FirstBootDevice $dvd
-
-# Iniciar la Máquina Virtual
-Start-VM -Name $vmName
-vmconnect.exe localhost $vmName
+.\scripts\New-TestVM-HyperV.ps1 -ISOPath "$HOME\Desktop\WinISO_Optimizado\Windows_11_Optimizado.iso" -MemoryGB 4 -CPUCount 4
 ```
 
 ---
 
 ## 7. Matriz de Comprobación y Diagnóstico
 
+Para auditar el estado del entorno en cualquier momento:
+
+```powershell
+# Diagnóstico de ADK e Hyper-V
+.\.agents\skills\windows-adk-hyperv\scripts\Test-AdkEnvironment.ps1
+
+# Auditoría de codificación UTF-8 BOM y sintaxis PowerShell 5.1
+.\.agents\skills\powershell-windows\scripts\Test-ScriptAstAndBom.ps1
+
+# Ejecutar la batería integral de pruebas
+.\scripts\Invoke-TestSuite.cmd
+```
+
 | Herramienta | Comando de Verificación | Resultado Esperado |
 | :--- | :--- | :--- |
-| **Git** | `git --version` | `git version 2.4x.x.windows.1` |
+| **Git** | `git --version` | `git version 2.4x.x.windows.1` o superior |
 | **PowerShell 7** | `pwsh --version` | `PowerShell 7.x.x` |
-| **Windows ADK (oscdimg)** | `& "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe" -?` | Versión y menú de ayuda de oscdimg |
-| **DISM Nativo** | `dism.exe /?` | Herramienta de mantenimiento de imágenes |
+| **Windows ADK (oscdimg)** | `oscdimg.exe -?` | Versión y menú de ayuda de oscdimg |
+| **DISM Nativo** | `dism.exe /?` | Herramienta de mantenimiento de imágenes de Windows |
 | **Hyper-V** | `Get-Service vmms` | `Status: Running` |
+| **Antigravity Skills** | `Get-ChildItem $HOME\.gemini\config\skills` | Lista de 10 skills activas |

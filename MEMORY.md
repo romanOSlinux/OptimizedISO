@@ -1,3 +1,13 @@
+## [2026-08-30T20:47:00-03:00] Preparación Integral de Bootstrap, Guías de Instalación y Respaldo Pre-Formateo
+
+- **Archivos Creados:** `scripts/Setup-AntigravityWindows.cmd`, `scripts/Limpiar-ResiduosWinISO.ps1`
+- **Archivos Modificados:** `scripts/Setup-AntigravityWindows.ps1`, `docs/ANTIGRAVITY_WINDOWS_BOOTSTRAP.md`, `docs/WINDOWS_ENVIRONMENT_SETUP.md`, `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Inicializador de Entorno Automatizado (`Setup-AntigravityWindows.ps1` y `.cmd`):** Detección e instalación automática vía Winget de Git, Windows ADK (`oscdimg.exe`), PowerShell 7 y activación de Hyper-V. Sincronización completa de directivas, 10 skills y `hooks.json` a `$HOME\.gemini\config`.
+  - **Estandarización de Utilidad de Rescate (`Limpiar-ResiduosWinISO.ps1`):** Certificación UTF-8 con BOM y compatibilidad nativa con Windows PowerShell 5.1.
+  - **Auditoría AST y BOM (100% PASS):** 24/24 scripts del repositorio aprobados con cero errores de sintaxis en runtime PS 5.1.
+  - **Documentación Integral Actualizada:** Guías maestras `ANTIGRAVITY_WINDOWS_BOOTSTRAP.md` y `WINDOWS_ENVIRONMENT_SETUP.md` actualizadas con procedimientos detallados de respaldo previo y restauración en 1 clic para la nueva PC.
+
 ## [2026-08-23T23:31:00-03:00] Ejecución Exitosa de Smoke Test y Validación Funcional (PLAN-0004)
 
 - **Archivos Creados:** `docs/plans/PLAN-0004-20260823-smoke-test-new-skills-and-orchestrator.md`

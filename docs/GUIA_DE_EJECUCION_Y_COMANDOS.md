@@ -21,6 +21,8 @@ Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros
 | **`New-TestVM-HyperV.ps1`** | *(Ejecutar en PS Admin)* | Despliegue automatizado de VM de prueba en Hyper-V (Gen 2) | `-ISOPath`, `-MemoryGB`, `-CPUCount`, `-DiskSizeGB` |
 | **`Test-OptimizedISO-v2.ps1`** | *(Ejecutar en PS Admin)* | Suite de pruebas unitarias y validación del compilador | `-LogDir`, `-TargetScript` |
 | **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (5 Fases) | `-Quick`, `-LogDir` |
+| **`Setup-AntigravityWindows.ps1`** | `Setup-AntigravityWindows.cmd` | Inicializador de entorno, dependencias winget y skills de Antigravity | `-InstallPrerequisites`, `-EnableHyperV`, `-SetExecutionPolicy`, `-CheckOnly` |
+| **`Limpiar-ResiduosWinISO.ps1`** | *(Ejecutar en PS Admin)* | Limpieza profunda de montajes DISM bloqueados, temporales y colmenas | `-ScanOnly`, `-Force`, `-Silent` |
 
 ---
 
