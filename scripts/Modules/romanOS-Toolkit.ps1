@@ -489,6 +489,7 @@ if ($Module) {
         "Updates"      { Invoke-UpdatesModule; exit }
         "ContextMenu"  { Invoke-ContextMenuModule; exit }
         "Drivers"      { Invoke-DriversModule; exit }
+        "UserMigration"{ $ms = Resolve-ToolScript "Migrar-Usuario-W11.ps1"; if ($ms) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ms } else { Write-ErrorMsg "No se encontro Migrar-Usuario-W11.ps1" }; exit }
         "QuickActions" { Show-QuickActionsMenu; exit }
     }
 }
@@ -503,7 +504,7 @@ try {
     if ([System.Console]::IsInputRedirected) {
         Show-UnifiedBanner -Title "romanOS TOOLKIT MAESTRO" -Subtitle "Hub de Optimizacion, Gaming, Mantenimiento y Seguridad" -ShowSystemInfo
         Write-Info "Ejecucion no interactiva detectada."
-        Write-Info "Uso desatendido: .\romanOS-Toolkit.ps1 -Module <Gaming|Network|Maintenance|Diagnostics|Security|Browsers|Updates|Dashboards|QuickActions>"
+        Write-Info "Uso desatendido: .\romanOS-Toolkit.ps1 -Module <Gaming|Network|Maintenance|Diagnostics|Security|Browsers|Updates|Drivers|UserMigration|Dashboards|QuickActions>"
         exit 0
     }
 } catch {}
@@ -517,6 +518,7 @@ $mainMenuOpts = @(
     "Optimizar y Debloat de Navegadores (GPU, Menos RAM, Sin Copilot/IA)",
     "Descargar Windows Updates Oficiales (MSU/CAB para Slipstream en ISO)",
     "Gestion Integral de Controladores (Respaldo Host, DriverStore, Intel VMD)",
+    "Migrar o Rescatar Perfil de Usuario Local (Respaldos y Recreacion)",
     "Generar y Abrir Dashboards HTML de Salud y Seguridad",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)"
 )
@@ -534,8 +536,9 @@ while ($true) {
         6  { Invoke-BrowsersModule; pause }
         7  { Invoke-UpdatesModule; pause }
         8  { Invoke-DriversModule; pause }
-        9  { Invoke-OpenDashboards; pause }
-        10 { Show-QuickActionsMenu; pause }
+        9  { $ms = Resolve-ToolScript "Migrar-Usuario-W11.ps1"; if ($ms) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ms } else { Write-ErrorMsg "No se encontro Migrar-Usuario-W11.ps1" }; pause }
+        10 { Invoke-OpenDashboards; pause }
+        11 { Show-QuickActionsMenu; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit
