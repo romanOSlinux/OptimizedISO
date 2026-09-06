@@ -5,7 +5,8 @@
 #>
 
 param(
-    [switch]$Unattended
+    [switch]$Unattended,
+    [switch]$NagleOnly
 )
 
 # Precarga de ensamblados WPF para soporte garantizado de interfaz grafica (Out-GridView)
@@ -24,6 +25,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
     $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
     if ($Unattended) { $argList += '-Unattended' }
+    if ($NagleOnly) { $argList += '-NagleOnly' }
     Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
     Exit
 }
@@ -215,6 +217,27 @@ function Add-SummaryRecord {
 }
 
 try {
+    if ($NagleOnly) {
+        Write-Host "`n>>> [MODO ENFOCADO] Desactivando Algoritmo Nagle (TCP No-Delay)..." -ForegroundColor Cyan
+        try {
+            $ifPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"
+            $subKeys = Get-ChildItem -Path $ifPath -ErrorAction SilentlyContinue
+            $count = 0
+            foreach ($key in $subKeys) {
+                Set-ItemProperty -Path $key.PSPath -Name "TcpNoDelay" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+                Set-ItemProperty -Path $key.PSPath -Name "TcpAckFrequency" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+                Set-ItemProperty -Path $key.PSPath -Name "TcpDelAckTicks" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+                $count++
+            }
+            Write-Host "  [OK] Algoritmo Nagle deshabilitado exitosamente en $count interfaces de red." -ForegroundColor Green
+            Write-LogEntry -Level "OK" -Message "Nagle desactivado (TcpNoDelay=1, TcpAckFrequency=1) en $count interfaces."
+        } catch {
+            Write-Host "  ! Error configurando Nagle: $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-LogEntry -Level "WARN" -Message "Fallo al desactivar Nagle: $($_.Exception.Message)"
+        }
+        return
+    }
+
     Show-UnifiedBanner -Title "DIAGNOSTICO, PRUEBAS Y OPTIMIZACION DE RED" -Subtitle "Inspeccion de Adaptadores, Latencia, DNS y Tweaks TCP/IP (Win 11 25H2)" -ShowSystemInfo
 
     # ================================================================
