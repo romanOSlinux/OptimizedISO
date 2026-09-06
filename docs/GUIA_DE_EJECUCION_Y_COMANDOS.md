@@ -211,12 +211,31 @@ Evalúa el estado de una instalación limpia de Windows o de una imagen optimiza
 & "C:\OptimizedISO\scripts\New-OptimizedWindowsISO-v2.ps1" `
   -SourceISO "C:\ISOs\Win11_24H2_Spanish_x64.iso" `
   -LocalUser "Roman" `
-  -OptimizationProfile "2" `
+  -OptimizationProfile "1" `
   -ZeroTouch `
   -Language "es-ES" `
   -Timezone "Romance Standard Time"
 
-# 2. Descarga automatica de Windows 11 IoT Enterprise LTSC 2024 + Optimizacion
+# 2. Compilar ISO para Laptop o Máquina Virtual (Perfil 3 - Eficiencia Energética / Plan Equilibrado)
+& "C:\OptimizedISO\scripts\New-OptimizedWindowsISO-v2.ps1" `
+  -SourceISO "C:\ISOs\Win11_24H2.iso" `
+  -LocalUser "Roman" `
+  -OptimizationProfile "3" `
+  -ZeroTouch
+
+# 3. Guardar la configuración actual como Preset JSON reutilizable (-SavePreset)
+& "C:\OptimizedISO\scripts\New-OptimizedWindowsISO-v2.ps1" `
+  -SourceISO "C:\ISOs\Win11_24H2.iso" `
+  -LocalUser "Roman" `
+  -OptimizationProfile "3" `
+  -SavePreset
+
+# 4. Cargar un Preset JSON previamente guardado para compilación 100% automatizada (-PresetFile)
+& "C:\OptimizedISO\scripts\New-OptimizedWindowsISO-v2.ps1" `
+  -SourceISO "C:\ISOs\Win11_24H2.iso" `
+  -PresetFile "C:\OptimizedISO\MiPreset.json"
+
+# 5. Descarga automática de Windows 11 IoT Enterprise LTSC 2024 + Optimización
 & "C:\OptimizedISO\scripts\New-OptimizedWindowsISO-v2.ps1" `
   -DownloadOfficialISO `
   -DownloadVersion "11_LTSC_2024" `
@@ -225,13 +244,25 @@ Evalúa el estado de una instalación limpia de Windows o de una imagen optimiza
   -LocalUser "Admin" `
   -ZeroTouch
 
-# 3. Compilacion rapida omitiendo limpieza lenta de componentes WinSxS
+# 6. Compilación rápida omitiendo limpieza lenta de componentes WinSxS
 & "C:\OptimizedISO\scripts\New-OptimizedWindowsISO-v2.ps1" `
   -SourceISO "C:\ISOs\Win11.iso" `
   -LocalUser "Gamer" `
   -SkipComponentCleanup `
   -WimCompression "Fast"
 ```
+
+### 📋 Perfiles de Optimización Disponibles (`-OptimizationProfile`)
+| Perfil | Nombre | Descripción y Target |
+|---|---|---|
+| `1` | **Gaming & Rendimiento** | Debloat completo, telemetría off, MMCSS, HAGS, BypassIO. Mantiene Wi-Fi, Bluetooth, impresoras y anti-cheats. *(Recomendado para PCs de escritorio)*. |
+| `2` | **Hardcore E-Sports** | Latencia mínima extrema. Desactiva hipervisor (`hypervisorlaunchtype off`), Wi-Fi, Bluetooth, Spooler y búsqueda. *(Para torres dedicadas a e-sports)*. |
+| `3` | **Laptop / VM Silencioso** | Debloat completo + **Plan Equilibrado (`SCHEME_BALANCED`)**. Mantiene `SysMain`, `WSearch`, Wi-Fi, Bluetooth e impresoras. *(Optimiza autonomía de batería en portátiles y estabilidad en VMs)*. |
+
+### 💾 Presets JSON Reutilizables (`-PresetFile` / `-SavePreset`)
+- **`-SavePreset`**: Exporta un archivo `Preset_romanOS_YYYYMMDD_HHMMSS.json` en `$OutputDir` con toda la configuración regional, usuario, contraseñas, perfil de optimización y compresión WIM.
+- **`-PresetFile <Ruta>`**: Carga la configuración desde un archivo JSON. Si pasas parámetros por consola adicionales, el CLI tendrá prioridad sobre los valores del JSON.
+
 
 ---
 

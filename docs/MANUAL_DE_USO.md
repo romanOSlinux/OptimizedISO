@@ -49,9 +49,9 @@ El asistente te guiará en 6 sencillos pasos:
 1. **Origen de la ISO:** Seleccionar una ISO local en tu disco o descargar automáticamente la versión oficial más reciente (Windows 11 25H2 / 24H2 / LTSC).
 2. **Selección de Scripts Post-Instalación:** Elegir `[1] Suite Completa romanOS [Recomendado]`.
 3. **Perfil de Optimización:**
-   * **Perfil 1 (Básico / Oficina):** Debloat esencial de apps de telemetría y anuncios. Mantiene servicios estándar.
-   * **Perfil 2 (Gaming & Streaming - Recomendado):** Desactiva servicios de telemetría, diagnóstico, Cortana, BitLocker automático por software (libera I/O para DirectStorage/BypassIO) y optimiza navegadores. Preserva anti-cheats (Vanguard, EAC, BattleEye).
-   * **Perfil 3 (Hardcore / Latencia Mínima):** Aplica Perfil 2 + desactiva SysMain, Spooler, WSearch, servicios táctiles e hipervisor para mínima latencia DPC.
+   * **Perfil 1 (Gaming & Rendimiento - Recomendado):** Sin bloatware ni telemetría. Bypass BitLocker (BypassIO NVMe para DirectStorage), MMCSS tuning, HAGS, optimización de navegadores y bloqueo WPBT de BIOS. Preserva 100% de compatibilidad con Laptops, Wi-Fi, Bluetooth, impresoras y anti-cheats (Vanguard, EAC, BattlEye, FACEIT).
+   * **Perfil 2 (Hardcore E-Sports / Latencia Mínima):** Todo lo del Perfil 1 + operación en Ring 0 puro (hipervisor/VBS desactivado con `hypervisorlaunchtype off`) y desactiva servicios secundarios (`WSearch`, `Spooler`, `SysMain`, `WlanSvc`, `bthserv`, sensores) para latencia DPC ultrabaja en torres LAN.
+
 4. **Idioma, Región y Teclado:** Configuración de locale (ej. `es-AR`, `es-ES`, `en-US`).
 5. **Cuenta de Usuario Local:** Creación de usuario local con o sin contraseña (omitiendo la cuenta Microsoft).
 6. **Compilación Supervisada:** Proceso protegido contra bloqueos con watchdog automático, heartbeat en tiempo real y desmontaje WIM seguro.
