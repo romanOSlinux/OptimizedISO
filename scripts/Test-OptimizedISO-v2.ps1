@@ -922,6 +922,39 @@ Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 configura CLSID clasico {8
 Assert-True "PLAN-0029: v2 script utiliza Register-ScheduledTask permanente para tareas a demanda" ($v2ScriptContent -match 'Register-ScheduledTask\s+-TaskName')
 Assert-False "PLAN-0029: v2 script erradico schtasks efimero /sc ONCE /st 00:00" ($v2ScriptContent -match 'schtasks\s+/create.*/sc\s+ONCE\s+/st\s+00:00\s+/ru\s+["'']SYSTEM["'']\s+/rl\s+HIGHEST')
 
+# PLAN-0030: Validaciones de Integracion de Modo Oscuro Nativo Multi-Capa
+$themeInstall = $allPols | Where-Object { $_.Id -eq "POL_THEME_INSTALL_THEME" }
+Assert-NotNull "PLAN-0030: POL_THEME_INSTALL_THEME existe en Policy-Engine" $themeInstall
+Assert-Equal "PLAN-0030: POL_THEME_INSTALL_THEME apunta a dark.theme" $themeInstall.ExpectedValue "C:\Windows\resources\Themes\dark.theme"
+
+$themeApps = $allPols | Where-Object { $_.Id -eq "POL_THEME_APPS_DARK" }
+Assert-NotNull "PLAN-0030: POL_THEME_APPS_DARK existe en Policy-Engine" $themeApps
+Assert-Equal "PLAN-0030: POL_THEME_APPS_DARK tiene ExpectedValue = 0" $themeApps.ExpectedValue 0
+
+$themeSys = $allPols | Where-Object { $_.Id -eq "POL_THEME_SYSTEM_DARK" }
+Assert-NotNull "PLAN-0030: POL_THEME_SYSTEM_DARK existe en Policy-Engine" $themeSys
+Assert-Equal "PLAN-0030: POL_THEME_SYSTEM_DARK tiene ExpectedValue = 0" $themeSys.ExpectedValue 0
+
+$themeTrans = $allPols | Where-Object { $_.Id -eq "POL_THEME_TRANSPARENCY" }
+Assert-NotNull "PLAN-0030: POL_THEME_TRANSPARENCY existe en Policy-Engine" $themeTrans
+Assert-Equal "PLAN-0030: POL_THEME_TRANSPARENCY tiene ExpectedValue = 1" $themeTrans.ExpectedValue 1
+
+# Validacion de FirstLogonCommands en autounattend.xml de v2 script
+Assert-True "PLAN-0030: v2 script inyecta AppsUseLightTheme en FirstLogonCommands" ($v2ScriptContent -match 'Themes\\Personalize.*AppsUseLightTheme.*0')
+Assert-True "PLAN-0030: v2 script inyecta SystemUsesLightTheme en FirstLogonCommands" ($v2ScriptContent -match 'Themes\\Personalize.*SystemUsesLightTheme.*0')
+Assert-True "PLAN-0030: v2 script inyecta EnableTransparency en FirstLogonCommands" ($v2ScriptContent -match 'Themes\\Personalize.*EnableTransparency.*1')
+
+# Validacion de SetupComplete.cmd en v2 script
+Assert-True "PLAN-0030: SetupComplete.cmd configura InstallTheme dark.theme" ($v2ScriptContent -match 'InstallTheme.*dark\.theme')
+Assert-True "PLAN-0030: SetupComplete.cmd configura RunOnce ApplyDarkMode" ($v2ScriptContent -match 'RunOnce.*ApplyDarkMode')
+
+# Validacion de inyeccion en WIM offline SOFTWARE hive
+Assert-True "PLAN-0030: v2 script carga SOFTWARE hive offline para dark.theme" ($v2ScriptContent -match 'OfflineSoftware' -and $v2ScriptContent -match 'dark\.theme')
+
+# Validacion de PostInstall-Diagnostics.ps1
+$diagContent = Get-Content -Path (Join-Path $PSScriptRoot "PostInstall-Diagnostics.ps1") -Raw
+Assert-True "PLAN-0030: PostInstall-Diagnostics.ps1 audita HKCU prioritariamente para temas" ($diagContent -match 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize')
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

@@ -4044,6 +4044,16 @@ if exist "%SCRIPTS_DIR%\Add-OptimizedContextMenus.ps1" (
     echo [%DATE% %TIME%] [WARN] Add-OptimizedContextMenus.ps1 no encontrado en %SCRIPTS_DIR% >> "%LOG%"
 )
 
+REM ===========================================================
+REM Configuracion de Tema Oscuro Nativo a Nivel de Sistema (PLAN-0030)
+REM ===========================================================
+echo [%DATE% %TIME%] Configurando tema oscuro nativo del sistema (dark.theme)... >> "%LOG%"
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes" /v InstallTheme /t REG_SZ /d "C:\Windows\resources\Themes\dark.theme" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v AppsUseLightTheme /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v SystemUsesLightTheme /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v EnableTransparency /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v ApplyDarkMode /t REG_SZ /d "cmd.exe /c reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize /v AppsUseLightTheme /t REG_DWORD /d 0 /f & reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize /v SystemUsesLightTheme /t REG_DWORD /d 0 /f & reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize /v EnableTransparency /t REG_DWORD /d 1 /f" /f >> "%LOG%" 2>&1
+
 __BROWSER_POLICIES_BLOCK__
 
 __OPTIMIZATIONS_BLOCK__
@@ -4832,6 +4842,35 @@ if (-not $SkipAutoUnattend) {
 "@)
         $cmdOrder++
     }
+
+    # PLAN-0030: Forzar Modo Oscuro en HKCU del usuario interactivo en el primer inicio de sesión
+    $firstLogonCommands.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v AppsUseLightTheme /t REG_DWORD /d 0 /f</CommandLine>
+          <Description>Force Dark Mode for Apps in HKCU</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+    $cmdOrder++
+    $firstLogonCommands.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v SystemUsesLightTheme /t REG_DWORD /d 0 /f</CommandLine>
+          <Description>Force Dark Mode for Shell in HKCU</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+    $cmdOrder++
+    $firstLogonCommands.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v EnableTransparency /t REG_DWORD /d 1 /f</CommandLine>
+          <Description>Enable Transparency in HKCU</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+    $cmdOrder++
 
     $firstLogonXml = ""
     if ($firstLogonCommands.Count -gt 0) {
@@ -6191,6 +6230,62 @@ if ($wimFile) {
                              Add-AuditRecord -Resource "Tweaks Visuales (Default User)" -Target "WIM Idx $wimIndex" `
                                              -Status "WARN" -Details "Archivo NTUSER.DAT no encontrado en $ntuserPath"
                          }
+                        # PLAN-0030: Inyectar tema oscuro en la colmena SOFTWARE del WIM offline
+                        # Esto garantiza que InstallTheme = dark.theme y Themes\Personalize queden
+                        # grabados a nivel de maquina en la imagen del sistema, impidiendo que OOBE/uxtheme revierta a aero.theme
+                        $swPath = Join-Path $WimMountDir "Windows\System32\config\SOFTWARE"
+                        if (Test-Path $swPath) {
+                            $swLoaded = $false
+                            try {
+                                [void](Invoke-RegUnloadHive -HiveName "HKLM\OfflineSoftware" -RetryCount 2 -RetryDelaySeconds 1)
+                                Write-Host "    Cargando SOFTWARE hive del sistema offline..." -ForegroundColor Gray
+                                $procSw = Start-Process -FilePath "reg.exe" -ArgumentList @("load", "HKLM\OfflineSoftware", $swPath) -Wait -PassThru -NoNewWindow
+                                if ($procSw.ExitCode -eq 0) {
+                                    $swLoaded = $true
+                                    $swTweaks = @(
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Microsoft\Windows\CurrentVersion\Themes"
+                                            Name = "InstallTheme"
+                                            Type = "REG_SZ"
+                                            Data = "C:\Windows\resources\Themes\dark.theme"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+                                            Name = "AppsUseLightTheme"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+                                            Name = "SystemUsesLightTheme"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+                                            Name = "EnableTransparency"
+                                            Type = "REG_DWORD"
+                                            Data = "1"
+                                        }
+                                    )
+                                    foreach ($st in $swTweaks) {
+                                        & reg.exe add $st.Path /v $st.Name /t $st.Type /d $st.Data /f 2>&1 | Out-Null
+                                    }
+                                    Write-OK "Tema oscuro (dark.theme) inyectado en SOFTWARE hive offline."
+                                    Add-AuditRecord -Resource "Tema Oscuro (SOFTWARE)" -Target "WIM Idx $wimIndex" `
+                                                    -Status "OK" -Details "dark.theme configurado en HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes"
+                                } else {
+                                    Write-Warn "No se pudo cargar SOFTWARE hive offline. Exit code: $($procSw.ExitCode)."
+                                }
+                            } catch {
+                                Write-Warn "Error aplicando tema oscuro a SOFTWARE hive offline: $($_.Exception.Message)"
+                            } finally {
+                                if ($swLoaded) {
+                                    Write-Host "    Descargando colmena SOFTWARE..." -ForegroundColor Gray
+                                    [void](Invoke-RegUnloadHive -HiveName "HKLM\OfflineSoftware")
+                                }
+                            }
+                        }
                      }
 
                      #==================================================================

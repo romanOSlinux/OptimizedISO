@@ -1,7 +1,7 @@
 # PLAN-0030: Integración Integral y Robusta del Modo Oscuro en la Arquitectura de la ISO
 
 **Fecha:** 2026-09-06  
-**Estado:** PENDIENTE  
+**Estado:** COMPLETADO  
 **Rama:** `feature/offline-ui-tweaks`  
 **Autor:** Agente Antigravity / Pair-Programming  
 **Plan Previo Directo:** [PLAN-0029](PLAN-0029-20260906-refactor-context-menus-native-registry-and-iso-integration.md)  
@@ -96,8 +96,23 @@ OptimizedISO/
 ---
 
 ## 5. Criterios de Aceptación
-
+ 
 1. **Cero regresiones en Windows PowerShell 5.1:** Validado con `-WhatIf` y comprobación AST (Regla 4).
 2. **SSOT Conforme:** `Policy-Engine.ps1` exporta las directivas de tema en `Export-RomanOSUnattendCommands`.
 3. **ISO Multi-Capa:** Una ISO instalada en limpio inicia inmediatamente con la barra de tareas, menú inicio y ventanas del explorador en Modo Oscuro nativo sin interacción del usuario.
 4. **Harness Unitario:** 100% PASS en los asertos de PLAN-0030.
+
+---
+
+## 6. Resultados de Validación y Verificación Empírica
+
+* **Policy-Engine.ps1 (SSOT):** 4 directivas registradas (`POL_THEME_INSTALL_THEME`, `POL_THEME_APPS_DARK`, `POL_THEME_SYSTEM_DARK`, `POL_THEME_TRANSPARENCY`). Verificado con `Get-RomanOSPolicies` y `Export-RomanOSUnattendCommands`.
+* **Inyecciones en New-OptimizedWindowsISO-v2.ps1:**
+  1. `SetupComplete.cmd`: `dark.theme` configurado en `InstallTheme`, `Themes\Personalize` y `RunOnce\ApplyDarkMode`.
+  2. `autounattend.xml`: 3 comandos síncronos agregados en `<FirstLogonCommands>` para escribir `AppsUseLightTheme=0`, `SystemUsesLightTheme=0`, `EnableTransparency=1` en el `HKCU` del usuario interactivo.
+  3. `SOFTWARE` hive offline: `dark.theme` y `Themes\Personalize` inyectados a nivel de máquina en la imagen de destino durante la compilación WIM offline.
+* **PostInstall-Diagnostics.ps1:** Comprobación auditada contra `HKCU` prioritario y `HKLM` de respaldo. Ejecución empírica en sistema en vivo reportó:
+  `- **Tema del Sistema y Aplicaciones:** Modo Oscuro Activo (System=0, Apps=0) [OK]`.
+* **Test Harness:** 100% de asertos unitarios de PLAN-0030 superados con éxito tanto en PowerShell 7 como en Windows PowerShell 5.1 (`powershell.exe`).
+* **Codificación y Compatibilidad:** Codificación UTF-8 con BOM (`0xEF, 0xBB, 0xBF`) confirmada en todos los scripts modificados; 0 errores de sintaxis AST en Windows PowerShell 5.1.
+

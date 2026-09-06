@@ -341,9 +341,11 @@ try {
     } catch {}
 
 
-    # Tema Oscuro del Sistema y Apps
-    $sysTheme = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name SystemUsesLightTheme -ErrorAction SilentlyContinue).SystemUsesLightTheme
-    $appTheme = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme
+    # Tema Oscuro del Sistema y Apps (PLAN-0030: HKCU prioritario, con fallback a HKLM)
+    $cuPersonalize = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -ErrorAction SilentlyContinue
+    $lmPersonalize = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -ErrorAction SilentlyContinue
+    $sysTheme = if ($null -ne $cuPersonalize.SystemUsesLightTheme) { $cuPersonalize.SystemUsesLightTheme } else { $lmPersonalize.SystemUsesLightTheme }
+    $appTheme = if ($null -ne $cuPersonalize.AppsUseLightTheme) { $cuPersonalize.AppsUseLightTheme } else { $lmPersonalize.AppsUseLightTheme }
     if ($sysTheme -eq 0 -and $appTheme -eq 0) {
         $passedChecks.Add("Tema Oscuro del Sistema y Apps verificado.")
         $reportLines.Add("- **Tema del Sistema y Aplicaciones:** Modo Oscuro Activo (System=0, Apps=0) [OK]")

@@ -503,6 +503,63 @@ $global:RomanOS_Policies = @(
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/hardware-accelerated-gpu-scheduling"
         UnattendDesc  = "Enable Hardware-Accelerated GPU Scheduling (HAGS)"
     },
+    # --- MÓDULO F2: PERSONALIZACIÓN VISUAL Y MODO OSCURO (THEMES) ---
+    @{
+        Id            = "POL_THEME_INSTALL_THEME"
+        Module        = "Personalizacion - Tema"
+        Category      = "Experiencia Visual"
+        RegistryKey   = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes"
+        PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes"
+        ValueName     = "InstallTheme"
+        Type          = "REG_SZ"
+        ExpectedValue = "C:\Windows\resources\Themes\dark.theme"
+        Profiles      = @(1, 2, 3)
+        Description   = "Establecer tema oscuro nativo (dark.theme) como tema base de instalacion del sistema (evita que OOBE cargue aero.theme en modo claro)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-themes"
+        UnattendDesc  = "Set Default Windows Theme to dark.theme"
+    },
+    @{
+        Id            = "POL_THEME_APPS_DARK"
+        Module        = "Personalizacion - Tema"
+        Category      = "Experiencia Visual"
+        RegistryKey   = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        ValueName     = "AppsUseLightTheme"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Forzar tema oscuro para aplicaciones y ventanas del sistema (AppsUseLightTheme = 0)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/apps/design/style/color"
+        UnattendDesc  = "Force Dark Mode for Apps (AppsUseLightTheme = 0)"
+    },
+    @{
+        Id            = "POL_THEME_SYSTEM_DARK"
+        Module        = "Personalizacion - Tema"
+        Category      = "Experiencia Visual"
+        RegistryKey   = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        ValueName     = "SystemUsesLightTheme"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Forzar tema oscuro para la barra de tareas y el menu inicio (SystemUsesLightTheme = 0)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/apps/design/style/color"
+        UnattendDesc  = "Force Dark Mode for System Shell (SystemUsesLightTheme = 0)"
+    },
+    @{
+        Id            = "POL_THEME_TRANSPARENCY"
+        Module        = "Personalizacion - Tema"
+        Category      = "Experiencia Visual"
+        RegistryKey   = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        ValueName     = "EnableTransparency"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Habilitar efectos de transparencia visual nativos de Windows (EnableTransparency = 1)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/apps/design/style/acrylic"
+        UnattendDesc  = "Enable Visual Transparency (EnableTransparency = 1)"
+    },
     # --- MÓDULO G: POLÍTICAS DE CONTROLADORES (DRIVERS & DISPOSITIVOS) ---
     @{
         Id            = "POL_DRV_EXCLUDE_WU"
