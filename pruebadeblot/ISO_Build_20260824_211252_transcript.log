@@ -1,0 +1,279 @@
+**********************
+PowerShell transcript start
+Start time: 20260824211252
+Username: DESKTOP-0TQ7HR9\Roman
+RunAs User: DESKTOP-0TQ7HR9\Roman
+Configuration Name: 
+Machine: DESKTOP-0TQ7HR9 (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -NoExit -RemoveWorkingDirectoryTrailingCharacter -WorkingDirectory C:\scripts! -Command $host.UI.RawUI.WindowTitle = 'PowerShell 7 (x64)'
+Process ID: 13736
+PSVersion: 7.6.5
+PSEdition: Core
+GitCommitId: 7.6.5
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.4
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+
+  ══ Diagnóstico Pre-vuelo de Recursos Opcionales ══
+  [OK] Runtimes Esenciales : Encontrados en 'C:\OptimizedISO\scripts\Runtimes' [165 archivos (Visual C++ + DirectX)]
+  [*] Actualizaciones (MSU): No detectadas (Opcional - ejecute Get-WindowsUpdates.ps1 si requiere parches offline)
+  [*] Controladores (INF) : No detectados (Opcional - coloque drivers .inf en Drivers/ si los requiere)
+
+
+>>> [1/6] Extrayendo ISO...
+    21:12:52
+    Usando 7-Zip: C:\Program Files\7-Zip\7z.exe
+    [⏳ Heartbeat] Extracción de ISO con 7-Zip en progreso... (Transcurrido: 00:15 | RAM: 7.9 MB)
+    [⏳ Heartbeat] Extracción de ISO con 7-Zip en progreso... (Transcurrido: 00:30 | RAM: 7.9 MB)
+  [OK] ISO extraída con 7-Zip.
+  [OK] ISO de Windows válida verificada.
+  [OK] ei.cfg creado/actualizado: selección de edición forzada.
+
+>>> [2/6] Detectando versión de Windows e inyectando scripts...
+    21:13:32
+    Versión detectada por setup.exe: Windows 11
+    Versión detectada: Windows 11
+  [OK] La edición de Windows y el disco se seleccionarán durante la instalación
+
+  SELECCIÓN DE SCRIPT(S) POST-INSTALACIÓN EN ESCRITORIO:
+  ──────────────────────────────────────────────────────────────────────────
+  [1] Suite Completa romanOS: Toolkit Maestro + Debloat + Mantenimiento + Red + Seguridad [Recomendado]
+  [2] romanOS-Toolkit.ps1 (Hub Maestro Orquestador Completo)
+  [3] Win11-Debloat-v3-Adaptive.ps1 (Debloat y Optimización Adaptativa)
+  [4] Invoke-WindowsMaintenance.ps1 (Mantenimiento, Limpieza y Reparación)
+  [5] Win11-Network-Diagnostics-Optimizer.ps1 (Diagnóstico de Red y Latencia)
+  [6] Invoke-WindowsSecurityHardening.ps1 (Auditoría de Seguridad y Hardening)
+  [7] Seleccionar otro archivo .ps1 personalizado...
+  [0] Omitir inyección de scripts (Solo autounattend.xml y tweaks offline)
+
+  [OK] Script inyectado en $OEM$: romanOS-Toolkit.ps1
+  [OK] Lanzador elevado registrado en Scripts: romanOS-Toolkit.cmd
+  [OK] Script inyectado en $OEM$: Win11-Debloat-v3-Adaptive.ps1
+  [OK] Lanzador elevado registrado en Scripts: Optimizar Windows (Opcional).cmd
+  [OK] Script inyectado en $OEM$: Invoke-WindowsMaintenance.ps1
+  [OK] Lanzador elevado registrado en Scripts: Mantenimiento y Reparacion.cmd
+  [OK] Script inyectado en $OEM$: Win11-Network-Diagnostics-Optimizer.ps1
+  [OK] Lanzador elevado registrado en Scripts: Optimizar Red y Latencia (Opcional).cmd
+  [OK] Script inyectado en $OEM$: Invoke-WindowsSecurityHardening.ps1
+  [OK] Lanzador elevado registrado en Scripts: Auditoria de Seguridad (On-Demand).cmd
+  [OK] Lanzador de Auditoria registrado en Scripts: Auditar-Instalacion.cmd
+  [OK] Runtimes esenciales inyectados en $OEM$ (165 archivos copiados).
+
+>>> [3/6] Creando SetupComplete.cmd y registro de tareas a demanda...
+    21:14:10
+  [OK] PostInstall-Diagnostics.ps1 y lanzador de auditoría registrados en $OEM$
+
+>>> [4/6] Creando autounattend.xml...
+    21:14:10
+
+  ╔══════════════════════════════════════════════════════════════╗
+  ║ PERFILES DE OPTIMIZACIÓN (DEBLOAT)                           ║
+  ╠══════════════════════════════════════════════════════════════╣
+  ║ [1] Conservador: Mantiene Wi-Fi, Bluetooth y apps básicas    ║
+  ║ [2] Gaming: Elimina bloatware agresivo y telemetría          ║
+  ║ [3] Hardcore: EXTREMO. Destruye Wi-Fi, Bluetooth, impresión  ║
+  ╚══════════════════════════════════════════════════════════════╝
+
+
+  Perfil de optimización seleccionado: 3
+  Bloquear OneDrive: Sí
+
+  [OK] autounattend.xml creado
+
+>>> [5/6] Inyectando scripts en install.wim (offline)...
+    21:14:10
+    Imagen encontrada: C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260824_211208\ISO_Files\sources\install.wim
+
+    Ediciones detectadas en install.wim:
+    ------------------------------------------------------------
+    [Índice 1] Windows 11 Home
+    [Índice 2] Windows 11 Home N
+    [Índice 3] Windows 11 Home Single Language
+    [Índice 4] Windows 11 Education
+    [Índice 5] Windows 11 Education N
+    [Índice 6] Windows 11 Pro
+    [Índice 7] Windows 11 Pro N
+    [Índice 8] Windows 11 Pro Education
+    [Índice 9] Windows 11 Pro Education N
+    [Índice 10] Windows 11 Pro for Workstations
+    [Índice 11] Windows 11 Pro N for Workstations
+    ------------------------------------------------------------
+
+    Seleccione qué edición(es) desea modificar offline:
+    [A] Procesar TODAS las ediciones
+    [1] Solo Índice 1: Windows 11 Home
+    [2] Solo Índice 2: Windows 11 Home N
+    [3] Solo Índice 3: Windows 11 Home Single Language
+    [4] Solo Índice 4: Windows 11 Education
+    [5] Solo Índice 5: Windows 11 Education N
+    [6] Solo Índice 6: Windows 11 Pro
+    [7] Solo Índice 7: Windows 11 Pro N
+    [8] Solo Índice 8: Windows 11 Pro Education
+    [9] Solo Índice 9: Windows 11 Pro Education N
+    [10] Solo Índice 10: Windows 11 Pro for Workstations
+    [11] Solo Índice 11: Windows 11 Pro N for Workstations
+
+
+    Procesando índice 10 (Windows 11 Pro for Workstations)...
+
+Path          : C:\WimMount_20260824_211208
+Online        : False
+RestartNeeded : False
+
+  [OK] WIM índice 10 (Windows 11 Pro for Workstations) montado.
+
+    ══ Auditoría de Nivel de Parche del WIM Base ══
+    KBs en WIM base (UBR: 8037) : KB5054156
+  [*] Slipstreaming omitirá paquetes ya presentes en el WIM.
+
+    ══ Habilitar .NET Framework 3.5 (NetFx3) ══
+    Habilitando .NET 3.5 desde sources\sxs con DISM...
+    [⏳ Heartbeat] Habilitación offline de .NET Framework 3.5 en progreso... (Transcurrido: 00:15 | RAM: 19.7 MB)
+  [OK] .NET Framework 3.5 habilitado en la imagen WIM.
+
+    ══ Slipstreaming de actualizaciones ══
+    Carpeta 'C:\scripts\Updates' encontrada pero sin archivos .msu/.cab.
+
+    ══ Inyección offline de Drivers ══
+    Carpeta 'Drivers' encontrada pero sin archivos .inf.
+
+    ══ Eliminar Features on Demand ══
+    Eliminando FOD: App.StepsRecorder~~~~0.0.1.0
+    Eliminando FOD: Browser.InternetExplorer~~~~0.0.11.0
+    Eliminando FOD: Hello.Face.20134~~~~0.0.1.0
+    Eliminando FOD: MathRecognizer~~~~0.0.1.0
+    Eliminando FOD: Media.WindowsMediaPlayer~~~~0.0.12.0
+    Eliminando FOD: Print.Management.Console~~~~0.0.1.0
+  [OK] Features on Demand eliminados.
+
+    ══ Debloat offline AppX ══
+    Paquetes provisionados: 47.
+    Protegidos: 6.
+    Seleccionables: 41.
+    Perfil 3 eliminando automáticamente bloatware no protegido.
+    Eliminando 41 paquetes...
+      Eliminado: Clipchamp.Clipchamp
+      Eliminado: Microsoft.ApplicationCompatibilityEnhancements
+      Eliminado: Microsoft.AV1VideoExtension
+      Eliminado: Microsoft.AVCEncoderVideoExtension
+      Eliminado: Microsoft.BingNews
+      Eliminado: Microsoft.BingSearch
+      Eliminado: Microsoft.BingWeather
+      Eliminado: Microsoft.GamingApp
+      Eliminado: Microsoft.GetHelp
+      Eliminado: Microsoft.HEIFImageExtension
+      Eliminado: Microsoft.HEVCVideoExtension
+      Eliminado: Microsoft.MicrosoftOfficeHub
+      Eliminado: Microsoft.MicrosoftSolitaireCollection
+      Eliminado: Microsoft.MicrosoftStickyNotes
+      Eliminado: Microsoft.MPEG2VideoExtension
+      Eliminado: Microsoft.OutlookForWindows
+      Eliminado: Microsoft.Paint
+      Eliminado: Microsoft.PowerAutomateDesktop
+      Eliminado: Microsoft.RawImageExtension
+      Eliminado: Microsoft.ScreenSketch
+      Eliminado: Microsoft.Todos
+      Eliminado: Microsoft.VP9VideoExtensions
+      Eliminado: Microsoft.WebMediaExtensions
+      Eliminado: Microsoft.WebpImageExtension
+      Eliminado: Microsoft.Windows.DevHome
+      Eliminado: Microsoft.Windows.Photos
+      Eliminado: Microsoft.WindowsAlarms
+      Eliminado: Microsoft.WindowsCalculator
+      Eliminado: Microsoft.WindowsCamera
+      Eliminado: Microsoft.WindowsFeedbackHub
+      Eliminado: Microsoft.WindowsNotepad
+      Eliminado: Microsoft.WindowsSoundRecorder
+      Eliminado: Microsoft.WindowsTerminal
+      Eliminado: Microsoft.XboxGamingOverlay
+      Eliminado: Microsoft.XboxSpeechToTextOverlay
+      Eliminado: Microsoft.YourPhone
+      Eliminado: Microsoft.ZuneMusic
+      Eliminado: MicrosoftCorporationII.QuickAssist
+      Eliminado: MicrosoftWindows.Client.WebExperience
+      Eliminado: MicrosoftWindows.CrossDevice
+      Eliminado: MSTeams
+  [OK] Debloat offline completado.
+
+    ══ Tweaks visuales offline ══
+    Cargando NTUSER.DAT del usuario default...
+  [WARN] No se pudo cargar NTUSER.DAT. Exit code: 1.
+  [OK] Inyectado en WIM índice 10: Runtimes Esenciales (165 archivos)
+  [OK] Inyectado en WIM índice 10: romanOS-Toolkit.ps1
+  [OK] Inyectado en WIM índice 10: Win11-Debloat-v3-Adaptive.ps1
+  [OK] Inyectado en WIM índice 10: Invoke-WindowsMaintenance.ps1
+  [OK] Inyectado en WIM índice 10: Win11-Network-Diagnostics-Optimizer.ps1
+  [OK] Inyectado en WIM índice 10: Invoke-WindowsSecurityHardening.ps1
+  [OK] Inyectado en WIM índice 10: SetupComplete.cmd
+  [OK] Inyectado en WIM índice 10: PostInstall-Diagnostics.ps1
+  [OK] Inyectado en WIM índice 10: Auditar-Instalacion.cmd
+    Desmontando imagen WIM en 'C:\WimMount_20260824_211208' (Acción: Save)...
+  [OK] WIM índice 10 (Windows 11 Pro for Workstations) desmontado con cambios guardados.
+
+    ══ Consolidación final del WIM ══
+    Exportando WIM para eliminar espacio muerto y aplicar compresión Max...
+    Exportando índice 10: Windows 11 Pro for Workstations...
+    [⏳ Heartbeat] Exportación y compresión WIM (Índice 10) en progreso... (Transcurrido: 00:15 | RAM: 128.4 MB)
+    [⏳ Heartbeat] Exportación y compresión WIM (Índice 10) en progreso... (Transcurrido: 00:30 | RAM: 133.6 MB)
+  [OK] WIM consolidado correctamente. Ahorro aproximado: 868.7 MB.
+
+    ══════════════════════════════════════════════════════════════
+    MODALIDAD DE INSTALACIÓN (Índice único seleccionado: 1)
+    ══════════════════════════════════════════════════════════════
+
+
+
+
+
+
+
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║ ¿Desea habilitar instalación 100% Zero-Touch?                           ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║
+ ▶ 1 - Semi-Desatendida (Recomendado: Tú eliges el disco y partición)  [S
+║
+  ║   2 - Zero-Touch 100% Automática (Formatea Disco 0 e instala sin interve║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   ↑↓ Mover   ENTER Confirmar                                            ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║ ¿Desea habilitar instalación 100% Zero-Touch?                           ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   1 - Semi-Desatendida (Recomendado: Tú eliges el disco y partición)  [S║
+  ║
+ ▶ 2 - Zero-Touch 100% Automática (Formatea Disco 0 e instala sin interve
+║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   ↑↓ Mover   ENTER Confirmar                                            ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+    [!] ATENCIÓN: Zero-Touch formateará automáticamente el Disco 0 (UEFI/GPT) en la instalación.
+
+    Configurando autounattend.xml en modo Zero-Touch (Índice 1, Disco 0)...
+  [OK] Zero-Touch configurado en autounattend.xml (Disco 0, Índice 1).
+
+>>> [6/6] Reconstruyendo ISO...
+    21:24:44
+    Usando oscdimg: C:\Users\Roman\AppData\Local\Microsoft\WinGet\Packages\Microsoft.OSCDIMG_Microsoft.Winget.Source_8wekyb3d8bbwe\oscdimg.exe
+    Etiqueta ISO: WIN11_OPT
+    BIOS boot: C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260824_211208\ISO_Files\boot\etfsboot.com
+    UEFI boot: C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260824_211208\ISO_Files\efi\microsoft\boot\efisys_noprompt.bin (Sin prompt - Arranque directo)
+    Ejecutando oscdimg...
+    CMD: "C:\Users\Roman\AppData\Local\Microsoft\WinGet\Packages\Microsoft.OSCDIMG_Microsoft.Winget.Source_8wekyb3d8bbwe\oscdimg.exe" -m -o -u2 -udfver102 -l"WIN11_OPT" -bootdata:2#p0,e,b"C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260824_211208\ISO_Files\boot\etfsboot.com"#pEF,e,b"C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260824_211208\ISO_Files\efi\microsoft\boot\efisys_noprompt.bin" "C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260824_211208\ISO_Files" "C:\Users\Roman\Desktop\WinISO_Optimizado\Windows_11_Optimized_20260824_212444.iso"
+    [⏳ Heartbeat] Reconstrucción de ISO UEFI/BIOS con oscdimg en progreso... (Transcurrido: 00:15 | RAM: 10.1 MB)
+    [⏳ Heartbeat] Reconstrucción de ISO UEFI/BIOS con oscdimg en progreso... (Transcurrido: 00:30 | RAM: 10.1 MB)
+  [OK] ISO creada exitosamente: C:\Users\Roman\Desktop\WinISO_Optimizado\Windows_11_Optimized_20260824_212444.iso
+    SHA256: D85B7BA8AE24719CC65C50EF4A73361C0363F271E95E12EEA471B9A1BA61BD26
+
+  Limpiando carpeta temporal de extracción...
+  Carpeta temporal eliminada: C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260824_211208
+**********************
+PowerShell transcript end
+End time: 20260824212527
+**********************
