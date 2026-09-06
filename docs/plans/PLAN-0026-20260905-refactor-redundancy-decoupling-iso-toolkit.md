@@ -1,7 +1,7 @@
 # PLAN-0026: Refactorización y Desacoplamiento de Redundancias Transversales e Integración Canónica ISO vs. Toolkit
 
 **Fecha:** 2026-09-05  
-**Estado:** PENDIENTE  
+**Estado:** EN PROGRESO  
 **Rama:** `feature/offline-ui-tweaks`  
 **Autor:** Agente Antigravity / Pair-Programming  
 **Plan Previo Directo:** [PLAN-0025](PLAN-0025-20260905-deep-audit-script-redundancy-and-iso-vs-toolkit-matrix.md)  
@@ -14,8 +14,9 @@
 
 Tras completar y aprobar la auditoría técnica transversal ([AUDITORIA_REDUNDANCIA_SCRIPTS_Y_MATRIZ_ISO_VS_TOOLKIT.md](../auditorias/AUDITORIA_REDUNDANCIA_SCRIPTS_Y_MATRIZ_ISO_VS_TOOLKIT.md)), se estableció la necesidad imperiosa de ejecutar una refactorización quirúrgica que resuelva las redundancias patológicas, divergencias e inconsistencias entre la ISO y el Toolkit, respetando el **Paradigma Dual de Arquitectura**:
 
-1. **Escenario A (ISO Optimizada):** La instalación arranca con la suite de rendimiento completa, menús contextuales en cascada a 1 clic y políticas de navegadores activadas de forma desatendida.
+1. **Escenario A (ISO Optimizada):** La instalación arranca con la suite de rendimiento completa, menús contextuales en cascada a 1 clic, políticas de navegadores activadas de forma desatendida, y la **carpeta `Core/` (Policy-Engine, Hardware-Engine, UI-Engine) completamente inyectada en la ISO** para que el Toolkit opere con el 100% de sus motores activos en el sistema instalado.
 2. **Escenario B (Toolkit Standalone en Windows Genérico/Stock):** El usuario que no usó la ISO puede ejecutar el Toolkit y sus módulos auxiliares de manera autónoma con todas las opciones disponibles.
+
 
 ---
 
