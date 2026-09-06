@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Get-WindowsUpdates.ps1 - Descargador Automatizado de Actualizaciones Oficiales de Windows (MSU/CAB)
     Motor de Consulta en Tiempo Real al Microsoft Update Catalog
@@ -559,7 +559,7 @@ $searchMatrix = switch ($Version) {
     "11_25H2" {
         @{
             LCU        = "Cumulative Update Windows 11 25H2 $archTag"
-            Checkpoint = "Windows11.0-KB5043080-$archTag"   # Checkpoint CU obligatorio para 25H2
+            Checkpoint = "KB5043080 $archTag"   # Checkpoint CU obligatorio para 25H2
             DotNet     = "Cumulative Update .NET Framework Windows 11 25H2 $archTag"
             SafeOS     = "Safe OS Dynamic Update Windows 11 25H2 $archTag"
         }
@@ -567,7 +567,7 @@ $searchMatrix = switch ($Version) {
     "11_24H2" {
         @{
             LCU        = "Cumulative Update Windows 11 24H2 $archTag"
-            Checkpoint = "Windows11.0-KB5043080-$archTag"   # Checkpoint CU obligatorio para 24H2
+            Checkpoint = "KB5043080 $archTag"   # Checkpoint CU obligatorio para 24H2
             DotNet     = "Cumulative Update for .NET Framework 3.5 and 4.8.1 for Windows 11, version 24H2 for $archTag"
             SafeOS     = "Safe OS Dynamic Update for Windows 11, version 24H2 for $archTag"
         }
@@ -575,7 +575,7 @@ $searchMatrix = switch ($Version) {
     "11_LTSC_2024" {
         @{
             LCU        = "Cumulative Update Windows 11 24H2 $archTag"
-            Checkpoint = "Windows11.0-KB5043080-$archTag"   # Checkpoint CU obligatorio para LTSC 2024
+            Checkpoint = "KB5043080 $archTag"   # Checkpoint CU obligatorio para LTSC 2024
             DotNet     = "Cumulative Update for .NET Framework 3.5 and 4.8.1 for Windows 11, version 24H2 for $archTag"
             SafeOS     = "Safe OS Dynamic Update for Windows 11, version 24H2 for $archTag"
         }
