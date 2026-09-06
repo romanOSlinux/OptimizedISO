@@ -159,8 +159,12 @@ $suiteResults.Add([PSCustomObject]@{ Phase = 5; Name = "Auditoría de Higiene Gi
 $phase6Pass = $true
 if (-not $Quick) {
     Write-StepHeader -StepNumber 6 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
-    $harnessScript = Join-Path $repoRoot "scripts\Test-OptimizedISO-v2.ps1"
-    if (Test-Path $harnessScript) {
+    $harnessCandidates = @(
+        (Join-Path $repoRoot "scripts\Testing\Test-OptimizedISO-v2.ps1"),
+        (Join-Path $repoRoot "scripts\Test-OptimizedISO-v2.ps1")
+    )
+    $harnessScript = $harnessCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($harnessScript) {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $harnessScript -LogDir $LogDir
         if ($LASTEXITCODE -eq 0) {
             $phase6Pass = $true
