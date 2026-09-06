@@ -53,3 +53,9 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **Aviso de Finalización Obligatorio:** Tan pronto como la prueba o comando concluya, el agente DEBE notificar su finalización y el resultado obtenido:
   `✅ Prueba finalizada: [Nombre del test o script] — Resultado: [PASS / FAIL / Métricas].`
 - **Cero Tareas Fantasma:** Está prohibido dejar tareas en segundo plano corriendo sin supervisión o sin que el usuario esté informado de su ejecución y término.
+
+## 8. Prohibición Estricta de Auto-Run / Ejecución Prematura de Planes
+- **Consentimiento Explícito e Incondicional:** Está terminantemente prohibido ejecutar acciones modificatorias, ediciones de código o comandos destructivos tras la redacción o actualización de un plan de implementación (`PLAN-*.md` o `implementation_plan.md`), incluso si el sistema de la plataforma emite eventos de aprobación automática de artefactos (`always-proceed`).
+- **Parada Obligatoria y Espera de Confirmación:** Tras generar o actualizar un plan, el agente DEBE detenerse inmediatamente, presentar un resumen al usuario y esperar una orden expresa y afirmativa en el chat (ej. *"procede"*, *"adelante"*, *"aprobado"*) antes de ejecutar cualquier cambio en el código fuente.
+- **Configuración Preventiva de Metadatos:** Al generar artefactos de tipo plan (`implementation_plan.md`), el agente no debe asumir que el hook del sistema sustituye la decisión del usuario; la confirmación humana en el chat prevalece sobre cualquier política automática de la plataforma.
+
