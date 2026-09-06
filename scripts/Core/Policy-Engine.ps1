@@ -506,6 +506,1043 @@ $global:RomanOS_Policies = @(
 )
 
 # -----------------------------------------------------------------------------
+# 1.1 MATRIZ DE DIRECTIVAS GPO DE NAVEGADORES WEB (EDGE, CHROME, FIREFOX, BRAVE)
+# -----------------------------------------------------------------------------
+
+$global:RomanOS_BrowserPolicies = @(
+    # --- MICROSOFT EDGE ---
+    @{
+        Browser       = "Edge"
+        Category      = "Rendimiento GPU / Video"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "HardwareAccelerationModeEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Aceleracion por hardware GPU activada"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Rendimiento GPU / Video"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "SmoothScrollingEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desplazamiento suave activado"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Ahorro de RAM y CPU"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "StartupBoostEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar inicio rapido en segundo plano"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Ahorro de RAM y CPU"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "BackgroundModeEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Cerrar procesos en segundo plano al salir"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Ahorro de RAM y CPU"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "SleepingTabsEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Pestanas inactivas en suspension para liberar RAM"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Ahorro de RAM y CPU"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "SleepingTabsTimeout"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 300
+        Description   = "Suspender pestanas tras 5 minutos de inactividad"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Ahorro de RAM y CPU"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "EfficiencyModeEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Modo de eficiencia energetica activado"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Ahorro de RAM y CPU"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "EfficiencyModeOption"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Opcion de modo eficiencia equilibrada"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Ahorro de RAM y CPU"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "IntensiveWakeUpThrottlingEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Estrangular temporizadores JavaScript pesados en segundo plano"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Rendimiento y Red"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "NewTabPagePrerenderEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar precarga de nueva pestana para ahorrar memoria"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Rendimiento y Red"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "DiskCacheSize"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 268435456
+        Description   = "Limitar cache de disco a 256 MB para evitar fragmentacion"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Rendimiento y Red"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "NetworkPredictionOptions"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 2
+        Description   = "Desactivar prediccion de red innecesaria"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "HubsSidebarEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar barra lateral Hubs"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "EdgeSidebarCustomizeEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar personalizacion de barra lateral"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "EdgeShoppingAssistantEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar asistente de compras y cupones"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "EdgeCollectionsEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar colecciones"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "ComposeInlineEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar sugerencias de redaccion asistida"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "DiagnosticData"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar envio de datos de diagnostico"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "PersonalizationReportingEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar reporte de personalizacion"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "ShowRecommendationsEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar recomendaciones comerciales"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "UserFeedbackAllowed"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar solicitudes de comentarios"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "SpotlightExperiencesAndRecommendationsEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar recomendaciones Spotlight"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "ResolveNavigationErrorsUseWebService"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "No enviar errores de navegacion a Microsoft"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "AlternateErrorPagesEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar paginas de error alternativas web"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "AllowCopilot"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar Copilot en Edge"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "ConfigureCopilot"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Configurar Copilot deshabilitado"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "Microsoft365CopilotChatIconEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar icono de chat Copilot M365"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "NewTabPageContentEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar feed de noticias en nueva pestana"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "NewTabPageQuickLinksEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar accesos rapidos patrocinados en nueva pestana"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "NewTabPageHideDefaultTopSites"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Ocultar sitios populares predeterminados"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "BingAdsSuppression"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Supresion de anuncios de Bing"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "SearchSuggestEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar envio de texto de busqueda a servidores"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "AllowPrelaunch"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar pre-lanzamiento en arranque de Windows"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "HideFirstRunExperience"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Ocultar asistente de primera ejecucion"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "TrackingPrevention"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 3
+        Description   = "Prevencion de rastreo estricta (Nivel 3)"
+    },
+
+    # --- GOOGLE CHROME ---
+    @{
+        Browser       = "Chrome"
+        Category      = "Rendimiento GPU / Video"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "HardwareAccelerationModeEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Aceleracion por hardware GPU activada en Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Rendimiento GPU / Video"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "SmoothScrollingEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desplazamiento suave activado en Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Ahorro de RAM y CPU"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "BackgroundModeEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Cerrar procesos de Chrome al salir"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Ahorro de RAM y CPU"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "HighEfficiencyModeEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Ahorro de memoria (Memory Saver) activado en Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Rendimiento y Red"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "NewTabPagePrerenderEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar precarga de nueva pestana en Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Rendimiento y Red"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "DiskCacheSize"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 268435456
+        Description   = "Limitar cache de disco a 256 MB en Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Rendimiento y Red"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "NetworkPredictionOptions"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 2
+        Description   = "Desactivar prediccion de red en Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "PromotionalTabsEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar pestanas promocionales de Google"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "ShoppingListEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar modulo de compras de Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "MetricsReportingEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar telemetria de metricas en Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "SpellCheckServiceEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "No enviar texto al corrector ortografico en la nube"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "PrivacySandboxAdMeasurementEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar medicion de anuncios Privacy Sandbox"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "PrivacySandboxAdTopicsEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar topicos de anuncios Privacy Sandbox"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "PrivacySandboxSiteTriggeredAttributionEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar atribucion de sitios Privacy Sandbox"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "AlternateErrorPagesEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar paginas de error web de Google"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "NTPContentSuggestionsEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar sugerencias de contenido en nueva pestana"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "NTPCardsVisible"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Ocultar tarjetas de contenido en nueva pestana"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "SearchSuggestEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar envio de texto en barra de direcciones de Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "GenAiDefaultSettings"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 2
+        Description   = "Desactivar IA generativa predeterminada en Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "GenAiHelpMeWriteSettings"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 2
+        Description   = "Desactivar Help Me Write IA en Chrome"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "GenAiHistorySearchSettings"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 2
+        Description   = "Desactivar busqueda en historial asistida por IA"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "GenAiTabOrganizationSettings"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 2
+        Description   = "Desactivar organizador de pestanas por IA"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "BrowserSignin"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar inicio de sesion forzado en el navegador"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "SyncDisabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desactivar sincronizacion en la nube de Google"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "ShowCastIconInToolbar"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Ocultar icono de Chromecast en barra de herramientas"
+    },
+
+    # --- MOZILLA FIREFOX ---
+    @{
+        Browser       = "Firefox"
+        Category      = "Rendimiento GPU / Video"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox"
+        ValueName     = "HardwareAcceleration"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Aceleracion por hardware GPU activada en Firefox"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox"
+        ValueName     = "DisableTelemetry"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desactivar telemetria en Firefox"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox"
+        ValueName     = "DisablePocket"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desactivar Pocket en Firefox"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox"
+        ValueName     = "DisableFirefoxStudies"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desactivar estudios de Mozilla"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox"
+        ValueName     = "DisableFeedbackCommands"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desactivar comandos de feedback en Firefox"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox"
+        ValueName     = "BackgroundAppUpdate"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar actualizacion de Firefox en segundo plano"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox"
+        ValueName     = "OverrideFirstRunPage"
+        Type          = "REG_SZ"
+        PSType        = "String"
+        ExpectedValue = ""
+        Description   = "Omitir pagina de bienvenida de primera ejecucion"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox"
+        ValueName     = "OverridePostUpdatePage"
+        Type          = "REG_SZ"
+        PSType        = "String"
+        ExpectedValue = ""
+        Description   = "Omitir pagina de novedades tras actualizacion"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        ValueName     = "ExtensionRecommendations"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar recomendaciones de extensiones"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        ValueName     = "FeatureRecommendations"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar recomendaciones de funciones"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        ValueName     = "MoreFromMozilla"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar promociones More From Mozilla"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        ValueName     = "SkipOnboarding"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Omitir onboarding de bienvenida"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        ValueName     = "WhatsNew"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar aviso Whats New"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging"
+        ValueName     = "UrlbarInterventions"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar intervenciones en barra de direcciones"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome"
+        ValueName     = "Pocket"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar Pocket en inicio de Firefox"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome"
+        ValueName     = "SponsoredPocket"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar Pocket patrocinado"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome"
+        ValueName     = "Snippets"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar fragmentos promocionales Snippets"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome"
+        ValueName     = "SponsoredTopSites"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar sitios patrocinados en inicio"
+    },
+    @{
+        Browser       = "Firefox"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome"
+        ValueName     = "Highlights"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar destacados en inicio"
+    },
+
+    # --- BRAVE BROWSER ---
+    @{
+        Browser       = "Brave"
+        Category      = "Rendimiento GPU / Video"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "HardwareAccelerationModeEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Aceleracion por hardware GPU activada en Brave"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Rendimiento GPU / Video"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "SmoothScrollingEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desplazamiento suave activado en Brave"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Ahorro de RAM y CPU"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "BackgroundModeEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Cerrar procesos de Brave al salir"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Rendimiento y Red"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "DiskCacheSize"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 268435456
+        Description   = "Limitar cache de disco a 256 MB en Brave"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "MetricsReportingEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar metricas en Brave"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "IPFSDisabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desactivar protocolo P2P IPFS en Brave"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "TorDisabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desactivar ventanas Tor en Brave"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "BraveRewardsDisabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desactivar Brave Rewards (Cripto)"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "BraveWalletDisabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desactivar billetera Brave Wallet"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "BraveVPNDisabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Desactivar servicios comerciales Brave VPN"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "BraveAIChatEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar Leo AI Chat en Brave"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "NTPSponsoredImagesEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar fondos de pantalla patrocinados en nueva pestana"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "PromotionalTabsEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar pestanas promocionales en Brave"
+    },
+    @{
+        Browser       = "Brave"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\BraveSoftware\Brave"
+        PSPath        = "HKLM:\SOFTWARE\Policies\BraveSoftware\Brave"
+        ValueName     = "SearchSuggestEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Desactivar sugerencias de busqueda en Brave"
+    }
+)
+
+# -----------------------------------------------------------------------------
 # 2. INVENTARIO MAESTRO DE BLOATWARE APPX DEBLOAT
 # -----------------------------------------------------------------------------
 
@@ -638,3 +1675,104 @@ function Export-RomanOSUnattendCommands {
         Count      = $policies.Count
     }
 }
+
+function Get-RomanOSBrowserPolicies {
+    <#
+    .SYNOPSIS
+        Devuelve las politicas de navegadores web catalogadas en Policy-Engine.
+    #>
+    param(
+        [ValidateSet("All", "Edge", "Chrome", "Firefox", "Brave")]
+        [string]$Browser = "All"
+    )
+
+    if ($Browser -eq "All") {
+        return $global:RomanOS_BrowserPolicies
+    }
+
+    return @($global:RomanOS_BrowserPolicies | Where-Object { $_.Browser -eq $Browser })
+}
+
+function Export-RomanOSBrowserCommands {
+    <#
+    .SYNOPSIS
+        Genera el bloque de comandos CMD para SetupComplete.cmd o scripts batch.
+    #>
+    param(
+        [string]$LogVariable = "%LOG%"
+    )
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add("REM ===========================================================")
+    $lines.Add("REM Optimizacion y Debloat Oficial de Navegadores Web (GPO)")
+    $lines.Add("REM Generado dinamicamente desde Core\Policy-Engine.ps1")
+    $lines.Add("REM ===========================================================")
+    $lines.Add("echo [%DATE% %TIME%] Aplicando politicas GPO de rendimiento en navegadores... >> `"$LogVariable`"")
+    $lines.Add("")
+
+    $currentBrowser = ""
+    foreach ($p in $global:RomanOS_BrowserPolicies) {
+        if ($p.Browser -ne $currentBrowser) {
+            $currentBrowser = $p.Browser
+            $lines.Add("REM -- Directivas para $currentBrowser --")
+        }
+        $valData = if ($p.Type -eq "REG_SZ" -and [string]::IsNullOrEmpty($p.ExpectedValue)) { '""' } else { $p.ExpectedValue }
+        $lines.Add("reg add `"$($p.RegistryKey)`" /v `"$($p.ValueName)`" /t $($p.Type) /d $valData /f >> `"$LogVariable`" 2>&1")
+    }
+
+    $lines.Add("")
+    $lines.Add("echo [%DATE% %TIME%] Politicas de navegadores aplicadas exitosamente. >> `"$LogVariable`"")
+
+    return ($lines -join "`r`n")
+}
+
+function Apply-RomanOSBrowserPolicies {
+    <#
+    .SYNOPSIS
+        Aplica todas las directivas GPO de navegadores en vivo mediante Set-ItemProperty o reg.exe.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [ValidateSet("All", "Edge", "Chrome", "Firefox", "Brave")]
+        [string]$Browser = "All",
+        [switch]$VerboseOutput
+    )
+
+    $policies = Get-RomanOSBrowserPolicies -Browser $Browser
+    $appliedCount = 0
+    $failCount = 0
+
+    foreach ($p in $policies) {
+        if ($PSCmdlet.ShouldProcess("$($p.RegistryKey)\$($p.ValueName)", "Aplicar directiva GPO de $($p.Browser)")) {
+            try {
+                $regKey = $p.RegistryKey
+                $valName = $p.ValueName
+                $type = $p.Type
+                $val = if ($p.Type -eq "REG_SZ" -and [string]::IsNullOrEmpty($p.ExpectedValue)) { "" } else { $p.ExpectedValue }
+
+                # Asegurar ruta intermedia en HKLM
+                if (-not (Test-Path $p.PSPath)) {
+                    New-Item -Path $p.PSPath -Force -ErrorAction SilentlyContinue | Out-Null
+                }
+
+                & reg.exe add "$regKey" /v "$valName" /t $type /d "$val" /f 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    $appliedCount++
+                    if ($VerboseOutput) { Write-Host "  [OK] $($p.Browser): $($p.ValueName) = $val" -ForegroundColor Green }
+                } else {
+                    $failCount++
+                    if ($VerboseOutput) { Write-Host "  [FAIL] $($p.Browser): $($p.ValueName)" -ForegroundColor Red }
+                }
+            } catch {
+                $failCount++
+            }
+        }
+    }
+
+    return [PSCustomObject]@{
+        Total   = $policies.Count
+        Applied = $appliedCount
+        Failed  = $failCount
+    }
+}
+
