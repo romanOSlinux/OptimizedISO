@@ -1,3 +1,14 @@
+## [2026-09-05T22:15:00-03:00] Suite Modular de Menús Contextuales para Gaming y Power-Users (PLAN-0024)
+
+- **Archivos Modificados:** `scripts/Add-OptimizedContextMenus.ps1`, `scripts/Add-OptimizedContextMenus.cmd`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/romanOS-Toolkit.ps1`, `docs/plans/PLAN-0024-20260905-gamer-poweruser-context-menus.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se completó la investigación técnica sobre extensiones de menú contextual en Windows 11 24H2/25H2 respaldada en fuentes oficiales de Microsoft (documentada en `context_menu_research.md`).
+  - Se diseñó e implementó `scripts/Add-OptimizedContextMenus.ps1` (y su lanzador `.cmd` con flag STA) con soporte para menús en cascada nativos (`Gaming y Rendimiento ⚡`, `Herramientas del Sistema ⚙️`, `Opciones de Energía ⚡`), *Take Ownership*, *Open with Notepad*, cálculo de Hash SHA-256 y bloqueo/desbloqueo selectivo de `.exe` en Firewall con sintaxis AQS.
+  - Se habilitó por defecto el menú clásico de 1 solo clic (`CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32`) para latencia cero (0 ms) sin dependencia de procesos en segundo plano.
+  - Se integró la suite en la Sección 15 de `scripts/Win11-Debloat-v3-Adaptive.ps1` (con fallback embebido para ejecución aislada) y en `scripts/romanOS-Toolkit.ps1` (en `QuickActions` y parámetro `-Module ContextMenu`).
+  - Se validaron todos los scripts con codificación UTF-8 con BOM y pruebas AST / runtime en frío bajo Windows PowerShell 5.1 (`powershell.exe`).
+- **Pendiente:** Realizar push de los commits a `origin/feature/offline-ui-tweaks` si el usuario lo solicita.
+
 ## [2026-09-05T21:10:00-03:00] Resolución de Error AST, Normalización UTF-8 BOM y Certificación 100% de Tests
 
 - **Archivos Modificados:** `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/*.ps1`, `OptimizedISOHelpers.psm1`, `MEMORY.md`
