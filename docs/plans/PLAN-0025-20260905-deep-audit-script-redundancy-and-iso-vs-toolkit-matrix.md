@@ -97,7 +97,7 @@ Se auditará la totalidad de los scripts del proyecto conforme al siguiente inve
 - Justificación con fundamentos técnicos de por qué cada opción debe ir en la ISO o en el Toolkit.
 
 ### Fase 4: Entrega del Informe Técnico y Propuesta de Refactorización
-- Generación de un documento de análisis arquitectónico integral.
+- Generación del documento de análisis arquitectónico integral: [AUDITORIA_REDUNDANCIA_SCRIPTS_Y_MATRIZ_ISO_VS_TOOLKIT.md](../auditorias/AUDITORIA_REDUNDANCIA_SCRIPTS_Y_MATRIZ_ISO_VS_TOOLKIT.md).
 - **Pausa obligatoria para revisión y aprobación del usuario** antes de modificar cualquier línea de código del repositorio.
 
 ---
