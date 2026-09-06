@@ -81,7 +81,7 @@ $suiteResults.Add([PSCustomObject]@{ Phase = 1; Name = "Auditoría AST y Codific
 # FASE 2: MOTOR DE HARDWARE E INTROSPECCION (PCI-SIG, SMBIOS, MSI, HAGS)
 # -----------------------------------------------------------------------------
 Write-StepHeader -StepNumber 2 -TotalSteps $totalSteps -Message "Auditoría del Motor de Hardware y Clasificación Oficial"
-$hwScript = Join-Path $repoRoot "scripts\Test-HardwareEngine.ps1"
+$hwScript = Join-Path $repoRoot "scripts\Testing\Test-HardwareEngine.ps1"
 $phase2Pass = $false
 if (Test-Path $hwScript) {
     & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $hwScript

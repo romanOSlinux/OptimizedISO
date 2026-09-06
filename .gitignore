@@ -35,3 +35,4 @@ scripts/Runtimes/Logs/
 scratch/
 *.log
 
+scripts/Updates/Logs/

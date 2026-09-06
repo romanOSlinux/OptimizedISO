@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Get-WindowsUpdates.ps1 - Descargador Automatizado de Actualizaciones Oficiales de Windows (MSU/CAB)
     Motor de Consulta en Tiempo Real al Microsoft Update Catalog
