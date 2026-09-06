@@ -1,4 +1,4 @@
-# PLAN-0029: Refactorización de Menús Contextuales con API Nativa de Registro e Integración Canónica en ISO
+# PLAN-0029: Refactorización Integral de Menús Contextuales, Tareas a Demanda y SSOT de Rendimiento MMCSS
 
 **Fecha:** 2026-09-06  
 **Estado:** PENDIENTE  
@@ -9,42 +9,43 @@
 
 ---
 
-## 1. Justificación y Diagnóstico del Problema en Vivo
+## 1. Justificación y Diagnóstico Integral del Sistema en Vivo
 
-Tras una auditoría forense del sistema operativo en vivo (instalado a partir de una ISO generada por el proyecto), se comprobó empíricamente que **el menú contextual no es 100% funcional ni accesible de forma inmediata**. Se aislaron cuatro fallas técnicas críticas:
+Tras ejecutar una auditoría de contrato cruzada entre [`scripts/New-OptimizedWindowsISO-v2.ps1`](file:///c:/OptimizedISO/scripts/New-OptimizedWindowsISO-v2.ps1) y el sistema operativo en vivo instalado a partir de la ISO, se evidenciaron **2 fallos reales y 1 discrepancia arquitectónica** dentro de `SetupComplete.cmd` y el catálogo SSOT:
 
-1. **Bloqueo por el Menú Moderno de Windows 11:**
-   * El sistema en vivo carece de la clave CLSID `{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}` en `HKCU:\Software\Classes\CLSID`.
-   * En Windows 11, el Explorador de archivos oculta por diseño todos los verbos estáticos de shell de terceros tras el submenú *"Mostrar más opciones"* (Shift+F10), rompiendo la inmediatez de 1 solo clic (0 ms de latencia).
+1. **Fallo 1: Menús Contextuales Rotos por Despojo de Comillas (`reg.exe add`):**
+   * El script `Add-OptimizedContextMenus.ps1` invocaba `reg.exe add`.
+   * Al pasar comandos con comillas internas o argumentos de PowerShell, el proceso despojó comillas, generando `ERROR: sintaxis incorrecta` en comandos como *PowerMax*, *Reparar DISM+SFC* y *Terminal Admin*. Como consecuencia, las cascadas `GamerTools`, `SystemTools` y `PowerOptions` **no se crearon en el registro**.
+   * Además, la falta del CLSID clásico `{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}` en `HKCU` provocó que Windows 11 oculte todo tras "Mostrar más opciones".
 
-2. **Incompatibilidad de Escape en `reg.exe` dentro de PowerShell (`Set-ShellVerb`):**
-   * El script `Add-OptimizedContextMenus.ps1` utilizaba llamadas al ejecutable externo `reg.exe add`.
-   * Cuando PowerShell 5.1/7 invoca un binario externo pasando cadenas con comillas internas (como argumentos de PowerShell o comandos con comillas para rutas con espacios), el motor de procesos de Windows despoja las comillas exteriores y fragmenta los argumentos.
-   * **Resultado empírico:** `reg.exe` arrojó `ERROR: sintaxis incorrecta` en comandos complejos (plan de energía, reparación DISM+SFC, PowerShell Admin), provocando que las cascadas `GamerTools`, `SystemTools` y `PowerOptions` **no se crearan en el registro**. Además, en *Take Ownership*, `reg.exe` despojó las comillas de `"%1"`, haciendo que falle ante rutas con espacios en blanco.
+2. **Fallo 2: Desaparición de las Tareas Programadas a Demanda (`schtasks /sc ONCE`):**
+   * En `New-OptimizedWindowsISO-v2.ps1` (línea 4084), la plantilla de `SetupComplete.cmd` registraba las tareas con:
+     `schtasks /create /tn "$taskName" /tr "..." /sc ONCE /st 00:00 /ru "SYSTEM" /rl HIGHEST /f`
+   * **El problema:** En Windows Task Scheduler, `/sc ONCE /st 00:00` crea una tarea programada para una hora del pasado (00:00). Al ejecutarse `SetupComplete.cmd` tras la instalación, Windows emitió la advertencia: `ADVERTENCIA: no puede ejecutarse la tarea porque /ST es anterior a la hora actual`. Al no tener disparador recurrente y estar en el pasado, el Programador de Tareas eliminó las tareas como expiradas.
+   * **Resultado en vivo:** `0` tareas encontradas (`Get-ScheduledTask -TaskName 'Ejecutar_*'` vacío). Los accesos directos quedan sin soporte de elevación transparente.
 
-3. **Corrupción de Sintaxis en `SetupComplete.cmd`:**
-   * En la plantilla de `SetupComplete.cmd` inyectada en la ISO, la línea de registro para `PSAdmin` contenía:
-     `... -LiteralPath \"%V\"' ... >> "%LOG%"`
-   * El intérprete de comandos `cmd.exe` confundió `%V` con `%LOG%`, truncando la cadena y grabando en el registro un comando corrupto terminado en `"LOG`, provocando un fallo de sintaxis inmediato al invocar "Terminal (Administrador)".
-
-4. **Falta de Desacoplamiento e Inyección Canónica:**
-   * `SetupComplete.cmd` mantenía 50 líneas hardcodeadas de `reg add` duplicadas en lugar de invocar de forma limpia y modular `Add-OptimizedContextMenus.ps1 -Apply -Quiet`.
+3. **Discrepancia 1: MMCSS `SystemResponsiveness` Huérfana (Violación Regla 9 SSOT):**
+   * En la auditoría, `SystemResponsiveness` dio `10` en vez de `0` (Gaming).
+   * **Causa raíz:** `SystemResponsiveness` y `NetworkThrottlingIndex` nunca fueron registradas en `scripts/Core/Policy-Engine.ps1`. Solo existían en `Win11-Debloat-v3-Adaptive.ps1` (que es una herramienta a demanda). Al no estar en `Policy-Engine.ps1`, nunca fueron exportadas a `autounattend.xml` ni a `SetupComplete.cmd` durante la compilación limpia de la ISO.
 
 ---
 
 ## 2. Objetivos del Plan
 
-1. **Refactorizar `Set-ShellVerb` y `Remove-ShellVerb` a la API Nativa de Registro de PowerShell:**
-   * Reemplazar todas las invocaciones a `reg.exe` por cmdlets nativos del proveedor `Registry::` (`New-Item -Force`, `Set-ItemProperty`).
-   * Cero despojo de comillas: preservación estricta de `"%1"`, `"%V"` y parámetros anidados.
-2. **Robustecer las Cascadas para Windows 10 y Windows 11:**
-   * Configurar `MUIVerb`, `SubCommands = ""` y el valor `(Default)` en cada nodo hijo de la cascada para garantizar renderizado inmediato.
-3. **Garantizar el Menú Clásico de 1 Solo Clic (0 ms Latencia):**
-   * Configurar el CLSID `{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32` con valor predeterminado vacío `""` tanto en `HKCU` como en `HKU\.DEFAULT` para que nuevos usuarios y el usuario actual lo tengan activo de fábrica.
-4. **Unificación Canónica en la Generación de ISO (`New-OptimizedWindowsISO-v2.ps1` y `SetupComplete.cmd`):**
-   * Reemplazar las líneas batch `reg add` de `SetupComplete.cmd` por la invocación directa a `Add-OptimizedContextMenus.ps1 -Apply -Quiet`.
-5. **Validación y Aplicación en Vivo:**
-   * Tras la aprobación del usuario, aplicar la suite refactorizada en el sistema en caliente con `-Apply -RestartExplorer` y auditar que cada opción funcione a la perfección.
+1. **Refactorizar `scripts/Add-OptimizedContextMenus.ps1` a la API Nativa de Registro de PowerShell:**
+   * Sustituir el 100% de `reg.exe add` por `New-Item -Force` y `Set-ItemProperty`.
+   * Preservar estrictamente las comillas de `"%1"`, `"%V"` y parámetros de scripts.
+   * Registrar el CLSID clásico `{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}` en `HKCU` y `HKU\.DEFAULT`.
+2. **Corregir el Registro de Tareas Programadas a Demanda en `New-OptimizedWindowsISO-v2.ps1`:**
+   * Reemplazar el comando efímero `schtasks /sc ONCE /st 00:00` por el cmdlet nativo `Register-ScheduledTask` sin trigger temporal.
+   * Esto genera tareas permanentes a demanda con privilegios de `SYSTEM` que nunca expiran ni se eliminan.
+3. **Centralizar Directivas MMCSS en `Policy-Engine.ps1` (SSOT - Regla 9):**
+   * Registrar canónicamente:
+     - `POL_MMCSS_SYSTEM_RESPONSIVENESS`: `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile` -> `SystemResponsiveness = 0` (REG_DWORD).
+     - `POL_MMCSS_NETWORK_THROTTLING`: `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile` -> `NetworkThrottlingIndex = 0xFFFFFFFF` (REG_DWORD).
+   * Sincronizar su exportación en `Export-RomanOSUnattendCommands` para inyección de fábrica en `autounattend.xml`.
+4. **Validación y Aplicación en Vivo:**
+   * Aplicar en caliente en el sistema actual los menús contextuales, las tareas programadas y el `SystemResponsiveness = 0` para validar el 100% de conformidad.
 
 ---
 
@@ -53,93 +54,76 @@ Tras una auditoría forense del sistema operativo en vivo (instalado a partir de
 ```
 OptimizedISO/
 ├── scripts/
+│   ├── Core/
+│   │   └── Policy-Engine.ps1                  [MODIFICAR] Registrar POL_MMCSS_SYSTEM_RESPONSIVENESS y POL_MMCSS_NETWORK_THROTTLING
 │   ├── Add-OptimizedContextMenus.ps1          [MODIFICAR] Migrar Set-ShellVerb a API nativa de registro
-│   ├── New-OptimizedWindowsISO-v2.ps1         [MODIFICAR] Delegar SetupComplete.cmd en Add-OptimizedContextMenus.ps1
-│   ├── romanOS-Toolkit.ps1                    [AUDITAR] Verificar opciones de menú contextual existentes
+│   ├── New-OptimizedWindowsISO-v2.ps1         [MODIFICAR] Corregir registro de tareas permanentes y delegar SetupComplete.cmd
 │   └── tests/
-│       └── Test-ContextMenus.ps1              [NUEVO/EXPANDIR] Pruebas unitarias de sintaxis y registro
+│       └── Test-OptimizedISO-v2.ps1           [MODIFICAR] Aserciones unitarias para MMCSS y menús contextuales
 ```
 
 ---
 
 ## 4. Fases de Implementación Detalladas
 
-### Fase 1: Refactorización de `scripts/Add-OptimizedContextMenus.ps1`
-- Reescribir `Set-ShellVerb`:
+### Fase 1: Centralización SSOT en `scripts/Core/Policy-Engine.ps1`
+* Registrar en `$catalog`:
   ```powershell
-  function Set-ShellVerb {
-      param(
-          [Parameter(Mandatory=$true)][string]$Path,
-          [string]$DisplayName = "",
-          [string]$MUIVerb = "",
-          [string]$Icon = "",
-          [string]$Command = "",
-          [string]$Position = "",
-          [string]$AppliesTo = "",
-          [string]$SubCommands = $null,
-          [switch]$HasLUAShield,
-          [switch]$NeverDefault,
-          [switch]$SeparatorBefore,
-          [switch]$SeparatorAfter
-      )
-      # Uso estricto de PSDrive Registry (HKLM:, HKCU:, etc.)
-      if (-not (Test-Path $Path)) {
-          New-Item -Path $Path -Force | Out-Null
-      }
-      if ($DisplayName) { Set-ItemProperty -Path $Path -Name "(default)" -Value $DisplayName -Force }
-      if ($MUIVerb)     { Set-ItemProperty -Path $Path -Name "MUIVerb" -Value $MUIVerb -Force }
-      if ($Icon)        { Set-ItemProperty -Path $Path -Name "Icon" -Value $Icon -Force }
-      if ($Position)    { Set-ItemProperty -Path $Path -Name "Position" -Value $Position -Force }
-      if ($AppliesTo)   { Set-ItemProperty -Path $Path -Name "AppliesTo" -Value $AppliesTo -Force }
-      if ($null -ne $SubCommands) { Set-ItemProperty -Path $Path -Name "SubCommands" -Value $SubCommands -Force }
-      if ($HasLUAShield) { Set-ItemProperty -Path $Path -Name "HasLUAShield" -Value "" -Force }
-      if ($NeverDefault) { Set-ItemProperty -Path $Path -Name "NeverDefault" -Value "" -Force }
-      if ($SeparatorBefore) { Set-ItemProperty -Path $Path -Name "SeparatorBefore" -Value "" -Force }
-      if ($SeparatorAfter)  { Set-ItemProperty -Path $Path -Name "SeparatorAfter" -Value "" -Force }
-      if ($Command) {
-          $cmdPath = Join-Path $Path "command"
-          if (-not (Test-Path $cmdPath)) { New-Item -Path $cmdPath -Force | Out-Null }
-          Set-ItemProperty -Path $cmdPath -Name "(default)" -Value $Command -Force
-      }
+  @{
+      Id            = "POL_MMCSS_SYSTEM_RESPONSIVENESS"
+      Module        = "Rendimiento - MMCSS"
+      Category      = "Gaming & Latencia"
+      RegistryKey   = "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
+      PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
+      ValueName     = "SystemResponsiveness"
+      Type          = "REG_DWORD"
+      ExpectedValue = 0
+      Profiles      = @(1, 2, 3)
+      Description   = "Asignar 100% de prioridad de CPU para procesos en primer plano (gaming/multimedia)"
+      OfficialDoc   = "https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service"
+      UnattendDesc  = "Set SystemResponsiveness to 0 (100% CPU to Foreground/Gaming)"
+  },
+  @{
+      Id            = "POL_MMCSS_NETWORK_THROTTLING"
+      Module        = "Rendimiento - MMCSS"
+      Category      = "Gaming & Latencia"
+      RegistryKey   = "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
+      PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
+      ValueName     = "NetworkThrottlingIndex"
+      Type          = "REG_DWORD"
+      ExpectedValue = [Convert]::ToUInt32("ffffffff", 16)
+      Profiles      = @(1, 2, 3)
+      Description   = "Desactivar estrangulamiento de paquetes de red durante actividad multimedia"
+      OfficialDoc   = "https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service"
+      UnattendDesc  = "Disable Network Throttling Index (0xFFFFFFFF)"
   }
   ```
-- Corregir `Enable-ClassicContextMenu`:
-  - Usar `Set-ItemProperty` nativo para escribir `(default) = ""` en `HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32`.
-- Asegurar codificación UTF-8 con BOM y compatibilidad con Windows PowerShell 5.1.
 
-### Fase 2: Unificación en `SetupComplete.cmd` y `New-OptimizedWindowsISO-v2.ps1`
-- En el generador de `SetupComplete.cmd` dentro de `New-OptimizedWindowsISO-v2.ps1`:
-  - Eliminar las llamadas propensas a errores `reg add` de menús contextuales.
-  - Reemplazarlas por:
-    ```cmd
-    echo [%DATE% %TIME%] Registrando Suite de Menus Contextuales (Add-OptimizedContextMenus.ps1)... >> "%LOG%"
-    if exist "%SCRIPTS_DIR%\Add-OptimizedContextMenus.ps1" (
-        "%PS%" -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\Add-OptimizedContextMenus.ps1" -Apply -Quiet >> "%LOG%" 2>&1
-    )
-    ```
+### Fase 2: Refactorización de `scripts/Add-OptimizedContextMenus.ps1`
+* Implementar `Set-ShellVerb` usando `New-Item -Path $Path -Force` y `Set-ItemProperty`.
+* Escribir `(default)` y `MUIVerb` en cascadas para soporte simultáneo en Windows 10 y 11.
+* Inyectar CLSID `{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}` en `HKCU` y `HKU\.DEFAULT`.
+* Guardado estricto en UTF-8 con BOM.
 
-### Fase 3: Validación Empírica en el Sistema en Vivo
-- Ejecutar en caliente:
-  `powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\OptimizedISO\scripts\Add-OptimizedContextMenus.ps1" -Apply -RestartExplorer`
-- Comprobar que en el Escritorio aparezcan:
-  - Terminal (Administrador)
-  - Reiniciar Explorador de Windows
-  - Submenú *Gaming y Rendimiento ⚡* (Plan Máximo Rendimiento, Vaciar Caché DNS, HAGS, Modo de Juego)
-  - Submenú *Herramientas del Sistema ⚙️* (Administrador de Tareas, Dispositivos, Red, Servicios, Limpieza, DISM+SFC, God Mode)
-  - Submenú *Opciones de Energía ⚡* (Reiniciar en UEFI/BIOS, Opciones de Recuperación, Apagado Completo)
-- Comprobar que al hacer clic derecho en cualquier archivo/carpeta aparezca:
-  - *Tomar Posesión (Take Ownership)*
-  - *Calcular Hash SHA-256*
-  - *Bloquear / Permitir en Firewall* (en archivos `.exe`)
+### Fase 3: Corrección de Tareas a Demanda en `New-OptimizedWindowsISO-v2.ps1`
+* Sustituir en la línea 4084 la llamada `/sc ONCE /st 00:00` por el registro nativo permanente a demanda:
+  ```cmd
+  "%PS%" -NoProfile -ExecutionPolicy Bypass -Command "$act = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-STA -NoProfile -ExecutionPolicy Bypass -File \"%SCRIPTS_DIR%\$($sc.DestName)\"'; $pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest; $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries; Register-ScheduledTask -TaskName '$taskName' -Action $act -Principal $pri -Settings $set -Force | Out-Null" >> "%LOG%" 2>&1
+  ```
+* En `SetupComplete.cmd`, invocar directamente `Add-OptimizedContextMenus.ps1 -Apply -EnableClassicMenu -Quiet`.
+
+### Fase 4: Aplicación y Verificación en Caliente en el Sistema en Vivo
+* Ejecutar en el sistema actual:
+  1. Aplicación de `SystemResponsiveness = 0` y `NetworkThrottlingIndex = 0xFFFFFFFF`.
+  2. Registro de las tareas programadas permanentes `Ejecutar_*` con privilegios `SYSTEM`.
+  3. Ejecución de `Add-OptimizedContextMenus.ps1 -Apply -EnableClassicMenu -RestartExplorer`.
+* Re-ejecutar la auditoría de contratos para verificar que los 28 elementos arrojen **PASS** (100% de conformidad).
 
 ---
 
-## 5. Plan de Pruebas y Criterios de Aceptación
+## 5. Criterios de Aceptación
 
-1. **Prueba de Sintaxis en Windows PowerShell 5.1 (Regla 4):**
-   `& "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -STA -NoProfile -ExecutionPolicy Bypass -Command "& { & '.\scripts\Add-OptimizedContextMenus.ps1' -WhatIf }"`
-   - Cero `ParserError`, `ParseException` o fallos de comillas.
-2. **Prueba de Verbos Registrados en `HKLM` y `HKCU`:**
-   - Todas las subclaves `command` creadas con sus valores intactos (`"%1"`, `"%V"`, scripts PowerShell).
-3. **Verificación Visual en Vivo:**
-   - Clic derecho en escritorio abre inmediatamente el menú clásico con todas las opciones operativas.
+1. **Windows PowerShell 5.1:** Cero errores de análisis o ejecución con `-WhatIf` (Regla 4).
+2. **Programador de Tareas:** `Get-ScheduledTask -TaskName 'Ejecutar_*'` devuelve las 5 tareas en estado `Ready`.
+3. **Registro MMCSS:** `SystemResponsiveness` en `0` (REG_DWORD).
+4. **Shell / Menú Contextual:** Clic derecho en escritorio abre el menú clásico a 1 clic con cascadas funcionales.
