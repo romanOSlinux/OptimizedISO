@@ -5,32 +5,21 @@
 *.vhd
 *.vhdx
 
-# Paquetes y Binarios de Descarga Pesados (Runtime / Updates)
+# Binarios e Instaladores Pesados (Cero Binarios en Git)
+*.exe
 *.msu
 *.cab
-scripts/Runtimes/*.exe
-scripts/Runtimes/DirectX/
-scripts/Runtimes/Logs/
-Updates/
-Windows_ISOs/
-Downloads/
 
 # Directorios de Trabajo Temporales de DISM y Extracción
 WinISO_Extract_*
 WimMount_*
 WinISO_Scratch_*
-pruebadeblot/
-scratch/
 
-# Logs de compilación y pruebas locales
+# Logs de compilación locales (se mantienen los reportes .md)
 Log/*.log
 Log/*_transcript.log
-Log/TestHarness_*.md
-Log/TestSuite_Consolidated_*.md
-log_prueba_ISO/
 *.tmp
 
 # VS Code / IDE settings locales
 .vscode/
 .idea/
-
