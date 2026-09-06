@@ -26,3 +26,12 @@ Log/*_transcript.log
 
 # Scratch y archivos temporales de diagnóstico
 scratch/
+
+# Basura Generada y Logs (Fase 2 Limpieza)
+Log/
+log_prueba_ISO/
+pruebadeblot/
+scripts/Runtimes/Logs/
+scratch/
+*.log
+
