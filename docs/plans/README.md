@@ -47,6 +47,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0029 | [PLAN-0029-20260906-refactor-context-menus-native-registry-and-iso-integration.md](PLAN-0029-20260906-refactor-context-menus-native-registry-and-iso-integration.md) | 2026-09-06 | Refactorización de Menús Contextuales con API Nativa de Registro e Integración Canónica en ISO | COMPLETADO |
 | 0030 | [PLAN-0030-20260906-modo-oscuro-integral-ecosistema-iso.md](PLAN-0030-20260906-modo-oscuro-integral-ecosistema-iso.md) | 2026-09-06 | Integración Integral y Robusta del Modo Oscuro en la Arquitectura de la ISO | COMPLETADO |
 | 0031 | [PLAN-0031-20260906-fix-cascading-context-menus-leaf-subcommands.md](PLAN-0031-20260906-fix-cascading-context-menus-leaf-subcommands.md) | 2026-09-06 | Corrección de Menús Contextuales en Cascada y Erradicación de SubCommands en Ítems Hoja | COMPLETADO |
+| 0032 | [PLAN-0032-20260906-saneamiento-debloat-deteccion-iso-y-desacoplamiento-toolkit.md](PLAN-0032-20260906-saneamiento-debloat-deteccion-iso-y-desacoplamiento-toolkit.md) | 2026-09-06 | Saneamiento Integral de Win11-Debloat-v3-Adaptive, Detección Automática de ISO y Desacoplamiento de Tareas en el Toolkit | COMPLETADO |
 
 ---
 

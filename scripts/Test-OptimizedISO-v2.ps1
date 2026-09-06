@@ -962,6 +962,15 @@ Assert-True "PLAN-0030: v2 script carga SOFTWARE hive offline para dark.theme" (
 $diagContent = Get-Content -Path (Join-Path $PSScriptRoot "PostInstall-Diagnostics.ps1") -Raw
 Assert-True "PLAN-0030: PostInstall-Diagnostics.ps1 audita HKCU prioritariamente para temas" ($diagContent -match 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize')
 
+# PLAN-0032: Validaciones de Saneamiento Debloat, Deteccion ISO y Desacoplamiento de Toolkit
+Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 implementa deteccion multi-capa `$isIsoOptimized" ($debloatContent -match '\$isIsoOptimized\s*=')
+Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 verifica scripts de setup o politicas de nube en preflight" ($debloatContent -match 'Setup\\Scripts' -and $debloatContent -match 'DisableCloudOptimizedContent')
+Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 verifica apps Win32 instaladas antes de abrir selector" ($debloatContent -match '\$presentWin32\s*=' -and $debloatContent -match 'Microsoft\.OneDrive')
+Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 filtra servicios activos no deshabilitados antes de abrir selector" ($debloatContent -match '\$activeServices\s*=' -and $debloatContent -match 'StartType\s+-ne\s+[''"]Disabled[''"]')
+Assert-False "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 no ejecuta StartComponentCleanup bloqueante en debloat" ($debloatContent -match 'DISM\.exe\s+/Online\s+/Cleanup-Image\s+/StartComponentCleanup')
+Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 verifica instalacion previa de menus contextuales" ($debloatContent -match '\$contextAlreadyInstalled\s*=' -and $debloatContent -match 'GamerTools')
+Assert-False "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 erradico duplicacion de reg.exe add en seccion 15" ($debloatContent -match 'reg\.exe\s+add.*Directory\\Background\\shell\\GamerTools')
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

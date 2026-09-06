@@ -54,8 +54,8 @@
      11. Hardware Adaptive Tweaks (acciones automaticas + menu interactivo)
      12. Gaming optimizations (Core) [ENHANCED v5]
      13. MMAgent tuning
-     14. DISM component cleanup
-     15. Funciones avanzadas de Menu Contextual (Interactivo)
+     14. DISM component cleanup (Informativo / Desacoplado a Toolkit)
+     15. Funciones avanzadas de Menu Contextual (Add-OptimizedContextMenus.ps1)
      16. Optimizacion y Debloat Oficial de Navegadores Web (GPO GPU/RAM)
      17. Restart Explorer
 #>
@@ -578,12 +578,20 @@ Write-Host "" -ForegroundColor Gray
 # Cada dato se usa para tomar decisiones automaticas en secciones posteriores
 # ================================================================
 
-# --- Detección de Sistema Pre-Optimizado por ISO ---
+# --- Detección de Sistema Pre-Optimizado por ISO (romanOS / OptimizedISO) ---
 $isIsoOptimized = $false
 try {
-    $cloudPol = Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableWindowsConsumerFeatures" -ErrorAction SilentlyContinue
-    $tpmBypass = Get-ItemProperty -Path "HKLM:\SYSTEM\Setup\LabConfig" -Name "BypassTPMCheck" -ErrorAction SilentlyContinue
-    if (($cloudPol -and $cloudPol.DisableWindowsConsumerFeatures -eq 1) -or ($tpmBypass -and $tpmBypass.BypassTPMCheck -eq 1)) {
+    $hasSetupScripts = (Test-Path "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1") -or
+                       (Test-Path "C:\Windows\Setup\Scripts\SetupComplete.cmd") -or
+                       (Test-Path "C:\Windows\Setup\Scripts\Add-OptimizedContextMenus.ps1")
+    $cloudPol = Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -ErrorAction SilentlyContinue
+    $telemetryPol = Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection" -ErrorAction SilentlyContinue
+    $hasPolEngineDirectives = ($cloudPol -and ($cloudPol.DisableWindowsConsumerFeatures -eq 1 -or $cloudPol.DisableCloudOptimizedContent -eq 1)) -or
+                              ($telemetryPol -and $telemetryPol.AllowTelemetry -eq 0)
+    $hasGamerContext = (Test-Path "HKLM:\SOFTWARE\Classes\Directory\Background\shell\GamerTools") -or
+                       (Test-Path "HKCU:\Software\Classes\Directory\Background\shell\GamerTools")
+
+    if ($hasSetupScripts -or $hasPolEngineDirectives -or $hasGamerContext) {
         $isIsoOptimized = $true
     }
 } catch {}
@@ -1463,49 +1471,71 @@ if ($presentBloatware.Count -eq 0) {
 # ============================================================
 #region 2. Remove Win32 applications (Interactive)
 # ============================================================
-Write-Host "`n[2] Removing Win32 applications..." -ForegroundColor Cyan
+Write-Host "`n[2] Analizando aplicaciones Win32 (OneDrive, Teams, Skype)..." -ForegroundColor Cyan
 $win32List = @(
     [PSCustomObject]@{ Id='Microsoft.OneDrive'; Name='Microsoft OneDrive';             Reason='Sync en background -- consume RAM, CPU e I/O constante' },
     [PSCustomObject]@{ Id='Microsoft.Teams';    Name='Microsoft Teams (Machine-Wide)'; Reason='~300-400 MB RAM minimo, proceso siempre activo' },
     [PSCustomObject]@{ Id='Microsoft.Skype';    Name='Skype';                          Reason='App de videollamadas clasica -- innecesaria si no la usas' }
 )
 
-if (-not $Unattended) {
-    $ogvAvailable = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
-    if ($ogvAvailable) {
-        try {
-            $selectedWin32 = $win32List | Out-GridView -Title "Selecciona las apps Win32 a DESINSTALAR (Ctrl para elegir varias)" -PassThru
-        } catch {
-            Write-Host "  [!] Out-GridView no disponible. Omitiendo desinstalacion de Win32 (ejecuta con -Unattended para auto-desinstalar)." -ForegroundColor Yellow
+$presentWin32 = @($win32List | Where-Object {
+    $id = $_.Id
+    $exists = $false
+    if ($id -eq 'Microsoft.OneDrive') {
+        $exists = (Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe") -or 
+                  (Test-Path "$env:ProgramFiles\Microsoft OneDrive\OneDrive.exe") -or
+                  (Test-Path "$env:ProgramFiles(x86)\Microsoft OneDrive\OneDrive.exe")
+    } elseif ($id -eq 'Microsoft.Teams') {
+        $exists = (Test-Path "$env:LOCALAPPDATA\Microsoft\Teams") -or
+                  (Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*Teams*")
+    } elseif ($id -eq 'Microsoft.Skype') {
+        $exists = (Test-Path "$env:ProgramFiles\Microsoft\Skype for Desktop") -or
+                  (Test-Path "$env:ProgramFiles(x86)\Microsoft\Skype for Desktop")
+    }
+    $exists
+})
+
+if ($presentWin32.Count -eq 0) {
+    Write-Host "  [✓] No se detectaron aplicaciones Win32 innecesarias activas (OneDrive, Teams y Skype ya ausentes)." -ForegroundColor Green
+} else {
+    $selectedWin32 = $null
+    if (-not $Unattended) {
+        $ogvAvailable = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
+        if ($ogvAvailable) {
+            try {
+                $selectedWin32 = $presentWin32 | Out-GridView -Title "Selecciona las apps Win32 a DESINSTALAR (Ctrl para elegir varias)" -PassThru
+            } catch {
+                Write-Host "  [!] Out-GridView no disponible. Omitiendo desinstalacion de Win32." -ForegroundColor Yellow
+                $selectedWin32 = $null
+            }
+        } else {
+            Write-Host "  [!] Out-GridView no disponible en esta sesion. Omitiendo Apps Win32 (usa -Unattended)." -ForegroundColor Yellow
             $selectedWin32 = $null
         }
     } else {
-        Write-Host "  [!] Out-GridView no disponible en esta sesion. Omitiendo Apps Win32 (usa -Unattended)." -ForegroundColor Yellow
-        $selectedWin32 = $null
+        Write-Host "  Modo desatendido: seleccionando apps Win32 detectadas ($($presentWin32.Count))..." -ForegroundColor Gray
+        $selectedWin32 = $presentWin32
     }
-} else {
-    Write-Host "  Modo desatendido: seleccionando todas las apps Win32 (OneDrive, Teams, Skype)..." -ForegroundColor Gray
-    $selectedWin32 = $win32List
-}
 
-if ($selectedWin32) {
-    if (-not $script:HasWinget) {
-        Write-Host "  [!] Winget no disponible. No se pueden desinstalar apps Win32 via winget." -ForegroundColor Red
-        Write-Host "      Desinstalalas manualmente desde Configuracion > Aplicaciones." -ForegroundColor Yellow
-    } else {
-        foreach ($app in $selectedWin32) {
-            Write-Host "  - Intentando desinstalar $($app.Name)..." -ForegroundColor Gray
-            if ($app.Id -eq 'Microsoft.OneDrive') {
-                Stop-Process -Name "OneDrive" -Force -ErrorAction SilentlyContinue
-                Start-Sleep -Seconds 2
+    if ($selectedWin32) {
+        if (-not $script:HasWinget) {
+            Write-Host "  [!] Winget no disponible. No se pueden desinstalar apps Win32 via winget." -ForegroundColor Red
+            Write-Host "      Desinstalalas manualmente desde Configuracion > Aplicaciones." -ForegroundColor Yellow
+        } else {
+            foreach ($app in $selectedWin32) {
+                Write-Host "  - Intentando desinstalar $($app.Name)..." -ForegroundColor Gray
+                if ($app.Id -eq 'Microsoft.OneDrive') {
+                    Stop-Process -Name "OneDrive" -Force -ErrorAction SilentlyContinue
+                    Start-Sleep -Seconds 2
+                }
+                winget uninstall --id $($app.Id) --silent --accept-source-agreements --disable-interactivity | Out-Null
+                if ($LASTEXITCODE -eq 0) { Write-Host "    Desinstalado: $($app.Name)" -ForegroundColor Green }
+                else { Write-Host "    ! Exit $LASTEXITCODE para $($app.Name) (puede ya estar desinstalado)" -ForegroundColor Yellow }
             }
-            winget uninstall --id $($app.Id) --silent --accept-source-agreements --disable-interactivity | Out-Null
-            if ($LASTEXITCODE -eq 0) { Write-Host "    Desinstalado: $($app.Name)" -ForegroundColor Green }
-            else { Write-Host "    ! Exit $LASTEXITCODE para $($app.Name) (puede ya estar desinstalado)" -ForegroundColor Yellow }
         }
+    } else {
+        Write-Host "  - Sin seleccion. Omitiendo." -ForegroundColor Gray
     }
-} else {
-    Write-Host "  - Sin seleccion. Omitiendo." -ForegroundColor Gray
 }
 #endregion
 
@@ -1713,23 +1743,35 @@ $servicesList = @(
     [PSCustomObject]@{ Name='Spooler';          DisplayName='Print Spooler [!]';                        Reason='[!] ADVERTENCIA: rompe impresoras fisicas Y virtuales (PDF, Adobe).' }
 )
 
-if (-not $Unattended) {
-    Write-Host "  Abriendo ventana de seleccion para Servicios..." -ForegroundColor Yellow
-    $ogvAvailable = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
-    if ($ogvAvailable) {
-        try {
-            $selectedServices = $servicesList | Out-GridView -Title "Selecciona los servicios a DESHABILITAR (Ctrl para varios) -- respeta los [!]" -PassThru
-        } catch {
-            Write-Host "  [!] Out-GridView no disponible. Omitiendo gestion de servicios (usa -Unattended)." -ForegroundColor Yellow
+$activeServices = @($servicesList | Where-Object {
+    $svc = Get-Service -Name $_.Name -ErrorAction SilentlyContinue
+    $svc -and ($svc.StartType -ne 'Disabled')
+})
+
+if ($activeServices.Count -eq 0) {
+    Write-Host "  [✓] Todos los servicios innecesarios ya se encuentran deshabilitados (pre-optimizados por la ISO)." -ForegroundColor Green
+    $selectedServices = $null
+} else {
+    Write-Host "  Detectados $($activeServices.Count) servicios activos para evaluar." -ForegroundColor Yellow
+
+    if (-not $Unattended) {
+        Write-Host "  Abriendo ventana de seleccion para Servicios..." -ForegroundColor Yellow
+        $ogvAvailable = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
+        if ($ogvAvailable) {
+            try {
+                $selectedServices = $activeServices | Out-GridView -Title "Selecciona los servicios a DESHABILITAR (Ctrl para varios) -- respeta los [!]" -PassThru
+            } catch {
+                Write-Host "  [!] Out-GridView no disponible. Omitiendo gestion de servicios." -ForegroundColor Yellow
+                $selectedServices = $null
+            }
+        } else {
+            Write-Host "  [!] Out-GridView no disponible en esta sesion. Omitiendo gestion de servicios (usa -Unattended)." -ForegroundColor Yellow
             $selectedServices = $null
         }
     } else {
-        Write-Host "  [!] Out-GridView no disponible en esta sesion. Omitiendo gestion de servicios (usa -Unattended)." -ForegroundColor Yellow
-        $selectedServices = $null
+        Write-Host "  Modo desatendido: deshabilitando servicios seguros activos (excepto críticos [!] y SysMain que es dinámico)..." -ForegroundColor Gray
+        $selectedServices = $activeServices | Where-Object { $_.DisplayName -notmatch '\[!\]' -and $_.Name -notmatch 'SysMain' }
     }
-} else {
-    Write-Host "  Modo desatendido: deshabilitando servicios seguros (excepto críticos [!] y SysMain que es dinámico)..." -ForegroundColor Gray
-    $selectedServices = $servicesList | Where-Object { $_.DisplayName -notmatch '\[!\]' -and $_.Name -notmatch 'SysMain' }
 }
 
 if ($selectedServices) {
@@ -2540,21 +2582,15 @@ if ($applyNagle) {
 #endregion
 
 # ============================================================
-#region 14. DISM component store cleanup
+#region 14. DISM component store cleanup (Desacoplado a Toolkit)
 # ============================================================
-Write-Host "`n[14] DISM component store cleanup..." -ForegroundColor Cyan
-Write-Host "  Libera espacio del WinSxS post-instalacion. Puede tardar varios minutos." -ForegroundColor Gray
-Write-Host "  Nota: sin /ResetBase para conservar la capacidad de desinstalar actualizaciones." -ForegroundColor Gray
-try {
-    $dismResult = & DISM.exe /Online /Cleanup-Image /StartComponentCleanup 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  - DISM cleanup completed." -ForegroundColor Green
-    } else {
-        Write-Host "  ! DISM exit $LASTEXITCODE" -ForegroundColor Yellow
-        Write-Host "    $dismResult" -ForegroundColor DarkGray
-    }
-} catch {
-    Write-Host "  ! DISM failed: $($_.Exception.Message)" -ForegroundColor Yellow
+Write-Host "`n[14] Almacen de Componentes WinSxS..." -ForegroundColor Cyan
+if ($isIsoOptimized) {
+    Write-Host "  [OK] El almacen WinSxS ya fue consolidado y purgado offline por la ISO (DISM /ResetBase)." -ForegroundColor Green
+    Write-Host "  [i] Para mantenimiento periodico futuro o tras instalar Windows Updates, use:" -ForegroundColor DarkGray
+    Write-Host "      - romanOS-Toolkit.ps1 (Modulo Mantenimiento) o Invoke-WindowsMaintenance.ps1 -DeepClean" -ForegroundColor Gray
+} else {
+    Write-Host "  [i] Mantenimiento de WinSxS disponible a demanda en romanOS-Toolkit.ps1 / Invoke-WindowsMaintenance.ps1." -ForegroundColor Gray
 }
 #endregion
 
@@ -2562,182 +2598,49 @@ try {
 #region 15. Funciones Avanzadas de Menu Contextual (Nativo Windows Shell)
 # Ref: learn.microsoft.com/windows/win32/shell/context-menu-handlers
 # Ref: PLAN-0024 Suite Modular de Menus Contextuales (Gamer & Power-User)
+# Ref: PLAN-0031 / PLAN-0032 Desacoplamiento e Idempotencia
 # ============================================================
-$applyContextMenu = $true
-if (-not $Unattended) {
-    $choice = Read-Host "`n[15] ¿Desea agregar la Suite Completa de Menus Contextuales para Gaming y Power-Users? (GamerTools, SystemTools, PowerOptions UEFI, Take Ownership, Hash SHA256, Firewall, Menu Clasico 1-Clic) [Y/N] (Default: Y)"
-    if ($choice -ne '' -and $choice -notmatch '^[yYsS]') {
-        $applyContextMenu = $false
-    }
-}
+$contextAlreadyInstalled = (Test-Path "HKLM:\SOFTWARE\Classes\Directory\Background\shell\GamerTools") -or
+                           (Test-Path "HKLM:\SOFTWARE\Classes\Directory\Background\shell\PSAdmin")
 
-if ($applyContextMenu) {
-    Write-Host "`n[15] Registrando Suite de Menu Contextual (Gamer & Power-User)..." -ForegroundColor Cyan
-
-    $helperScript = $null
-    $candidates = @(
-        (Join-Path $PSScriptRoot "Add-OptimizedContextMenus.ps1"),
-        "C:\Windows\Setup\Scripts\Add-OptimizedContextMenus.ps1",
-        "C:\OptimizedISO\scripts\Add-OptimizedContextMenus.ps1"
-    )
-    foreach ($cand in $candidates) {
-        if (Test-Path $cand) { $helperScript = $cand; break }
+if ($contextAlreadyInstalled) {
+    Write-Host "`n[15] Suite de Menus Contextuales..." -ForegroundColor Cyan
+    Write-Host "  [OK] Suite de menus contextuales avanzados ya se encuentra instalada y configurada." -ForegroundColor Green
+} else {
+    $applyContextMenu = $true
+    if (-not $Unattended) {
+        $choice = Read-Host "`n[15] ¿Desea agregar la Suite Completa de Menus Contextuales para Gaming y Power-Users? (GamerTools, SystemTools, PowerOptions UEFI, Take Ownership, Hash SHA256, Firewall, Menu Clasico 1-Clic) [Y/N] (Default: Y)"
+        if ($choice -ne '' -and $choice -notmatch '^[yYsS]') {
+            $applyContextMenu = $false
+        }
     }
 
-    if ($helperScript) {
-        try {
-            & $helperScript -Apply -Quiet
-            Write-Host "  [OK] Suite de menus contextuales aplicada mediante Add-OptimizedContextMenus.ps1." -ForegroundColor Green
-        } catch {
-            Write-Host "  ! Error ejecutando Add-OptimizedContextMenus.ps1: $($_.Exception.Message)" -ForegroundColor Yellow
+    if ($applyContextMenu) {
+        Write-Host "`n[15] Registrando Suite de Menu Contextual (Gamer & Power-User)..." -ForegroundColor Cyan
+
+        $helperScript = $null
+        $candidates = @(
+            (Join-Path $PSScriptRoot "Add-OptimizedContextMenus.ps1"),
+            "C:\Windows\Setup\Scripts\Add-OptimizedContextMenus.ps1",
+            "C:\OptimizedISO\scripts\Add-OptimizedContextMenus.ps1"
+        )
+        foreach ($cand in $candidates) {
+            if (Test-Path $cand) { $helperScript = $cand; break }
+        }
+
+        if ($helperScript) {
+            try {
+                & $helperScript -Apply -Quiet
+                Write-Host "  [OK] Suite de menus contextuales aplicada mediante Add-OptimizedContextMenus.ps1." -ForegroundColor Green
+            } catch {
+                Write-Host "  ! Error ejecutando Add-OptimizedContextMenus.ps1: $($_.Exception.Message)" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "  [!] Add-OptimizedContextMenus.ps1 no encontrado. Use romanOS-Toolkit.ps1 para instalar la suite." -ForegroundColor Yellow
         }
     } else {
-        # Fallback embebido autonomo para ejecucion standalone
-        try {
-            # 1. Habilitar Menu Clasico (0 ms latencia, 1 solo clic)
-            & reg.exe add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /ve /d "" /f *>$null
-            & reg.exe add "HKU\.DEFAULT\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /ve /d "" /f *>$null
-
-            # 2. Terminal Admin (Fondo + Carpetas)
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /ve /d "Terminal (Administrador)" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,109" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /v "Position" /t REG_SZ /d "Top" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin\command" /ve /d "powershell.exe -Command `"Start-Process powershell.exe -ArgumentList '-NoExit','-Command','Set-Location -LiteralPath \`"%V\`"' -Verb RunAs`"" /f *>$null
-
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\PSAdmin" /ve /d "Terminal (Administrador)" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\PSAdmin" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,109" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\PSAdmin" /v "Position" /t REG_SZ /d "Top" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\PSAdmin" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\PSAdmin\command" /ve /d "powershell.exe -Command `"Start-Process powershell.exe -ArgumentList '-NoExit','-Command','Set-Location -LiteralPath \`"%1\`"' -Verb RunAs`"" /f *>$null
-
-            # 3. Reiniciar Explorador
-            & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /ve /d "Reiniciar Explorador de Windows" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,178" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /v "Position" /t REG_SZ /d "Top" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer\command" /ve /d "cmd.exe /c taskkill /f /im explorer.exe & start explorer.exe" /f *>$null
-
-            # 4. Cascada Gaming y Rendimiento
-            $gBase = "HKLM\SOFTWARE\Classes\Directory\Background\shell\GamerTools"
-            & reg.exe add $gBase /v "MUIVerb" /t REG_SZ /d "Gaming y Rendimiento ⚡" /f *>$null
-            & reg.exe add $gBase /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,264" /f *>$null
-            & reg.exe add $gBase /v "SubCommands" /t REG_SZ /d "" /f *>$null
-
-            & reg.exe add "$gBase\shell\01_PowerMax" /v "MUIVerb" /t REG_SZ /d "Activar Plan Maximo Rendimiento" /f *>$null
-            & reg.exe add "$gBase\shell\01_PowerMax" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,238" /f *>$null
-            & reg.exe add "$gBase\shell\01_PowerMax\command" /ve /d "powershell.exe -Command `"powercfg /s e9a42b02-d5df-448d-aa00-03f14749eb61; Start-Sleep -Seconds 2`"" /f *>$null
-
-            & reg.exe add "$gBase\shell\02_FlushDNS" /v "MUIVerb" /t REG_SZ /d "Vaciar Cache DNS (Flush DNS)" /f *>$null
-            & reg.exe add "$gBase\shell\02_FlushDNS" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,23" /f *>$null
-            & reg.exe add "$gBase\shell\02_FlushDNS\command" /ve /d "cmd.exe /c ipconfig /flushdns & timeout /t 2" /f *>$null
-
-            & reg.exe add "$gBase\shell\03_HAGS" /v "MUIVerb" /t REG_SZ /d "Configuracion de Graficos y HAGS" /f *>$null
-            & reg.exe add "$gBase\shell\03_HAGS" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,16" /f *>$null
-            & reg.exe add "$gBase\shell\03_HAGS\command" /ve /d "cmd.exe /c start ms-settings:display-advancedgraphics" /f *>$null
-
-            & reg.exe add "$gBase\shell\04_GameMode" /v "MUIVerb" /t REG_SZ /d "Modo de Juego de Windows" /f *>$null
-            & reg.exe add "$gBase\shell\04_GameMode" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,100" /f *>$null
-            & reg.exe add "$gBase\shell\04_GameMode\command" /ve /d "cmd.exe /c start ms-settings:gaming-gamemode" /f *>$null
-
-            # 5. Cascada Herramientas del Sistema
-            $sBase = "HKLM\SOFTWARE\Classes\Directory\Background\shell\SystemTools"
-            & reg.exe add $sBase /v "MUIVerb" /t REG_SZ /d "Herramientas del Sistema ⚙️" /f *>$null
-            & reg.exe add $sBase /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,104" /f *>$null
-            & reg.exe add $sBase /v "SubCommands" /t REG_SZ /d "" /f *>$null
-
-            & reg.exe add "$sBase\shell\01_TaskMgr" /v "MUIVerb" /t REG_SZ /d "Administrador de Tareas" /f *>$null
-            & reg.exe add "$sBase\shell\01_TaskMgr" /v "Icon" /t REG_SZ /d "taskmgr.exe" /f *>$null
-            & reg.exe add "$sBase\shell\01_TaskMgr\command" /ve /d "taskmgr.exe" /f *>$null
-
-            & reg.exe add "$sBase\shell\02_DevMgmt" /v "MUIVerb" /t REG_SZ /d "Administrador de Dispositivos" /f *>$null
-            & reg.exe add "$sBase\shell\02_DevMgmt" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\devmgmt.msc" /f *>$null
-            & reg.exe add "$sBase\shell\02_DevMgmt\command" /ve /d "mmc.exe devmgmt.msc" /f *>$null
-
-            & reg.exe add "$sBase\shell\03_Network" /v "MUIVerb" /t REG_SZ /d "Conexiones de Red" /f *>$null
-            & reg.exe add "$sBase\shell\03_Network" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\ncpa.cpl" /f *>$null
-            & reg.exe add "$sBase\shell\03_Network\command" /ve /d "control.exe ncpa.cpl" /f *>$null
-
-            & reg.exe add "$sBase\shell\04_Services" /v "MUIVerb" /t REG_SZ /d "Servicios de Windows" /f *>$null
-            & reg.exe add "$sBase\shell\04_Services" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\services.msc" /f *>$null
-            & reg.exe add "$sBase\shell\04_Services\command" /ve /d "mmc.exe services.msc" /f *>$null
-
-            & reg.exe add "$sBase\shell\05_CleanMgr" /v "MUIVerb" /t REG_SZ /d "Limpieza de Disco" /f *>$null
-            & reg.exe add "$sBase\shell\05_CleanMgr" /v "Icon" /t REG_SZ /d "cleanmgr.exe" /f *>$null
-            & reg.exe add "$sBase\shell\05_CleanMgr\command" /ve /d "cleanmgr.exe /lowdisk" /f *>$null
-
-            & reg.exe add "$sBase\shell\06_Repair" /v "MUIVerb" /t REG_SZ /d "Reparar Sistema (DISM + SFC)" /f *>$null
-            & reg.exe add "$sBase\shell\06_Repair" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,54" /f *>$null
-            & reg.exe add "$sBase\shell\06_Repair" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
-            & reg.exe add "$sBase\shell\06_Repair\command" /ve /d "powershell.exe -Command `"Start-Process cmd.exe -ArgumentList '/k DISM /Online /Cleanup-Image /RestoreHealth && sfc /scannow' -Verb RunAs`"" /f *>$null
-
-            & reg.exe add "$sBase\shell\07_GodMode" /v "MUIVerb" /t REG_SZ /d "Panel Maestro (God Mode)" /f *>$null
-            & reg.exe add "$sBase\shell\07_GodMode" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,104" /f *>$null
-            & reg.exe add "$sBase\shell\07_GodMode\command" /ve /d "explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}" /f *>$null
-
-            # 6. Cascada Opciones de Energia
-            $pBase = "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\PowerOptions"
-            & reg.exe add $pBase /v "MUIVerb" /t REG_SZ /d "Opciones de Energia ⚡" /f *>$null
-            & reg.exe add $pBase /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,27" /f *>$null
-            & reg.exe add $pBase /v "Position" /t REG_SZ /d "Bottom" /f *>$null
-            & reg.exe add $pBase /v "SubCommands" /t REG_SZ /d "" /f *>$null
-
-            & reg.exe add "$pBase\shell\01_UEFI" /v "MUIVerb" /t REG_SZ /d "Reiniciar en Firmware UEFI / BIOS" /f *>$null
-            & reg.exe add "$pBase\shell\01_UEFI" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,220" /f *>$null
-            & reg.exe add "$pBase\shell\01_UEFI" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
-            & reg.exe add "$pBase\shell\01_UEFI\command" /ve /d "shutdown.exe /r /fw /t 0" /f *>$null
-
-            & reg.exe add "$pBase\shell\02_Recovery" /v "MUIVerb" /t REG_SZ /d "Reiniciar en Opciones de Recuperacion" /f *>$null
-            & reg.exe add "$pBase\shell\02_Recovery" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,27" /f *>$null
-            & reg.exe add "$pBase\shell\02_Recovery\command" /ve /d "shutdown.exe /r /o /t 0" /f *>$null
-
-            & reg.exe add "$pBase\shell\03_ColdShutdown" /v "MUIVerb" /t REG_SZ /d "Apagado Completo (Cero Fast Startup)" /f *>$null
-            & reg.exe add "$pBase\shell\03_ColdShutdown" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,27" /f *>$null
-            & reg.exe add "$pBase\shell\03_ColdShutdown\command" /ve /d "shutdown.exe /s /f /t 0" /f *>$null
-
-            # 7. Tomar Posesion (Take Ownership)
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\TakeOwnership" /ve /d "Tomar Posesion (Take Ownership)" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\TakeOwnership" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,73" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\TakeOwnership" /v "Position" /t REG_SZ /d "Top" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\TakeOwnership" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\TakeOwnership\command" /ve /d "cmd.exe /c takeown /f `"%1`" && icacls `"%1`" /grant *S-1-3-0:(F) /c /l /q" /f *>$null
-
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\TakeOwnership" /ve /d "Tomar Posesion (Take Ownership)" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\TakeOwnership" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,73" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\TakeOwnership" /v "Position" /t REG_SZ /d "Top" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\TakeOwnership" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\TakeOwnership\command" /ve /d "cmd.exe /c takeown /f `"%1`" /r /d y && icacls `"%1`" /grant *S-1-3-0:(OI)(CI)F /t /c /l /q" /f *>$null
-
-            # 8. Abrir con Bloc de Notas
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /ve /d "Abrir con Bloc de Notas" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\notepad.exe,0" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad\command" /ve /d "notepad.exe `"%1`"" /f *>$null
-
-            # 9. Hash SHA-256
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\HashSHA256" /ve /d "Calcular Hash SHA-256" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\HashSHA256" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,102" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\HashSHA256\command" /ve /d "cmd.exe /c certutil -hashfile `"%1`" SHA256 & pause" /f *>$null
-
-            # 10. Firewall .exe
-            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\BlockInFirewall" /ve /d "Bloquear en Firewall de Windows" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\BlockInFirewall" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,207" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\BlockInFirewall" /v "AppliesTo" /t REG_SZ /d "System.FileExtension:=.exe" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\BlockInFirewall" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\BlockInFirewall\command" /ve /d "cmd.exe /c netsh advfirewall firewall add rule name=`"Block_%~nx1`" dir=out program=`"%1`" action=block & pause" /f *>$null
-
-            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\UnblockInFirewall" /ve /d "Permitir / Quitar Regla en Firewall" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\UnblockInFirewall" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,208" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\UnblockInFirewall" /v "AppliesTo" /t REG_SZ /d "System.FileExtension:=.exe" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\UnblockInFirewall" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
-            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\UnblockInFirewall\command" /ve /d "cmd.exe /c netsh advfirewall firewall delete rule name=`"Block_%~nx1`" & pause" /f *>$null
-
-            Write-Host "  [OK] Suite de menus contextuales registrada (Gamer & Power-User)." -ForegroundColor Green
-            Write-Host "  Menu clasico habilitado como predeterminado para acceso instantaneo (1 clic)." -ForegroundColor Gray
-        } catch {
-            Write-Host "  ! Error registrando suite de menu contextual: $($_.Exception.Message)" -ForegroundColor Yellow
-        }
+        Write-Host "`n[15] Omitiendo funciones de menu contextual." -ForegroundColor Gray
     }
-} else {
-    Write-Host "`n[15] Omitiendo funciones de menu contextual." -ForegroundColor Gray
 }
 #endregion
 
