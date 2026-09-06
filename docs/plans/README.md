@@ -39,7 +39,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0021 | [PLAN-0021-20260902-fix-audit-servicing-wim-and-console-cleanups.md](PLAN-0021-20260902-fix-audit-servicing-wim-and-console-cleanups.md) | 2026-09-02 | Corrección de Incompatibilidades en WIMs Vírgenes, Bloqueo UCPD, Fugas de Consola y Nomenclaturas Oficiales | COMPLETADO |
 | 0022 | [PLAN-0022-20260903-orchestrated-architecture-policy-engine-and-audit-sync.md](PLAN-0022-20260903-orchestrated-architecture-policy-engine-and-audit-sync.md) | 2026-09-03 | Arquitectura Orquestada Unificada, Catálogo Maestro de Políticas (Policy-Engine) y Sincronización Transversal de Auditoría | COMPLETADO |
 | 0023 | [PLAN-0023-20260903-fix-wim-dismount-hive-leaks-and-retry-state-machine.md](PLAN-0023-20260903-fix-wim-dismount-hive-leaks-and-retry-state-machine.md) | 2026-09-03 | Corrección de Fuga de Handles en Colmenas Offline y Máquina de Estados de Desmontaje WIM en DISM | COMPLETADO |
-| 0024 | [PLAN-0024-20260905-gamer-poweruser-context-menus.md](PLAN-0024-20260905-gamer-poweruser-context-menus.md) | 2026-09-05 | Suite Modular de Menús Contextuales Optimizados para Gaming y Power-Users | PENDIENTE |
+| 0024 | [PLAN-0024-20260905-gamer-poweruser-context-menus.md](PLAN-0024-20260905-gamer-poweruser-context-menus.md) | 2026-09-05 | Suite Modular de Menús Contextuales Optimizados para Gaming y Power-Users | COMPLETADO |
 
 ---
 

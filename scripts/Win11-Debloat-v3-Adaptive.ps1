@@ -2513,53 +2513,180 @@ try {
 # ============================================================
 #region 15. Funciones Avanzadas de Menu Contextual (Nativo Windows Shell)
 # Ref: learn.microsoft.com/windows/win32/shell/context-menu-handlers
+# Ref: PLAN-0024 Suite Modular de Menus Contextuales (Gamer & Power-User)
 # ============================================================
 $applyContextMenu = $true
 if (-not $Unattended) {
-    $choice = Read-Host "`n[15] ¿Desea agregar funciones avanzadas al Menu Contextual? (PowerShell Admin, Flush DNS, God Mode, Bloc de Notas, Reiniciar Explorer, DISM+SFC) [Y/N] (Default: Y)"
+    $choice = Read-Host "`n[15] ¿Desea agregar la Suite Completa de Menus Contextuales para Gaming y Power-Users? (GamerTools, SystemTools, PowerOptions UEFI, Take Ownership, Hash SHA256, Firewall, Menu Clasico 1-Clic) [Y/N] (Default: Y)"
     if ($choice -ne '' -and $choice -notmatch '^[yYsS]') {
         $applyContextMenu = $false
     }
 }
 
 if ($applyContextMenu) {
-    Write-Host "`n[15] Registrando funciones de Menu Contextual (nativo Windows Shell)..." -ForegroundColor Cyan
+    Write-Host "`n[15] Registrando Suite de Menu Contextual (Gamer & Power-User)..." -ForegroundColor Cyan
 
-    try {
-        # 1: PowerShell Admin (fondo carpeta + escritorio)
-        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /ve /d "Terminal (Administrador)" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,109" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin\command" /ve /d "powershell.exe -Command `"Start-Process powershell.exe -ArgumentList '-NoExit','-Command','Set-Location -LiteralPath \`"%V\`"' -Verb RunAs`"" /f *>$null
+    $helperScript = $null
+    $candidates = @(
+        (Join-Path $PSScriptRoot "Add-OptimizedContextMenus.ps1"),
+        "C:\Windows\Setup\Scripts\Add-OptimizedContextMenus.ps1",
+        "C:\OptimizedISO\scripts\Add-OptimizedContextMenus.ps1"
+    )
+    foreach ($cand in $candidates) {
+        if (Test-Path $cand) { $helperScript = $cand; break }
+    }
 
-        # 2: Reiniciar Explorador (solo escritorio)
-        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /ve /d "Reiniciar Explorador" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,178" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer\command" /ve /d "cmd.exe /c taskkill /f /im explorer.exe & start explorer.exe" /f *>$null
+    if ($helperScript) {
+        try {
+            & $helperScript -Apply -Quiet
+            Write-Host "  [OK] Suite de menus contextuales aplicada mediante Add-OptimizedContextMenus.ps1." -ForegroundColor Green
+        } catch {
+            Write-Host "  ! Error ejecutando Add-OptimizedContextMenus.ps1: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    } else {
+        # Fallback embebido autonomo para ejecucion standalone
+        try {
+            # 1. Habilitar Menu Clasico (0 ms latencia, 1 solo clic)
+            & reg.exe add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /ve /d "" /f *>$null
+            & reg.exe add "HKU\.DEFAULT\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /ve /d "" /f *>$null
 
-        # 3: Flush DNS (fondo carpeta + escritorio)
-        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS" /ve /d "Vaciar Cache DNS" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,23" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS\command" /ve /d "cmd.exe /c ipconfig /flushdns & pause" /f *>$null
+            # 2. Terminal Admin (Fondo + Carpetas)
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /ve /d "Terminal (Administrador)" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,109" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /v "Position" /t REG_SZ /d "Top" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin\command" /ve /d "powershell.exe -Command `"Start-Process powershell.exe -ArgumentList '-NoExit','-Command','Set-Location -LiteralPath \`"%V\`"' -Verb RunAs`"" /f *>$null
 
-        # 4: God Mode (solo escritorio)
-        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode" /ve /d "Panel de Control Maestro" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,104" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode\command" /ve /d "explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\PSAdmin" /ve /d "Terminal (Administrador)" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\PSAdmin" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,109" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\PSAdmin" /v "Position" /t REG_SZ /d "Top" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\PSAdmin" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\PSAdmin\command" /ve /d "powershell.exe -Command `"Start-Process powershell.exe -ArgumentList '-NoExit','-Command','Set-Location -LiteralPath \`"%1\`"' -Verb RunAs`"" /f *>$null
 
-        # 5: Abrir con Bloc de Notas (cualquier archivo)
-        & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /ve /d "Abrir con Bloc de Notas" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\notepad.exe,0" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad\command" /ve /d "notepad.exe `"%1`"" /f *>$null
+            # 3. Reiniciar Explorador
+            & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /ve /d "Reiniciar Explorador de Windows" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,178" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /v "Position" /t REG_SZ /d "Top" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer\command" /ve /d "cmd.exe /c taskkill /f /im explorer.exe & start explorer.exe" /f *>$null
 
-        # 6: Reparacion del Sistema DISM + SFC (solo escritorio)
-        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem" /ve /d "Reparar Sistema (DISM + SFC)" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,54" /f *>$null
-        & reg.exe add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem\command" /ve /d "powershell.exe -Command `"Start-Process cmd.exe -ArgumentList '/k DISM /Online /Cleanup-Image /RestoreHealth && sfc /scannow' -Verb RunAs`"" /f *>$null
+            # 4. Cascada Gaming y Rendimiento
+            $gBase = "HKLM\SOFTWARE\Classes\Directory\Background\shell\GamerTools"
+            & reg.exe add $gBase /v "MUIVerb" /t REG_SZ /d "Gaming y Rendimiento ⚡" /f *>$null
+            & reg.exe add $gBase /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,264" /f *>$null
+            & reg.exe add $gBase /v "SubCommands" /t REG_SZ /d "" /f *>$null
 
-        Write-Host "  [OK] 6 funciones de menu contextual registradas." -ForegroundColor Green
-        Write-Host "  Accesibles via Shift+F10 o 'Mostrar mas opciones' (menu extendido de Windows 11)." -ForegroundColor Gray
-    } catch {
-        Write-Host "  ! Error registrando menu contextual: $($_.Exception.Message)" -ForegroundColor Yellow
+            & reg.exe add "$gBase\shell\01_PowerMax" /v "MUIVerb" /t REG_SZ /d "Activar Plan Maximo Rendimiento" /f *>$null
+            & reg.exe add "$gBase\shell\01_PowerMax" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,238" /f *>$null
+            & reg.exe add "$gBase\shell\01_PowerMax\command" /ve /d "powershell.exe -Command `"powercfg /s e9a42b02-d5df-448d-aa00-03f14749eb61; Start-Sleep -Seconds 2`"" /f *>$null
+
+            & reg.exe add "$gBase\shell\02_FlushDNS" /v "MUIVerb" /t REG_SZ /d "Vaciar Cache DNS (Flush DNS)" /f *>$null
+            & reg.exe add "$gBase\shell\02_FlushDNS" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,23" /f *>$null
+            & reg.exe add "$gBase\shell\02_FlushDNS\command" /ve /d "cmd.exe /c ipconfig /flushdns & timeout /t 2" /f *>$null
+
+            & reg.exe add "$gBase\shell\03_HAGS" /v "MUIVerb" /t REG_SZ /d "Configuracion de Graficos y HAGS" /f *>$null
+            & reg.exe add "$gBase\shell\03_HAGS" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,16" /f *>$null
+            & reg.exe add "$gBase\shell\03_HAGS\command" /ve /d "cmd.exe /c start ms-settings:display-advancedgraphics" /f *>$null
+
+            & reg.exe add "$gBase\shell\04_GameMode" /v "MUIVerb" /t REG_SZ /d "Modo de Juego de Windows" /f *>$null
+            & reg.exe add "$gBase\shell\04_GameMode" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,100" /f *>$null
+            & reg.exe add "$gBase\shell\04_GameMode\command" /ve /d "cmd.exe /c start ms-settings:gaming-gamemode" /f *>$null
+
+            # 5. Cascada Herramientas del Sistema
+            $sBase = "HKLM\SOFTWARE\Classes\Directory\Background\shell\SystemTools"
+            & reg.exe add $sBase /v "MUIVerb" /t REG_SZ /d "Herramientas del Sistema ⚙️" /f *>$null
+            & reg.exe add $sBase /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,104" /f *>$null
+            & reg.exe add $sBase /v "SubCommands" /t REG_SZ /d "" /f *>$null
+
+            & reg.exe add "$sBase\shell\01_TaskMgr" /v "MUIVerb" /t REG_SZ /d "Administrador de Tareas" /f *>$null
+            & reg.exe add "$sBase\shell\01_TaskMgr" /v "Icon" /t REG_SZ /d "taskmgr.exe" /f *>$null
+            & reg.exe add "$sBase\shell\01_TaskMgr\command" /ve /d "taskmgr.exe" /f *>$null
+
+            & reg.exe add "$sBase\shell\02_DevMgmt" /v "MUIVerb" /t REG_SZ /d "Administrador de Dispositivos" /f *>$null
+            & reg.exe add "$sBase\shell\02_DevMgmt" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\devmgmt.msc" /f *>$null
+            & reg.exe add "$sBase\shell\02_DevMgmt\command" /ve /d "mmc.exe devmgmt.msc" /f *>$null
+
+            & reg.exe add "$sBase\shell\03_Network" /v "MUIVerb" /t REG_SZ /d "Conexiones de Red" /f *>$null
+            & reg.exe add "$sBase\shell\03_Network" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\ncpa.cpl" /f *>$null
+            & reg.exe add "$sBase\shell\03_Network\command" /ve /d "control.exe ncpa.cpl" /f *>$null
+
+            & reg.exe add "$sBase\shell\04_Services" /v "MUIVerb" /t REG_SZ /d "Servicios de Windows" /f *>$null
+            & reg.exe add "$sBase\shell\04_Services" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\services.msc" /f *>$null
+            & reg.exe add "$sBase\shell\04_Services\command" /ve /d "mmc.exe services.msc" /f *>$null
+
+            & reg.exe add "$sBase\shell\05_CleanMgr" /v "MUIVerb" /t REG_SZ /d "Limpieza de Disco" /f *>$null
+            & reg.exe add "$sBase\shell\05_CleanMgr" /v "Icon" /t REG_SZ /d "cleanmgr.exe" /f *>$null
+            & reg.exe add "$sBase\shell\05_CleanMgr\command" /ve /d "cleanmgr.exe /lowdisk" /f *>$null
+
+            & reg.exe add "$sBase\shell\06_Repair" /v "MUIVerb" /t REG_SZ /d "Reparar Sistema (DISM + SFC)" /f *>$null
+            & reg.exe add "$sBase\shell\06_Repair" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,54" /f *>$null
+            & reg.exe add "$sBase\shell\06_Repair" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
+            & reg.exe add "$sBase\shell\06_Repair\command" /ve /d "powershell.exe -Command `"Start-Process cmd.exe -ArgumentList '/k DISM /Online /Cleanup-Image /RestoreHealth && sfc /scannow' -Verb RunAs`"" /f *>$null
+
+            & reg.exe add "$sBase\shell\07_GodMode" /v "MUIVerb" /t REG_SZ /d "Panel Maestro (God Mode)" /f *>$null
+            & reg.exe add "$sBase\shell\07_GodMode" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,104" /f *>$null
+            & reg.exe add "$sBase\shell\07_GodMode\command" /ve /d "explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}" /f *>$null
+
+            # 6. Cascada Opciones de Energia
+            $pBase = "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\PowerOptions"
+            & reg.exe add $pBase /v "MUIVerb" /t REG_SZ /d "Opciones de Energia ⚡" /f *>$null
+            & reg.exe add $pBase /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,27" /f *>$null
+            & reg.exe add $pBase /v "Position" /t REG_SZ /d "Bottom" /f *>$null
+            & reg.exe add $pBase /v "SubCommands" /t REG_SZ /d "" /f *>$null
+
+            & reg.exe add "$pBase\shell\01_UEFI" /v "MUIVerb" /t REG_SZ /d "Reiniciar en Firmware UEFI / BIOS" /f *>$null
+            & reg.exe add "$pBase\shell\01_UEFI" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,220" /f *>$null
+            & reg.exe add "$pBase\shell\01_UEFI" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
+            & reg.exe add "$pBase\shell\01_UEFI\command" /ve /d "shutdown.exe /r /fw /t 0" /f *>$null
+
+            & reg.exe add "$pBase\shell\02_Recovery" /v "MUIVerb" /t REG_SZ /d "Reiniciar en Opciones de Recuperacion" /f *>$null
+            & reg.exe add "$pBase\shell\02_Recovery" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,27" /f *>$null
+            & reg.exe add "$pBase\shell\02_Recovery\command" /ve /d "shutdown.exe /r /o /t 0" /f *>$null
+
+            & reg.exe add "$pBase\shell\03_ColdShutdown" /v "MUIVerb" /t REG_SZ /d "Apagado Completo (Cero Fast Startup)" /f *>$null
+            & reg.exe add "$pBase\shell\03_ColdShutdown" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\shell32.dll,27" /f *>$null
+            & reg.exe add "$pBase\shell\03_ColdShutdown\command" /ve /d "shutdown.exe /s /f /t 0" /f *>$null
+
+            # 7. Tomar Posesion (Take Ownership)
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\TakeOwnership" /ve /d "Tomar Posesion (Take Ownership)" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\TakeOwnership" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,73" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\TakeOwnership" /v "Position" /t REG_SZ /d "Top" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\TakeOwnership" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\TakeOwnership\command" /ve /d "cmd.exe /c takeown /f `"%1`" && icacls `"%1`" /grant *S-1-3-0:(F) /c /l /q" /f *>$null
+
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\TakeOwnership" /ve /d "Tomar Posesion (Take Ownership)" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\TakeOwnership" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,73" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\TakeOwnership" /v "Position" /t REG_SZ /d "Top" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\TakeOwnership" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\Directory\shell\TakeOwnership\command" /ve /d "cmd.exe /c takeown /f `"%1`" /r /d y && icacls `"%1`" /grant *S-1-3-0:(OI)(CI)F /t /c /l /q" /f *>$null
+
+            # 8. Abrir con Bloc de Notas
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /ve /d "Abrir con Bloc de Notas" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\notepad.exe,0" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad\command" /ve /d "notepad.exe `"%1`"" /f *>$null
+
+            # 9. Hash SHA-256
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\HashSHA256" /ve /d "Calcular Hash SHA-256" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\HashSHA256" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,102" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\*\shell\HashSHA256\command" /ve /d "cmd.exe /c certutil -hashfile `"%1`" SHA256 & pause" /f *>$null
+
+            # 10. Firewall .exe
+            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\BlockInFirewall" /ve /d "Bloquear en Firewall de Windows" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\BlockInFirewall" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,207" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\BlockInFirewall" /v "AppliesTo" /t REG_SZ /d "System.FileExtension:=.exe" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\BlockInFirewall" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\BlockInFirewall\command" /ve /d "cmd.exe /c netsh advfirewall firewall add rule name=`"Block_%~nx1`" dir=out program=`"%1`" action=block & pause" /f *>$null
+
+            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\UnblockInFirewall" /ve /d "Permitir / Quitar Regla en Firewall" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\UnblockInFirewall" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,208" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\UnblockInFirewall" /v "AppliesTo" /t REG_SZ /d "System.FileExtension:=.exe" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\UnblockInFirewall" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null
+            & reg.exe add "HKLM\SOFTWARE\Classes\exefile\shell\UnblockInFirewall\command" /ve /d "cmd.exe /c netsh advfirewall firewall delete rule name=`"Block_%~nx1`" & pause" /f *>$null
+
+            Write-Host "  [OK] Suite de menus contextuales registrada (Gamer & Power-User)." -ForegroundColor Green
+            Write-Host "  Menu clasico habilitado como predeterminado para acceso instantaneo (1 clic)." -ForegroundColor Gray
+        } catch {
+            Write-Host "  ! Error registrando suite de menu contextual: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
     }
 } else {
     Write-Host "`n[15] Omitiendo funciones de menu contextual." -ForegroundColor Gray
@@ -2617,7 +2744,7 @@ Write-Host ("  | VBS/HVCI    : {0,-37} |" -f $(if($applyVbs){'Deshabilitado'}els
 Write-Host ("  | Timer fix   : {0,-37} |" -f $(if($applyFixTimer){'Aplicado (bcdedit)'}else{'Omitido'})) -ForegroundColor $(if($applyFixTimer){'Yellow'}else{'Gray'})
 Write-Host ("  | Nagle TCP   : {0,-37} |" -f $(if($applyNagle){'Deshabilitado'}else{'Sin cambio'})) -ForegroundColor Gray
 Write-Host ("  | Ultimate PP : {0,-37} |" -f $(if($applyUltimate){'Activado'}else{'Omitido'}))  -ForegroundColor Gray
-Write-Host ("  | Menu Context: {0,-37} |" -f $(if($applyContextMenu){'Aplicado (6 funciones)'}else{'Omitido'}))  -ForegroundColor Gray
+Write-Host ("  | Menu Context: {0,-37} |" -f $(if($applyContextMenu){'Suite Gamer & Power-User (Clasico)'}else{'Omitido'}))  -ForegroundColor Gray
 Write-Host ("  | Navegadores : {0,-37} |" -f $(if($applyBrowsers){'GPO Render+Debloat Visual (4 browsers)'}else{'Omitido'}))  -ForegroundColor Gray
 Write-Host "  +---------------------------------------------------------+" -ForegroundColor DarkCyan
 #endregion

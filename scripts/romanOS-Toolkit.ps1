@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "Security", "Dashboards", "QuickActions", "Browsers", "Updates")]
+    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu")]
     [string]$Module,
     [switch]$ShowDashboards
 )
@@ -254,6 +254,31 @@ function Invoke-OpenDashboards {
     Start-Sleep -Seconds 2
 }
 
+function Invoke-ContextMenuModule {
+    $scriptFile = Resolve-ToolScript "Add-OptimizedContextMenus.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Gestion de Menus Contextuales (Gamer & Power-User)"
+        $opts = @(
+            "Aplicar Suite Completa + Menu Clasico 1-Clic (Recomendado)",
+            "Habilitar solo Menu Clasico (0 ms latencia, 1 solo clic)",
+            "Restaurar Menu Moderno original de Windows 11",
+            "Desinstalar todos los menus contextuales personalizados",
+            "Reiniciar Explorador de Windows (explorer.exe)"
+        )
+        $subChoice = Show-UnifiedMenu -Title "OPCIONES DE MENU CONTEXTUAL" -Options $opts -DefaultChoice 1 -AllowCancel -CancelText "Volver"
+        switch ($subChoice) {
+            1 { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -Apply -RestartExplorer }
+            2 { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -EnableClassicMenu -RestartExplorer }
+            3 { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -RestoreModernMenu -RestartExplorer }
+            4 { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -Remove -RestartExplorer }
+            5 { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -RestartExplorer }
+        }
+    } else {
+        Write-ErrorMsg "No se encontro Add-OptimizedContextMenus.ps1"
+        pause
+    }
+}
+
 function Show-QuickActionsMenu {
     Show-UnifiedBanner -Title "ACCIONES RAPIDAS DE SISTEMA" -Subtitle "Herramientas de Mantenimiento Express"
     
@@ -267,7 +292,8 @@ function Show-QuickActionsMenu {
         "Optimizar Navegadores Web (Video GPU, Menos RAM, Sin IA)",
         "Restaurar Servicios Hardcore (Wi-Fi, Bluetooth, Impresion, Busqueda)",
         "Alternar Hipervisor / VBS (Activar o Desactivar hypervisorlaunchtype)",
-        "Auditoria e Introspeccion de Hardware (PCIe, GPU, RAM, MSI, SMBIOS)"
+        "Auditoria e Introspeccion de Hardware (PCIe, GPU, RAM, MSI, SMBIOS)",
+        "Gestionar Menus Contextuales (Gamer, Take Ownership, UEFI, Clasico)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -396,6 +422,9 @@ function Show-QuickActionsMenu {
             }
             pause
         }
+        11 {
+            Invoke-ContextMenuModule
+        }
         default { return }
     }
 
@@ -414,6 +443,7 @@ if ($Module) {
         "Dashboards"   { Invoke-OpenDashboards; exit }
         "Browsers"     { Invoke-BrowsersModule; exit }
         "Updates"      { Invoke-UpdatesModule; exit }
+        "ContextMenu"  { Invoke-ContextMenuModule; exit }
         "QuickActions" { Show-QuickActionsMenu; exit }
     }
 }

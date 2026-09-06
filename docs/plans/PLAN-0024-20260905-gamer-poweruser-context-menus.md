@@ -1,7 +1,7 @@
 # PLAN-0024: Suite Modular de Menús Contextuales Optimizados para Gaming y Power-Users
 
 **Fecha:** 2026-09-05  
-**Estado:** PENDIENTE  
+**Estado:** COMPLETADO  
 **Rama:** `feature/offline-ui-tweaks`  
 **Autor:** Agente Antigravity / Pair-Programming  
 **Fundamentación Técnica:** Documentación oficial de Microsoft Learn (*Creating Shortcut Menu Handlers*, *Customizing a Shortcut Menu Using Static Verbs*, *Advanced Query Syntax*).
