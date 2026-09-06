@@ -132,6 +132,24 @@ if (-not $uiLoaded) {
     function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
 }
 
+# ============================================================
+# CARGA DE MOTOR DE DIRECTIVAS UNIFICADO (Core\Policy-Engine.ps1)
+# ============================================================
+$policyEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Policy-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1"
+)
+$policyLoaded = $false
+foreach ($p in $policyEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $policyLoaded = $true
+        break
+    }
+}
+
 # Variables globales de rutas de registro (usadas en multiples secciones)
 $adv    = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 $expPol = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
@@ -338,6 +356,22 @@ function Invoke-BrowserDebloat {
     Write-Host "`n==========================================================================" -ForegroundColor Cyan
     Write-Host "  OPTIMIZACION Y DEBLOAT OFICIAL DE NAVEGADORES (GPO)                     " -ForegroundColor Cyan
     Write-Host "==========================================================================" -ForegroundColor Cyan
+
+    # SSOT: Si Apply-RomanOSBrowserPolicies está disponible (Core/Policy-Engine.ps1), delegar ejecución centralizada
+    if (Get-Command Apply-RomanOSBrowserPolicies -ErrorAction SilentlyContinue) {
+        Write-Host "  [SSOT] Aplicando directivas oficiales centralizadas desde Core\Policy-Engine.ps1..." -ForegroundColor Cyan
+        try {
+            Apply-RomanOSBrowserPolicies -Browser "All"
+            # Asegurar directivas a nivel de sistema operativo para Copilot y AI (HKLM/HKCU)
+            Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 1 'DWord'
+            Set-Reg 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 1 'DWord'
+            Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows AI' 'DisableAIDataAnalysis' 1 'DWord'
+            Write-Host "  [OK] Directivas oficiales de navegadores y AI aplicadas (SSOT Core\Policy-Engine.ps1)." -ForegroundColor Green
+            return
+        } catch {
+            Write-Host "  ! Error en Apply-RomanOSBrowserPolicies, recurriendo a fallback integrado: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
 
     try {
         # 16.A Microsoft Edge (HKLM\SOFTWARE\Policies\Microsoft\Edge)
@@ -2458,28 +2492,50 @@ Write-Host "  [12] Gaming optimizations applied." -ForegroundColor Green
 # Ref: https://learn.microsoft.com/troubleshoot/windows-server/networking/tcpip-performance-known-issues
 if ($applyNagle) {
     Write-Host "  [12.J] Disabling Nagle Algorithm (TCP No-Delay)..." -ForegroundColor Gray
-    try {
-        # Detectar adaptador de red fisico activo (excluir VPN/virtual)
-        $activeAdapter = Get-NetAdapter -ErrorAction Stop |
-            Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Virtual|VPN|Hyper-V|WSL|Loopback' } |
-            Select-Object -First 1
+    $netScript = $null
+    $netCandidates = @(
+        (Join-Path $PSScriptRoot "Win11-Network-Diagnostics-Optimizer.ps1"),
+        "C:\Windows\Setup\Scripts\Win11-Network-Diagnostics-Optimizer.ps1",
+        "C:\OptimizedISO\scripts\Win11-Network-Diagnostics-Optimizer.ps1"
+    )
+    foreach ($cand in $netCandidates) {
+        if (Test-Path $cand) { $netScript = $cand; break }
+    }
 
-        if ($activeAdapter) {
-            $ifGuid = $activeAdapter.InterfaceGuid
-            $tcpPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$ifGuid"
-            if (Test-Path $tcpPath) {
-                Set-Reg $tcpPath 'TcpNoDelay'       1
-                Set-Reg $tcpPath 'TcpAckFrequency'  1
-                Write-Host "    - Nagle Algorithm DESHABILITADO para: $($activeAdapter.Name) ($($activeAdapter.InterfaceDescription))" -ForegroundColor Green
-                Write-Host "      GUID: $ifGuid" -ForegroundColor DarkGray
-            } else {
-                Write-Host "    ! Ruta TCP no encontrada para GUID $ifGuid" -ForegroundColor Yellow
-            }
-        } else {
-            Write-Host "    ! No se encontro adaptador de red fisico activo." -ForegroundColor Yellow
+    if ($netScript) {
+        try {
+            Write-Host "    Delegando a Win11-Network-Diagnostics-Optimizer.ps1 -NagleOnly..." -ForegroundColor DarkGray
+            & $netScript -NagleOnly -Unattended
+        } catch {
+            Write-Host "    ! Fallo invocando script de red, usando fallback interno: $($_.Exception.Message)" -ForegroundColor Yellow
+            $netScript = $null
         }
-    } catch {
-        Write-Host "    ! Nagle disable: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+
+    if (-not $netScript) {
+        try {
+            # Fallback autonomo en caso de ejecucion standalone sin scripts hermanos
+            $activeAdapter = Get-NetAdapter -ErrorAction Stop |
+                Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Virtual|VPN|Hyper-V|WSL|Loopback' } |
+                Select-Object -First 1
+
+            if ($activeAdapter) {
+                $ifGuid = $activeAdapter.InterfaceGuid
+                $tcpPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$ifGuid"
+                if (Test-Path $tcpPath) {
+                    Set-Reg $tcpPath 'TcpNoDelay'       1
+                    Set-Reg $tcpPath 'TcpAckFrequency'  1
+                    Write-Host "    - Nagle Algorithm DESHABILITADO para: $($activeAdapter.Name) ($($activeAdapter.InterfaceDescription))" -ForegroundColor Green
+                    Write-Host "      GUID: $ifGuid" -ForegroundColor DarkGray
+                } else {
+                    Write-Host "    ! Ruta TCP no encontrada para GUID $ifGuid" -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "    ! No se encontro adaptador de red fisico activo." -ForegroundColor Yellow
+            }
+        } catch {
+            Write-Host "    ! Nagle disable fallback: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
     }
 }
 #endregion
