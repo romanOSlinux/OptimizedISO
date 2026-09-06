@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     romanOS-Toolkit.ps1 - Hub Maestro de Optimizacion, Diagnostico, Mantenimiento y Seguridad
     Orquestador Central Desacoplado (Zero-Resident Footprint)
@@ -346,15 +346,14 @@ function Show-QuickActionsMenu {
     
     switch ($actChoice) {
         1 {
-            Write-SubStep "Vaciando cache DNS..."
-            try {
-                Clear-DnsClientCache -ErrorAction Stop
-                Write-OK "Cache DNS vaciada con exito (Clear-DnsClientCache)."
-            } catch {
+            Write-SubStep "Delegando vaciado de cache DNS a especialista..."
+            $netScript = Join-Path $PSScriptRoot "Win11-Network-Diagnostics-Optimizer.ps1"
+            if (Test-Path $netScript) {
+                & $netScript -FlushDNSOnly -Unattended
+            } else {
                 ipconfig /flushdns
                 Write-OK "Cache DNS vaciada con exito (ipconfig /flushdns)."
             }
-            pause
         }
         2 {
             Write-SubStep "Reiniciando Explorador..."
@@ -374,7 +373,6 @@ function Show-QuickActionsMenu {
             Write-StepHeader -StepNumber 2 -TotalSteps 2 -Message "Ejecutando SFC Scannow"
             sfc /scannow
             Write-OK "Proceso de reparacion completado."
-            pause
         }
         5 {
             Write-SubStep "Delegando purga de Shaders GPU a Invoke-WindowsMaintenance.ps1..."
@@ -382,21 +380,9 @@ function Show-QuickActionsMenu {
             if (Test-Path $maintScript) {
                 & $maintScript -ShadersOnly -Unattended
             } else {
-                Write-SubStep "Limpiando caches de Shaders DirectX/NVIDIA/AMD (fallback)..."
-                $shaderDirs = @(
-                    "$env:LOCALAPPDATA\D3DSCache",
-                    "$env:LOCALAPPDATA\NVIDIA\DXCache",
-                    "$env:LOCALAPPDATA\AMD\DxCache",
-                    "$env:LOCALAPPDATA\Temp"
-                )
-                foreach ($sd in $shaderDirs) {
-                    if (Test-Path $sd) {
-                        Get-ChildItem -Path $sd -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-                    }
-                }
+                Write-ErrorMsg "Modulo de mantenimiento no encontrado."
             }
             Write-OK "Caches de Shaders GPU procesadas."
-            pause
         }
         6 {
             Write-SubStep "Delegando SSD TRIM a Invoke-WindowsMaintenance.ps1..."
@@ -404,21 +390,11 @@ function Show-QuickActionsMenu {
             if (Test-Path $maintScript) {
                 & $maintScript -TrimOnly -Unattended
             } else {
-                Write-SubStep "Ejecutando SSD TRIM (fallback)..."
-                try {
-                    Get-Volume | Where-Object { $_.DriveType -eq 'Fixed' -and $_.DriveLetter } | ForEach-Object {
-                        Optimize-Volume -DriveLetter $_.DriveLetter -ReTrim -Verbose
-                    }
-                    Write-OK "SSD ReTrim finalizado."
-                } catch {
-                    Write-ErrorMsg "Error ejecutando Optimize-Volume: $($_.Exception.Message)"
-                }
+                Write-ErrorMsg "Modulo de mantenimiento no encontrado."
             }
-            pause
         }
         7 {
             Invoke-BrowsersModule
-            pause
         }
         8 {
             Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Restaurando Servicios de Sistema"
@@ -439,7 +415,6 @@ function Show-QuickActionsMenu {
             Start-Service WSearch -ErrorAction SilentlyContinue
 
             Write-OK "Servicios restaurados a inicio automatico."
-            pause
         }
         9 {
             Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Alternar Estado del Hipervisor (VBS / Latencia)"
@@ -463,7 +438,6 @@ function Show-QuickActionsMenu {
             } catch {
                 Write-ErrorMsg "Error al consultar o modificar bcdedit: $($_.Exception.Message)"
             }
-            pause
         }
         10 {
             Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Auditoria e Introspeccion de Hardware"
@@ -483,7 +457,6 @@ function Show-QuickActionsMenu {
             } else {
                 Write-Warn "Modulo Hardware-Engine.ps1 no disponible."
             }
-            pause
         }
         11 {
             Invoke-ContextMenuModule
@@ -491,12 +464,10 @@ function Show-QuickActionsMenu {
         12 {
             $backupScript = Resolve-ToolScript "Backup-HardwareDrivers.ps1"
             if ($backupScript) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $backupScript } else { Write-ErrorMsg "No se encontro Backup-HardwareDrivers.ps1" }
-            pause
         }
         13 {
             $cleanScript = Resolve-ToolScript "Clean-DriverStore.ps1"
             if ($cleanScript) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $cleanScript } else { Write-ErrorMsg "No se encontro Clean-DriverStore.ps1" }
-            pause
         }
         default { return }
     }
@@ -574,4 +545,8 @@ while ($true) {
             Start-Sleep -Seconds 1
         }
     }
+    
+    # Pausa Global Interactiva
+    Write-Host "`n  Presione cualquier tecla para volver al menu principal..." -ForegroundColor Cyan
+    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 }

@@ -1,4 +1,4 @@
-﻿<#
+<#
     Win11-Network-Diagnostics-Optimizer.ps1
     Herramienta avanzada de Diagnostico, Pruebas y Optimizacion de Conectividad en Windows 11 (25H2 Ready).
     Ejecutar elevado (Admin). Guarda logs en C:\Logs\Network-Diagnostics.log
@@ -6,7 +6,8 @@
 
 param(
     [switch]$Unattended,
-    [switch]$NagleOnly
+    [switch]$NagleOnly,
+    [switch]$FlushDNSOnly
 )
 
 # Precarga de ensamblados WPF para soporte garantizado de interfaz grafica (Out-GridView)
@@ -26,8 +27,20 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
     if ($Unattended) { $argList += '-Unattended' }
     if ($NagleOnly) { $argList += '-NagleOnly' }
+    if ($FlushDNSOnly) { $argList += '-FlushDNSOnly' }
     Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
     Exit
+}
+
+if ($FlushDNSOnly) {
+    try {
+        Clear-DnsClientCache -ErrorAction Stop
+        Write-Host "  [OK] Cache DNS vaciada con exito (Clear-DnsClientCache)." -ForegroundColor Green
+    } catch {
+        ipconfig /flushdns | Out-Null
+        Write-Host "  [OK] Cache DNS vaciada con exito (ipconfig /flushdns)." -ForegroundColor Green
+    }
+    Exit 0
 }
 
 $ErrorActionPreference = 'Continue'

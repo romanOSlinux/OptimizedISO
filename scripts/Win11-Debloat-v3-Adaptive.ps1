@@ -2378,29 +2378,7 @@ if ($applyNagle) {
     }
 
     if (-not $netScript) {
-        try {
-            # Fallback autonomo en caso de ejecucion standalone sin scripts hermanos
-            $activeAdapter = Get-NetAdapter -ErrorAction Stop |
-                Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Virtual|VPN|Hyper-V|WSL|Loopback' } |
-                Select-Object -First 1
-
-            if ($activeAdapter) {
-                $ifGuid = $activeAdapter.InterfaceGuid
-                $tcpPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$ifGuid"
-                if (Test-Path $tcpPath) {
-                    Set-Reg $tcpPath 'TcpNoDelay'       1
-                    Set-Reg $tcpPath 'TcpAckFrequency'  1
-                    Write-Host "    - Nagle Algorithm DESHABILITADO para: $($activeAdapter.Name) ($($activeAdapter.InterfaceDescription))" -ForegroundColor Green
-                    Write-Host "      GUID: $ifGuid" -ForegroundColor DarkGray
-                } else {
-                    Write-Host "    ! Ruta TCP no encontrada para GUID $ifGuid" -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "    ! No se encontro adaptador de red fisico activo." -ForegroundColor Yellow
-            }
-        } catch {
-            Write-Host "    ! Nagle disable fallback: $($_.Exception.Message)" -ForegroundColor Yellow
-        }
+        Write-Host "    ! Modulo especialista de red no encontrado. Omitiendo Nagle Algorithm (desacoplamiento arquitectonico)." -ForegroundColor Yellow
     }
 }
 #endregion
