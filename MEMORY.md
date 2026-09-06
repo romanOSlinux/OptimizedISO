@@ -1,3 +1,15 @@
+## [2026-09-06T04:55:00-03:00] Corrección de Menús Contextuales en Cascada y Erradicación de SubCommands en Ítems Hoja (PLAN-0031)
+
+- **Archivos Modificados:** `scripts/Add-OptimizedContextMenus.ps1`, `Aplicar-Hotfix-Menus.cmd`, `scripts/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0031-20260906-fix-cascading-context-menus-leaf-subcommands.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se aisló la causa raíz de la inoperancia de los menús contextuales en Windows Explorer: el parámetro tipado `[string]$SubCommands = $null` en `Set-ShellVerb` se evaluaba como `$true` para `$null -ne ""` debido a coerción de tipos de PowerShell, inyectando `SubCommands = ""` en todos los comandos de acción finales.
+  - Windows Explorer interpretaba cada acción final como una cabecera de submenú en cascada e ignoraba la subclave `command`.
+  - Se refactorizó `Set-ShellVerb` empleando `$PSBoundParameters.ContainsKey('SubCommands')`, con vaciado de `(default)` en contenedores padre y purga automática de `SubCommands` residual mediante `Remove-ItemProperty` en comandos de acción finales (auto-sanación).
+  - Se robusteció `01_PowerMax` con duplicación automática del esquema de energía si no existe previamente.
+  - Se creó el lanzador por lotes `Aplicar-Hotfix-Menus.cmd` con auto-elevación UAC para remediación inmediata en sistemas ya instalados.
+  - Se incorporaron 4 aserciones de regresión en `scripts/Test-OptimizedISO-v2.ps1` superadas con 100% PASS.
+- **Pendiente:** Ninguno. Menús 100% funcionales y verificados.
+
 ## [2026-09-05T22:15:00-03:00] Suite Modular de Menús Contextuales para Gaming y Power-Users (PLAN-0024)
 
 - **Archivos Modificados:** `scripts/Add-OptimizedContextMenus.ps1`, `scripts/Add-OptimizedContextMenus.cmd`, `scripts/Win11-Debloat-v3-Adaptive.ps1`, `scripts/romanOS-Toolkit.ps1`, `docs/plans/PLAN-0024-20260905-gamer-poweruser-context-menus.md`, `docs/plans/README.md`, `MEMORY.md`

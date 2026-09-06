@@ -135,7 +135,7 @@ function Set-ShellVerb {
         [string]$Command = "",
         [string]$Position = "",
         [string]$AppliesTo = "",
-        [string]$SubCommands = $null,
+        [string]$SubCommands,
         [switch]$HasLUAShield,
         [switch]$NeverDefault,
         [switch]$SeparatorBefore,
@@ -151,32 +151,41 @@ function Set-ShellVerb {
             $psPath = $psPath -replace '^HKLM:\\SOFTWARE\\Classes', 'HKCU:\Software\Classes'
         }
 
-        if (-not (Test-Path $psPath)) {
+        if (-not (Test-Path -LiteralPath $psPath)) {
             New-Item -Path $psPath -Force | Out-Null
         }
 
-        if ($DisplayName) {
-            Set-ItemProperty -Path $psPath -Name "(default)" -Value $DisplayName -Force
-        } elseif ($MUIVerb) {
-            Set-ItemProperty -Path $psPath -Name "(default)" -Value $MUIVerb -Force
+        if ($PSBoundParameters.ContainsKey('SubCommands')) {
+            # Es un contenedor de submenú en cascada
+            Set-ItemProperty -LiteralPath $psPath -Name "SubCommands" -Value $SubCommands -Force
+            # En contenedores en cascada, el valor (default) debe estar vacío para que Windows no intente ejecutarlo como acción simple
+            Set-ItemProperty -LiteralPath $psPath -Name "(default)" -Value "" -Force
+        } else {
+            # Es un comando de acción ejecutable: auto-sanar eliminando cualquier valor SubCommands previo residual
+            Remove-ItemProperty -LiteralPath $psPath -Name "SubCommands" -Force -ErrorAction SilentlyContinue
+
+            if ($DisplayName) {
+                Set-ItemProperty -LiteralPath $psPath -Name "(default)" -Value $DisplayName -Force
+            } elseif ($MUIVerb) {
+                Set-ItemProperty -LiteralPath $psPath -Name "(default)" -Value $MUIVerb -Force
+            }
         }
 
-        if ($MUIVerb)     { Set-ItemProperty -Path $psPath -Name "MUIVerb" -Value $MUIVerb -Force }
-        if ($Icon)        { Set-ItemProperty -Path $psPath -Name "Icon" -Value $Icon -Force }
-        if ($Position)    { Set-ItemProperty -Path $psPath -Name "Position" -Value $Position -Force }
-        if ($AppliesTo)   { Set-ItemProperty -Path $psPath -Name "AppliesTo" -Value $AppliesTo -Force }
-        if ($null -ne $SubCommands) { Set-ItemProperty -Path $psPath -Name "SubCommands" -Value $SubCommands -Force }
-        if ($HasLUAShield) { Set-ItemProperty -Path $psPath -Name "HasLUAShield" -Value "" -Force }
-        if ($NeverDefault) { Set-ItemProperty -Path $psPath -Name "NeverDefault" -Value "" -Force }
-        if ($SeparatorBefore) { Set-ItemProperty -Path $psPath -Name "SeparatorBefore" -Value "" -Force }
-        if ($SeparatorAfter)  { Set-ItemProperty -Path $psPath -Name "SeparatorAfter" -Value "" -Force }
+        if ($MUIVerb)     { Set-ItemProperty -LiteralPath $psPath -Name "MUIVerb" -Value $MUIVerb -Force }
+        if ($Icon)        { Set-ItemProperty -LiteralPath $psPath -Name "Icon" -Value $Icon -Force }
+        if ($Position)    { Set-ItemProperty -LiteralPath $psPath -Name "Position" -Value $Position -Force }
+        if ($AppliesTo)   { Set-ItemProperty -LiteralPath $psPath -Name "AppliesTo" -Value $AppliesTo -Force }
+        if ($HasLUAShield) { Set-ItemProperty -LiteralPath $psPath -Name "HasLUAShield" -Value "" -Force }
+        if ($NeverDefault) { Set-ItemProperty -LiteralPath $psPath -Name "NeverDefault" -Value "" -Force }
+        if ($SeparatorBefore) { Set-ItemProperty -LiteralPath $psPath -Name "SeparatorBefore" -Value "" -Force }
+        if ($SeparatorAfter)  { Set-ItemProperty -LiteralPath $psPath -Name "SeparatorAfter" -Value "" -Force }
 
         if ($Command) {
             $cmdPath = Join-Path $psPath "command"
-            if (-not (Test-Path $cmdPath)) {
+            if (-not (Test-Path -LiteralPath $cmdPath)) {
                 New-Item -Path $cmdPath -Force | Out-Null
             }
-            Set-ItemProperty -Path $cmdPath -Name "(default)" -Value $Command -Force
+            Set-ItemProperty -LiteralPath $cmdPath -Name "(default)" -Value $Command -Force
         }
     }
 }
@@ -276,9 +285,10 @@ function Install-OptimizedContextMenus {
     Set-ShellVerb -Path $gamerBase -MUIVerb "Gaming y Rendimiento ⚡" `
         -Icon "%SystemRoot%\System32\imageres.dll,264" -SubCommands ""
 
+    $cmdPowerMax = "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command `"try { `$l = powercfg /l; if (`$l -notmatch 'e9a42b02-d5df-448d-aa00-03f14749eb61') { powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 | Out-Null }; powercfg /s e9a42b02-d5df-448d-aa00-03f14749eb61; Write-Host 'Plan de Maximo Rendimiento Activado' -ForegroundColor Green; Start-Sleep -Seconds 2 } catch { Write-Host 'Error activando plan de energia' -ForegroundColor Red; Start-Sleep -Seconds 3 }`""
     Set-ShellVerb -Path "$gamerBase\shell\01_PowerMax" -MUIVerb "Activar Plan Máximo Rendimiento" `
         -Icon "%SystemRoot%\System32\shell32.dll,238" `
-        -Command "powershell.exe -Command `"powercfg /s e9a42b02-d5df-448d-aa00-03f14749eb61; Write-Host 'Plan de Máximo Rendimiento Activado' -ForegroundColor Green; Start-Sleep -Seconds 2`""
+        -Command $cmdPowerMax
 
     Set-ShellVerb -Path "$gamerBase\shell\02_FlushDNS" -MUIVerb "Vaciar Caché DNS (Flush DNS)" `
         -Icon "%SystemRoot%\System32\imageres.dll,23" `

@@ -922,6 +922,13 @@ Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 configura CLSID clasico {8
 Assert-True "PLAN-0029: v2 script utiliza Register-ScheduledTask permanente para tareas a demanda" ($v2ScriptContent -match 'Register-ScheduledTask\s+-TaskName')
 Assert-False "PLAN-0029: v2 script erradico schtasks efimero /sc ONCE /st 00:00" ($v2ScriptContent -match 'schtasks\s+/create.*/sc\s+ONCE\s+/st\s+00:00\s+/ru\s+["'']SYSTEM["'']\s+/rl\s+HIGHEST')
 
+# PLAN-0031: Validaciones de Erradicacion de SubCommands en Comandos Ejecutables y Cascada Nativa
+Assert-True "PLAN-0031: Set-ShellVerb verifica PSBoundParameters para SubCommands" ($ctxMenuContent -match '\$PSBoundParameters\.ContainsKey\([''"]SubCommands[''"]\)')
+Assert-True "PLAN-0031: Set-ShellVerb auto-sana purgando SubCommands en comandos hoja" ($ctxMenuContent -match 'Remove-ItemProperty.*SubCommands')
+Assert-True "PLAN-0031: Lanzador Aplicar-Hotfix-Menus.cmd existe en la raiz" (Test-Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Aplicar-Hotfix-Menus.cmd"))
+Assert-True "PLAN-0031: 01_PowerMax incluye recuperacion/duplicacion automatica de GUID de energia" ($ctxMenuContent -match 'powercfg\s+-duplicatescheme\s+e9a42b02-d5df-448d-aa00-03f14749eb61')
+
+
 # PLAN-0030: Validaciones de Integracion de Modo Oscuro Nativo Multi-Capa
 $themeInstall = $allPols | Where-Object { $_.Id -eq "POL_THEME_INSTALL_THEME" }
 Assert-NotNull "PLAN-0030: POL_THEME_INSTALL_THEME existe en Policy-Engine" $themeInstall
