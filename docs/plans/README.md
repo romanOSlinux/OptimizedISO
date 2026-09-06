@@ -40,6 +40,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0022 | [PLAN-0022-20260903-orchestrated-architecture-policy-engine-and-audit-sync.md](PLAN-0022-20260903-orchestrated-architecture-policy-engine-and-audit-sync.md) | 2026-09-03 | Arquitectura Orquestada Unificada, Catálogo Maestro de Políticas (Policy-Engine) y Sincronización Transversal de Auditoría | COMPLETADO |
 | 0023 | [PLAN-0023-20260903-fix-wim-dismount-hive-leaks-and-retry-state-machine.md](PLAN-0023-20260903-fix-wim-dismount-hive-leaks-and-retry-state-machine.md) | 2026-09-03 | Corrección de Fuga de Handles en Colmenas Offline y Máquina de Estados de Desmontaje WIM en DISM | COMPLETADO |
 | 0024 | [PLAN-0024-20260905-gamer-poweruser-context-menus.md](PLAN-0024-20260905-gamer-poweruser-context-menus.md) | 2026-09-05 | Suite Modular de Menús Contextuales Optimizados para Gaming y Power-Users | COMPLETADO |
+| 0025 | [PLAN-0025-20260905-deep-audit-script-redundancy-and-iso-vs-toolkit-matrix.md](PLAN-0025-20260905-deep-audit-script-redundancy-and-iso-vs-toolkit-matrix.md) | 2026-09-05 | Auditoría Transversal Script por Script, Desmitificación de Redundancias y Matriz de Decisión ISO vs. Toolkit | PENDIENTE |
 
 ---
 
