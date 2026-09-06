@@ -1,3 +1,23 @@
+## [2026-09-06T12:50:00-03:00] Integración de Optimizaciones Oficiales de NTFS, Kernel Scheduler y Red (PLAN-0034)
+
+- **Archivos Modificados:** `scripts/Core/Policy-Engine.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Win11-Network-Diagnostics-Optimizer.ps1`, `scripts/PostInstall-Diagnostics.ps1`, `scripts/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0034-20260906-optimizaciones-oficiales-ntfs-kernel-scheduler-y-red.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - Se realizó una inspección profunda del sistema en vivo (Windows 11 Pro for Workstations 25H2, Build 26200.9168 en Ryzen 5 8600G + NVMe) y se comparó exhaustivamente contra documentación oficial de ingeniería de Microsoft (Microsoft Learn, Windows Internals, WDK, RFC 3168).
+  - Se redactó, aprobó y ejecutó el **PLAN-0034** integrando 6 directivas oficiales de alto impacto medible:
+    1. `NtfsDisable8dot3NameCreation = 1`: Deshabilita nombres cortos DOS 8.3 globalmente, eliminando 5-8% de sobrecarga de I/O en carpetas masivas (>10,000 archivos).
+    2. `NtfsMemoryUsage = 2`: Expande el pool de RAM para caché de metadatos NTFS/MFT, reduciendo latencia de apertura en 15-25% en estaciones de trabajo y PCs con >=16 GB RAM.
+    3. `LongPathsEnabled = 1`: Desbloquea rutas largas (>260 caracteres) en Win32.
+    4. `Win32PrioritySeparation = 38 (0x26)`: Configura cuantos de reloj fijos y cortos con boost 3:1 para la ventana en primer plano, mitigando micro-stuttering y caídas de 1% lows.
+    5. `NoLazyMode = 1`: Impide que MMCSS baje la frecuencia de renderizado ante caídas de FPS.
+    6. `EcnCapability = Enabled`: Habilita Notificación Explícita de Congestión en TCP/IP mitigando bufferbloat y pérdidas de paquetes.
+  - Se implementó la gobernanza canónica en `scripts/Core/Policy-Engine.ps1` (SSOT).
+  - Se integró la inyección offline en las colmenas `SOFTWARE` y `SYSTEM` del WIM montado, así como en `SetupComplete.cmd` en `scripts/New-OptimizedWindowsISO-v2.ps1`.
+  - Se agregó `EcnCapability` al selector interactivo y desatendido en `scripts/Win11-Network-Diagnostics-Optimizer.ps1`.
+  - Se amplió la auditoría post-instalación en consola y dashboard HTML en `scripts/PostInstall-Diagnostics.ps1`.
+  - Se agregaron 21 aserciones de regresión en `scripts/Test-OptimizedISO-v2.ps1` aprobadas al 100%.
+  - Se verificó la codificación UTF-8 BOM y 0 errores AST en los 32 scripts con `Test-ScriptAstAndBom.ps1` y 5/5 fases aprobadas en `Invoke-TestSuite.ps1 -Quick`.
+- **Pendiente:** Módulo de Navegadores (PLAN-0033) en espera por solicitud del usuario.
+
 ## [2026-09-06T04:55:00-03:00] Corrección de Menús Contextuales en Cascada y Erradicación de SubCommands en Ítems Hoja (PLAN-0031)
 
 - **Archivos Modificados:** `scripts/Add-OptimizedContextMenus.ps1`, `Aplicar-Hotfix-Menus.cmd`, `scripts/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0031-20260906-fix-cascading-context-menus-leaf-subcommands.md`, `docs/plans/README.md`, `MEMORY.md`

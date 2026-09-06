@@ -971,6 +971,44 @@ Assert-False "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 no ejecuta StartComponent
 Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 verifica instalacion previa de menus contextuales" ($debloatContent -match '\$contextAlreadyInstalled\s*=' -and $debloatContent -match 'GamerTools')
 Assert-False "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 erradico duplicacion de reg.exe add en seccion 15" ($debloatContent -match 'reg\.exe\s+add.*Directory\\Background\\shell\\GamerTools')
 
+# PLAN-0034: Validaciones de Optimizaciones Oficiales NTFS, Kernel Scheduler y Red (ECN)
+$polFs83 = $allPols | Where-Object { $_.Id -eq "POL_FS_DISABLE_8DOT3" }
+Assert-NotNull "PLAN-0034: POL_FS_DISABLE_8DOT3 existe en Policy-Engine" $polFs83
+Assert-Equal "PLAN-0034: POL_FS_DISABLE_8DOT3 tiene ExpectedValue = 1" $polFs83.ExpectedValue 1
+
+$polFsMem = $allPols | Where-Object { $_.Id -eq "POL_FS_MEMORY_USAGE" }
+Assert-NotNull "PLAN-0034: POL_FS_MEMORY_USAGE existe en Policy-Engine" $polFsMem
+Assert-Equal "PLAN-0034: POL_FS_MEMORY_USAGE tiene ExpectedValue = 2" $polFsMem.ExpectedValue 2
+
+$polFsLong = $allPols | Where-Object { $_.Id -eq "POL_FS_LONG_PATHS" }
+Assert-NotNull "PLAN-0034: POL_FS_LONG_PATHS existe en Policy-Engine" $polFsLong
+Assert-Equal "PLAN-0034: POL_FS_LONG_PATHS tiene ExpectedValue = 1" $polFsLong.ExpectedValue 1
+
+$polSchedPrio = $allPols | Where-Object { $_.Id -eq "POL_SCHED_WIN32_PRIORITY" }
+Assert-NotNull "PLAN-0034: POL_SCHED_WIN32_PRIORITY existe en Policy-Engine" $polSchedPrio
+Assert-Equal "PLAN-0034: POL_SCHED_WIN32_PRIORITY tiene ExpectedValue = 38 (0x26)" $polSchedPrio.ExpectedValue 38
+
+$polMmcssLazy = $allPols | Where-Object { $_.Id -eq "POL_MMCSS_NO_LAZY_MODE" }
+Assert-NotNull "PLAN-0034: POL_MMCSS_NO_LAZY_MODE existe en Policy-Engine" $polMmcssLazy
+Assert-Equal "PLAN-0034: POL_MMCSS_NO_LAZY_MODE tiene ExpectedValue = 1" $polMmcssLazy.ExpectedValue 1
+
+Assert-True "PLAN-0034: SetupComplete.cmd contiene comando netsh ecncapability=enabled" ($v2ScriptContent -match 'ecncapability=enabled')
+Assert-True "PLAN-0034: SetupComplete.cmd inyecta NtfsDisable8dot3NameCreation" ($v2ScriptContent -match 'NtfsDisable8dot3NameCreation')
+Assert-True "PLAN-0034: SetupComplete.cmd inyecta NtfsMemoryUsage" ($v2ScriptContent -match 'NtfsMemoryUsage')
+Assert-True "PLAN-0034: SetupComplete.cmd inyecta Win32PrioritySeparation" ($v2ScriptContent -match 'Win32PrioritySeparation')
+
+Assert-True "PLAN-0034: v2 script inyecta NoLazyMode en SOFTWARE hive offline" ($v2ScriptContent -match 'OfflineSoftware' -and $v2ScriptContent -match 'NoLazyMode')
+Assert-True "PLAN-0034: v2 script inyecta NtfsMemoryUsage y Win32PrioritySeparation en SYSTEM hive offline" ($v2ScriptContent -match 'OfflineSystem' -and $v2ScriptContent -match 'NtfsMemoryUsage')
+
+$netOptContent = Get-Content -Path (Join-Path $PSScriptRoot "Win11-Network-Diagnostics-Optimizer.ps1") -Raw
+Assert-True "PLAN-0034: Win11-Network-Diagnostics-Optimizer.ps1 incluye EcnCapability en tweaks" ($netOptContent -match 'Id=''EcnCapability''')
+Assert-True "PLAN-0034: Win11-Network-Diagnostics-Optimizer.ps1 ejecuta configuracion de ECN" ($netOptContent -match 'netsh\.exe\s+int\s+tcp\s+set\s+global\s+ecncapability=enabled')
+
+$diagContentAfter = Get-Content -Path (Join-Path $PSScriptRoot "PostInstall-Diagnostics.ps1") -Raw
+Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita NtfsDisable8dot3NameCreation" ($diagContentAfter -match 'NtfsDisable8dot3NameCreation')
+Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita Win32PrioritySeparation" ($diagContentAfter -match 'Win32PrioritySeparation')
+Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita ECN Capability" ($diagContentAfter -match 'ECN Capability')
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

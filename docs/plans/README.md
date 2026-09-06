@@ -48,6 +48,8 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0030 | [PLAN-0030-20260906-modo-oscuro-integral-ecosistema-iso.md](PLAN-0030-20260906-modo-oscuro-integral-ecosistema-iso.md) | 2026-09-06 | Integración Integral y Robusta del Modo Oscuro en la Arquitectura de la ISO | COMPLETADO |
 | 0031 | [PLAN-0031-20260906-fix-cascading-context-menus-leaf-subcommands.md](PLAN-0031-20260906-fix-cascading-context-menus-leaf-subcommands.md) | 2026-09-06 | Corrección de Menús Contextuales en Cascada y Erradicación de SubCommands en Ítems Hoja | COMPLETADO |
 | 0032 | [PLAN-0032-20260906-saneamiento-debloat-deteccion-iso-y-desacoplamiento-toolkit.md](PLAN-0032-20260906-saneamiento-debloat-deteccion-iso-y-desacoplamiento-toolkit.md) | 2026-09-06 | Saneamiento Integral de Win11-Debloat-v3-Adaptive, Detección Automática de ISO y Desacoplamiento de Tareas en el Toolkit | COMPLETADO |
+| 0033 | [PLAN-0033-20260906-desacoplamiento-modulo-navegadores-script-dedicado.md](PLAN-0033-20260906-desacoplamiento-modulo-navegadores-script-dedicado.md) | 2026-09-06 | Desacoplamiento del Módulo de Navegadores hacia Script Dedicado (Optimize-WebBrowsers.ps1) y Saneamiento en Debloat y Toolkit | PENDIENTE |
+| 0034 | [PLAN-0034-20260906-optimizaciones-oficiales-ntfs-kernel-scheduler-y-red.md](PLAN-0034-20260906-optimizaciones-oficiales-ntfs-kernel-scheduler-y-red.md) | 2026-09-06 | Integración de Optimizaciones Oficiales de NTFS, Kernel Scheduler y Red en la ISO y SSOT Policy-Engine | COMPLETADO |
 
 ---
 

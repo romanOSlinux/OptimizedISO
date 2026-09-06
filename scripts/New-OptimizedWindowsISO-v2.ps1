@@ -4112,6 +4112,24 @@ powercfg -h off >> "%LOG%" 2>&1
 powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 >> "%LOG%" 2>&1
 powercfg -setactive e9a42b02-d5df-448d-aa00-03f14749eb61 >> "%LOG%" 2>&1 || powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >> "%LOG%" 2>&1
 
+REM ===========================================================
+REM Mitigacion de Bufferbloat de Red (ECN - RFC 3168) (PLAN-0034)
+REM ===========================================================
+echo [%DATE% %TIME%] Configurando mitigacion de bufferbloat de red (ECN)... >> "%LOG%"
+netsh int tcp set global ecncapability=enabled >> "%LOG%" 2>&1
+"%PS%" -NoProfile -ExecutionPolicy Bypass -Command "Set-NetTCPSetting -SettingName InternetCustom,Internet -EcnCapability Enabled -ErrorAction SilentlyContinue" >> "%LOG%" 2>&1
+
+REM ===========================================================
+REM Optimizaciones Oficiales de FileSystem (NTFS) y Scheduler (PLAN-0034)
+REM ===========================================================
+echo [%DATE% %TIME%] Aplicando optimizaciones oficiales de FileSystem y Scheduler... >> "%LOG%"
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v NtfsDisable8dot3NameCreation /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v NtfsMemoryUsage /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v Win32PrioritySeparation /t REG_DWORD /d 38 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v NoLazyMode /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
+
 "@
 
 $optProfileIntSetup = if ($script:OptProfile) { [int]$script:OptProfile } else { 1 }
@@ -6267,22 +6285,89 @@ if ($wimFile) {
                                             Type = "REG_DWORD"
                                             Data = "1"
                                         }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
+                                            Name = "NoLazyMode"
+                                            Type = "REG_DWORD"
+                                            Data = "1"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
+                                            Name = "SystemResponsiveness"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
                                     )
                                     foreach ($st in $swTweaks) {
                                         & reg.exe add $st.Path /v $st.Name /t $st.Type /d $st.Data /f 2>&1 | Out-Null
                                     }
-                                    Write-OK "Tema oscuro (dark.theme) inyectado en SOFTWARE hive offline."
-                                    Add-AuditRecord -Resource "Tema Oscuro (SOFTWARE)" -Target "WIM Idx $wimIndex" `
-                                                    -Status "OK" -Details "dark.theme configurado en HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes"
+                                    Write-OK "Tema oscuro y MMCSS (NoLazyMode) inyectados en SOFTWARE hive offline."
+                                    Add-AuditRecord -Resource "Tema Oscuro / MMCSS (SOFTWARE)" -Target "WIM Idx $wimIndex" `
+                                                    -Status "OK" -Details "dark.theme y NoLazyMode configurados en SOFTWARE hive"
                                 } else {
                                     Write-Warn "No se pudo cargar SOFTWARE hive offline. Exit code: $($procSw.ExitCode)."
                                 }
                             } catch {
-                                Write-Warn "Error aplicando tema oscuro a SOFTWARE hive offline: $($_.Exception.Message)"
+                                Write-Warn "Error aplicando ajustes a SOFTWARE hive offline: $($_.Exception.Message)"
                             } finally {
                                 if ($swLoaded) {
                                     Write-Host "    Descargando colmena SOFTWARE..." -ForegroundColor Gray
                                     [void](Invoke-RegUnloadHive -HiveName "HKLM\OfflineSoftware")
+                                }
+                            }
+                        }
+
+                        # PLAN-0034: Inyectar optimizaciones de FileSystem (NTFS) y Scheduler en SYSTEM hive offline
+                        $sysPath = Join-Path $WimMountDir "Windows\System32\config\SYSTEM"
+                        if (Test-Path $sysPath) {
+                            $sysLoaded = $false
+                            try {
+                                [void](Invoke-RegUnloadHive -HiveName "HKLM\OfflineSystem" -RetryCount 2 -RetryDelaySeconds 1)
+                                Write-Host "    Cargando SYSTEM hive del sistema offline..." -ForegroundColor Gray
+                                $procSys = Start-Process -FilePath "reg.exe" -ArgumentList @("load", "HKLM\OfflineSystem", $sysPath) -Wait -PassThru -NoNewWindow
+                                if ($procSys.ExitCode -eq 0) {
+                                    $sysLoaded = $true
+                                    $sysTweaks = @(
+                                        @{
+                                            Path = "HKLM\OfflineSystem\ControlSet001\Control\FileSystem"
+                                            Name = "NtfsDisable8dot3NameCreation"
+                                            Type = "REG_DWORD"
+                                            Data = "1"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSystem\ControlSet001\Control\FileSystem"
+                                            Name = "NtfsMemoryUsage"
+                                            Type = "REG_DWORD"
+                                            Data = "2"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSystem\ControlSet001\Control\FileSystem"
+                                            Name = "LongPathsEnabled"
+                                            Type = "REG_DWORD"
+                                            Data = "1"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSystem\ControlSet001\Control\PriorityControl"
+                                            Name = "Win32PrioritySeparation"
+                                            Type = "REG_DWORD"
+                                            Data = "38"
+                                        }
+                                    )
+                                    foreach ($st in $sysTweaks) {
+                                        & reg.exe add $st.Path /v $st.Name /t $st.Type /d $st.Data /f 2>&1 | Out-Null
+                                    }
+                                    Write-OK "Optimizaciones oficiales de FileSystem y Scheduler inyectadas en SYSTEM hive offline."
+                                    Add-AuditRecord -Resource "FileSystem / Scheduler (SYSTEM)" -Target "WIM Idx $wimIndex" `
+                                                    -Status "OK" -Details "NtfsDisable8dot3NameCreation=1, NtfsMemoryUsage=2, LongPathsEnabled=1, Win32PrioritySeparation=38"
+                                } else {
+                                    Write-Warn "No se pudo cargar SYSTEM hive offline. Exit code: $($procSys.ExitCode)."
+                                }
+                            } catch {
+                                Write-Warn "Error aplicando optimizaciones a SYSTEM hive offline: $($_.Exception.Message)"
+                            } finally {
+                                if ($sysLoaded) {
+                                    Write-Host "    Descargando colmena SYSTEM..." -ForegroundColor Gray
+                                    [void](Invoke-RegUnloadHive -HiveName "HKLM\OfflineSystem")
                                 }
                             }
                         }

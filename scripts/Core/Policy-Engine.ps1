@@ -503,6 +503,77 @@ $global:RomanOS_Policies = @(
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/hardware-accelerated-gpu-scheduling"
         UnattendDesc  = "Enable Hardware-Accelerated GPU Scheduling (HAGS)"
     },
+    @{
+        Id            = "POL_MMCSS_NO_LAZY_MODE"
+        Module        = "Rendimiento - MMCSS"
+        Category      = "Rendimiento & Latencia"
+        RegistryKey   = "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
+        PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
+        ValueName     = "NoLazyMode"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Prevenir modo perezoso en el planificador multimedia MMCSS para mantener frecuencia de renderizado constante"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service"
+        UnattendDesc  = "Disable MMCSS Lazy Mode (Keep Full Frame Scheduling)"
+    },
+    @{
+        Id            = "POL_SCHED_WIN32_PRIORITY"
+        Module        = "Rendimiento - Kernel"
+        Category      = "Rendimiento & Latencia"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl"
+        ValueName     = "Win32PrioritySeparation"
+        Type          = "REG_DWORD"
+        ExpectedValue = 38 # 0x26: Cuantos fijos, cortos y boost 3:1 a primer plano
+        Profiles      = @(1, 2, 3)
+        Description   = "Optimizar separacion de prioridades del planificador (cuantos fijos/cortos con boost 3:1 para juego/ventana activa)"
+        OfficialDoc   = "https://learn.microsoft.com/sysinternals/resources/windows-internals"
+        UnattendDesc  = "Optimize Win32PrioritySeparation for Low Jitter and High Foreground Response"
+    },
+    # --- MÓDULO F1: SUBSISTEMA DE ARCHIVOS Y ALMACENAMIENTO NVME (NTFS) ---
+    @{
+        Id            = "POL_FS_DISABLE_8DOT3"
+        Module        = "Almacenamiento - NTFS"
+        Category      = "Rendimiento & Almacenamiento"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem"
+        ValueName     = "NtfsDisable8dot3NameCreation"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Deshabilitar generacion de nombres cortos 8.3 DOS en todos los volumenes para reducir sobrecarga de I/O"
+        OfficialDoc   = "https://learn.microsoft.com/windows-server/administration/windows-commands/fsutil-behavior"
+        UnattendDesc  = "Disable NTFS 8.3 Short Name Creation System-Wide"
+    },
+    @{
+        Id            = "POL_FS_MEMORY_USAGE"
+        Module        = "Almacenamiento - NTFS"
+        Category      = "Rendimiento & Almacenamiento"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem"
+        ValueName     = "NtfsMemoryUsage"
+        Type          = "REG_DWORD"
+        ExpectedValue = 2
+        Profiles      = @(1, 2, 3)
+        Description   = "Incrementar pool de memoria RAM para cache de metadatos NTFS y MFT (mayor rendimiento en NVMe/SSDs)"
+        OfficialDoc   = "https://learn.microsoft.com/windows-server/administration/performance-tuning/subsystems/file-server/"
+        UnattendDesc  = "Increase NTFS Metadata Cache in RAM (NtfsMemoryUsage = 2)"
+    },
+    @{
+        Id            = "POL_FS_LONG_PATHS"
+        Module        = "Almacenamiento - NTFS"
+        Category      = "Compatibilidad & Almacenamiento"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem"
+        ValueName     = "LongPathsEnabled"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Habilitar soporte de rutas largas (>260 caracteres MAX_PATH) en Win32"
+        OfficialDoc   = "https://learn.microsoft.com/windows/win32/fileio/maximum-file-path-limitation"
+        UnattendDesc  = "Enable Win32 Long Paths Support (>260 characters)"
+    },
     # --- MÓDULO F2: PERSONALIZACIÓN VISUAL Y MODO OSCURO (THEMES) ---
     @{
         Id            = "POL_THEME_INSTALL_THEME"

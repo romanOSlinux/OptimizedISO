@@ -326,6 +326,7 @@ try {
         [PSCustomObject]@{ Id='DisableTimestamps';  Category='TCP Stack (Oficial)'; Name='Desactivar TCP Timestamps';          Desc='Reduce overhead de 12 bytes por paquete TCP para menor latencia en Gigabit.' },
         [PSCustomObject]@{ Id='FastOpen';           Category='TCP Stack (Oficial)'; Name='Habilitar TCP Fast Open (TFO)';      Desc='Agiliza apretones de manos TCP en conexiones web compatibles.' },
         [PSCustomObject]@{ Id='SynRetries';         Category='TCP Stack (Oficial)'; Name='Optimizar SYN Retransmissions (=2)'; Desc='Reduce tiempo de espera (timeout) en conexiones no respondidas.' },
+        [PSCustomObject]@{ Id='EcnCapability';      Category='TCP Stack (Oficial)'; Name='Habilitar ECN (Explicit Congestion)'; Desc='Notificacion explicita de congestion (RFC 3168): previene caida de paquetes y jitter.' },
 
         # --- Sistema y Registro (Latencia / Gaming Comunitario) ---
         [PSCustomObject]@{ Id='NetThrottling';      Category='Sistema / Gaming';    Name='Desactivar Network Throttling';       Desc='Elimina el limite de paquetes de red cuando hay multimedia/juegos activos.' },
@@ -433,6 +434,20 @@ try {
             } catch {
                 Add-SummaryRecord -TweakId 'SynRetries' -Name 'Max SYN Retries = 2' -Category 'TCP Stack' -Result 'Fallo' -Details $_.Exception.Message
                 Write-Host "    ! Fallo al ajustar Max SYN Retransmissions." -ForegroundColor Yellow
+            }
+        }
+
+        if ('EcnCapability' -in $selectedIds) {
+            Write-Host "  - Habilitando Notificacion Explicita de Congestion (ECN)..." -ForegroundColor Gray
+            try {
+                & netsh.exe int tcp set global ecncapability=enabled | Out-Null
+                Set-NetTCPSetting -SettingName InternetCustom -EcnCapability Enabled -ErrorAction SilentlyContinue | Out-Null
+                Set-NetTCPSetting -SettingName Internet -EcnCapability Enabled -ErrorAction SilentlyContinue | Out-Null
+                Add-SummaryRecord -TweakId 'EcnCapability' -Name 'ECN Capability Enabled' -Category 'TCP Stack' -Result 'Aplicado' -Details 'ECN activado segun RFC 3168 para mitigar bufferbloat.'
+                Write-Host "    ECN Capability habilitado." -ForegroundColor Green
+            } catch {
+                Add-SummaryRecord -TweakId 'EcnCapability' -Name 'ECN Capability Enabled' -Category 'TCP Stack' -Result 'Fallo' -Details $_.Exception.Message
+                Write-Host "    ! Fallo al habilitar ECN Capability." -ForegroundColor Yellow
             }
         }
 
