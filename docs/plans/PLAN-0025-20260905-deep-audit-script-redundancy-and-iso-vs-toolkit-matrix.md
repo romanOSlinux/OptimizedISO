@@ -12,10 +12,20 @@
 
 El proyecto *OptimizedISO* / *romanOS* ha evolucionado incorporando múltiples motores especializados: compilador maestro de ISO (`New-OptimizedWindowsISO-v2.ps1`), optimizador adaptativo (`Win11-Debloat-v3-Adaptive.ps1`), orquestador desacoplado (`romanOS-Toolkit.ps1`), catálogo de directivas (`Policy-Engine.ps1`), motor de hardware (`Hardware-Engine.ps1`) y utilidades individuales de red, seguridad, mantenimiento y menús contextuales.
 
-Sin embargo, esta evolución ha generado una **dispersión y redundancia técnica no planificada**:
-- Un mismo ajuste o tweak (como directivas de navegadores, menú contextual, vaciado de DNS o telemetría) se aplica en 2, 3 o hasta 4 capas diferentes (en la imagen offline WIM, en `SetupComplete.cmd`, en el script de debloat y en las opciones rápidas del Toolkit).
-- Existen riesgos inherentes de regresión: aplicar ciertos tweaks de forma prematura en la ISO puede provocar bucles de bloqueo en el Setup/OOBE de Windows (*"Espere un momento..."*), mientras que relegar todo al Toolkit priva a la instalación de un estado limpio desde el primer arranque.
-- Se requiere una **investigación profunda y respaldada en fuentes oficiales de Microsoft** (Microsoft Learn, Windows Hardware Dev Center, directivas CSP/GPO documentadas) para desmitificar qué optimizaciones son legítimas, cuáles son redundantes o placebo, y cuál es el momento óptimo en el ciclo de vida del sistema operativo para aplicarlas.
+### 1.1 El Paradigma Dual: ISO Nativa vs. Toolkit Autónomo (Standalone)
+Es fundamental distinguir dos escenarios de uso legítimos y deliberados que coexisten en el ecosistema:
+1. **Escenario A — Usuario de la ISO Optimizada (*In-Place Out-of-the-Box*):**  
+   El usuario instala el sistema operativo desde la ISO generada por `New-OptimizedWindowsISO-v2.ps1`. En este caso, la instalación ya trae integradas de fábrica las bases universales de rendimiento, privacidad y bypasses offline, sin requerir intervención inicial.
+2. **Escenario B — Usuario con Windows Genérico / Stock (*Toolkit Standalone*):**  
+   Un usuario que **NO** utilizó el generador de ISOs (dispone de un Windows 11 estándar preinstalado por el fabricante OEM o descargado del Media Creation Tool oficial) y desea descargar y ejecutar de forma independiente el **Toolkit** (`romanOS-Toolkit.ps1` y sus módulos auxiliares) para optimizar su sistema existente, aplicar debloat, configurar menús contextuales, tunear red o gestionar seguridad.
+
+### 1.2 Distinción Crítica: Redundancia Patológica vs. Coexistencia Funcional
+- **La presencia de opciones coincidentes entre la ISO y el Toolkit NO es un error en sí misma:** El Toolkit **DEBE** ofrecer muchas de las mismas opciones para ser 100% útil al usuario del Escenario B. Despojar al Toolkit de optimizaciones clave solo porque "la ISO ya las hace" arruinaría la experiencia del usuario con Windows stock.
+- **Lo que SÍ constituye redundancia patológica y debe resolverse:**
+  1. **Divergencia e Inconsistencia de Implementación:** Que la ISO aplique una variante (ej. menús contextuales planos ocultos tras `Shift+F10` en `SetupComplete.cmd`) y el Toolkit aplique otra estructura incompatible (menús en cascada y menú clásico), provocando colisiones o claves huérfanas en el registro.
+  2. **Falta de Idempotencia:** Que el Toolkit, al ejecutarse dentro de un sistema ya instalado con la ISO personalizada (Escenario A), no sea capaz de detectar que una optimización ya está presente y activa, reescribiendo valores innecesariamente o rompiendo configuraciones previas.
+  3. **Fragmentación del Código Fuente:** Lógica de registro repetida mediante *copy-paste* a través de 4 o 5 scripts diferentes en lugar de consumir una única fuente de verdad (`Core/Policy-Engine.ps1` o scripts modulares invocables).
+  4. **Tweaks Placebo o Riesgosos:** Ajustes sin respaldo en la documentación técnica oficial de Microsoft que no deberían estar presentes en ninguno de los dos entornos.
 
 ---
 
@@ -23,7 +33,7 @@ Sin embargo, esta evolución ha generado una **dispersión y redundancia técnic
 
 1. **Auditoría Exhaustiva Script por Script:**  
    Inspeccionar individualmente cada archivo de script del repositorio (`.ps1` y `.cmd`), catalogando cada función, clave de registro, tarea programada y comando ejecutado.
-2. **Detección y Mapeo de Redundancias:**  
+2. **Detección y Mapeo de Redundancias Transversales:**  
    Identificar exactamente qué configuraciones se solapan entre la ISO (`SetupComplete.cmd` / WIM), `Win11-Debloat-v3-Adaptive.ps1`, `romanOS-Toolkit.ps1` y los módulos auxiliares.
 3. **Respaldo Riguroso en Fuentes Oficiales de Microsoft:**  
    Verificar cada grupo de optimizaciones contra la documentación oficial de Microsoft (Windows 11 24H2/25H2):
@@ -34,12 +44,14 @@ Sin embargo, esta evolución ha generado una **dispersión y redundancia técnic
    Analizar con fundamento técnico y empírico qué se gana y qué se pierde en cada caso:
    - *¿Qué se gana en la ISO?* Menor interacción del usuario, sistema listo desde el encendido inicial.
    - *¿Qué se pierde en la ISO?* Imposibilidad de detectar hardware específico (en WIM offline no hay drivers de GPU ni monitor activos), riesgo de corrupción en OOBE, rigidez ante el usuario.
-   - *¿Qué se gana en el Toolkit?* Adaptabilidad perfecta por hardware en vivo, cero riesgo para el setup de Windows, granularidad de selección, reversibilidad total y limpia.
+   - *¿Qué se gana en el Toolkit?* Adaptabilidad perfecta por hardware en vivo, cero riesgo para el setup de Windows, granularidad de selección, reversibilidad total y limpia, utilidad para cualquier Windows existente.
    - *¿Qué se pierde en el Toolkit?* Requiere acción manual posterior del usuario.
-5. **Taxonomía de Clasificación Cuádruple:**
+5. **Garantía de Idempotencia y Modularidad:**  
+   Asegurar que el Toolkit funcione de manera impecable tanto en Windows genéricos (Escenario B) como en la ISO romanOS (Escenario A), detectando el estado actual del sistema antes de aplicar cualquier cambio.
+6. **Taxonomía de Clasificación Cuádruple:**
    - **Nivel 1: ISO / WIM Offline** (universales, sin riesgo OOBE, no dependientes de GPU/display).
    - **Nivel 2: SetupComplete.cmd** (configuraciones globales de máquina desatendidas pre-logon).
-   - **Nivel 3: Toolkit On-Demand** (dependientes de hardware real, preferencias de gaming y mantenimiento).
+   - **Nivel 3: Toolkit On-Demand** (dependientes de hardware real, preferencias de gaming y mantenimiento, aplicables en cualquier Windows).
    - **Nivel 4: Eliminación / Depuración** (hacks obsoletos, duplicidades innecesarias y tweaks placebo).
 
 ---
