@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Descargador Unificado de ISOs Oficiales de Windows (Motor Inteligente Multicanal)
 
@@ -627,8 +627,8 @@ try {
             Invoke-WebRequest -Uri $fidoUrl -OutFile $fidoScript -UseBasicParsing -ErrorAction Stop
             Write-OK "Motor Fido.ps1 descargado exitosamente."
 
-            $fidoWinNum = if ($Version -like '11_*') { '11' } else { '10' }
-            $fidoRel    = ($Version -replace '^\d+_', '') -replace '_', ' '
+            $fidoWinNum = if ($Version -like '11_*') { 'Windows 11' } else { 'Windows 10' }
+            $fidoRel    = 'Latest'
 
             Write-Info "Consultando API de Microsoft vía Fido (Windows $fidoWinNum $fidoRel, $Language, x64)..."
             $fidoArgs = @("-Win", $fidoWinNum, "-Rel", $fidoRel, "-Lang", $Language, "-Arch", "x64", "-GetUrl")
