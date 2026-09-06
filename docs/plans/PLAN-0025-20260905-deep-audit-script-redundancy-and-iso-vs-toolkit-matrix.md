@@ -1,7 +1,7 @@
 # PLAN-0025: Auditoría Transversal Script por Script, Desmitificación de Redundancias y Matriz de Decisión ISO vs. Toolkit
 
 **Fecha:** 2026-09-05  
-**Estado:** PENDIENTE  
+**Estado:** EN PROGRESO  
 **Rama:** `feature/offline-ui-tweaks`  
 **Autor:** Agente Antigravity / Pair-Programming  
 **Regla de Ejecución:** **PLANIFICACIÓN PURA — NO EJECUTAR CAMBIOS DE CÓDIGO HASTA APROBACIÓN EXPLÍCITA DEL USUARIO**
