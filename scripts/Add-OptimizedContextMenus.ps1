@@ -43,6 +43,8 @@ param(
     [switch]$Remove,
     [switch]$EnableClassicMenu,
     [switch]$RestoreModernMenu,
+    [ValidateSet("Auto", "AllUsers", "CurrentUser")]
+    [string]$Scope = "Auto",
     [switch]$Quiet,
     [switch]$RestartExplorer
 )
@@ -56,12 +58,21 @@ try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAc
 $isSimulated = ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
+
+$script:EffectiveScope = if ($Scope -eq "CurrentUser") {
+    "CurrentUser"
+} elseif ($Scope -eq "AllUsers") {
+    "AllUsers"
+} else {
+    if ($isAdmin) { "AllUsers" } else { "CurrentUser" }
+}
+
+if ($script:EffectiveScope -eq "AllUsers" -and -not $isAdmin) {
     if ($isSimulated) {
-        if (-not $Quiet) { Write-Host "  [WhatIf] Ejecución simulada con -WhatIf (requiere Administrador para aplicar en vivo)." -ForegroundColor Yellow }
+        if (-not $Quiet) { Write-Host "  [WhatIf] Ejecución simulada con -WhatIf (ámbito AllUsers requiere Administrador)." -ForegroundColor Yellow }
     } else {
         if ($PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC")) {
-            if (-not $Quiet) { Write-Host "  [!] Elevando privilegios de Administrador (UAC)..." -ForegroundColor Yellow }
+            if (-not $Quiet) { Write-Host "  [!] Solicitando elevación de Administrador para ámbito AllUsers..." -ForegroundColor Yellow }
             $scriptPath = $MyInvocation.MyCommand.Definition
             if (-not $scriptPath) { $scriptPath = $PSCommandPath }
             
@@ -72,13 +83,15 @@ if (-not $isAdmin) {
             if ($RestoreModernMenu) { $argList += '-RestoreModernMenu' }
             if ($Quiet)             { $argList += '-Quiet' }
             if ($RestartExplorer)   { $argList += '-RestartExplorer' }
+            $argList += ('-Scope', 'AllUsers')
             
             try {
-                Start-Process -FilePath "powershell.exe" -ArgumentList ($argList -join ' ') -Verb RunAs
+                $p = Start-Process -FilePath "powershell.exe" -ArgumentList ($argList -join ' ') -Verb RunAs -PassThru -ErrorAction Stop
+                if ($p) { exit }
             } catch {
-                Write-Error "Fallo al solicitar elevación UAC: $($_.Exception.Message)"
+                if (-not $Quiet) { Write-Host "  [i] Elevación no disponible en esta sesión. Aplicando en ámbito de Usuario Actual (HKCU)..." -ForegroundColor Yellow }
+                $script:EffectiveScope = "CurrentUser"
             }
-            exit
         }
     }
 }
@@ -129,51 +142,82 @@ function Set-ShellVerb {
         [switch]$SeparatorAfter
     )
 
-    if (-not $PSCmdlet.ShouldProcess($Path, "Registrar verbo de menú")) {
-        return
-    }
-
-    try {
-        $regKey = $Path -replace '^HKLM:\\', 'HKLM\' -replace '^HKCU:\\', 'HKCU\' -replace '^Registry::HKEY_USERS\\', 'HKU\'
-        
-        & reg.exe add "$regKey" /f *>$null
-        if ($DisplayName) { & reg.exe add "$regKey" /ve /d "$DisplayName" /f *>$null }
-        if ($MUIVerb)     { & reg.exe add "$regKey" /v "MUIVerb" /t REG_SZ /d "$MUIVerb" /f *>$null }
-        if ($Icon)        { & reg.exe add "$regKey" /v "Icon" /t REG_SZ /d "$Icon" /f *>$null }
-        if ($Position)    { & reg.exe add "$regKey" /v "Position" /t REG_SZ /d "$Position" /f *>$null }
-        if ($AppliesTo)   { & reg.exe add "$regKey" /v "AppliesTo" /t REG_SZ /d "$AppliesTo" /f *>$null }
-        if ($null -ne $SubCommands) { & reg.exe add "$regKey" /v "SubCommands" /t REG_SZ /d "$SubCommands" /f *>$null }
-        if ($HasLUAShield) { & reg.exe add "$regKey" /v "HasLUAShield" /t REG_SZ /d "" /f *>$null }
-        if ($NeverDefault) { & reg.exe add "$regKey" /v "NeverDefault" /t REG_SZ /d "" /f *>$null }
-        if ($SeparatorBefore) { & reg.exe add "$regKey" /v "SeparatorBefore" /t REG_SZ /d "" /f *>$null }
-        if ($SeparatorAfter)  { & reg.exe add "$regKey" /v "SeparatorAfter" /t REG_SZ /d "" /f *>$null }
-        if ($Command) {
-            & reg.exe add "$regKey\command" /ve /d "$Command" /f *>$null
+    if ($PSCmdlet.ShouldProcess($Path, "Registrar verbo de menú")) {
+        $psPath = $Path
+        if ($psPath -notmatch '^[a-zA-Z]+:' -and $psPath -notmatch '^Registry::') {
+            $psPath = $psPath -replace '^HKLM\\', 'HKLM:\' -replace '^HKCU\\', 'HKCU:\' -replace '^HKU\\', 'Registry::HKEY_USERS\'
         }
-    } catch {
-        Out-LogWarn "Error al configurar verbo en '$Path': $($_.Exception.Message)"
+        if ($script:EffectiveScope -eq "CurrentUser") {
+            $psPath = $psPath -replace '^HKLM:\\SOFTWARE\\Classes', 'HKCU:\Software\Classes'
+        }
+
+        if (-not (Test-Path $psPath)) {
+            New-Item -Path $psPath -Force | Out-Null
+        }
+
+        if ($DisplayName) {
+            Set-ItemProperty -Path $psPath -Name "(default)" -Value $DisplayName -Force
+        } elseif ($MUIVerb) {
+            Set-ItemProperty -Path $psPath -Name "(default)" -Value $MUIVerb -Force
+        }
+
+        if ($MUIVerb)     { Set-ItemProperty -Path $psPath -Name "MUIVerb" -Value $MUIVerb -Force }
+        if ($Icon)        { Set-ItemProperty -Path $psPath -Name "Icon" -Value $Icon -Force }
+        if ($Position)    { Set-ItemProperty -Path $psPath -Name "Position" -Value $Position -Force }
+        if ($AppliesTo)   { Set-ItemProperty -Path $psPath -Name "AppliesTo" -Value $AppliesTo -Force }
+        if ($null -ne $SubCommands) { Set-ItemProperty -Path $psPath -Name "SubCommands" -Value $SubCommands -Force }
+        if ($HasLUAShield) { Set-ItemProperty -Path $psPath -Name "HasLUAShield" -Value "" -Force }
+        if ($NeverDefault) { Set-ItemProperty -Path $psPath -Name "NeverDefault" -Value "" -Force }
+        if ($SeparatorBefore) { Set-ItemProperty -Path $psPath -Name "SeparatorBefore" -Value "" -Force }
+        if ($SeparatorAfter)  { Set-ItemProperty -Path $psPath -Name "SeparatorAfter" -Value "" -Force }
+
+        if ($Command) {
+            $cmdPath = Join-Path $psPath "command"
+            if (-not (Test-Path $cmdPath)) {
+                New-Item -Path $cmdPath -Force | Out-Null
+            }
+            Set-ItemProperty -Path $cmdPath -Name "(default)" -Value $Command -Force
+        }
     }
 }
 
 function Remove-ShellVerb {
     param([Parameter(Mandatory=$true)][string]$Path)
     if ($PSCmdlet.ShouldProcess($Path, "Eliminar verbo de menú")) {
-        $regKey = $Path -replace '^HKLM:\\', 'HKLM\' -replace '^HKCU:\\', 'HKCU\' -replace '^Registry::HKEY_USERS\\', 'HKU\'
-        & reg.exe delete "$regKey" /f *>$null
+        $psPath = $Path
+        if ($psPath -notmatch '^[a-zA-Z]+:' -and $psPath -notmatch '^Registry::') {
+            $psPath = $psPath -replace '^HKLM\\', 'HKLM:\' -replace '^HKCU\\', 'HKCU:\' -replace '^HKU\\', 'Registry::HKEY_USERS\'
+        }
+        if (Test-Path $psPath) {
+            Remove-Item -Path $psPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        $cuPath = $psPath -replace '^HKLM:\\SOFTWARE\\Classes', 'HKCU:\Software\Classes'
+        if ($cuPath -ne $psPath -and (Test-Path $cuPath)) {
+            Remove-Item -Path $cuPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
 # -----------------------------------------------------------------------------
-# 3. GESTIÓN DEL MENÚ CLÁSICO (1 SOLO CLIC) VS MENÚ MODERNO
+# 3. CONTROL DEL MENÚ CONTEXTUAL CLÁSICO VS MODERNO (WINDOWS 11)
 # -----------------------------------------------------------------------------
-$clsidPath = "Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32"
-
 function Enable-ClassicContextMenu {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param()
+    $clsidPath = "Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32"
     Out-LogInfo "Habilitando Menú Contextual Clásico de Windows (0 ms latencia, 1 solo clic)..."
     if ($PSCmdlet.ShouldProcess("HKCU e HKU\.DEFAULT", "Habilitar menú clásico CLSID")) {
         try {
-            & reg.exe add "HKCU\$clsidPath" /ve /d "" /f *>$null
-            & reg.exe add "HKU\.DEFAULT\$clsidPath" /ve /d "" /f *>$null
+            $targetHives = @("HKCU:\$clsidPath")
+            if ($isAdmin) {
+                $targetHives += "Registry::HKEY_USERS\.DEFAULT\$clsidPath"
+            }
+            foreach ($k in $targetHives) {
+                if (-not (Test-Path $k)) {
+                    New-Item -Path $k -Force | Out-Null
+                }
+                Set-ItemProperty -Path $k -Name "(default)" -Value "" -Force
+            }
             Out-LogOK "Menú Contextual Clásico activado como predeterminado."
         } catch {
             Out-LogError "Fallo al habilitar menú clásico: $($_.Exception.Message)"
@@ -185,8 +229,15 @@ function Disable-ClassicContextMenu {
     Out-LogInfo "Restaurando Menú Contextual Moderno de Windows 11..."
     if ($PSCmdlet.ShouldProcess("HKCU e HKU\.DEFAULT", "Restaurar menú moderno CLSID")) {
         try {
-            & reg.exe delete "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" /f *>$null
-            & reg.exe delete "HKU\.DEFAULT\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" /f *>$null
+            $targetHives = @(
+                "HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}",
+                "Registry::HKEY_USERS\.DEFAULT\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}"
+            )
+            foreach ($k in $targetHives) {
+                if (Test-Path $k) {
+                    Remove-Item -Path $k -Recurse -Force -ErrorAction SilentlyContinue
+                }
+            }
             Out-LogOK "Menú Contextual Moderno restaurado."
         } catch {
             Out-LogError "Fallo al restaurar menú moderno: $($_.Exception.Message)"

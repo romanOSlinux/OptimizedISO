@@ -1,7 +1,7 @@
 # PLAN-0029: Refactorización Integral de Menús Contextuales, Tareas a Demanda y SSOT de Rendimiento MMCSS
 
 **Fecha:** 2026-09-06  
-**Estado:** PENDIENTE  
+**Estado:** COMPLETADO  
 **Rama:** `feature/offline-ui-tweaks`  
 **Autor:** Agente Antigravity / Pair-Programming  
 **Plan Previo Directo:** [PLAN-0024](PLAN-0024-20260905-gamer-poweruser-context-menus.md) / [PLAN-0027](PLAN-0027-20260906-ecosistema-integral-gestion-drivers.md)  
@@ -127,3 +127,13 @@ OptimizedISO/
 2. **Programador de Tareas:** `Get-ScheduledTask -TaskName 'Ejecutar_*'` devuelve las 5 tareas en estado `Ready`.
 3. **Registro MMCSS:** `SystemResponsiveness` en `0` (REG_DWORD).
 4. **Shell / Menú Contextual:** Clic derecho en escritorio abre el menú clásico a 1 clic con cascadas funcionales.
+
+---
+
+## 6. Resultados de Ejecución y Validación Empírica
+
+* **Fase 1 (SSOT MMCSS):** `POL_MMCSS_RESPONSIVENESS` actualizado canónicamente a `ExpectedValue = 0` en `scripts/Core/Policy-Engine.ps1`.
+* **Fase 2 (Menús Contextuales Nativos):** Refactorizado `scripts/Add-OptimizedContextMenus.ps1` sustituyendo el 100% de llamadas a `reg.exe` por cmdlets nativos de PowerShell (`New-Item -Force`, `Set-ItemProperty`). Incorporado soporte dinámico de `-Scope Auto|AllUsers|CurrentUser` y activación garantizada del CLSID clásico de 1 solo clic en `HKCU` y `HKU\.DEFAULT`.
+* **Fase 3 (Tareas Programadas Permanentes):** Actualizada la plantilla de `SetupComplete.cmd` en `scripts/New-OptimizedWindowsISO-v2.ps1` (línea 4084) para utilizar `Register-ScheduledTask` a demanda sin disparadores temporales que expiren.
+* **Pruebas Unitarias Harness:** Añadidos asertos en `scripts/Test-OptimizedISO-v2.ps1` cubriendo el 100% de los requisitos del PLAN-0029. Resultado: **PASS** (100% de asertos superados).
+* **Despliegue en Vivo:** Menús contextuales y menú clásico aplicados y validados operando en vivo en el sistema anfitrión. Generado lanzador autoelevable `Aplicar-Hotfix-PLAN0029.cmd` en raíz y escritorio para aplicar tareas permanentes y HKLM en 1 clic.

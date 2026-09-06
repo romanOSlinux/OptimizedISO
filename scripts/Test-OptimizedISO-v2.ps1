@@ -903,6 +903,25 @@ Assert-True "PLAN-0027: romanOS-Toolkit.ps1 resuelve e incluye directorio Driver
 Assert-True "PLAN-0027: romanOS-Toolkit.ps1 soporta modulo -Module Drivers" ($toolkitContent -match 'Invoke-DriversModule')
 Assert-True "PLAN-0027: Win11-Debloat-v3-Adaptive.ps1 delega en Apply-RomanOSDriverPolicies" ($debloatContent -match 'Apply-RomanOSDriverPolicies')
 
+# PLAN-0029: Validaciones de Menús Contextuales Nativos, Tareas a Demanda y MMCSS SSOT
+$mmcssResp = $allPols | Where-Object { $_.Id -eq "POL_MMCSS_RESPONSIVENESS" }
+Assert-NotNull "PLAN-0029: POL_MMCSS_RESPONSIVENESS existe en Policy-Engine" $mmcssResp
+Assert-Equal "PLAN-0029: POL_MMCSS_RESPONSIVENESS tiene ExpectedValue = 0 (100% Foreground Gaming)" $mmcssResp.ExpectedValue 0
+
+$mmcssNet = $allPols | Where-Object { $_.Id -eq "POL_MMCSS_THROTTLING" }
+Assert-NotNull "PLAN-0029: POL_MMCSS_THROTTLING existe en Policy-Engine" $mmcssNet
+Assert-Equal "PLAN-0029: POL_MMCSS_THROTTLING tiene ExpectedValue = 4294967295" $mmcssNet.ExpectedValue 4294967295
+
+$ctxMenuContent = Get-Content -Path (Join-Path $PSScriptRoot "Add-OptimizedContextMenus.ps1") -Raw
+Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 utiliza New-Item para crear claves" ($ctxMenuContent -match 'New-Item\s+-Path.*-Force')
+Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 utiliza Set-ItemProperty para valores" ($ctxMenuContent -match 'Set-ItemProperty\s+-Path')
+Assert-False "PLAN-0029: Add-OptimizedContextMenus.ps1 no contiene reg.exe add (despojo de comillas erradicado)" ($ctxMenuContent -match 'reg\.exe\s+add')
+Assert-False "PLAN-0029: Add-OptimizedContextMenus.ps1 no contiene reg.exe delete" ($ctxMenuContent -match 'reg\.exe\s+delete')
+Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 configura CLSID clasico {86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" ($ctxMenuContent -match '86ca1aa0-34aa-4e8b-a509-50c905bae2a2')
+
+Assert-True "PLAN-0029: v2 script utiliza Register-ScheduledTask permanente para tareas a demanda" ($v2ScriptContent -match 'Register-ScheduledTask\s+-TaskName')
+Assert-False "PLAN-0029: v2 script erradico schtasks efimero /sc ONCE /st 00:00" ($v2ScriptContent -match 'schtasks\s+/create.*/sc\s+ONCE\s+/st\s+00:00\s+/ru\s+["'']SYSTEM["'']\s+/rl\s+HIGHEST')
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

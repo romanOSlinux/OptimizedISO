@@ -23,3 +23,6 @@ Log/*_transcript.log
 # VS Code / IDE settings locales
 .vscode/
 .idea/
+
+# Scratch y archivos temporales de diagnóstico
+scratch/

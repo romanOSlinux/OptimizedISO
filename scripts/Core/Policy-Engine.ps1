@@ -483,11 +483,11 @@ $global:RomanOS_Policies = @(
         PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
         ValueName     = "SystemResponsiveness"
         Type          = "REG_DWORD"
-        ExpectedValue = 10
+        ExpectedValue = 0
         Profiles      = @(1, 2, 3)
-        Description   = "Optimizar receptividad del sistema en MMCSS (10% reservado para background)"
+        Description   = "Optimizar receptividad del sistema en MMCSS (0% reservado para background, 100% para procesos en primer plano/gaming)"
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service"
-        UnattendDesc  = "Optimize System Responsiveness in MMCSS"
+        UnattendDesc  = "Optimize System Responsiveness in MMCSS (0 = 100% CPU to Foreground/Gaming)"
     },
     @{
         Id            = "POL_GPU_HAGS"
