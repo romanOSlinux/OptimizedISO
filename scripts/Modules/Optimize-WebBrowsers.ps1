@@ -18,20 +18,38 @@ param (
 
 $ErrorActionPreference = "Stop"
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$policyEnginePath = Join-Path $scriptPath "Core\Policy-Engine.ps1"
 
 Write-Host "`n==========================================================================" -ForegroundColor Cyan
 Write-Host "  OPTIMIZACIÓN Y DEBLOAT OFICIAL DE NAVEGADORES (GPO)                     " -ForegroundColor Cyan
 Write-Host "==========================================================================" -ForegroundColor Cyan
 
-if (-not (Test-Path $policyEnginePath)) {
-    Write-Host "  [ERROR] No se encuentra Policy-Engine.ps1 en $policyEnginePath." -ForegroundColor Red
+# CARGA DE MOTOR DE POLITICAS UNIFICADO (Core\Policy-Engine.ps1)
+# Patrón canónico multi-ruta (SSOT) - compatible con dev, OEM y producción
+$policyEnginePaths = @(
+    (Join-Path (Split-Path $scriptPath -Parent) "Core\Policy-Engine.ps1"),
+    (Join-Path $scriptPath "Core\Policy-Engine.ps1"),
+    (Join-Path $scriptPath "Policy-Engine.ps1"),
+    (Join-Path (Split-Path $scriptPath -Parent) "scripts\Core\Policy-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1"
+)
+$policyLoaded = $false
+foreach ($p in $policyEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $policyLoaded = $true
+        break
+    }
+}
+
+if (-not $policyLoaded) {
+    Write-Host "  [ERROR] No se encuentra Policy-Engine.ps1 en ninguna ruta conocida:" -ForegroundColor Red
+    $policyEnginePaths | ForEach-Object { Write-Host "    - $_" -ForegroundColor DarkRed }
     Write-Host "  Este script requiere el motor centralizado (SSOT) para funcionar." -ForegroundColor Red
     exit 1
 }
 
-# Importar el motor
-. $policyEnginePath
+# Motor cargado
+$policyEnginePath = $policyEnginePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 if ($Audit) {
     Write-Host "  [AUDITORÍA] Verificando estado de las directivas de navegadores ($Browser)..." -ForegroundColor Yellow
