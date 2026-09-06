@@ -42,6 +42,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0024 | [PLAN-0024-20260905-gamer-poweruser-context-menus.md](PLAN-0024-20260905-gamer-poweruser-context-menus.md) | 2026-09-05 | Suite Modular de Menús Contextuales Optimizados para Gaming y Power-Users | COMPLETADO |
 | 0025 | [PLAN-0025-20260905-deep-audit-script-redundancy-and-iso-vs-toolkit-matrix.md](PLAN-0025-20260905-deep-audit-script-redundancy-and-iso-vs-toolkit-matrix.md) | 2026-09-05 | Auditoría Transversal Script por Script, Desmitificación de Redundancias y Matriz de Decisión ISO vs. Toolkit | COMPLETADO |
 | 0026 | [PLAN-0026-20260905-refactor-redundancy-decoupling-iso-toolkit.md](PLAN-0026-20260905-refactor-redundancy-decoupling-iso-toolkit.md) | 2026-09-05 | Refactorización y Desacoplamiento de Redundancias Transversales e Integración Canónica ISO vs. Toolkit | COMPLETADO |
+| 0027 | [PLAN-0027-20260906-ecosistema-integral-gestion-drivers.md](PLAN-0027-20260906-ecosistema-integral-gestion-drivers.md) | 2026-09-06 | Ecosistema Integral de Gestión, Inyección y Mantenimiento de Controladores (Drivers) | PENDIENTE |
 
 ---
 
