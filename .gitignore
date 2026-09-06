@@ -36,3 +36,8 @@ scratch/
 *.log
 
 scripts/Updates/Logs/
+
+
+# Exclusiones de descargas pesadas de modulos
+Updates/
+scripts/Builder/Runtimes/

@@ -701,6 +701,259 @@ $global:RomanOS_Policies = @(
         Description   = "Evitar descarga de metadatos de dispositivos desde la red (previene instalacion de apps HSA de soporte de hardware)"
         OfficialDoc   = "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-deviceinstallation"
         UnattendDesc  = "Prevent Device Metadata Retrieval From Network"
+    },
+    @{
+        Id            = "DEBLOAT_DoNotShowFeedbackNotifications"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
+        ValueName     = "DoNotShowFeedbackNotifications"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_AllowDeviceNameInTelemetry"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
+        ValueName     = "AllowDeviceNameInTelemetry"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_LimitDiagnosticLogCollection"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
+        ValueName     = "LimitDiagnosticLogCollection"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_LimitDumpCollection"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
+        ValueName     = "LimitDumpCollection"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_Enabled"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo"
+        PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo"
+        ValueName     = "Enabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_TailoredExperiencesWithDiagnosticDataEnabled"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\Privacy"
+        PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy"
+        ValueName     = "TailoredExperiencesWithDiagnosticDataEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_HttpAcceptLanguageOptOut"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Control Panel\International\User Profile"
+        PSPath        = "HKCU:\Control Panel\International\User Profile"
+        ValueName     = "HttpAcceptLanguageOptOut"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_NumberOfSIUFInPeriod"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\Siuf\Rules"
+        PSPath        = "HKCU:\Software\Microsoft\Siuf\Rules"
+        ValueName     = "NumberOfSIUFInPeriod"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_HasAccepted"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy"
+        PSPath        = "HKCU:\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy"
+        ValueName     = "HasAccepted"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_AllowInputPersonalization"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\InputPersonalization"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\InputPersonalization"
+        ValueName     = "AllowInputPersonalization"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_RestrictImplicitInkCollection"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\InputPersonalization"
+        PSPath        = "HKCU:\Software\Microsoft\InputPersonalization"
+        ValueName     = "RestrictImplicitInkCollection"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_RestrictImplicitTextCollection"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\InputPersonalization"
+        PSPath        = "HKCU:\Software\Microsoft\InputPersonalization"
+        ValueName     = "RestrictImplicitTextCollection"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_HarvestContacts"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\InputPersonalization\TrainedDataStore"
+        PSPath        = "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore"
+        ValueName     = "HarvestContacts"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_AcceptedPrivacyPolicy"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\Personalization\Settings"
+        PSPath        = "HKCU:\Software\Microsoft\Personalization\Settings"
+        ValueName     = "AcceptedPrivacyPolicy"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_EnableActivityFeed"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\System"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System"
+        ValueName     = "EnableActivityFeed"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_DisableLocation"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors"
+        ValueName     = "DisableLocation"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_AllowFindMyDevice"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\FindMyDevice"
+        ValueName     = "AllowFindMyDevice"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_IsAADCloudSearchEnabled"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
+        PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
+        ValueName     = "IsAADCloudSearchEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_IsMSACloudSearchEnabled"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
+        PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
+        ValueName     = "IsMSACloudSearchEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_IsDeviceSearchHistoryEnabled"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
+        PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
+        ValueName     = "IsDeviceSearchHistoryEnabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_AllowSearchToUseLocation"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        ValueName     = "AllowSearchToUseLocation"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_AllowCloudSearch"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        ValueName     = "AllowCloudSearch"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    @{
+        Id            = "DEBLOAT_Disabled"
+        Category      = "Privacidad y Telemetria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting"
+        ValueName     = "Disabled"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
     }
 )
 
@@ -1738,6 +1991,170 @@ $global:RomanOS_BrowserPolicies = @(
         PSType        = "DWord"
         ExpectedValue = 0
         Description   = "Desactivar sugerencias de busqueda en Brave"
+    }
+)
+
+# -----------------------------------------------------------------------------
+# 1.2 MATRIZ DE DIRECTIVAS GPO DE RED, TCP Y ADAPTADORES (NETWORK POLICIES)
+# -----------------------------------------------------------------------------
+
+$global:RomanOS_NetworkPolicies = @(
+    # --- TCP STACK ---
+    @{
+        Id            = "NET_TCP_AUTOTUNING"
+        Category      = "TCP Stack"
+        ActionType    = "Netsh_NetTCPSetting"
+        Commands      = @(
+            "netsh.exe int tcp set global autotuninglevel=normal",
+            "Set-NetTCPSetting -SettingName InternetCustom -AutoTuningLevelLocal Normal"
+        )
+        Description   = "Ventana dinamica TCP establecida en Normal para alto rendimiento."
+    },
+    @{
+        Id            = "NET_TCP_SCALING_HEURISTICS"
+        Category      = "TCP Stack"
+        ActionType    = "Netsh"
+        Commands      = @("netsh.exe int tcp set global scalingheuristics=disabled")
+        Description   = "Windows no degradara la ventana de AutoTuning."
+    },
+    @{
+        Id            = "NET_TCP_CONGESTION_CUBIC"
+        Category      = "TCP Stack"
+        ActionType    = "NetTCPSetting"
+        Commands      = @("Set-NetTCPSetting -SettingName InternetCustom -CongestionProvider CUBIC")
+        Description   = "Algoritmo de congestion TCP CUBIC activado."
+    },
+    @{
+        Id            = "NET_TCP_DISABLE_TIMESTAMPS"
+        Category      = "TCP Stack"
+        ActionType    = "Netsh"
+        Commands      = @("netsh.exe int tcp set global timestamps=disabled")
+        Description   = "Overhead de 12 bytes por paquete removido."
+    },
+    @{
+        Id            = "NET_TCP_FASTOPEN"
+        Category      = "TCP Stack"
+        ActionType    = "Netsh"
+        Commands      = @(
+            "netsh.exe int tcp set global fastopen=enabled",
+            "netsh.exe int tcp set global fastopenfallback=enabled"
+        )
+        Description   = "Handshake TCP optimizado (TFO habilitado)."
+    },
+    @{
+        Id            = "NET_TCP_SYN_RETRIES"
+        Category      = "TCP Stack"
+        ActionType    = "Netsh"
+        Commands      = @("netsh.exe int tcp set global maxsynretransmissions=2")
+        Description   = "Max SYN Retransmissions ajustado a 2 (Timeouts acelerados)."
+    },
+    @{
+        Id            = "NET_TCP_ECN_CAPABILITY"
+        Category      = "TCP Stack"
+        ActionType    = "Netsh_NetTCPSetting"
+        Commands      = @(
+            "netsh.exe int tcp set global ecncapability=enabled",
+            "Set-NetTCPSetting -SettingName InternetCustom -EcnCapability Enabled",
+            "Set-NetTCPSetting -SettingName Internet -EcnCapability Enabled"
+        )
+        Description   = "ECN Capability habilitado segun RFC 3168 para mitigar bufferbloat."
+    },
+    
+    # --- SISTEMA Y RED (DINÁMICO Y REGISTRO) ---
+    @{
+        Id            = "NET_SYS_QOS_UNCAP"
+        Category      = "Sistema / Registry"
+        ActionType    = "Registry"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Psched"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Psched"
+        ValueName     = "NonBestEffortLimit"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Description   = "Reserva del 20% de ancho de banda QoS eliminada (NonBestEffortLimit = 0)."
+    },
+    @{
+        Id            = "NET_SYS_NAGLE_ALGORITHM"
+        Category      = "Sistema / Registry"
+        ActionType    = "DynamicRegistry_Interfaces"
+        Description   = "Algoritmo de Nagle deshabilitado en interfaces activas (TcpNoDelay=1, TcpAckFrequency=1)."
+    },
+
+    # --- HARDWARE NIC ---
+    @{
+        Id            = "NET_NIC_RSS"
+        Category      = "Hardware NIC"
+        ActionType    = "NetAdapter_Enable"
+        Command       = "Enable-NetAdapterRss"
+        Description   = "Habilitar RSS (Receive Side Scaling)."
+    },
+    @{
+        Id            = "NET_NIC_GREEN_ETHERNET"
+        Category      = "Hardware NIC"
+        ActionType    = "NetAdapter_AdvancedProp"
+        RegistryKeyword = "*EEE"
+        RegistryValue   = "0"
+        DisplayMatch    = "Energy Efficient Ethernet|Green|Ahorro de energia"
+        DisplayValue    = "Disabled"
+        Description   = "EEE / Green Ethernet deshabilitado para reducir micro-cortes."
+    },
+    @{
+        Id            = "NET_NIC_DISABLE_RSC"
+        Category      = "Hardware NIC"
+        ActionType    = "NetAdapter_Disable"
+        Command       = "Disable-NetAdapterRsc"
+        Description   = "Desactivar RSC (Receive Segment Coalescing) para menor jitter."
+    },
+    @{
+        Id            = "NET_NIC_DISABLE_INTMOD"
+        Category      = "Hardware NIC"
+        ActionType    = "NetAdapter_AdvancedProp"
+        RegistryKeyword = "*InterruptModeration"
+        RegistryValue   = "0"
+        DisplayMatch    = "Moderation|Moderacion"
+        DisplayValue    = "Disabled"
+        Description   = "Moderacion de Interrupciones desactivada."
+    },
+    @{
+        Id            = "NET_NIC_DISABLE_OFFLOADS"
+        Category      = "Hardware NIC"
+        ActionType    = "NetAdapter_Disable"
+        Command       = "Disable-NetAdapterLso"
+        Description   = "Desactivar Offloads de NIC (LSO) para prevenir fallos."
+    },
+    @{
+        Id            = "NET_NIC_DISABLE_FLOWCTRL"
+        Category      = "Hardware NIC"
+        ActionType    = "NetAdapter_AdvancedProp"
+        RegistryKeyword = "*FlowControl"
+        RegistryValue   = "0"
+        DisplayMatch    = "Flow Control|Control de flujo"
+        DisplayValue    = "Disabled"
+        Description   = "Control de flujo desactivado para evitar bufferbloat local."
+    }    ,
+    @{
+        Id            = "NET_NIC_QOS_8021P"
+        Category      = "Hardware NIC"
+        ActionType    = "NetAdapter_AdvancedProp"
+        RegistryKeyword = "*PriorityVLANTag"
+        RegistryValue   = "3"
+        DisplayMatch    = "Priority|Prioridad"
+        DisplayValue    = "Priority & VLAN Enabled"
+        Description   = "QoS 802.1p habilitado por hardware para priorizar paquetes DSCP del juego."
+    },
+    @{
+        Id            = "NET_TCP_DISABLE_CHIMNEY"
+        Category      = "TCP Stack"
+        ActionType    = "Netsh"
+        Commands      = @("netsh.exe int tcp set global chimney=disabled")
+        Description   = "TCP Chimney Offload deshabilitado (Obsoleto, previene fugas en drivers OEM)."
+    },
+    @{
+        Id            = "NET_TCP_DISABLE_TASKOFFLOAD"
+        Category      = "TCP Stack"
+        ActionType    = "Netsh"
+        Commands      = @("netsh.exe int ip set global taskoffload=disabled")
+        Description   = "IPsec Task Offload deshabilitado (Obsoleto, mejora estabilidad)."
     }
 )
 

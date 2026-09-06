@@ -1,4 +1,4 @@
-# 📋 Planes de Implementación — romanOS / OptimizedISO
+﻿# 📋 Planes de Implementación — romanOS / OptimizedISO
 
 Esta carpeta contiene todos los planes de implementación del proyecto, organizados cronológicamente.
 
@@ -50,6 +50,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0032 | [PLAN-0032-20260906-saneamiento-debloat-deteccion-iso-y-desacoplamiento-toolkit.md](PLAN-0032-20260906-saneamiento-debloat-deteccion-iso-y-desacoplamiento-toolkit.md) | 2026-09-06 | Saneamiento Integral de Win11-Debloat-v3-Adaptive, Detección Automática de ISO y Desacoplamiento de Tareas en el Toolkit | COMPLETADO |
 | 0033 | [PLAN-0033-20260906-desacoplamiento-modulo-navegadores-script-dedicado.md](PLAN-0033-20260906-desacoplamiento-modulo-navegadores-script-dedicado.md) | 2026-09-06 | Desacoplamiento del Módulo de Navegadores hacia Script Dedicado (Optimize-WebBrowsers.ps1) y Saneamiento en Debloat y Toolkit | PENDIENTE |
 | 0034 | [PLAN-0034-20260906-optimizaciones-oficiales-ntfs-kernel-scheduler-y-red.md](PLAN-0034-20260906-optimizaciones-oficiales-ntfs-kernel-scheduler-y-red.md) | 2026-09-06 | Integración de Optimizaciones Oficiales de NTFS, Kernel Scheduler y Red en la ISO y SSOT Policy-Engine | COMPLETADO |
+| 0038 | [PLAN-0038-20260906-integracion-ssot-modulos-red-y-debloat.md](PLAN-0038-20260906-integracion-ssot-modulos-red-y-debloat.md) | 2026-09-06 | Integración y Migración SSOT de Tweaks de Red y Debloat al Policy-Engine | COMPLETADO |
 
 ---
 
@@ -63,3 +64,5 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 ---
 
 *Carpeta creada el 2026-08-23. Todos los planes futuros se registran aquí para trazabilidad.*
+
+| 0039 | [PLAN-0039-20260906-optimizacion-avanzada-red-doh-y-qos.md](PLAN-0039-20260906-optimizacion-avanzada-red-doh-y-qos.md) | 2026-09-06 | Optimización Avanzada de Red (DoH Nativo, QoS 802.1p, Offloads y AutoTuning) | EN PROGRESO |

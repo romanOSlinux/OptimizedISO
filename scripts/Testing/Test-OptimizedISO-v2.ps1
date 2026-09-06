@@ -29,7 +29,7 @@
 [CmdletBinding()]
 param(
     [string]$LogDir       = "C:\OptimizedISO\Log",
-    [string]$TargetScript = "C:\OptimizedISO\scripts\New-OptimizedWindowsISO-v2.ps1"
+    [string]$TargetScript = "C:\OptimizedISO\New-OptimizedWindowsISO-v2.ps1"
 )
 
 Set-StrictMode -Off
@@ -284,7 +284,7 @@ $loadErrors  = 0
 
 # Scripts a cargar: motor visual (UI-Engine) + script principal
 $UIEngine = Join-Path (Split-Path $TargetScript -Parent) 'Core\UI-Engine.ps1'
-$scriptsToLoad = @($UIEngine, $TargetScript)
+$scriptsToLoad = @($UIEngine, "C:\OptimizedISO\New-OptimizedWindowsISO-v2.ps1")
 
 foreach ($scriptPath in $scriptsToLoad) {
     if (-not (Test-Path $scriptPath -PathType Leaf)) {
@@ -579,7 +579,7 @@ Write-HarnessHeader2 "FASE 2K: Subsistema de Diagnostico Post-Instalacion"
 $diagTestDir = Join-Path $TEMP_ROOT "DiagTest"
 New-Item -ItemType Directory $diagTestDir -Force | Out-Null
 
-$v2Content = Get-Content -Path (Join-Path $PSScriptRoot "New-OptimizedWindowsISO-v2.ps1") -Raw -ErrorAction SilentlyContinue
+$v2Content = Get-Content -Path ("C:\OptimizedISO\New-OptimizedWindowsISO-v2.ps1") -Raw -ErrorAction SilentlyContinue
 
 Assert-True "PostInstall: Plantilla PostInstall-Diagnostics.ps1 presente en v2" ($v2Content -match 'postInstallDiagTemplate\s*=')
 Assert-True "PostInstall: Lanzador Auditar-Instalacion.cmd presente en v2" ($v2Content -match 'auditarLauncherContent\s*=')
@@ -796,7 +796,7 @@ Assert-True "PLAN-0019: SetupComplete configura plan Equilibrado para Perfil 3" 
 
 # Test 7: Arquitectura Unificada y Ecosistema Integral SSOT (PLAN-0022)
 Write-HarnessHeader2 "Test 7: Validacion de Arquitectura Unificada (Policy-Engine y Sincronizacion SSOT)"
-$policyEnginePath = Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"
+$policyEnginePath = Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"
 Assert-FileExists "PLAN-0022: Policy-Engine.ps1 existe en scripts/Core" $policyEnginePath
 
 # Dot-source de Policy-Engine para pruebas de contrato
@@ -823,7 +823,7 @@ Assert-True "PLAN-0022: Export-RomanOSUnattendCommands incluye DisableWebSearch"
 Assert-True "PLAN-0022: Export-RomanOSUnattendCommands devuelve NextOrder consecutivo" ($unattendExport.NextOrder -gt 20)
 
 # Paridad con PostInstall-Diagnostics.ps1
-$postDiagPath = Join-Path $PSScriptRoot "PostInstall-Diagnostics.ps1"
+$postDiagPath = Join-Path (Split-Path $PSScriptRoot -Parent) "PostInstall-Diagnostics.ps1"
 $postDiagContent = Get-Content -Path $postDiagPath -Raw
 Assert-True "PLAN-0022: PostInstall-Diagnostics.ps1 carga Core/Policy-Engine.ps1" ($postDiagContent -match 'Policy-Engine\.ps1')
 Assert-True "PLAN-0022: PostInstall-Diagnostics.ps1 audita Get-RomanOSPolicies dinamicamente" ($postDiagContent -match 'Get-RomanOSPolicies')
@@ -868,7 +868,7 @@ Assert-True "PLAN-0026: Win11-Network-Diagnostics-Optimizer.ps1 soporta -NagleOn
 
 $debloatContent = Get-Content -Path (Join-Path $PSScriptRoot "Win11-Debloat-v3-Adaptive.ps1") -Raw
 Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 carga Core/Policy-Engine.ps1" ($debloatContent -match 'Policy-Engine\.ps1')
-$optimizeBrowsersContent = Get-Content -Path (Join-Path $PSScriptRoot "Optimize-WebBrowsers.ps1") -Raw -ErrorAction SilentlyContinue
+$optimizeBrowsersContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\Optimize-WebBrowsers.ps1") -Raw -ErrorAction SilentlyContinue
 Assert-True "PLAN-0026: Optimize-WebBrowsers.ps1 delega en Apply-RomanOSBrowserPolicies" ($optimizeBrowsersContent -match 'Apply-RomanOSBrowserPolicies')
 Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 delega Nagle en Win11-Network-Diagnostics-Optimizer.ps1" ($debloatContent -match 'Win11-Network-Diagnostics-Optimizer\.ps1 -NagleOnly')
 
@@ -892,11 +892,11 @@ Assert-True "PLAN-0027: autounattend.xml contiene componente Microsoft-Windows-P
 Assert-True "PLAN-0027: v2 script soporta parametro -SkipBootWimDrivers" ($v2ScriptContent -match 'SkipBootWimDrivers')
 
 # Verificacion de scripts modulares de drivers
-$backupDrvScript = Join-Path $PSScriptRoot "Drivers\Backup-HardwareDrivers.ps1"
+$backupDrvScript = Join-Path (Split-Path $PSScriptRoot -Parent) "Drivers\Backup-HardwareDrivers.ps1"
 Assert-FileExists "PLAN-0027: Backup-HardwareDrivers.ps1 existe en disco" $backupDrvScript
-$cleanDrvScript = Join-Path $PSScriptRoot "Drivers\Clean-DriverStore.ps1"
+$cleanDrvScript = Join-Path (Split-Path $PSScriptRoot -Parent) "Drivers\Clean-DriverStore.ps1"
 Assert-FileExists "PLAN-0027: Clean-DriverStore.ps1 existe en disco" $cleanDrvScript
-$getDrvScript = Join-Path $PSScriptRoot "Drivers\Get-CriticalDrivers.ps1"
+$getDrvScript = Join-Path (Split-Path $PSScriptRoot -Parent) "Drivers\Get-CriticalDrivers.ps1"
 Assert-FileExists "PLAN-0027: Get-CriticalDrivers.ps1 existe en disco" $getDrvScript
 
 # Verificacion de integracion en Toolkit Maestro y Debloat
@@ -960,7 +960,7 @@ Assert-True "PLAN-0030: SetupComplete.cmd configura RunOnce ApplyDarkMode" ($v2S
 Assert-True "PLAN-0030: v2 script carga SOFTWARE hive offline para dark.theme" ($v2ScriptContent -match 'OfflineSoftware' -and $v2ScriptContent -match 'dark\.theme')
 
 # Validacion de PostInstall-Diagnostics.ps1
-$diagContent = Get-Content -Path (Join-Path $PSScriptRoot "PostInstall-Diagnostics.ps1") -Raw
+$diagContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "PostInstall-Diagnostics.ps1") -Raw
 Assert-True "PLAN-0030: PostInstall-Diagnostics.ps1 audita HKCU prioritariamente para temas" ($diagContent -match 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize')
 
 # PLAN-0032: Validaciones de Saneamiento Debloat, Deteccion ISO y Desacoplamiento de Toolkit
@@ -1005,13 +1005,13 @@ $netOptContent = Get-Content -Path (Join-Path $PSScriptRoot "Win11-Network-Diagn
 Assert-True "PLAN-0034: Win11-Network-Diagnostics-Optimizer.ps1 incluye EcnCapability en tweaks" ($netOptContent -match 'Id=''EcnCapability''')
 Assert-True "PLAN-0034: Win11-Network-Diagnostics-Optimizer.ps1 ejecuta configuracion de ECN" ($netOptContent -match 'netsh\.exe\s+int\s+tcp\s+set\s+global\s+ecncapability=enabled')
 
-$diagContentAfter = Get-Content -Path (Join-Path $PSScriptRoot "PostInstall-Diagnostics.ps1") -Raw
+$diagContentAfter = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "PostInstall-Diagnostics.ps1") -Raw
 Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita NtfsDisable8dot3NameCreation" ($diagContentAfter -match 'NtfsDisable8dot3NameCreation')
 Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita Win32PrioritySeparation" ($diagContentAfter -match 'Win32PrioritySeparation')
 Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita ECN Capability" ($diagContentAfter -match 'ECN Capability')
 
 # PLAN-0033: Desacoplamiento del Módulo de Navegadores
-$optimizeWebBrowsers = Join-Path $PSScriptRoot "Optimize-WebBrowsers.ps1"
+$optimizeWebBrowsers = Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\Optimize-WebBrowsers.ps1"
 Assert-FileExists "PLAN-0033: Optimize-WebBrowsers.ps1 existe en disco" $optimizeWebBrowsers
 Assert-False "PLAN-0033: Win11-Debloat-v3-Adaptive.ps1 ya no contiene Invoke-BrowserDebloat" ($debloatContent -match 'function Invoke-BrowserDebloat')
 Assert-False "PLAN-0033: Win11-Debloat-v3-Adaptive.ps1 ya no contiene parametro BrowsersOnly" ($debloatContent -match '\[switch\]\$BrowsersOnly')
