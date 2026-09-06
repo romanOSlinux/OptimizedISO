@@ -115,7 +115,7 @@ if (-not $isAdmin -and -not $Unattended) {
 # 1. CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
 # -----------------------------------------------------------------------------
 $uiEnginePaths = @(
-    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
@@ -144,7 +144,7 @@ if (-not $uiLoaded) {
 # -----------------------------------------------------------------------------
 # 2. RESOLUCIÓN DE CARPETA DE DESTINO (INTERACTIVA O CLI)
 # -----------------------------------------------------------------------------
-$defaultBaseDir = Join-Path (Split-Path $PSScriptRoot -Parent) "Updates"
+$defaultBaseDir = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "Updates"
 if (-not (Test-Path (Split-Path $PSScriptRoot -Parent))) {
     $defaultBaseDir = "C:\OptimizedISO\Updates"
 }

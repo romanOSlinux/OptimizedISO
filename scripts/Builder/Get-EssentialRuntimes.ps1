@@ -71,7 +71,7 @@ if (-not (Test-Path $DestinationPath)) {
 # CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
 # -----------------------------------------------------------------------------
 $uiEnginePaths = @(
-    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"

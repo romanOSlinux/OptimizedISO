@@ -345,11 +345,11 @@ if ($policyLoaded) {
 #------------------------------------------------------------------------------
 
 $ScriptsDir = if ($PSScriptRoot) {
-    $PSScriptRoot
+    Split-Path -Parent $PSScriptRoot
 } elseif ($MyInvocation.MyCommand.Path) {
-    Split-Path -Parent $MyInvocation.MyCommand.Path
+    Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 } else {
-    (Get-Location).Path
+    Split-Path -Parent (Get-Location).Path
 }
 
 $Timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
@@ -3438,7 +3438,7 @@ if ($runtimesInfo.Found) {
     Write-OK "Runtimes Esenciales : Encontrados en '$($runtimesInfo.Path)' [$($runtimesInfo.FileCount) archivos$detailStr]"
     Write-LogEntry -Level "INFO" -Message "Runtimes resueltos: $($runtimesInfo.Path) ($($runtimesInfo.FileCount) archivos)"
 } else {
-    Write-Info "Runtimes Esenciales : No detectados (Opcional - ejecute Get-EssentialRuntimes.ps1 si los requiere)"
+    Write-Info "Runtimes Esenciales : No detectados (Opcional - ejecute scripts\Builder\Get-EssentialRuntimes.ps1 si los requiere)"
     Write-LogEntry -Level "INFO" -Message "Runtimes no detectados. Se omitirá pre-carga."
 }
 
@@ -3475,7 +3475,7 @@ foreach ($candUpd in $candidateUpdates) {
     }
 }
 if (-not $resolvedUpdatesDir) {
-    Write-Info "Actualizaciones (MSU): No detectadas (Opcional - ejecute Get-WindowsUpdates.ps1 si requiere parches offline)"
+    Write-Info "Actualizaciones (MSU): No detectadas (Opcional - ejecute scripts\Builder\Get-WindowsUpdates.ps1 si requiere parches offline)"
     Write-LogEntry -Level "INFO" -Message "Updates no detectados. Se omitirá slipstreaming offline."
 }
 
@@ -3615,13 +3615,13 @@ Write-OK "La edición de Windows y el disco se seleccionarán durante la instala
 $scriptsToInject = @()
 
 # Detectar scripts conocidos disponibles en el repositorio
-$toolkitCandidate     = Join-Path $ScriptsDir "romanOS-Toolkit.ps1"
-$debScriptCandidate   = Join-Path $ScriptsDir "Win11-Debloat-v3-Adaptive.ps1"
-$maintScriptCandidate = Join-Path $ScriptsDir "Invoke-WindowsMaintenance.ps1"
-$netScriptCandidate   = Join-Path $ScriptsDir "Win11-Network-Diagnostics-Optimizer.ps1"
-$secScriptCandidate   = Join-Path $ScriptsDir "Invoke-WindowsSecurityHardening.ps1"
-$contextCandidate     = Join-Path $ScriptsDir "Add-OptimizedContextMenus.ps1"
-$legacyCandidate      = Join-Path $ScriptsDir "Windows${detectedVersion}_PostInstall_Optimizer.ps1"
+$toolkitCandidate     = Join-Path $ScriptsDir "Modules\romanOS-Toolkit.ps1"
+$debScriptCandidate   = Join-Path $ScriptsDir "Modules\Win11-Debloat-v3-Adaptive.ps1"
+$maintScriptCandidate = Join-Path $ScriptsDir "Modules\Invoke-WindowsMaintenance.ps1"
+$netScriptCandidate   = Join-Path $ScriptsDir "Modules\Win11-Network-Diagnostics-Optimizer.ps1"
+$secScriptCandidate   = Join-Path $ScriptsDir "Modules\Invoke-WindowsSecurityHardening.ps1"
+$contextCandidate     = Join-Path $ScriptsDir "Modules\Add-OptimizedContextMenus.ps1"
+$legacyCandidate      = Join-Path $ScriptsDir "Modules\Windows${detectedVersion}_PostInstall_Optimizer.ps1"
 
 # Verificar si se pasó ruta explícita por parámetro CLI
 $paramScriptPath = if ($detectedVersion -eq "10") { $Win10ScriptPath } else { $Win11ScriptPath }
@@ -3943,7 +3943,7 @@ if ($runtimesInfo.Found -and (Test-Path $runtimesInfo.Path)) {
 } else {
     Write-Host "    Carpeta 'Runtimes' no detectada. Se omite pre-carga en `$OEM$." -ForegroundColor Gray
     Add-AuditRecord -Resource "Runtimes (VC++ / DirectX)" -Target '$OEM$' -Status "SKIP" `
-                    -Details "Carpeta Runtimes/ no detectada. Ejecute Get-EssentialRuntimes.ps1"
+                    -Details "Carpeta Runtimes/ no detectada. Ejecute scripts\Builder\Get-EssentialRuntimes.ps1"
 }
 
 # ------------------------------------------------------------------
@@ -3964,7 +3964,7 @@ if (Test-Path $coreSrcDir) {
 # ------------------------------------------------------------------
 # Copiar Script de Menú Contextual Canónico y Diagnóstico Físico a $OEM$
 # ------------------------------------------------------------------
-$ctxMenuSrc = Join-Path $ScriptsDir "Add-OptimizedContextMenus.ps1"
+$ctxMenuSrc = Join-Path $ScriptsDir "Modules\Add-OptimizedContextMenus.ps1"
 if (Test-Path $ctxMenuSrc) {
     Copy-Item -Path $ctxMenuSrc -Destination (Join-Path $OEMScriptsDir "Add-OptimizedContextMenus.ps1") -Force
     Copy-Item -Path $ctxMenuSrc -Destination (Join-Path $OEMScriptsDir1 "Add-OptimizedContextMenus.ps1") -Force
@@ -3972,8 +3972,8 @@ if (Test-Path $ctxMenuSrc) {
 }
 
 $diagSourceCandidates = @(
-    (Join-Path $ScriptsDir "PostInstall-Diagnostics.ps1"),
-    (Join-Path (Split-Path $ScriptsDir -Parent) "scripts\PostInstall-Diagnostics.ps1")
+    (Join-Path $ScriptsDir "Modules\PostInstall-Diagnostics.ps1"),
+    (Join-Path (Split-Path $ScriptsDir -Parent) "scripts\Modules\PostInstall-Diagnostics.ps1")
 )
 $physicalDiag = $diagSourceCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 if ($physicalDiag) {
@@ -5502,7 +5502,7 @@ if ($wimFile) {
 
                     if (-not $resolvedUpdatesDir) {
                         Write-Host "    Carpeta 'Updates' no encontrada. Slipstreaming omitido." -ForegroundColor DarkYellow
-                        Write-Host "    Para inyectar parches, descarguelos con Get-WindowsUpdates.ps1 o coloquew archivos .msu/.cab en 'Updates\'." -ForegroundColor Gray
+                        Write-Host "    Para inyectar parches, descarguelos con scripts\Builder\Get-WindowsUpdates.ps1 o coloquew archivos .msu/.cab en 'Updates\'." -ForegroundColor Gray
                     } else {
                         $packages = Get-ChildItem -Path $resolvedUpdatesDir -Include *.msu, *.cab -Recurse -ErrorAction SilentlyContinue
 
@@ -6418,7 +6418,7 @@ if ($wimFile) {
                      }
 
                      # Inyectar script de menú contextual canónico en WIM montado
-                     $ctxMenuSrc = Join-Path $ScriptsDir "Add-OptimizedContextMenus.ps1"
+                     $ctxMenuSrc = Join-Path $ScriptsDir "Modules\Add-OptimizedContextMenus.ps1"
                      if (Test-Path $ctxMenuSrc) {
                          Copy-Item -Path $ctxMenuSrc -Destination (Join-Path $wimScriptsDir "Add-OptimizedContextMenus.ps1") -Force
                          Write-OK "Inyectado en WIM índice ${wimIndex}: Add-OptimizedContextMenus.ps1"
