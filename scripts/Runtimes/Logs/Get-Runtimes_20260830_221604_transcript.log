@@ -1,0 +1,52 @@
+**********************
+PowerShell transcript start
+Start time: 20260830221604
+Username: DESKTOP-0TQ7HR9\Roman
+RunAs User: DESKTOP-0TQ7HR9\Roman
+Configuration Name: 
+Machine: DESKTOP-0TQ7HR9 (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -NoExit -RemoveWorkingDirectoryTrailingCharacter -WorkingDirectory C:\scripts! -Command $host.UI.RawUI.WindowTitle = 'PowerShell 7 (x64)'
+Process ID: 3876
+PSVersion: 7.6.5
+PSEdition: Core
+GitCommitId: 7.6.5
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.4
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║                   DESCARGADOR DE RUNTIMES ESENCIALES                   ║
+  ║           Integracion Oficial Microsoft CDN para Windows ISO           ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+  Host: DESKTOP-0TQ7HR9 | Usuario: Roman (Admin)
+  SO  : Microsoft Windows 11 Pro for Workstations (64 bits) | C: 659.9 GB libres
+  ────────────────────────────────────────────────────────────────────────
+
+  [i] Carpeta de destino: C:\scripts\Runtimes
+
+  [1/7] Descargando Visual C++ 2015-2022 (x64)...
+ [OK] (24.45 MB)
+  [2/7] Descargando Visual C++ 2015-2022 (x86)...
+ [OK] (13.31 MB)
+  [3/7] Descargando Visual C++ 2013 (x64)...
+ [OK] (6.87 MB)
+  [4/7] Descargando Visual C++ 2013 (x86)...
+ [OK] (6.21 MB)
+  [5/7] Descargando Visual C++ 2012 (x64)...
+ [OK] (6.85 MB)
+  [6/7] Descargando Visual C++ 2012 (x86)...
+ [OK] (6.25 MB)
+  [7/7] Descargando DirectX End-User Runtimes (96 MB)...
+ [OK] (95.63 MB)
+    Extrayendo archivos de DirectX en 'C:\scripts\Runtimes\DirectX'...
+ [OK]
+  [i] Archivos totales en Runtimes: 166 | Espacio total: 162.1 MB
+  [i] La proxima vez que ejecutes 'New-OptimizedWindowsISO-v2.ps1', se integraran automaticamente.
+**********************
+PowerShell transcript end
+End time: 20260830221611
+**********************

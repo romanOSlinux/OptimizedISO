@@ -16,8 +16,6 @@
     Write-OK "Ajuste aplicado correctamente."
 #>
 
-# Prevenir re-definicion redundante si ya fue importado
-if ($global:RomanOS_UI_Engine_Loaded) { return }
 $global:RomanOS_UI_Engine_Loaded = $true
 
 # Configurar ancho estandar de consola

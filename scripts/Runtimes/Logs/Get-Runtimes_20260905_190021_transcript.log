@@ -1,0 +1,45 @@
+**********************
+PowerShell transcript start
+Start time: 20260905190021
+Username: USEROPT-8R7UBJR\Thiago
+RunAs User: USEROPT-8R7UBJR\Thiago
+Configuration Name: 
+Machine: USEROPT-8R7UBJR (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\WindowsApps\Microsoft.PowerShell_7.6.5.0_x64__8wekyb3d8bbwe\pwsh.dll
+Process ID: 8532
+PSVersion: 7.6.5
+PSEdition: Core
+GitCommitId: 7.6.5
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.4
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+
+╔══════════════════════════════════════════════════════════════════════╗
+║        DESCARGADOR DE RUNTIMES ESENCIALES PARA WINDOWS ISO           ║
+╚══════════════════════════════════════════════════════════════════════╝
+  Destino: C:\OptimizedISO\scripts\Runtimes
+
+  [1/7] Visual C++ 2015-2022 (x64): Ya existe (24.45 MB). Omitiendo.
+  [2/7] Visual C++ 2015-2022 (x86): Ya existe (13.31 MB). Omitiendo.
+  [3/7] Visual C++ 2013 (x64): Ya existe (6.87 MB). Omitiendo.
+  [4/7] Visual C++ 2013 (x86): Ya existe (6.21 MB). Omitiendo.
+  [5/7] Visual C++ 2012 (x64): Ya existe (6.85 MB). Omitiendo.
+  [6/7] Visual C++ 2012 (x86): Ya existe (6.25 MB). Omitiendo.
+  [7/7] DirectX End-User (Junio 2010): Ya extraído en DirectX/. Omitiendo.
+
+══════════════════════════════════════════════════════════════════════
+  Descargas finalizadas con éxito.
+  Archivos totales en Runtimes: 172
+  Espacio total en disco:       162.11 MB
+══════════════════════════════════════════════════════════════════════
+  La próxima vez que ejecutes 'New-OptimizedWindowsISO.ps1', estos
+  runtimes se inyectarán automáticamente dentro de la ISO.
+
+**********************
+PowerShell transcript end
+End time: 20260905190021
+**********************

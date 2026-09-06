@@ -74,7 +74,7 @@ foreach ($p in $uiEnginePaths) {
         break
     }
 }
-if (-not $uiLoaded) {
+if (-not $uiLoaded -or -not (Get-Command Show-UnifiedBanner -ErrorAction SilentlyContinue)) {
     function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
     function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
     function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }
@@ -85,6 +85,42 @@ if (-not $uiLoaded) {
     function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
     function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
     function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
+}
+
+# -----------------------------------------------------------------------------
+# 1.1 CARGA DE MOTOR DE HARDWARE UNIFICADO (Hardware-Engine.ps1)
+# -----------------------------------------------------------------------------
+$hwEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\Hardware-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Hardware-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Hardware-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\Hardware-Engine.ps1"
+)
+$hwLoaded = $false
+foreach ($p in $hwEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $hwLoaded = $true
+        break
+    }
+}
+
+# -----------------------------------------------------------------------------
+# 1.2 CARGA DE MOTOR DE POLITICAS UNIFICADO (Core\Policy-Engine.ps1)
+# -----------------------------------------------------------------------------
+$policyEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Policy-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1"
+)
+$policyLoaded = $false
+foreach ($p in $policyEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $policyLoaded = $true
+        break
+    }
 }
 
 # Resolucion de rutas de scripts hermanos
@@ -228,7 +264,10 @@ function Show-QuickActionsMenu {
         "Reparacion Rapida de Imagen (DISM RestoreHealth + SFC)",
         "Limpieza Inmediata de Shaders GPU (DirectX, NVIDIA, AMD)",
         "Ejecutar SSD TRIM en todas las unidades compatibles",
-        "Optimizar Navegadores Web (Video GPU, Menos RAM, Sin IA)"
+        "Optimizar Navegadores Web (Video GPU, Menos RAM, Sin IA)",
+        "Restaurar Servicios Hardcore (Wi-Fi, Bluetooth, Impresion, Busqueda)",
+        "Alternar Hipervisor / VBS (Activar o Desactivar hypervisorlaunchtype)",
+        "Auditoria e Introspeccion de Hardware (PCIe, GPU, RAM, MSI, SMBIOS)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -292,8 +331,74 @@ function Show-QuickActionsMenu {
             Invoke-BrowsersModule
             pause
         }
+        8 {
+            Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Restaurando Servicios de Sistema"
+            Write-SubStep "Habilitando e iniciando Wi-Fi (WlanSvc)..."
+            sc.exe config WlanSvc start=auto | Out-Null
+            Start-Service WlanSvc -ErrorAction SilentlyContinue
+
+            Write-SubStep "Habilitando e iniciando Bluetooth (bthserv)..."
+            sc.exe config bthserv start=auto | Out-Null
+            Start-Service bthserv -ErrorAction SilentlyContinue
+
+            Write-SubStep "Habilitando e iniciando Cola de Impresion (Spooler)..."
+            sc.exe config Spooler start=auto | Out-Null
+            Start-Service Spooler -ErrorAction SilentlyContinue
+
+            Write-SubStep "Habilitando e iniciando Busqueda de Windows (WSearch)..."
+            sc.exe config WSearch start=delayed-auto | Out-Null
+            Start-Service WSearch -ErrorAction SilentlyContinue
+
+            Write-OK "Servicios restaurados a inicio automatico."
+            pause
+        }
+        9 {
+            Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Alternar Estado del Hipervisor (VBS / Latencia)"
+            try {
+                $currentBcd = & bcdedit /enum "{current}" 2>&1
+                $isOff = ($currentBcd -match 'hypervisorlaunchtype\s+off')
+
+                if ($isOff) {
+                    Write-Info "Estado actual: Hipervisor DESACTIVADO (Ring 0 / Latencia Minima)."
+                    if (Prompt-UnifiedYesNo -Prompt "Desea ACTIVAR el hipervisor (para VBS / Credential Guard / WSL2)?" -Default $true) {
+                        & bcdedit /set hypervisorlaunchtype auto
+                        Write-OK "Hipervisor configurado en 'auto'. Se requiere reiniciar el equipo."
+                    }
+                } else {
+                    Write-Info "Estado actual: Hipervisor ACTIVADO (Estandar)."
+                    if (Prompt-UnifiedYesNo -Prompt "Desea DESACTIVAR el hipervisor (para latencia minima en e-sports)?" -Default $true) {
+                        & bcdedit /set hypervisorlaunchtype off
+                        Write-OK "Hipervisor configurado en 'off'. Se requiere reiniciar el equipo."
+                    }
+                }
+            } catch {
+                Write-ErrorMsg "Error al consultar o modificar bcdedit: $($_.Exception.Message)"
+            }
+            pause
+        }
+        10 {
+            Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Auditoria e Introspeccion de Hardware"
+            if ($hwLoaded -and (Get-Command Get-SystemHardwareProfile -ErrorAction SilentlyContinue)) {
+                $hw = Get-SystemHardwareProfile -ForceRefresh
+                Format-HardwareSummary -Profile $hw
+                
+                Write-Host "`n  --- Detalle de Adaptadores Graficos (PCI-SIG) ---" -ForegroundColor Cyan
+                foreach ($g in $hw.GPU.Devices) {
+                    $msiLabel = if ($g.MsiStatus -eq 1) { "Habilitado [1]" } elseif ($g.MsiStatus -eq 0) { "Deshabilitado [0]" } else { "No configurado" }
+                    Write-Host "    * $($g.Name)" -ForegroundColor White
+                    Write-Host "      - Fabricante   : $($g.VendorName) (VEN_$($g.VendorId) DEV_$($g.DeviceId))" -ForegroundColor Gray
+                    Write-Host "      - Driver       : $($g.DriverVersion)" -ForegroundColor Gray
+                    Write-Host "      - MSI / MSI-X  : $msiLabel (Soporte PCIe: $($g.SupportsMSI))" -ForegroundColor $(if($g.MsiStatus -eq 1){'Green'}else{'Gray'})
+                    Write-Host "      - Soporte HAGS : $($g.SupportsHAGS)" -ForegroundColor $(if($g.SupportsHAGS){'Green'}else{'Gray'})
+                }
+            } else {
+                Write-Warn "Modulo Hardware-Engine.ps1 no disponible."
+            }
+            pause
+        }
         default { return }
     }
+
 }
 
 # -----------------------------------------------------------------------------

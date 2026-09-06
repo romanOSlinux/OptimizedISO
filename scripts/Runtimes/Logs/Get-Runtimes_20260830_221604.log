@@ -1,0 +1,29 @@
+[2026-08-30 22:16:04] [INIT ] ================================================================
+[2026-08-30 22:16:04] [INIT ] Get-EssentialRuntimes Download Log
+[2026-08-30 22:16:04] [INIT ] PowerShell 7.6.5 | Host: DESKTOP-0TQ7HR9
+[2026-08-30 22:16:04] [INIT ] ================================================================
+[2026-08-30 22:16:04] [INFO ] Iniciando descarga: Visual C++ 2015-2022 (x64)
+[2026-08-30 22:16:05] [OK   ] Visual C++ 2015-2022 (x64) descargado correctamente (24.45 MB).
+[2026-08-30 22:16:05] [INFO ] Iniciando descarga: Visual C++ 2015-2022 (x86)
+[2026-08-30 22:16:06] [OK   ] Visual C++ 2015-2022 (x86) descargado correctamente (13.31 MB).
+[2026-08-30 22:16:06] [INFO ] Iniciando descarga: Visual C++ 2013 (x64)
+[2026-08-30 22:16:06] [OK   ] Visual C++ 2013 (x64) descargado correctamente (6.87 MB).
+[2026-08-30 22:16:06] [INFO ] Iniciando descarga: Visual C++ 2013 (x86)
+[2026-08-30 22:16:07] [OK   ] Visual C++ 2013 (x86) descargado correctamente (6.21 MB).
+[2026-08-30 22:16:07] [INFO ] Iniciando descarga: Visual C++ 2012 (x64)
+[2026-08-30 22:16:07] [OK   ] Visual C++ 2012 (x64) descargado correctamente (6.85 MB).
+[2026-08-30 22:16:07] [INFO ] Iniciando descarga: Visual C++ 2012 (x86)
+[2026-08-30 22:16:07] [OK   ] Visual C++ 2012 (x86) descargado correctamente (6.25 MB).
+[2026-08-30 22:16:07] [INFO ] Iniciando descarga: DirectX End-User Runtimes
+[2026-08-30 22:16:11] [OK   ] DirectX contenedor descargado (95.63 MB).
+[2026-08-30 22:16:11] [OK   ] DirectX extraído correctamente en DirectX/.
+[2026-08-30 22:16:11] [INIT ] ================================================================
+[2026-08-30 22:16:11] [INIT ] RESUMEN FINAL
+[2026-08-30 22:16:11] [INFO ] Duración total       : 7s
+[2026-08-30 22:16:11] [INFO ] Errores registrados : 0
+[2026-08-30 22:16:11] [INFO ] Advertencias        : 0
+[2026-08-30 22:16:11] [OK   ] Descarga de runtimes completada con éxito.
+[2026-08-30 22:16:11] [INIT ] Log estructurado    : C:\scripts\Runtimes\Logs\Get-Runtimes_20260830_221604.log
+[2026-08-30 22:16:11] [INIT ] AI Summary (MD)     : C:\scripts\Runtimes\Logs\Get-Runtimes_20260830_221604_AI_SUMMARY.md
+[2026-08-30 22:16:11] [INIT ] Transcript          : C:\scripts\Runtimes\Logs\Get-Runtimes_20260830_221604_transcript.log
+[2026-08-30 22:16:11] [INIT ] ================================================================

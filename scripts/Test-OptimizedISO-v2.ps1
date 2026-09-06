@@ -37,7 +37,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 53
+$EXPECTED_FUNCS  = 58
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -314,7 +314,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "53 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "58 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -330,7 +330,9 @@ $expectedList = @(
     "Expand-WindowsIso", "Invoke-RegUnloadHive", "Add-ImageInstallToAutounattend",
     "Invoke-FallbackSelectionMenu", "Invoke-SelectionMenu", "Invoke-WizardConfig",
     "Invoke-DeploymentChoices", "Invoke-MonitoredProcess", "Invoke-SafeWimDismount",
-    "Test-MsuIsPsfFormat", "Get-WimPatchLevel", "Resolve-RuntimesDirectory"
+    "Test-MsuIsPsfFormat", "Get-WimPatchLevel", "Resolve-RuntimesDirectory",
+    "Set-BuildDefenderExclusions", "Import-BuildPreset", "Export-BuildPreset",
+    "Test-IsRomanizedISO", "Invoke-WimAiHardening"
 )
 foreach ($fn in $expectedList) {
     Assert-True "Funcion '$fn' disponible" ($null -ne (Get-Command $fn -ErrorAction SilentlyContinue))
@@ -561,6 +563,17 @@ Assert-NoThrow "Invoke-SafeWimDismount: Manejo seguro de directorio inexistente 
     Invoke-SafeWimDismount -MountDir "C:\RutaFalsa_NoExiste_Mount_$(Get-Random)" -Action Discard
 }
 
+# --- FASE 2J-B: Resiliencia de Desmontaje WIM y Prevención de Fugas de Handles (PLAN-0023) ---
+Write-HarnessHeader2 "FASE 2J-B: Resiliencia WIM y Desmontaje Seguro (PLAN-0023)"
+$v2AstContent = Get-Content -Path $TargetScript -Raw
+Assert-False "PLAN-0023: Get-WimPatchLevel no usa Get-ItemProperty en colmena offline" ($v2AstContent -match 'Get-ItemProperty\s+["'']HKLM:\\_WIMPATCH_TMP')
+Assert-False "PLAN-0023: Invoke-WimAiHardening no usa Get-ItemProperty en colmena offline" ($v2AstContent -match 'Get-ItemProperty\s+["'']HKLM:\\_ROMANOS_SW')
+Assert-True  "PLAN-0023: Get-WimPatchLevel consulta UBR via reg.exe query nativo" ($v2AstContent -match 'reg(\.exe)?\s+query\s+["'']HKLM\\_WIMPATCH_TMP.*UBR')
+Assert-True  "PLAN-0023: Invoke-SafeWimDismount detecta imagen ya confirmada (alreadyCommitted)" ($v2AstContent -match '\$alreadyCommitted')
+Assert-True  "PLAN-0023: Invoke-SafeWimDismount realiza higiene preventiva de colmenas huerfanas" ($v2AstContent -match 'PRE-DISMOUNT')
+Assert-True  "PLAN-0023: Invoke-RegUnloadHive soporta alias HiveKey" ($v2AstContent -match 'Alias\("HiveKey"\)')
+
+
 # --- FASE 2K: Subsistema de Diagnóstico Post-Instalación ---
 Write-HarnessHeader2 "FASE 2K: Subsistema de Diagnostico Post-Instalacion"
 $diagTestDir = Join-Path $TEMP_ROOT "DiagTest"
@@ -576,7 +589,7 @@ Assert-False "autounattend.xml: Sin directivas invalidas WillContinueOnFailure" 
 # Extraer y ejecutar sintácticamente PostInstall-Diagnostics.ps1 en sandbox
 $diagMatch = [regex]::Match($v2Content, '(?s)\$postInstallDiagTemplate\s*=\s*@''\r?\n(.*?)\r?\n''@')
 if ($diagMatch.Success) {
-    $extractedDiag = $diagMatch.Groups[1].Value.Replace('__OPT_PROFILE__', '3').Replace('__BLOCK_ONEDRIVE__', '$true')
+    $extractedDiag = $diagMatch.Groups[1].Value.Replace('__OPT_PROFILE__', '2').Replace('__BLOCK_ONEDRIVE__', '$true')
     $testScriptPath = Join-Path $diagTestDir "PostInstall-Diagnostics.ps1"
     [System.IO.File]::WriteAllText($testScriptPath, $extractedDiag, [System.Text.Encoding]::UTF8)
 
@@ -665,6 +678,170 @@ $script:IsoSha256 = "ABC123"; $script:IsoSizeBytes = 4500000000; $script:UefiBoo
 Assert-True  "AuditResources: IsoSha256 configurable"              ($null -ne $script:IsoSha256)
 Assert-True  "AuditResources: UefiBoot configurable"               ($null -ne $script:UefiBoot)
 Assert-True  "AuditResources: IsoSizeBytes positivo"               ($script:IsoSizeBytes -gt 0)
+
+# --- FASE 2N: MOTOR DISM SERVICING OPTIMIZADO Y EXCLUSIONES DEFENDER (PLAN-0011 / PLAN-0018) ---
+Write-HarnessHeader2 "FASE 2N: Motor DISM Servicing Optimizado y Exclusiones Defender (PLAN-0018)"
+
+Assert-NoThrow "Set-BuildDefenderExclusions ejecuta sin excepciones en rutas mock" {
+    Set-BuildDefenderExclusions -Paths @("C:\TestMockDir1", "C:\TestMockDir2")
+    Set-BuildDefenderExclusions -Paths @("C:\TestMockDir1", "C:\TestMockDir2") -Remove
+}
+
+Assert-NoThrow "Validacion de parametro DisableDefenderExclusion en AST" {
+    $targetContent = Get-Content $TargetScript -Raw
+    if ($targetContent -notmatch '\$DisableDefenderExclusion') {
+        throw "Parametro DisableDefenderExclusion no encontrado en el script objetivo."
+    }
+}
+
+Assert-NoThrow "Validacion de eliminacion de parametros obsoletos (BuildEngine, FastBuild, UseWimlib)" {
+    $targetContent = Get-Content $TargetScript -Raw
+    if ($targetContent -match '\$BuildEngine' -or $targetContent -match '\$FastBuild' -or $targetContent -match '\$UseWimlib') {
+        throw "Parametros obsoletos encontrados en el script objetivo tras saneamiento PLAN-0018."
+    }
+}
+
+# --- FASE 2O: PRESETS, REBUILD DETECTION, PERFIL 3 Y OPTIMIZACIONES OFICIALES (PLAN-0019) ---
+Write-HarnessHeader2 "FASE 2O: Presets, Deteccion Rebuild, Perfil 3 y Optimizaciones Oficiales (PLAN-0019)"
+
+$presetTestDir = Join-Path $TEMP_ROOT "PresetTest"
+New-Item -ItemType Directory -Path $presetTestDir -Force | Out-Null
+
+# Test 1: Export-BuildPreset genera un archivo JSON valido
+$script:Language            = "es-ES"
+$script:Locale              = "es-ES"
+$script:Timezone            = "Romance Standard Time"
+$script:KeyboardOverride    = "0000040a"
+$script:LocalUser           = "AdminTest"
+$script:LocalPassword       = "Pass123"
+$script:OptProfile          = "3"
+$script:BlockOneDrive       = $true
+$script:InjectVisualTweaks  = $true
+$script:WimCompression      = "Max"
+$Architecture               = "x64"
+
+Assert-NoThrow "Export-BuildPreset: Exporta archivo de preset sin excepciones" {
+    Export-BuildPreset -OutputDirectory $presetTestDir
+}
+
+$presetFiles = @(Get-ChildItem -Path $presetTestDir -Filter "Preset_romanOS_*.json")
+Assert-True "Export-BuildPreset: Archivo Preset_romanOS_*.json creado" ($presetFiles.Count -ge 1)
+
+if ($presetFiles.Count -ge 1) {
+    $exportedPresetPath = $presetFiles[0].FullName
+    $raw = Get-Content -Path $exportedPresetPath -Raw -Encoding UTF8
+    $jsonObj = $null
+    Assert-NoThrow "Export-BuildPreset: Archivo exportado es JSON valido" {
+        $raw | ConvertFrom-Json | Out-Null
+    }
+    $jsonObj = $raw | ConvertFrom-Json
+    Assert-Equal "Export-BuildPreset: Language exportado correctamente" $jsonObj.Language "es-ES"
+    Assert-Equal "Export-BuildPreset: OptimizationProfile exportado correctamente" $jsonObj.OptimizationProfile "3"
+    Assert-Equal "Export-BuildPreset: BlockOneDrive exportado correctamente" $jsonObj.BlockOneDrive $true
+    Assert-Equal "Export-BuildPreset: WimCompression exportado correctamente" $jsonObj.WimCompression "Max"
+
+    # Test 2: Import-BuildPreset carga los valores en un contexto limpio
+    $script:Language   = ""
+    $script:OptProfile = ""
+    Assert-NoThrow "Import-BuildPreset: Importa configuracion desde JSON sin excepciones" {
+        Import-BuildPreset -PresetPath $exportedPresetPath -ScriptBoundParameters @{}
+    }
+    Assert-Equal "Import-BuildPreset: Language cargado en scope" $script:Language "es-ES"
+    Assert-Equal "Import-BuildPreset: OptimizationProfile cargado en scope" $script:OptProfile "3"
+
+    # Test 3: Precedencia de CLI (ScriptBoundParameters tiene prioridad)
+    $script:Language = "en-US"
+    Import-BuildPreset -PresetPath $exportedPresetPath -ScriptBoundParameters @{ Language = "en-US" }
+    Assert-Equal "Import-BuildPreset: CLI BoundParameters prevalece sobre preset" $script:Language "en-US"
+}
+
+# Test 4: Test-IsRomanizedISO detecta correctamente ISO limpia vs ISO romanizada
+$cleanIsoDir = Join-Path $TEMP_ROOT "CleanISO"
+$romanIsoDir = Join-Path $TEMP_ROOT "RomanISO"
+New-Item -ItemType Directory -Path (Join-Path $cleanIsoDir "sources") -Force | Out-Null
+$romanOemDir = Join-Path $romanIsoDir 'sources\$OEM$\$$\Setup\Scripts'
+New-Item -ItemType Directory -Path $romanOemDir -Force | Out-Null
+
+# Crear SetupComplete firmado
+[System.IO.File]::WriteAllText((Join-Path $romanOemDir "SetupComplete.cmd"), "REM SetupComplete.cmd - Generado por romanOS OptimizedISO`r`necho OK", [System.Text.Encoding]::UTF8)
+# Crear autounattend con bypasses
+[System.IO.File]::WriteAllText((Join-Path $romanIsoDir "autounattend.xml"), "<unattend><BypassTPMCheck>1</BypassTPMCheck><BypassNRO>1</BypassNRO></unattend>", [System.Text.Encoding]::UTF8)
+
+$cleanCheck = Test-IsRomanizedISO -ExtractedDir $cleanIsoDir
+Assert-False "Test-IsRomanizedISO: Carpeta limpia => SetupComplete = False" $cleanCheck.SetupComplete
+Assert-False "Test-IsRomanizedISO: Carpeta limpia => Autounattend = False" $cleanCheck.Autounattend
+
+$romanCheck = Test-IsRomanizedISO -ExtractedDir $romanIsoDir
+Assert-True "Test-IsRomanizedISO: Carpeta romanizada => SetupComplete = True" $romanCheck.SetupComplete
+Assert-True "Test-IsRomanizedISO: Carpeta romanizada => Autounattend = True" $romanCheck.Autounattend
+
+# Test 5: Invoke-WimAiHardening con build mock
+Assert-NoThrow "Invoke-WimAiHardening: Manejo seguro de directorio no montado (retorna false sin crash)" {
+    $aiRes = Invoke-WimAiHardening -WimMountPath "C:\Ruta_Inexistente_Mount_$(Get-Random)" -DetectedBuild 26100
+    if ($aiRes -ne $false) { throw "Debe retornar false para ruta inexistente" }
+}
+
+# Test 6: Validacion de directivas oficiales en el script objetivo
+$v2ScriptContent = Get-Content -Path $TargetScript -Raw
+Assert-True "PLAN-0019: Parametros PresetFile y SavePreset presentes en AST" ($v2ScriptContent -match '\$PresetFile' -and $v2ScriptContent -match '\$SavePreset')
+Assert-True "PLAN-0019: Perfil 3 soportado en ValidateSet de OptimizationProfile" ($v2ScriptContent -match 'ValidateSet\("1",\s*"2",\s*"3"\)')
+Assert-True "PLAN-0019: Politica Widgets AllowWidgets inyectada en autounattend" ($v2ScriptContent -match 'AllowWidgets')
+Assert-True "PLAN-0019: Politica Bing DisableWebSearch inyectada en autounattend" ($v2ScriptContent -match 'DisableWebSearch')
+Assert-True "PLAN-0019: Politica Delivery Optimization DODownloadMode inyectada en autounattend" ($v2ScriptContent -match 'DODownloadMode')
+Assert-True "PLAN-0019: Politica AdvertisingInfo inyectada en autounattend" ($v2ScriptContent -match 'DisabledByGroupPolicy')
+Assert-True "PLAN-0019: Politica Activity History (PublishUserActivities) inyectada en autounattend" ($v2ScriptContent -match 'PublishUserActivities')
+Assert-True "PLAN-0021: ReservedStorage ShippedWithReserves presente en WIM servicing" ($v2ScriptContent -match 'ShippedWithReserves')
+Assert-True "PLAN-0021: Politica Widgets AllowWidgets presente en autounattend (en reemplazo de TaskbarDa bloqueado por UCPD)" ($v2ScriptContent -match 'AllowWidgets')
+Assert-True "PLAN-0019: SetupComplete configura plan Equilibrado para Perfil 3" ($v2ScriptContent -match '381b4222-f694-41f0-9685-ff5bb260df2e')
+
+# Test 7: Arquitectura Unificada y Ecosistema Integral SSOT (PLAN-0022)
+Write-HarnessHeader2 "Test 7: Validacion de Arquitectura Unificada (Policy-Engine y Sincronizacion SSOT)"
+$policyEnginePath = Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"
+Assert-FileExists "PLAN-0022: Policy-Engine.ps1 existe en scripts/Core" $policyEnginePath
+
+# Dot-source de Policy-Engine para pruebas de contrato
+. $policyEnginePath
+Assert-True "PLAN-0022: Get-RomanOSPolicies function registrada" ([bool](Get-Command Get-RomanOSPolicies -ErrorAction SilentlyContinue))
+Assert-True "PLAN-0022: Export-RomanOSUnattendCommands function registrada" ([bool](Get-Command Export-RomanOSUnattendCommands -ErrorAction SilentlyContinue))
+Assert-True "PLAN-0022: Test-RomanOSPolicy function registrada" ([bool](Get-Command Test-RomanOSPolicy -ErrorAction SilentlyContinue))
+
+$allPols = Get-RomanOSPolicies -Profile '1'
+Assert-True "PLAN-0022: Catalogo de politicas contiene al menos 20 directivas maestras" ($allPols.Count -ge 20)
+
+$widgetPol = $allPols | Where-Object { $_.Id -eq 'POL_WIDGETS_ALLOW' }
+Assert-NotNull "PLAN-0022: Politica AllowWidgets presente en catalogo maestro" $widgetPol
+Assert-Equal "PLAN-0022: Politica AllowWidgets valor esperado es 0" $widgetPol.ExpectedValue 0
+
+$bingPol = $allPols | Where-Object { $_.Id -eq 'POL_SEARCH_DISABLE_WEB' }
+Assert-NotNull "PLAN-0022: Politica DisableWebSearch presente en catalogo maestro" $bingPol
+Assert-Equal "PLAN-0022: Politica DisableWebSearch valor esperado es 1" $bingPol.ExpectedValue 1
+
+$unattendExport = Export-RomanOSUnattendCommands -Profile '1' -StartOrder 2
+Assert-True "PLAN-0022: Export-RomanOSUnattendCommands genera XML con RunSynchronousCommand" ($unattendExport.XmlContent -match '<RunSynchronousCommand')
+Assert-True "PLAN-0022: Export-RomanOSUnattendCommands incluye AllowWidgets" ($unattendExport.XmlContent -match 'AllowWidgets')
+Assert-True "PLAN-0022: Export-RomanOSUnattendCommands incluye DisableWebSearch" ($unattendExport.XmlContent -match 'DisableWebSearch')
+Assert-True "PLAN-0022: Export-RomanOSUnattendCommands devuelve NextOrder consecutivo" ($unattendExport.NextOrder -gt 20)
+
+# Paridad con PostInstall-Diagnostics.ps1
+$postDiagPath = Join-Path $PSScriptRoot "PostInstall-Diagnostics.ps1"
+$postDiagContent = Get-Content -Path $postDiagPath -Raw
+Assert-True "PLAN-0022: PostInstall-Diagnostics.ps1 carga Core/Policy-Engine.ps1" ($postDiagContent -match 'Policy-Engine\.ps1')
+Assert-True "PLAN-0022: PostInstall-Diagnostics.ps1 audita Get-RomanOSPolicies dinamicamente" ($postDiagContent -match 'Get-RomanOSPolicies')
+Assert-True "PLAN-0022: PostInstall-Diagnostics.ps1 audita paquete WebExperience especificamente" ($postDiagContent -match 'WebExperience')
+Assert-True "PLAN-0022: PostInstall-Diagnostics.ps1 incluye tabla HTML de Policy-Engine" ($postDiagContent -match 'Directivas Oficiales de Optimizacion \(Policy-Engine\)')
+
+# Paridad con New-OptimizedWindowsISO-v2.ps1 y romanOS-Toolkit.ps1
+Assert-True "PLAN-0022: v2 script carga Core/Policy-Engine.ps1" ($v2ScriptContent -match 'Policy-Engine\.ps1')
+Assert-True "PLAN-0022: v2 script invoca Export-RomanOSUnattendCommands" ($v2ScriptContent -match 'Export-RomanOSUnattendCommands')
+Assert-True "PLAN-0022: v2 script inyecta PostInstall-Diagnostics.ps1 desde archivo fisico" ($v2ScriptContent -match 'diagSourceCandidates')
+
+$toolkitPath = Join-Path $PSScriptRoot "romanOS-Toolkit.ps1"
+$toolkitContent = Get-Content -Path $toolkitPath -Raw
+Assert-True "PLAN-0022: romanOS-Toolkit.ps1 carga Core/Policy-Engine.ps1" ($toolkitContent -match 'Policy-Engine\.ps1')
+
+# Paridad de Gobernanza en .agents/AGENTS.md
+$agentsRuleContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) ".agents\AGENTS.md") -Raw
+Assert-True "PLAN-0022: .agents/AGENTS.md contiene Regla 9 de Arquitectura Unificada (SSOT)" ($agentsRuleContent -match 'Regla 9|Arquitectura Unificada')
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"

@@ -1,0 +1,942 @@
+**********************
+PowerShell transcript start
+Start time: 20260903194455
+Username: DESKTOP-0TQ7HR9\Roman
+RunAs User: DESKTOP-0TQ7HR9\Roman
+Configuration Name: 
+Machine: DESKTOP-0TQ7HR9 (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -NoExit -RemoveWorkingDirectoryTrailingCharacter -WorkingDirectory C:\OptimizedISO\scripts! -Command $host.UI.RawUI.WindowTitle = 'PowerShell 7 (x64)'
+Process ID: 9672
+PSVersion: 7.6.5
+PSEdition: Core
+GitCommitId: 7.6.5
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.4
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║                    romanOS - WINDOWS UPDATES ENGINE                    ║
+  ║        Obtención de Actualizaciones Oficiales (11_24H2 - amd64)        ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+
+>>> [1/3] Consultando Catálogo Oficial de Microsoft Update
+  -> Buscando Parche Acumulativo de Sistema Operativo (LCU)...
+  [OK] LCU Identificado: KB5121003 - 2026-08 Cumulative Update for Windows 11, version 24H2 for x64-based Systems (KB5121003) (26100.9168) (5376.4 MB)
+  -> Buscando Actualización Acumulativa de .NET Framework (3.5 / 4.8.1)...
+  [OK] .NET Update Identificado: KB5122385 - 2026-08 Cumulative Update Preview for .NET Framework 3.5 and 4.8.1 for Windows 11, version 24H2 for x64 (KB5122385) (92.3 MB)
+  -> Buscando Checkpoint CU (KB5043080) — prerequisito obligatorio para LCU...
+  [WARN] No se encontró Checkpoint KB5043080 en el catálogo. Puede que ya esté incluido en la ISO base.
+
+>>> [2/3] Resolviendo Enlaces CDN de Microsoft
+  -> Obteniendo URLs de descarga para KB5121003 (LCU)...
+  [OK] Enlaces resueltos para KB5121003: 2 archivo(s) CDN disponible(s).
+  -> Obteniendo URLs de descarga para KB5122385 (DotNet)...
+  [OK] Enlaces resueltos para KB5122385: 1 archivo(s) CDN disponible(s).
+
+>>> [3/3] Descargando e Integrando Paquetes en C:\OptimizedISO\Updates\11_24H2_amd64
+
+  ══ Paquete: KB5121003 [LCU] ══
+  Archivo : windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu
+  Tamaño  : 5376.4 MB
+  -> Conectando con CDN de Microsoft...
+    [⏳ Descargando] 53.9 MB / 509 MB (11%) - 26.96 MB/s
+    [⏳ Descargando] 118.4 MB / 509 MB (23%) - 29.6 MB/s
+PS>TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+PS C:\OptimizedISO\scripts> .\Get-WindowsUpdates.ps1
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║                     DESCARGADOR DE WINDOWS UPDATES                     ║
+  ║                     Microsoft Update Catalog Engine                    ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+  Host: DESKTOP-0TQ7HR9 | Usuario: Roman (Admin)
+  SO  : Microsoft Windows 11 Pro for Workstations (64 bits) | C: 640.7 GB libres
+  ────────────────────────────────────────────────────────────────────────
+
+  Configuracion de Destino para Paquetes (.msu / .cab):
+  Carpeta por defecto sugerida: C:\OptimizedISO\Updates
+
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║                     DESCARGADOR DE WINDOWS UPDATES                     ║
+  ║                     Selección de Versión de Windows                    ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+  Host: DESKTOP-0TQ7HR9 | Usuario: Roman (Admin)
+  SO  : Microsoft Windows 11 Pro for Workstations (64 bits) | C: 640.7 GB libres
+  ────────────────────────────────────────────────────────────────────────
+
+  ┌─ VERSIONES OFICIALES DISPONIBLES ────────────────────────────────────┐
+  │  [1] Windows 11 24H2 / 25H2 (Compilación 26100+)                     │
+  │  [2] Windows 11 23H2 (Compilación 22631)                             │
+  │  [3] Windows 11 IoT Enterprise LTSC 2024 (Compilación 26100)         │
+  │  [4] Windows 10 22H2 (Compilación 19045)                             │
+  │  [5] Windows 10 Enterprise LTSC 2021 (Compilación 19044)             │
+  │  [0] Cancelar y Salir                                                │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║                    romanOS - WINDOWS UPDATES ENGINE                    ║
+  ║        Obtención de Actualizaciones Oficiales (11_24H2 - amd64)        ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+
+>>> [1/3] Consultando Catálogo Oficial de Microsoft Update
+  -> Buscando Parche Acumulativo de Sistema Operativo (LCU)...
+  [OK] LCU Identificado: KB5121003 - 2026-08 Cumulative Update for Windows 11, version 24H2 for x64-based Systems (KB5121003) (26100.9168) (5376.4 MB)
+  -> Buscando Actualización Acumulativa de .NET Framework (3.5 / 4.8.1)...
+  [OK] .NET Update Identificado: KB5122385 - 2026-08 Cumulative Update Preview for .NET Framework 3.5 and 4.8.1 for Windows 11, version 24H2 for x64 (KB5122385) (92.3 MB)
+  -> Buscando Checkpoint CU (KB5043080) — prerequisito obligatorio para LCU...
+  [WARN] No se encontró Checkpoint KB5043080 en el catálogo. Puede que ya esté incluido en la ISO base.
+
+>>> [2/3] Resolviendo Enlaces CDN de Microsoft
+  -> Obteniendo URLs de descarga para KB5121003 (LCU)...
+  [OK] Enlaces resueltos para KB5121003: 2 archivo(s) CDN disponible(s).
+  -> Obteniendo URLs de descarga para KB5122385 (DotNet)...
+  [OK] Enlaces resueltos para KB5122385: 1 archivo(s) CDN disponible(s).
+
+>>> [3/3] Descargando e Integrando Paquetes en C:\OptimizedISO\Updates\11_24H2_amd64
+
+  ══ Paquete: KB5121003 [LCU] ══
+  Archivo : windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu
+  Tamaño  : 5376.4 MB
+  -> Conectando con CDN de Microsoft...
+    [⏳ Descargando] 72 MB / 509 MB (14%) - 35.98 MB/s
+    [⏳ Descargando] 165.5 MB / 509 MB (33%) - 41.38 MB/s
+    [⏳ Descargando] 259.5 MB / 509 MB (51%) - 43.25 MB/s
+    [⏳ Descargando] 350.4 MB / 509 MB (69%) - 43.8 MB/s
+    [⏳ Descargando] 440.7 MB / 509 MB (87%) - 44.07 MB/s
+
+  [OK] Firma digital oficial de Microsoft verificada: windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu
+
+  ══ Paquete: KB5121003 [LCU] ══
+  Archivo : windows11.0-kb5121003-x64_dc58f03fef04b4c611e0db0ab3fadfb301194113.msu
+  Tamaño  : 5376.4 MB
+  -> Conectando con CDN de Microsoft...
+    [⏳ Descargando] 62 MB / 4867.4 MB (1%) - 31.01 MB/s
+    [⏳ Descargando] 139.9 MB / 4867.4 MB (3%) - 34.97 MB/s
+    [⏳ Descargando] 225.1 MB / 4867.4 MB (5%) - 37.52 MB/s
+    [⏳ Descargando] 317.4 MB / 4867.4 MB (7%) - 39.67 MB/s
+    [⏳ Descargando] 406.5 MB / 4867.4 MB (8%) - 40.65 MB/s
+    [⏳ Descargando] 471 MB / 4867.4 MB (10%) - 39.25 MB/s
+    [⏳ Descargando] 548.9 MB / 4867.4 MB (11%) - 39.21 MB/s
+    [⏳ Descargando] 633.4 MB / 4867.4 MB (13%) - 39.59 MB/s
+    [⏳ Descargando] 728.8 MB / 4867.4 MB (15%) - 40.49 MB/s
+    [⏳ Descargando] 821.5 MB / 4867.4 MB (17%) - 41.07 MB/s
+    [⏳ Descargando] 908.6 MB / 4867.4 MB (19%) - 41.3 MB/s
+    [⏳ Descargando] 998 MB / 4867.4 MB (21%) - 41.59 MB/s
+    [⏳ Descargando] 1082.2 MB / 4867.4 MB (22%) - 41.62 MB/s
+    [⏳ Descargando] 1174.3 MB / 4867.4 MB (24%) - 41.94 MB/s
+    [⏳ Descargando] 1269.2 MB / 4867.4 MB (26%) - 42.31 MB/s
+    [⏳ Descargando] 1359.4 MB / 4867.4 MB (28%) - 42.48 MB/s
+    [⏳ Descargando] 1444.5 MB / 4867.4 MB (30%) - 42.48 MB/s
+    [⏳ Descargando] 1532.5 MB / 4867.4 MB (31%) - 42.57 MB/s
+    [⏳ Descargando] 1612.2 MB / 4867.4 MB (33%) - 42.43 MB/s
+    [⏳ Descargando] 1706.4 MB / 4867.4 MB (35%) - 42.66 MB/s
+    [⏳ Descargando] 1792.5 MB / 4867.4 MB (37%) - 42.68 MB/s
+    [⏳ Descargando] 1882.3 MB / 4867.4 MB (39%) - 42.78 MB/s
+    [⏳ Descargando] 1970.7 MB / 4867.4 MB (40%) - 42.84 MB/s
+    [⏳ Descargando] 2060 MB / 4867.4 MB (42%) - 42.92 MB/s
+    [⏳ Descargando] 2153.5 MB / 4867.4 MB (44%) - 43.07 MB/s
+    [⏳ Descargando] 2236.3 MB / 4867.4 MB (46%) - 43.01 MB/s
+    [⏳ Descargando] 2312.2 MB / 4867.4 MB (48%) - 42.82 MB/s
+    [⏳ Descargando] 2400 MB / 4867.4 MB (49%) - 42.86 MB/s
+    [⏳ Descargando] 2488.5 MB / 4867.4 MB (51%) - 42.9 MB/s
+    [⏳ Descargando] 2508.4 MB / 4867.4 MB (52%) - 41.81 MB/s
+    [⏳ Descargando] 2511.4 MB / 4867.4 MB (52%) - 40.51 MB/s
+    [⏳ Descargando] 2577.8 MB / 4867.4 MB (53%) - 40.28 MB/s
+    [⏳ Descargando] 2661.1 MB / 4867.4 MB (55%) - 40.32 MB/s
+    [⏳ Descargando] 2742.1 MB / 4867.4 MB (56%) - 40.33 MB/s
+    [⏳ Descargando] 2822.7 MB / 4867.4 MB (58%) - 40.32 MB/s
+    [⏳ Descargando] 2910.5 MB / 4867.4 MB (60%) - 40.42 MB/s
+    [⏳ Descargando] 3002 MB / 4867.4 MB (62%) - 40.57 MB/s
+    [⏳ Descargando] 3096.1 MB / 4867.4 MB (64%) - 40.74 MB/s
+    [⏳ Descargando] 3180 MB / 4867.4 MB (65%) - 40.77 MB/s
+    [⏳ Descargando] 3267.9 MB / 4867.4 MB (67%) - 40.85 MB/s
+    [⏳ Descargando] 3363.3 MB / 4867.4 MB (69%) - 41.02 MB/s
+    [⏳ Descargando] 3456.8 MB / 4867.4 MB (71%) - 41.15 MB/s
+    [⏳ Descargando] 3544 MB / 4867.4 MB (73%) - 41.21 MB/s
+    [⏳ Descargando] 3632.1 MB / 4867.4 MB (75%) - 41.27 MB/s
+    [⏳ Descargando] 3723.6 MB / 4867.4 MB (77%) - 41.37 MB/s
+    [⏳ Descargando] 3814.4 MB / 4867.4 MB (78%) - 41.46 MB/s
+    [⏳ Descargando] 3904 MB / 4867.4 MB (80%) - 41.53 MB/s
+    [⏳ Descargando] 3997.6 MB / 4867.4 MB (82%) - 41.64 MB/s
+    [⏳ Descargando] 4084.2 MB / 4867.4 MB (84%) - 41.68 MB/s
+    [⏳ Descargando] 4174 MB / 4867.4 MB (86%) - 41.74 MB/s
+    [⏳ Descargando] 4260.1 MB / 4867.4 MB (88%) - 41.77 MB/s
+    [⏳ Descargando] 4356.1 MB / 4867.4 MB (89%) - 41.89 MB/s
+    [⏳ Descargando] 4449.2 MB / 4867.4 MB (91%) - 41.97 MB/s
+    [⏳ Descargando] 4540.5 MB / 4867.4 MB (93%) - 42.04 MB/s
+    [⏳ Descargando] 4625.1 MB / 4867.4 MB (95%) - 42.05 MB/s
+    [⏳ Descargando] 4708.8 MB / 4867.4 MB (97%) - 42.04 MB/s
+    [⏳ Descargando] 4801.8 MB / 4867.4 MB (99%) - 42.12 MB/s
+
+  [OK] Firma digital oficial de Microsoft verificada: windows11.0-kb5121003-x64_dc58f03fef04b4c611e0db0ab3fadfb301194113.msu
+
+  ══ Paquete: KB5122385 [DotNet] ══
+  Archivo : windows11.0-kb5122385-x64-ndp481_c3cddfc782cca3dbc8fe5e4e60d359a20a446749.msu
+  Tamaño  : 92.3 MB
+  -> Conectando con CDN de Microsoft...
+    [⏳ Descargando] 73.4 MB / 92.3 MB (80%) - 36.7 MB/s
+
+  [OK] Firma digital oficial de Microsoft verificada: windows11.0-kb5122385-x64-ndp481_c3cddfc782cca3dbc8fe5e4e60d359a20a446749.msu
+  [OK] Manifiesto de actualizaciones guardado: C:\OptimizedISO\Updates\11_24H2_amd64\Updates_Manifest.json
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║           RESUMEN DE EJECUCION: DESCARGA DE WINDOWS UPDATES            ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║
+   Estado Global        : COMPLETADO CON EXITO [OK]
+║
+  ║   Tiempo Transcurrido  : 166.8s                                        ║
+  ║   Incidencias          : 0 error(es) | 0 advertencia(s)                ║
+  ║   Logs y Reportes IA Generados:                                        ║
+  ║    - Transcript: C:\OptimizedISO\Updates\Logs\Get-Updates_20260903_... ║
+  ║    - Log Estructurado: C:\OptimizedISO\Updates\Logs\Get-Updates_202... ║
+  ║    - AI Diagnostic MD: C:\OptimizedISO\Updates\Logs\Get-Updates_202... ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+
+  💡 Integración Automática con la ISO:
+     Al ejecutar 'New-OptimizedWindowsISO-v2.ps1', los parches ubicados en
+     'C:\OptimizedISO\Updates' o 'C:\OptimizedISO\Updates\11_24H2_amd64' serán inyectados automáticamente con DISM.
+
+PS C:\OptimizedISO\scripts> .\Get-EssentialRuntimes.ps1
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║                   DESCARGADOR DE RUNTIMES ESENCIALES                   ║
+  ║           Integracion Oficial Microsoft CDN para Windows ISO           ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+  Host: DESKTOP-0TQ7HR9 | Usuario: Roman (Admin)
+  SO  : Microsoft Windows 11 Pro for Workstations (64 bits) | C: 635.3 GB libres
+  ────────────────────────────────────────────────────────────────────────
+
+  [i] Carpeta de destino: C:\OptimizedISO\scripts\Runtimes
+
+  [1/7] Visual C++ 2015-2022 (x64): Ya existe (24.45 MB). Omitiendo.
+  [2/7] Visual C++ 2015-2022 (x86): Ya existe (13.31 MB). Omitiendo.
+  [3/7] Visual C++ 2013 (x64): Ya existe (6.87 MB). Omitiendo.
+  [4/7] Visual C++ 2013 (x86): Ya existe (6.21 MB). Omitiendo.
+  [5/7] Visual C++ 2012 (x64): Ya existe (6.85 MB). Omitiendo.
+  [6/7] Visual C++ 2012 (x86): Ya existe (6.25 MB). Omitiendo.
+  [7/7] DirectX End-User (Junio 2010): Ya extraído en DirectX/. Omitiendo.
+  [i] Archivos totales en Runtimes: 169 | Espacio total: 162.11 MB
+  [i] La proxima vez que ejecutes 'New-OptimizedWindowsISO-v2.ps1', se integraran automaticamente.
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║               RESUMEN DE EJECUCION: DESCARGA DE RUNTIMES               ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║
+   Estado Global        : COMPLETADO CON EXITO [OK]
+║
+  ║   Tiempo Transcurrido  : 0.2s                                          ║
+  ║   Incidencias          : 0 error(es) | 0 advertencia(s)                ║
+  ║   Logs y Reportes IA Generados:                                        ║
+  ║    - Transcript: C:\OptimizedISO\scripts\Runtimes\Logs\Get-Runtimes... ║
+  ║    - Log Estructurado: C:\OptimizedISO\scripts\Runtimes\Logs\Get-Ru... ║
+  ║    - AI Diagnostic MD: C:\OptimizedISO\scripts\Runtimes\Logs\Get-Ru... ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+PS C:\OptimizedISO\scripts> .\New-OptimizedWindowsISO-v2.ps1 -SourceISO "C:\scripts\Win11_25H2_Spanish_x64_v2.iso" -SavePreset
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║                 GENERADOR DE ISO OPTIMIZADA DE WINDOWS                 ║
+  ║  romanOS v2.0 • Descarga Oficial + Layout WinRE + Dark Mode + Debloat  ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+  Host: DESKTOP-0TQ7HR9 | Usuario: Roman (Admin)
+  SO  : Microsoft Windows 11 Pro for Workstations (64 bits) | C: 635.3 GB libres
+  ────────────────────────────────────────────────────────────────────────
+
+
+  ISO origen seleccionada: C:\scripts\Win11_25H2_Spanish_x64_v2.iso
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║   ASISTENTE DE CONFIGURACIÓN                                            ║
+  ║   Configure idioma, zona horaria y cuenta de usuario.                   ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+  PASO 1/7 — Idioma de la interfaz del sistema (UILanguage)
+  Controla el idioma de los menús y pantallas de Windows.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║ PASO 1/7 — Idioma de la interfaz (UILanguage)                           ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║
+ ▶ es-ES  [Español]
+║
+  ║   en-US  [English]                                                      ║
+  ║   pt-BR  [Português]                                                    ║
+  ║   fr-FR  [Français]                                                     ║
+  ║   de-DE  [Deutsch]                                                      ║
+  ║   it-IT  [Italiano]                                                     ║
+  ║   nl-NL  [Nederlands]                                                   ║
+  ║   ja-JP  [日本語]                                                          ║
+  ║   zh-CN  [中文]                                                           ║
+  ║   ko-KR  [한국어]                                                          ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   ↑↓ Mover   ENTER Confirmar                                            ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+  ✔ Idioma UI: es-ES
+
+  PASO 2/7 — Región / Formato local (SystemLocale + UserLocale)
+  Controla fechas, moneda y formatos numéricos.
+  Puede ser distinto del idioma de la interfaz.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║ PASO 2/7 — Región / Formato local                                       ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║
+ ▶ es-AR  [Argentina]
+║
+  ║   es-BO  [Bolivia]                                                      ║
+  ║   es-CL  [Chile]                                                        ║
+  ║   es-CO  [Colombia]                                                     ║
+  ║   es-CR  [Costa Rica]                                                   ║
+  ║   es-CU  [Cuba]                                                         ║
+  ║   es-DO  [República Dominicana]                                         ║
+  ║   es-EC  [Ecuador]                                                      ║
+  ║   es-ES  [España]                                                       ║
+  ║   es-GT  [Guatemala]                                                    ║
+  ║   es-HN  [Honduras]                                                     ║
+  ║   es-MX  [México]                                                       ║
+  ║   es-NI  [Nicaragua]                                                    ║
+  ║   es-PA  [Panamá]                                                       ║
+  ║   es-PE  [Perú]                                                         ║
+  ║   es-PR  [Puerto Rico]                                                  ║
+  ║   es-PY  [Paraguay]                                                     ║
+  ║   es-SV  [El Salvador]                                                  ║
+  ║   es-US  [Estados Unidos (Español)]                                     ║
+  ║   es-UY  [Uruguay]                                                      ║
+  ║   es-VE  [Venezuela]                                                    ║
+  ║   en-US  [Estados Unidos (Inglés)]                                      ║
+  ║   en-GB  [Reino Unido]                                                  ║
+  ║   pt-BR  [Brasil]                                                       ║
+  ║   pt-PT  [Portugal]                                                     ║
+  ║   fr-FR  [Francia]                                                      ║
+  ║   de-DE  [Alemania]                                                     ║
+  ║   it-IT  [Italia]                                                       ║
+  ║   nl-NL  [Países Bajos]                                                 ║
+  ║   ja-JP  [Japón]                                                        ║
+  ║   zh-CN  [China]                                                        ║
+  ║   ko-KR  [Corea del Sur]                                                ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   ↑↓ Mover   ENTER Confirmar                                            ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+  ✔ Región: es-AR
+
+  PASO 3/7 — Zona horaria
+  Valores válidos según Windows Time Zone IDs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║ PASO 3/7 — Zona horaria                                                 ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   Romance Standard Time  [Madrid, París, Bruselas]                      ║
+  ║   SA Pacific Standard Time  [Bogotá, Lima, Quito]                       ║
+  ║
+ ▶ Argentina Standard Time  [Buenos Aires]
+║
+  ║   Montevideo Standard Time  [Montevideo]                                ║
+  ║   Chile Standard Time  [Santiago]                                       ║
+  ║   Venezuela Standard Time  [Caracas]                                    ║
+  ║   Central America Standard Time  [Centroamérica]                        ║
+  ║   Mexico Standard Time  [Ciudad de México]                              ║
+  ║   Eastern Standard Time  [Nueva York, Miami]                            ║
+  ║   Central Standard Time  [Chicago, Dallas]                              ║
+  ║   Mountain Standard Time  [Denver, Phoenix]                             ║
+  ║   Pacific Standard Time  [Los Ángeles, Seattle]                         ║
+  ║   UTC  [UTC]                                                            ║
+  ║   GMT Standard Time  [Londres, Dublín]                                  ║
+  ║   W. Europe Standard Time  [Berlín, Roma, Ámsterdam]                    ║
+  ║   Central Europe Standard Time  [Budapest, Varsovia]                    ║
+  ║   E. Europe Standard Time  [Atenas, Helsinki]                           ║
+  ║   Russian Standard Time  [Moscú]                                        ║
+  ║   China Standard Time  [Beijing, Shanghai]                              ║
+  ║   Tokyo Standard Time  [Tokio, Osaka]                                   ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   ↑↓ Mover   ENTER Confirmar                                            ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+  ✔ Zona horaria: Argentina Standard Time
+
+  PASO 4/7 — Layout de teclado
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║ PASO 4/7 — Layout de teclado                                            ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║
+ ▶ (igual que idioma 'es-ES')  [Recomendado]
+║
+  ║   es-ES  [Español España]                                               ║
+  ║   es-419  [Español Latinoamérica]                                       ║
+  ║   en-US  [English US]                                                   ║
+  ║   pt-BR  [Português Brasil]                                             ║
+  ║   fr-FR  [Français AZERTY]                                              ║
+  ║   de-DE  [Deutsch QWERTZ]                                               ║
+  ║   it-IT  [Italiano QWERTY]                                              ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   ↑↓ Mover   ENTER Confirmar                                            ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+  ✔ Teclado: es-ES (igual que idioma)
+
+  PASO 5/7 — Cuenta de usuario local
+
+  ✔ Usuario: Thiago
+
+  Contraseña de la cuenta (Enter sin escribir nada = sin contraseña):
+  ✔ Contraseña configurada correctamente.
+
+  PASO 6/7 — Tweaks Visuales Offline
+  Inyecta modo oscuro y ajustes de explorador en el perfil default.
+
+
+
+
+
+
+
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║ PASO 6/7 — Inyectar Tweaks Visuales                                     ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║
+ ▶ Sí (Inyectar Modo Oscuro y ajustes visuales)
+║
+  ║   No (Instalación estándar de Windows)                                  ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   ↑↓ Mover   ENTER Confirmar                                            ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+  ✔ Tweaks Visuales: Sí
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║   RESUMEN DE CONFIGURACIÓN                                              ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   Idioma UI       : es-ES                                               ║
+  ║   Región / Formato: es-AR                                               ║
+  ║   Zona Horaria    : Argentina Standard Time                             ║
+  ║   Teclado         : es-ES (igual que idioma)                            ║
+  ║   Usuario         : Thiago                                              ║
+  ║   Contraseña      : ●●●●●●●●                                            ║
+  ║   Tweaks Visuales : Sí                                                  ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+  ¿Continuar con esta configuración? [S/N]:
+
+
+  PERFILES DE OPTIMIZACIÓN (DEBLOAT)
+
+
+
+
+
+
+
+
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║ Seleccione perfil de optimización                                       ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║
+ ▶ 1 - Gaming & Rendimiento (Equilibrado / 100% Compatible) [Recomendado]
+║
+  ║   2 - Hardcore E-Sports (Latencia Mínima / Torres LAN)  [Extremo: Bare-M║
+  ║   3 - Laptop / VM Silencioso (Eficiencia Energética / Portátiles y VMs) ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   ↑↓ Mover   ENTER Confirmar                                            ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║ Seleccione perfil de optimización                                       ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   1 - Gaming & Rendimiento (Equilibrado / 100% Compatible) [Recomendado]║
+  ║
+ ▶ 2 - Hardcore E-Sports (Latencia Mínima / Torres LAN)  [Extremo: Bare-M
+║
+  ║   3 - Laptop / VM Silencioso (Eficiencia Energética / Portátiles y VMs) ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   ↑↓ Mover   ENTER Confirmar                                            ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+  ✔ Perfil seleccionado: 2
+
+  ¿Desea bloquear la instalación automática de OneDrive?
+
+
+
+
+
+
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║ Bloqueo de OneDrive                                                     ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║
+ ▶ Sí (bloquear OneDrive)
+║
+  ║   No (conservar OneDrive)                                               ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║   ↑↓ Mover   ENTER Confirmar                                            ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+  ✔ Bloquear OneDrive: Sí
+  [OK] Preset exportado exitosamente en: C:\Users\Roman\Desktop\WinISO_Optimizado\Preset_romanOS_20260903_195307.json
+
+  ══ Diagnóstico Pre-vuelo de Recursos Opcionales ══
+  [OK] Runtimes Esenciales : Encontrados en 'C:\OptimizedISO\scripts\Runtimes' [161 archivos (Visual C++ + DirectX)]
+  [OK] Actualizaciones (MSU): Encontradas en 'C:\OptimizedISO\Updates' [3 paquetes listos para inyección]
+  [*] Controladores (INF) : No detectados (Opcional - coloque drivers .inf en Drivers/ si los requiere)
+
+
+>>> [1/6] Extrayendo ISO...
+    19:53:07
+    Usando 7-Zip: C:\Program Files\7-Zip\7z.exe
+    [⏳ Heartbeat] Extracción de ISO con 7-Zip en progreso... (Transcurrido: 00:15 | RAM: 7.7 MB)
+    [⏳ Heartbeat] Extracción de ISO con 7-Zip en progreso... (Transcurrido: 00:30 | RAM: 7.8 MB)
+    [⏳ Heartbeat] Extracción de ISO con 7-Zip en progreso... (Transcurrido: 00:45 | RAM: 7.8 MB)
+  [OK] ISO extraída con 7-Zip.
+  [OK] ISO de Windows válida verificada.
+  [OK] ei.cfg creado/actualizado: selección de edición forzada.
+
+>>> [2/6] Detectando versión de Windows e inyectando scripts...
+    19:53:55
+    Versión detectada por setup.exe: Windows 11
+    Versión detectada: Windows 11
+  [OK] La edición de Windows y el disco se seleccionarán durante la instalación
+
+  SELECCIÓN DE SCRIPT(S) POST-INSTALACIÓN EN ESCRITORIO:
+  ──────────────────────────────────────────────────────────────────────────
+  [1] Suite Completa romanOS: Toolkit Maestro + Debloat + Mantenimiento + Red + Seguridad [Recomendado]
+  [2] romanOS-Toolkit.ps1 (Hub Maestro Orquestador Completo)
+  [3] Win11-Debloat-v3-Adaptive.ps1 (Debloat y Optimización Adaptativa)
+  [4] Invoke-WindowsMaintenance.ps1 (Mantenimiento, Limpieza y Reparación)
+  [5] Win11-Network-Diagnostics-Optimizer.ps1 (Diagnóstico de Red y Latencia)
+  [6] Invoke-WindowsSecurityHardening.ps1 (Auditoría de Seguridad y Hardening)
+  [7] Seleccionar otro archivo .ps1 personalizado...
+  [0] Omitir inyección de scripts (Solo autounattend.xml y tweaks offline)
+
+  [OK] Script inyectado en $OEM$: romanOS-Toolkit.ps1
+  [OK] Lanzador elevado registrado en Scripts: romanOS-Toolkit.cmd
+  [OK] Script inyectado en $OEM$: Win11-Debloat-v3-Adaptive.ps1
+  [OK] Lanzador elevado registrado en Scripts: Optimizar Windows (Opcional).cmd
+  [OK] Script inyectado en $OEM$: Invoke-WindowsMaintenance.ps1
+  [OK] Lanzador elevado registrado en Scripts: Mantenimiento y Reparacion.cmd
+  [OK] Script inyectado en $OEM$: Win11-Network-Diagnostics-Optimizer.ps1
+  [OK] Lanzador elevado registrado en Scripts: Optimizar Red y Latencia (Opcional).cmd
+  [OK] Script inyectado en $OEM$: Invoke-WindowsSecurityHardening.ps1
+  [OK] Lanzador elevado registrado en Scripts: Auditoria de Seguridad (On-Demand).cmd
+  [OK] Lanzador de Auditoria registrado en Scripts: Auditar-Instalacion.cmd
+  [OK] Motores Fundamentales (Core) inyectados en $OEM$$.
+  [OK] Runtimes esenciales inyectados en $OEM$ (161 archivos copiados).
+
+>>> [3/6] Creando SetupComplete.cmd y registro de tareas a demanda...
+    20:02:28
+  [OK] PostInstall-Diagnostics.ps1 inyectado directamente desde archivo físico (C:\OptimizedISO\scripts\PostInstall-Diagnostics.ps1)
+  [OK] Auditar-Instalacion.cmd inyectado directamente desde archivo físico (C:\OptimizedISO\scripts\Auditar-Instalacion.cmd)
+  [OK] PostInstall-Diagnostics.ps1 y lanzador de auditoría registrados en $OEM$
+
+>>> [4/6] Creando autounattend.xml...
+    20:02:28
+
+  ╔══════════════════════════════════════════════════════════════╗
+  ║ PERFILES DE OPTIMIZACIÓN (DEBLOAT)                           ║
+  ╠══════════════════════════════════════════════════════════════╣
+  ║ [1] Conservador: Mantiene Wi-Fi, Bluetooth y apps básicas    ║
+  ║ [2] Gaming: Elimina bloatware agresivo y telemetría          ║
+  ║ [3] Laptop / Portátil / VM: Equilibrado, Wi-Fi, BT y batería ║
+  ╚══════════════════════════════════════════════════════════════╝
+
+
+  Perfil de optimización seleccionado: 2
+  Bloquear OneDrive: Sí
+
+  [OK] autounattend.xml creado
+
+>>> [5/6] Inyectando scripts y optimizaciones en install.wim (offline DISM)...
+    20:02:28
+    Imagen encontrada: C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260903_195218\ISO_Files\sources\install.wim
+
+    Ediciones detectadas en install.wim:
+    ------------------------------------------------------------
+    [Índice 1] Windows 11 Home
+    [Índice 2] Windows 11 Home N
+    [Índice 3] Windows 11 Home Single Language
+    [Índice 4] Windows 11 Education
+    [Índice 5] Windows 11 Education N
+    [Índice 6] Windows 11 Pro
+    [Índice 7] Windows 11 Pro N
+    [Índice 8] Windows 11 Pro Education
+    [Índice 9] Windows 11 Pro Education N
+    [Índice 10] Windows 11 Pro for Workstations
+    [Índice 11] Windows 11 Pro N for Workstations
+    ------------------------------------------------------------
+
+    Seleccione qué edición(es) desea modificar offline:
+    [A] Procesar TODAS las ediciones
+    [1] Solo Índice 1: Windows 11 Home
+    [2] Solo Índice 2: Windows 11 Home N
+    [3] Solo Índice 3: Windows 11 Home Single Language
+    [4] Solo Índice 4: Windows 11 Education
+    [5] Solo Índice 5: Windows 11 Education N
+    [6] Solo Índice 6: Windows 11 Pro
+    [7] Solo Índice 7: Windows 11 Pro N
+    [8] Solo Índice 8: Windows 11 Pro Education
+    [9] Solo Índice 9: Windows 11 Pro Education N
+    [10] Solo Índice 10: Windows 11 Pro for Workstations
+    [11] Solo Índice 11: Windows 11 Pro N for Workstations
+
+
+    Procesando índice 10 (Windows 11 Pro for Workstations)...
+
+Path          : C:\WimMount_20260903_195218
+Online        : False
+RestartNeeded : False
+
+  [OK] WIM índice 10 (Windows 11 Pro for Workstations) montado.
+
+    ══ Auditoría de Nivel de Parche del WIM Base ══
+    KBs en WIM base (UBR: 8037) : KB5054156
+  [*] Slipstreaming omitirá paquetes ya presentes en el WIM.
+
+    ══ Habilitar .NET Framework 3.5 (NetFx3) ══
+    Habilitando .NET 3.5 desde sources\sxs con DISM...
+    [⏳ Heartbeat] Habilitación offline de .NET Framework 3.5 en progreso... (Transcurrido: 00:15 | RAM: 19.5 MB)
+  [OK] .NET Framework 3.5 habilitado en la imagen WIM.
+
+    ══ Slipstreaming de actualizaciones ══
+    Carpeta 'C:\OptimizedISO\scripts\Updates' encontrada pero sin archivos .msu/.cab.
+
+    ══ Inyección offline de Drivers ══
+    Carpeta 'Drivers' encontrada pero sin archivos .inf.
+
+    ══ Eliminar Features on Demand ══
+    Eliminando FOD: App.StepsRecorder~~~~0.0.1.0
+    Eliminando FOD: Browser.InternetExplorer~~~~0.0.11.0
+    Eliminando FOD: Hello.Face.20134~~~~0.0.1.0
+    Eliminando FOD: MathRecognizer~~~~0.0.1.0
+    Eliminando FOD: Media.WindowsMediaPlayer~~~~0.0.12.0
+    Eliminando FOD: Print.Management.Console~~~~0.0.1.0
+  [OK] Features on Demand eliminados.
+
+    ══ Debloat offline AppX ══
+    Paquetes provisionados: 47.
+    Protegidos: 6.
+    Eliminables (Bloatware): 41.
+    Perfil 2 eliminando automáticamente bloatware no protegido.
+    Eliminando 41 paquetes...
+      Eliminado: Clipchamp.Clipchamp
+      Eliminado: Microsoft.ApplicationCompatibilityEnhancements
+      Eliminado: Microsoft.AV1VideoExtension
+      Eliminado: Microsoft.AVCEncoderVideoExtension
+      Eliminado: Microsoft.BingNews
+      Eliminado: Microsoft.BingSearch
+      Eliminado: Microsoft.BingWeather
+      Eliminado: Microsoft.GamingApp
+      Eliminado: Microsoft.GetHelp
+      Eliminado: Microsoft.HEIFImageExtension
+      Eliminado: Microsoft.HEVCVideoExtension
+      Eliminado: Microsoft.MicrosoftOfficeHub
+      Eliminado: Microsoft.MicrosoftSolitaireCollection
+      Eliminado: Microsoft.MicrosoftStickyNotes
+      Eliminado: Microsoft.MPEG2VideoExtension
+      Eliminado: Microsoft.OutlookForWindows
+      Eliminado: Microsoft.Paint
+      Eliminado: Microsoft.PowerAutomateDesktop
+      Eliminado: Microsoft.RawImageExtension
+      Eliminado: Microsoft.ScreenSketch
+      Eliminado: Microsoft.Todos
+      Eliminado: Microsoft.VP9VideoExtensions
+      Eliminado: Microsoft.WebMediaExtensions
+      Eliminado: Microsoft.WebpImageExtension
+      Eliminado: Microsoft.Windows.DevHome
+      Eliminado: Microsoft.Windows.Photos
+      Eliminado: Microsoft.WindowsAlarms
+      Eliminado: Microsoft.WindowsCalculator
+      Eliminado: Microsoft.WindowsCamera
+      Eliminado: Microsoft.WindowsFeedbackHub
+      Eliminado: Microsoft.WindowsNotepad
+      Eliminado: Microsoft.WindowsSoundRecorder
+      Eliminado: Microsoft.WindowsTerminal
+      Eliminado: Microsoft.XboxGamingOverlay
+      Eliminado: Microsoft.XboxSpeechToTextOverlay
+      Eliminado: Microsoft.YourPhone
+      Eliminado: Microsoft.ZuneMusic
+      Eliminado: MicrosoftCorporationII.QuickAssist
+      Eliminado: MicrosoftWindows.Client.WebExperience
+      Eliminado: MicrosoftWindows.CrossDevice
+      Eliminado: MSTeams
+  [OK] Debloat offline completado.
+
+    ══ Desactivar Reserved Storage (Registro Nativo) ══
+  [OK] Reserved Storage configurado para desactivación (~7 GB recuperados en SSD).
+
+    ══ Hardening de Recall / Windows AI Offline (WIM) ══
+  [OK] Hardening AI/Recall aplicado offline en imagen WIM (Build 26200).
+
+    ══ Tweaks visuales offline ══
+    Cargando NTUSER.DAT del usuario default...
+  [OK] Tweaks visuales inyectados en Default User.
+    Descargando colmena NTUSER.DAT...
+  [OK] Colmena descargada correctamente.
+  [OK] Inyectado en WIM índice 10: Runtimes Esenciales (161 archivos)
+  [OK] Inyectado en WIM índice 10: romanOS-Toolkit.ps1
+  [OK] Inyectado en WIM índice 10: Win11-Debloat-v3-Adaptive.ps1
+  [OK] Inyectado en WIM índice 10: Invoke-WindowsMaintenance.ps1
+  [OK] Inyectado en WIM índice 10: Win11-Network-Diagnostics-Optimizer.ps1
+  [OK] Inyectado en WIM índice 10: Invoke-WindowsSecurityHardening.ps1
+  [OK] Inyectado en WIM índice 10: SetupComplete.cmd
+    Desmontando imagen WIM en 'C:\WimMount_20260903_195218' (Acción: Save)...
+PS C:\OptimizedISO\scripts> TerminatingError(Dismount-WindowsImage): "El directorio no se pudo desmontar completamente. Esto suele deberse a que algunas aplicaciones aún tienen archivos abiertos en el directorio de montaje. Cierre estos archivos e intente de nuevo el desmontaje para completar el proceso.
+"
+  [WARN] Intento 1/3 de desmontaje falló (El directorio no se pudo desmontar completamente. Esto suele deberse a que algunas aplicaciones aún tienen archivos abiertos en el directorio de montaje. Cierre estos archivos e intente de nuevo el desmontaje para completar el proceso.
+).
+    Esperando 3 segundos y liberando identificadores antes de reintentar...
+PS C:\OptimizedISO\scripts> TerminatingError(Dismount-WindowsImage): "No se puede confirmar en el archivo WIM la imagen montada especificada. Esto ocurre cuando se desmontó una imagen parcialmente o cuando aún se está desmontando una imagen. Si esta imagen se desmontó antes con confirmación, probablemente la confirmación se realizó correctamente. Compruebe que sea así y desmonte la imagen sin confirmación.
+"
+  [WARN] Intento 2/3 de desmontaje falló (No se puede confirmar en el archivo WIM la imagen montada especificada. Esto ocurre cuando se desmontó una imagen parcialmente o cuando aún se está desmontando una imagen. Si esta imagen se desmontó antes con confirmación, probablemente la confirmación se realizó correctamente. Compruebe que sea así y desmonte la imagen sin confirmación.
+).
+    Esperando 3 segundos y liberando identificadores antes de reintentar...
+PS C:\OptimizedISO\scripts> TerminatingError(Dismount-WindowsImage): "No se puede confirmar en el archivo WIM la imagen montada especificada. Esto ocurre cuando se desmontó una imagen parcialmente o cuando aún se está desmontando una imagen. Si esta imagen se desmontó antes con confirmación, probablemente la confirmación se realizó correctamente. Compruebe que sea así y desmonte la imagen sin confirmación.
+"
+  [WARN] Intento 3/3 de desmontaje falló (No se puede confirmar en el archivo WIM la imagen montada especificada. Esto ocurre cuando se desmontó una imagen parcialmente o cuando aún se está desmontando una imagen. Si esta imagen se desmontó antes con confirmación, probablemente la confirmación se realizó correctamente. Compruebe que sea así y desmonte la imagen sin confirmación.
+).
+  [WARN] No se pudo desmontar con 'Save'. Intentando desmontaje forzado (/Discard)...
+PS C:\OptimizedISO\scripts> TerminatingError(Dismount-WindowsImage): "El directorio no se pudo desmontar completamente. Esto suele deberse a que algunas aplicaciones aún tienen archivos abiertos en el directorio de montaje. Cierre estos archivos e intente de nuevo el desmontaje para completar el proceso.
+"
+  [WARN] No se pudo guardar cambios en WIM índice 10.
+
+>>> [6/6] Reconstruyendo ISO...
+    20:11:13
+    Usando oscdimg: C:\Users\Roman\AppData\Local\Microsoft\WinGet\Packages\Microsoft.OSCDIMG_Microsoft.Winget.Source_8wekyb3d8bbwe\oscdimg.exe
+    Etiqueta ISO: WIN11_OPT
+    BIOS boot: C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260903_195218\ISO_Files\boot\etfsboot.com
+    UEFI boot: C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260903_195218\ISO_Files\efi\microsoft\boot\efisys_noprompt.bin (Sin prompt - Arranque directo)
+    Ejecutando oscdimg...
+    CMD: "C:\Users\Roman\AppData\Local\Microsoft\WinGet\Packages\Microsoft.OSCDIMG_Microsoft.Winget.Source_8wekyb3d8bbwe\oscdimg.exe" -m -o -u2 -udfver102 -l"WIN11_OPT" -bootdata:2#p0,e,b"C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260903_195218\ISO_Files\boot\etfsboot.com"#pEF,e,b"C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260903_195218\ISO_Files\efi\microsoft\boot\efisys_noprompt.bin" "C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260903_195218\ISO_Files" "C:\Users\Roman\Desktop\WinISO_Optimizado\Windows_11_Optimized_20260903_201113.iso"
+    [⏳ Heartbeat] Reconstrucción de ISO UEFI/BIOS con oscdimg en progreso... (Transcurrido: 00:15 | RAM: 9.7 MB)
+    [⏳ Heartbeat] Reconstrucción de ISO UEFI/BIOS con oscdimg en progreso... (Transcurrido: 00:30 | RAM: 9.7 MB)
+  [OK] ISO creada exitosamente: C:\Users\Roman\Desktop\WinISO_Optimizado\Windows_11_Optimized_20260903_201113.iso
+    SHA256: 118028BFF622D41A0340FD1123FD1438700A9B81A9B6372F2DD0DCD179DEE669
+
+  Limpiando carpeta temporal de extracción...
+  Carpeta temporal eliminada: C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260903_195218
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║         RESUMEN DE EJECUCION: GENERADOR DE ISO OPTIMIZADA (v2)         ║
+  ╠════════════════════════════════════════════════════════════════════════╣
+  ║
+   Estado Global        : COMPLETADO CON ADVERTENCIAS [WARN]
+║
+  ║   Tiempo Transcurrido  : 1137.3s                                       ║
+  ║   Incidencias          : 0 error(es) | 5 advertencia(s)                ║
+  ║   Logs y Reportes IA Generados:                                        ║
+  ║    - Transcript: C:\Users\Roman\Desktop\WinISO_Optimizado\Logs\ISO_... ║
+  ║    - AI Diagnostic MD: C:\Users\Roman\Desktop\WinISO_Optimizado\Log... ║
+  ║    - Log estructurado: C:\Users\Roman\Desktop\WinISO_Optimizado\Log... ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+
+
+  ╔══════════════════════════════════════════════════════════════╗
+  ║                    OPERACIÓN COMPLETADA                    ║
+  ╚══════════════════════════════════════════════════════════════╝
+
+  ISO original:              C:\scripts\Win11_25H2_Spanish_x64_v2.iso
+  Versión detectada:         Windows 11
+  Carpeta extraída:          C:\Users\Roman\AppData\Local\Temp\WinISO_Extract_20260903_195218\ISO_Files
+  autounattend.xml:          Omitido
+  Usuario local:             Thiago
+  Idioma UI:                 es-ES
+  Región:                    es-AR
+  Zona horaria:              Argentina Standard Time
+  Teclado:                   es-ES (igual que idioma)
+  Perfil de optimización:    Hardcore E-Sports
+  OneDrive:                  Bloqueado
+  Tweaks visuales offline:   Sí
+  Inyección WIM:             No
+
+  Contenido inyectado:
+  ├── autounattend.xml
+  │   - Instalación semi-desatendida
+  │   - Usuario: Thiago
+  │   - Idioma: es-ES
+  │   - Edición/Disco: selección manual durante instalación
+  │
+  ├── sources\$OEM$\$$\Setup\Scripts
+  │   ├── SetupComplete.cmd
+  │   ├── romanOS-Toolkit.ps1
+  │   ├── Win11-Debloat-v3-Adaptive.ps1
+  │   ├── Invoke-WindowsMaintenance.ps1
+  │   ├── Win11-Network-Diagnostics-Optimizer.ps1
+  │   ├── Invoke-WindowsSecurityHardening.ps1
+  │
+  └── install.wim scripts inyectados offline: No
+
+  ISO generada: C:\Users\Roman\Desktop\WinISO_Optimizado\Windows_11_Optimized_20260903_201113.iso
+  Tamaño: 8.31 GB
+
+  Para usar:
+  1. Graba la ISO en un USB con Rufus.
+  2. Inicia desde el USB.
+  3. Selecciona edición y disco si se solicita.
+  4. El resto de la instalación debería ser automático.
+  5. Al llegar al escritorio, SetupComplete.cmd ejecutará el optimizador si existe.
+
+  Nota: Si conservas la carpeta extraída, puedes inspeccionar
+  autounattend.xml, ei.cfg, $OEM$ y sources antes de quemar la ISO.
+
+PS C:\OptimizedISO\scripts> .\Limpiar-ResiduosWinISO.ps1
+
+  ================================================================
+     LIMPIEZA DE RESIDUOS - New-OptimizedWindowsISO
+  ================================================================
+  Cerrá cualquier ventana donde New-OptimizedWindowsISO-v2.ps1 siga corriendo
+  antes de continuar.
+
+  == Analizando el sistema ==
+  Buscando carpetas de extracción de ISO abandonadas...
+  Buscando carpetas de montaje de WIM abandonadas...
+  Buscando carpetas scratch de DISM abandonadas...
+  Buscando restos de descarga (Fido / Media Creation Tool)...
+  Buscando imágenes WIM que quedaron montadas a nivel DISM...
+  Verificando colmena de registro 'OfflineDefaultUser'...
+  [OK] No se detectaron residuos de New-OptimizedWindowsISO en el sistema.
+
+  [1] Analizar de nuevo
+  [2] Limpiar TODOS los residuos detectados
+  [3] Elegir qué residuos limpiar
+  [4] Gestionar dependencias instaladas (7-Zip / OSCDIMG)
+  [0] Salir
+  [AVISO] Opción inválida.
+
+  [1] Analizar de nuevo
+  [2] Limpiar TODOS los residuos detectados
+  [3] Elegir qué residuos limpiar
+  [4] Gestionar dependencias instaladas (7-Zip / OSCDIMG)
+  [0] Salir
+
+  == Analizando el sistema ==
+  Buscando carpetas de extracción de ISO abandonadas...
+  Buscando carpetas de montaje de WIM abandonadas...
+  Buscando carpetas scratch de DISM abandonadas...
+  Buscando restos de descarga (Fido / Media Creation Tool)...
+  Buscando imágenes WIM que quedaron montadas a nivel DISM...
+  Verificando colmena de registro 'OfflineDefaultUser'...
+  [OK] No se detectaron residuos de New-OptimizedWindowsISO en el sistema.
+
+  [1] Analizar de nuevo
+  [2] Limpiar TODOS los residuos detectados
+  [3] Elegir qué residuos limpiar
+  [4] Gestionar dependencias instaladas (7-Zip / OSCDIMG)
+  [0] Salir
+
+  Listo.
+
+PS C:\OptimizedISO\scripts> .\Get-WindowsUpdates.ps1
+
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║                     DESCARGADOR DE WINDOWS UPDATES                     ║
+  ║                     Microsoft Update Catalog Engine                    ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+  Host: DESKTOP-0TQ7HR9 | Usuario: Roman (Admin)
+  SO  : Microsoft Windows 11 Pro for Workstations (64 bits) | C: 626.8 GB libres
+  ────────────────────────────────────────────────────────────────────────
+
+  Configuracion de Destino para Paquetes (.msu / .cab):
+  Carpeta por defecto sugerida: C:\OptimizedISO\Updates
+

@@ -54,7 +54,7 @@ if (Test-Path $uiEnginePath) {
 Show-UnifiedBanner -Title "ORQUESTADOR MAESTRO DE PRUEBAS" -Subtitle "romanOS / OptimizedISO" -ShowSystemInfo
 
 $suiteResults = [System.Collections.Generic.List[PSCustomObject]]::new()
-$totalSteps = if ($Quick) { 4 } else { 5 }
+$totalSteps = if ($Quick) { 5 } else { 6 }
 $repoRoot = Split-Path $PSScriptRoot -Parent
 if (-not (Test-Path (Join-Path $repoRoot ".agents"))) { $repoRoot = "C:\OptimizedISO" }
 
@@ -78,90 +78,109 @@ if (Test-Path $astScript) {
 $suiteResults.Add([PSCustomObject]@{ Phase = 1; Name = "Auditoría AST y Codificación UTF-8 BOM"; Status = if ($phase1Pass) { "PASS" } else { "FAIL" } })
 
 # -----------------------------------------------------------------------------
-# FASE 2: VALIDACION DE ESQUEMA XML AUTOUNATTEND
+# FASE 2: MOTOR DE HARDWARE E INTROSPECCION (PCI-SIG, SMBIOS, MSI, HAGS)
 # -----------------------------------------------------------------------------
-Write-StepHeader -StepNumber 2 -TotalSteps $totalSteps -Message "Validación de Esquema XML y Particionado UEFI GPT"
-$xmlScript = Join-Path $repoRoot ".agents\skills\unattended-deployment\scripts\Test-UnattendXml.ps1"
+Write-StepHeader -StepNumber 2 -TotalSteps $totalSteps -Message "Auditoría del Motor de Hardware y Clasificación Oficial"
+$hwScript = Join-Path $repoRoot "scripts\Test-HardwareEngine.ps1"
 $phase2Pass = $false
+if (Test-Path $hwScript) {
+    & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $hwScript
+    if ($LASTEXITCODE -eq 0) {
+        $phase2Pass = $true
+        Write-OK "Fase 2 Aprobada: Motor de hardware y clasificación PCI-SIG / SMBIOS al 100%."
+    } else {
+        Write-ErrorMsg "Fase 2 Fallida: Se detectaron aserciones erróneas en el motor de hardware."
+    }
+} else {
+    Write-Warn "Script de pruebas de hardware no encontrado en '$hwScript'."
+}
+$suiteResults.Add([PSCustomObject]@{ Phase = 2; Name = "Motor de Hardware y Clasificación PCI-SIG"; Status = if ($phase2Pass) { "PASS" } else { "FAIL" } })
+
+# -----------------------------------------------------------------------------
+# FASE 3: VALIDACION DE ESQUEMA XML AUTOUNATTEND
+# -----------------------------------------------------------------------------
+Write-StepHeader -StepNumber 3 -TotalSteps $totalSteps -Message "Validación de Esquema XML y Particionado UEFI GPT"
+$xmlScript = Join-Path $repoRoot ".agents\skills\unattended-deployment\scripts\Test-UnattendXml.ps1"
+$phase3Pass = $false
 if (Test-Path $xmlScript) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $xmlScript
     if ($LASTEXITCODE -eq 0) {
-        $phase2Pass = $true
-        Write-OK "Fase 2 Aprobada: autounattend.xml cumple con el esquema oficial UEFI GPT."
+        $phase3Pass = $true
+        Write-OK "Fase 3 Aprobada: autounattend.xml cumple con el esquema oficial UEFI GPT."
     } else {
-        Write-ErrorMsg "Fase 2 Fallida: Esquema XML inválido o con advertencias."
+        Write-ErrorMsg "Fase 3 Fallida: Esquema XML inválido o con advertencias."
     }
 } else {
     Write-Warn "Script helper XML no encontrado en '$xmlScript'."
 }
-$suiteResults.Add([PSCustomObject]@{ Phase = 2; Name = "Validación de Esquema autounattend.xml"; Status = if ($phase2Pass) { "PASS" } else { "FAIL" } })
+$suiteResults.Add([PSCustomObject]@{ Phase = 3; Name = "Validación de Esquema autounattend.xml"; Status = if ($phase3Pass) { "PASS" } else { "FAIL" } })
 
 # -----------------------------------------------------------------------------
-# FASE 3: DIAGNOSTICO DE HERRAMIENTAS ADK Y ENTORNO
+# FASE 4: DIAGNOSTICO DE HERRAMIENTAS ADK Y ENTORNO
 # -----------------------------------------------------------------------------
-Write-StepHeader -StepNumber 3 -TotalSteps $totalSteps -Message "Diagnóstico de Herramientas ADK, DISM e Hyper-V"
+Write-StepHeader -StepNumber 4 -TotalSteps $totalSteps -Message "Diagnóstico de Herramientas ADK, DISM e Hyper-V"
 $adkScript = Join-Path $repoRoot ".agents\skills\windows-adk-hyperv\scripts\Test-AdkEnvironment.ps1"
-$phase3Pass = $false
+$phase4Pass = $false
 if (Test-Path $adkScript) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $adkScript
     if ($LASTEXITCODE -eq 0) {
-        $phase3Pass = $true
-        Write-OK "Fase 3 Aprobada: Herramientas de compilación y entorno listas."
+        $phase4Pass = $true
+        Write-OK "Fase 4 Aprobada: Herramientas de compilación y entorno listas."
     } else {
-        Write-ErrorMsg "Fase 3 Fallida: Faltan herramientas requeridas en el host."
+        Write-ErrorMsg "Fase 4 Fallida: Faltan herramientas requeridas en el host."
     }
 } else {
     Write-Warn "Script helper ADK no encontrado en '$adkScript'."
 }
-$suiteResults.Add([PSCustomObject]@{ Phase = 3; Name = "Diagnóstico de Entorno ADK y DISM"; Status = if ($phase3Pass) { "PASS" } else { "FAIL" } })
+$suiteResults.Add([PSCustomObject]@{ Phase = 4; Name = "Diagnóstico de Entorno ADK y DISM"; Status = if ($phase4Pass) { "PASS" } else { "FAIL" } })
 
 # -----------------------------------------------------------------------------
-# FASE 4: HIGIENE Y CONTROL DE VERSIONES GIT
+# FASE 5: HIGIENE Y CONTROL DE VERSIONES GIT
 # -----------------------------------------------------------------------------
-Write-StepHeader -StepNumber 4 -TotalSteps $totalSteps -Message "Auditoría de Higiene y Trazabilidad Git"
+Write-StepHeader -StepNumber 5 -TotalSteps $totalSteps -Message "Auditoría de Higiene y Trazabilidad Git"
 $gitScript = Join-Path $repoRoot ".agents\skills\git-workflow\scripts\Test-GitWorkspaceHygiene.ps1"
-$phase4Pass = $false
+$phase5Pass = $false
 if (Test-Path $gitScript) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $gitScript
     if ($LASTEXITCODE -eq 0) {
-        $phase4Pass = $true
-        Write-OK "Fase 4 Aprobada: Cero binarios pesados rastreados y árbol limpio."
+        $phase5Pass = $true
+        Write-OK "Fase 5 Aprobada: Cero binarios pesados rastreados y árbol limpio."
     } else {
-        Write-ErrorMsg "Fase 4 Fallida: Se detectaron binarios no permitidos en el historial."
+        Write-ErrorMsg "Fase 5 Fallida: Se detectaron binarios no permitidos en el historial."
     }
 } else {
     Write-Warn "Script helper Git no encontrado en '$gitScript'."
 }
-$suiteResults.Add([PSCustomObject]@{ Phase = 4; Name = "Auditoría de Higiene Git"; Status = if ($phase4Pass) { "PASS" } else { "FAIL" } })
+$suiteResults.Add([PSCustomObject]@{ Phase = 5; Name = "Auditoría de Higiene Git"; Status = if ($phase5Pass) { "PASS" } else { "FAIL" } })
 
 # -----------------------------------------------------------------------------
-# FASE 5: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# FASE 6: TEST HARNESS INTEGRAL (SI NO ES QUICK)
 # -----------------------------------------------------------------------------
-$phase5Pass = $true
+$phase6Pass = $true
 if (-not $Quick) {
-    Write-StepHeader -StepNumber 5 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
+    Write-StepHeader -StepNumber 6 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
     $harnessScript = Join-Path $repoRoot "scripts\Test-OptimizedISO-v2.ps1"
     if (Test-Path $harnessScript) {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $harnessScript -LogDir $LogDir
         if ($LASTEXITCODE -eq 0) {
-            $phase5Pass = $true
-            Write-OK "Fase 5 Aprobada: 140/140 pruebas del Test Harness superadas."
+            $phase6Pass = $true
+            Write-OK "Fase 6 Aprobada: 140/140 pruebas del Test Harness superadas."
         } else {
-            $phase5Pass = $false
-            Write-ErrorMsg "Fase 5 Fallida: Se detectaron aserciones fallidas en el Test Harness."
+            $phase6Pass = $false
+            Write-ErrorMsg "Fase 6 Fallida: Se detectaron aserciones fallidas en el Test Harness."
         }
     } else {
         Write-Warn "Test Harness no encontrado en '$harnessScript'."
-        $phase5Pass = $false
+        $phase6Pass = $false
     }
-    $suiteResults.Add([PSCustomObject]@{ Phase = 5; Name = "Test Harness Integral ISO v2"; Status = if ($phase5Pass) { "PASS" } else { "FAIL" } })
+    $suiteResults.Add([PSCustomObject]@{ Phase = 6; Name = "Test Harness Integral ISO v2"; Status = if ($phase6Pass) { "PASS" } else { "FAIL" } })
 }
 
 # -----------------------------------------------------------------------------
 # REPORTE CONSOLIDADO Y EVALUACION FINAL
 # -----------------------------------------------------------------------------
 $totalDuration = [math]::Round(((Get-Date) - $testSuiteStart).TotalSeconds, 1)
-$allSuccess = ($phase1Pass -and $phase2Pass -and $phase3Pass -and $phase4Pass -and $phase5Pass)
+$allSuccess = ($phase1Pass -and $phase2Pass -and $phase3Pass -and $phase4Pass -and $phase5Pass -and $phase6Pass)
 $overallStatus = if ($allSuccess) { "SUCCESS" } else { "FAILED" }
 
 try {

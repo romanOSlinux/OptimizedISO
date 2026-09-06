@@ -9,7 +9,7 @@ param(
     [switch]$ShowInNotepad,
     [switch]$ShowReport,
     [switch]$ShowHtml,
-    [string]$ExpectedProfile = "2",
+    [string]$ExpectedProfile = "1",
     [bool]$ExpectedBlockOneDrive = $false
 )
 
@@ -32,7 +32,7 @@ foreach ($p in $uiEnginePaths) {
         break
     }
 }
-if (-not $uiLoaded) {
+if (-not $uiLoaded -or -not (Get-Command Show-UnifiedBanner -ErrorAction SilentlyContinue)) {
     function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
     function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
     function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }
@@ -43,6 +43,42 @@ if (-not $uiLoaded) {
     function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
     function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
     function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
+}
+
+# -----------------------------------------------------------------------------
+# CARGA DE MOTOR DE HARDWARE UNIFICADO (Hardware-Engine.ps1)
+# -----------------------------------------------------------------------------
+$hwEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\Hardware-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Hardware-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Hardware-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\Hardware-Engine.ps1"
+)
+$hwLoaded = $false
+foreach ($p in $hwEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $hwLoaded = $true
+        break
+    }
+}
+
+# -----------------------------------------------------------------------------
+# CARGA DE MOTOR DE POLITICAS UNIFICADO (Core\Policy-Engine.ps1)
+# -----------------------------------------------------------------------------
+$policyEnginePaths = @(
+    (Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Policy-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1"
+)
+$policyLoaded = $false
+foreach ($p in $policyEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $policyLoaded = $true
+        break
+    }
 }
 
 try {
@@ -73,8 +109,17 @@ try {
         $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
         $cpu = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1
 
-        $isVM = if ($cs.Model -match 'Virtual|Hyper-V|VMware|KVM|QEMU|VirtualBox') { "Maquina Virtual ($($cs.Model))" } else { "Equipo Fisico ($($cs.Manufacturer) $($cs.Model))" }
-        $ramGB = if ($cs.TotalPhysicalMemory) { [math]::Round($cs.TotalPhysicalMemory / 1GB, 1) } else { "N/A" }
+        $hwProfile = if ($hwLoaded -and (Get-Command Get-SystemHardwareProfile -ErrorAction SilentlyContinue)) {
+            Get-SystemHardwareProfile
+        } else { $null }
+
+        $isVM = if ($hwProfile) {
+            if ($hwProfile.Platform.IsVirtualMachine) { "Maquina Virtual ($($hwProfile.Platform.VmType))" } else { "Equipo Fisico ($($hwProfile.Platform.ComputerManufacturer) $($hwProfile.Platform.ComputerModel))" }
+        } else {
+            if ($cs.Model -match 'Virtual|Hyper-V|VMware|KVM|QEMU|VirtualBox') { "Maquina Virtual ($($cs.Model))" } else { "Equipo Fisico ($($cs.Manufacturer) $($cs.Model))" }
+        }
+
+        $ramGB = if ($hwProfile) { "$($hwProfile.RAM.TotalGiB) GB $($hwProfile.RAM.MemoryType) ($($hwProfile.RAM.ChannelMode))" } elseif ($cs.TotalPhysicalMemory) { "$([math]::Round($cs.TotalPhysicalMemory / 1GB, 1)) GB" } else { "N/A" }
         $ubr = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -Name UBR -ErrorAction SilentlyContinue).UBR
         $fullBuild = if ($ubr) { "$($os.Version).$ubr" } else { "$($os.Version)" }
 
@@ -82,16 +127,27 @@ try {
         $sysInfoData['Compilacion'] = "$fullBuild ($($os.OSArchitecture))"
         $sysInfoData['Entorno'] = "$isVM"
         $sysInfoData['CPU'] = "$($cpu.Name)"
-        $sysInfoData['RAM'] = "$ramGB GB"
+        $sysInfoData['RAM'] = "$ramGB"
         $sysInfoData['Equipo'] = "$env:COMPUTERNAME"
         $sysInfoData['Usuario'] = "$env:USERNAME"
         $sysInfoData['Perfil'] = "Perfil $ExpectedProfile"
+        if ($hwProfile -and $hwProfile.GPU.PrimaryGpu) {
+            $msiTag = if ($hwProfile.GPU.PrimaryGpu.MsiStatus -eq 1) { " [MSI ON]" } else { "" }
+            $sysInfoData['GPU'] = "$($hwProfile.GPU.PrimaryGpu.Name) ($($hwProfile.GPU.PrimaryGpu.VendorName))$msiTag"
+        }
 
         $reportLines.Add("- **Edicion:** $($os.Caption)")
         $reportLines.Add("- **Compilacion:** $fullBuild ($($os.OSArchitecture))")
         $reportLines.Add("- **Entorno:** $isVM")
         $reportLines.Add("- **Procesador:** $($cpu.Name)")
-        $reportLines.Add("- **Memoria RAM:** $ramGB GB")
+        $reportLines.Add("- **Memoria RAM:** $ramGB")
+        if ($hwProfile -and $hwProfile.GPU.PrimaryGpu) {
+            $msiTag = if ($hwProfile.GPU.PrimaryGpu.MsiStatus -eq 1) { " (MSI Mode Activo)" } else { "" }
+            $reportLines.Add("- **Graficos (GPU):** $($hwProfile.GPU.PrimaryGpu.Name) [Vendor: $($hwProfile.GPU.PrimaryGpu.VendorName)]$msiTag")
+        }
+        if ($hwProfile -and $hwProfile.Disk) {
+            $reportLines.Add("- **Disco de Arranque:** $($hwProfile.Disk.DiskLabel) [$($hwProfile.Disk.BootBusType)] - $($hwProfile.Disk.DirectStorageStatus)")
+        }
         $reportLines.Add("- **Nombre de Equipo:** $env:COMPUTERNAME")
         $reportLines.Add("- **Usuario Actual:** $env:USERNAME")
         $reportLines.Add("- **Perfil Esperado:** Perfil $ExpectedProfile")
@@ -242,6 +298,49 @@ try {
         $reportLines.Add("- **Prevencion de Cifrado BitLocker:** Estandar (Cifrado automatico no restringido)")
     }
 
+    # Optimizacion de Rendimiento NTFS (disablelastaccess)
+    try {
+        $lastAccessQuery = & fsutil behavior query disablelastaccess 2>&1
+        if ($lastAccessQuery -match '1|3|User Managed, Last Access Updates Disabled|System Managed, Last Access Updates Disabled') {
+            $passedChecks.Add("Desactivacion de registro de ultimo acceso NTFS verificada.")
+            $reportLines.Add("- **Optimizacion NTFS (disablelastaccess):** Activa [OK]")
+        } else {
+            $reportLines.Add("- **Optimizacion NTFS (disablelastaccess):** Estandar")
+        }
+    } catch {}
+
+    # Auditoria de MMCSS (Multimedia Class Scheduler Service)
+    $mmcssNet = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name NetworkThrottlingIndex -ErrorAction SilentlyContinue).NetworkThrottlingIndex
+    $mmcssResp = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name SystemResponsiveness -ErrorAction SilentlyContinue).SystemResponsiveness
+    if ($null -ne $mmcssNet -and ([int64]$mmcssNet -eq 0xFFFFFFFF -or [int64]$mmcssNet -eq -1 -or $mmcssNet -eq 4294967295)) {
+        $passedChecks.Add("MMCSS Network Throttling deshabilitado para latencia minima.")
+        $reportLines.Add("- **MMCSS Network Throttling:** Deshabilitado (0xFFFFFFFF - Sin limite de red) [OK]")
+    } else {
+        $reportLines.Add("- **MMCSS Network Throttling:** Estandar ($mmcssNet)")
+    }
+
+
+    # Auditoria HAGS (Hardware-Accelerated GPU Scheduling)
+    $hagsVal = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" -Name HwSchMode -ErrorAction SilentlyContinue).HwSchMode
+    if ($hagsVal -eq 2) {
+        $passedChecks.Add("Hardware-Accelerated GPU Scheduling (HAGS) habilitado.")
+        $reportLines.Add("- **GPU Scheduling (HAGS):** Habilitado (HwSchMode=2) [OK]")
+    } else {
+        $reportLines.Add("- **GPU Scheduling (HAGS):** No forzado o estandar ($hagsVal)")
+    }
+
+    # Auditoria BypassIO / DirectStorage en particion C:
+    try {
+        $bypassIoQuery = & fsutil bypassio state C: 2>&1
+        if ($bypassIoQuery -match 'is supported|est[aá] admitido|OK|compatible') {
+            $passedChecks.Add("BypassIO / DirectStorage verificado y compatible en particion C:.")
+            $reportLines.Add("- **BypassIO (DirectStorage NVMe):** Soportado y Activo [OK]")
+        } else {
+            $reportLines.Add("- **BypassIO (DirectStorage NVMe):** No disponible o vetado en este entorno")
+        }
+    } catch {}
+
+
     # Tema Oscuro del Sistema y Apps
     $sysTheme = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name SystemUsesLightTheme -ErrorAction SilentlyContinue).SystemUsesLightTheme
     $appTheme = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue).AppsUseLightTheme
@@ -303,6 +402,43 @@ try {
         $reportLines.Add("- **Bloqueo Inyeccion OEM WPBT:** No configurado (0)")
     }
 
+    # Auditoria Dinamica del Catalogo Maestro de Politicas (Policy-Engine)
+    $policyResults = [System.Collections.Generic.List[PSCustomObject]]::new()
+    if ($policyLoaded -and (Get-Command Get-RomanOSPolicies -ErrorAction SilentlyContinue)) {
+        $reportLines.Add("")
+        $reportLines.Add("### Directivas Oficiales de Optimizacion (Policy-Engine)")
+        $reportLines.Add("")
+        $activePolicies = Get-RomanOSPolicies -Profile $ExpectedProfile
+        $polPassed = 0
+
+        foreach ($pol in $activePolicies) {
+            $tRes = Test-RomanOSPolicy -Policy $pol
+            $policyResults.Add([PSCustomObject]@{
+                Id          = $pol.Id
+                Module      = $pol.Module
+                Name        = $pol.ValueName
+                Expected    = $pol.ExpectedValue
+                Actual      = $tRes.ActualValue
+                IsApplied   = $tRes.IsApplied
+                StatusText  = $tRes.StatusText
+                Description = $pol.Description
+            })
+
+            if ($tRes.IsApplied) {
+                $polPassed++
+                $passedChecks.Add("Directiva [$($pol.Module)]: $($pol.ValueName) = $($pol.ExpectedValue) [OK]")
+                $reportLines.Add("- **$($pol.Module) [$($pol.ValueName)]:** $($tRes.StatusText) [OK]")
+            } else {
+                if ($pol.Id -eq "POL_ONEDRIVE_BLOCK" -and -not $ExpectedBlockOneDrive) {
+                    $reportLines.Add("- **$($pol.Module) [$($pol.ValueName)]:** Omitido (OneDrive permitido en perfil)")
+                } else {
+                    $reportLines.Add("- **$($pol.Module) [$($pol.ValueName)]:** $($tRes.StatusText)")
+                }
+            }
+        }
+        $passedChecks.Add("Catalogo de Politicas GPO auditado ($polPassed/$($activePolicies.Count) activas).")
+    }
+
     $reportLines.Add("")
 
     # 7. Auditoria de Debloat AppX / UWP
@@ -313,7 +449,11 @@ try {
         $passedChecks.Add("Paquetes AppX aprovisionados auditados ($($appxList.Count) paquetes detectados).")
         $reportLines.Add("- **Total Paquetes Aprovisionados:** $($appxList.Count)")
         
-        $bloatKeywords = @('ZuneVideo', 'ZuneMusic', 'BingNews', 'BingWeather', 'GetHelp', 'Getstarted', 'Solitaire', 'People', 'Todos', 'FeedbackHub')
+        $bloatKeywords = @('WebExperience', 'ZuneVideo', 'ZuneMusic', 'BingNews', 'BingWeather', 'GetHelp', 'Getstarted', 'Solitaire', 'People', 'Todos', 'FeedbackHub', 'XboxApp', 'Clipchamp', 'QuickAssist')
+        if ($policyLoaded -and $global:RomanOS_KnownBloatAppx) {
+            $extraKeywords = @($global:RomanOS_KnownBloatAppx | ForEach-Object { ($_ -split '\.')[-1] })
+            $bloatKeywords = @($bloatKeywords + $extraKeywords | Select-Object -Unique)
+        }
         $residualBloat = @($appxList | Where-Object { $name = $_.DisplayName; foreach ($k in $bloatKeywords) { if ($name -match $k) { return $true } } $false })
         if ($residualBloat.Count -gt 0) {
             $reportLines.Add("- **Paquetes residuales promocionales detectados ($($residualBloat.Count)):**")
@@ -323,6 +463,16 @@ try {
         } else {
             $passedChecks.Add("Debloat AppX: Cero paquetes promocionales detectados.")
             $reportLines.Add("- **Estado de Debloat:** Limpio / Sin bloatware promocional residual detectado [OK]")
+        }
+
+        # Auditoria especifica de Widgets (WebExperience)
+        $webExp = @($appxList | Where-Object { $_.DisplayName -like "*WebExperience*" })
+        if ($webExp.Count -eq 0) {
+            $passedChecks.Add("Debloat Widgets: Paquete MicrosoftWindows.Client.WebExperience eliminado exitosamente [OK].")
+            $reportLines.Add("- **Widgets Backend (WebExperience):** Eliminado / 0 paquetes residuales [OK]")
+        } else {
+            $warnings.Add("Paquete de Widgets WebExperience detectado en la instalacion.")
+            $reportLines.Add("- **Widgets Backend (WebExperience):** Detectado ($($webExp.Count) instancias) [WARN]")
         }
     } catch {
         $reportLines.Add("- **Auditoria AppX:** Error al consultar paquetes ($($_.Exception.Message))")
@@ -445,6 +595,14 @@ try {
         $svcRows.Add("<tr><td><strong>$($s.Name)</strong></td><td>$($s.Status)</td><td>$($s.StartMode)</td><td><span class='badge $svcBadge'>$($s.Status)</span></td></tr>")
     }
 
+    $policyRows = [System.Collections.Generic.List[string]]::new()
+    if ($policyResults) {
+        foreach ($p in $policyResults) {
+            $pBadge = if ($p.IsApplied) { 'badge-ok' } else { 'badge-warn' }
+            $policyRows.Add("<tr><td><strong>$($p.Module)</strong><br><small style='color:var(--text-muted);'>$($p.Description)</small></td><td><code>$($p.Name)</code></td><td>$($p.Expected)</td><td><span class='badge $pBadge'>$($p.StatusText)</span></td></tr>")
+        }
+    }
+
     $htmlContent = @"
 <!DOCTYPE html>
 <html lang="es">
@@ -555,6 +713,23 @@ try {
                     <li><span class="info-label">SetupComplete.cmd:</span> <span class="info-value">$(if ($scContent -match 'SetupComplete\.cmd finalizado exitosamente') { "Finalizado [OK]" } else { "Revisar logs" })</span></li>
                 </ul>
             </div>
+        </div>
+
+        <div class="section-card" style="margin-bottom: 25px;">
+            <div class="section-title">🛡️ Directivas Oficiales de Optimizacion (Policy-Engine)</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Modulo / Descripcion</th>
+                        <th>Parametro (Registro)</th>
+                        <th>Valor Esperado</th>
+                        <th>Resultado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    $($policyRows -join "`r`n")
+                </tbody>
+            </table>
         </div>
 
         <div class="section-card" style="margin-bottom: 25px;">

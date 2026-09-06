@@ -1,0 +1,8 @@
+[2026-09-03 19:44:55] [INIT ] ================================================================
+[2026-09-03 19:44:55] [INIT ] Iniciando Descarga de Windows Updates
+[2026-09-03 19:44:55] [INIT ] Versión: 11_24H2 | Arch: amd64 | Tipo: All | Destino: C:\OptimizedISO\Updates\11_24H2_amd64
+[2026-09-03 19:44:55] [INIT ] ================================================================
+[2026-09-03 19:44:55] [DEBUG] Consultando Catalog: https://www.catalog.update.microsoft.com/Search.aspx?q=Cumulative%20Update%20Windows%2011%2024H2%20x64
+[2026-09-03 19:44:57] [DEBUG] Consultando Catalog: https://www.catalog.update.microsoft.com/Search.aspx?q=Cumulative%20Update%20for%20.NET%20Framework%203.5%20and%204.8.1%20for%20Windows%2011%2C%20version%2024H2%20for%20x64
+[2026-09-03 19:44:57] [DEBUG] Consultando Catalog: https://www.catalog.update.microsoft.com/Search.aspx?q=Windows11.0-KB5043080-x64
+[2026-09-03 19:44:59] [INFO ] Iniciando descarga: https://catalog.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/d8b7f92b-bd35-4b4c-96e5-46ce984b31e0/public/windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu -> C:\OptimizedISO\Updates\11_24H2_amd64\windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu
