@@ -209,12 +209,12 @@ function Invoke-SecurityModule {
 }
 
 function Invoke-BrowsersModule {
-    $scriptFile = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
+    $scriptFile = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
     if ($scriptFile) {
         Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Optimizacion Oficial de Navegadores (Edge, Chrome, Firefox, Brave)"
-        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -BrowsersOnly
+        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
     } else {
-        Write-ErrorMsg "No se encontro Win11-Debloat-v3-Adaptive.ps1"
+        Write-ErrorMsg "No se encontro Optimize-WebBrowsers.ps1"
         pause
     }
 }

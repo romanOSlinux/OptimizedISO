@@ -868,7 +868,8 @@ Assert-True "PLAN-0026: Win11-Network-Diagnostics-Optimizer.ps1 soporta -NagleOn
 
 $debloatContent = Get-Content -Path (Join-Path $PSScriptRoot "Win11-Debloat-v3-Adaptive.ps1") -Raw
 Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 carga Core/Policy-Engine.ps1" ($debloatContent -match 'Policy-Engine\.ps1')
-Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 delega en Apply-RomanOSBrowserPolicies" ($debloatContent -match 'Apply-RomanOSBrowserPolicies')
+$optimizeBrowsersContent = Get-Content -Path (Join-Path $PSScriptRoot "Optimize-WebBrowsers.ps1") -Raw -ErrorAction SilentlyContinue
+Assert-True "PLAN-0026: Optimize-WebBrowsers.ps1 delega en Apply-RomanOSBrowserPolicies" ($optimizeBrowsersContent -match 'Apply-RomanOSBrowserPolicies')
 Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 delega Nagle en Win11-Network-Diagnostics-Optimizer.ps1" ($debloatContent -match 'Win11-Network-Diagnostics-Optimizer\.ps1 -NagleOnly')
 
 Assert-True "PLAN-0026: romanOS-Toolkit.ps1 delega Shaders y TRIM en Invoke-WindowsMaintenance.ps1" ($toolkitContent -match 'Invoke-WindowsMaintenance\.ps1' -and $toolkitContent -match '-ShadersOnly' -and $toolkitContent -match '-TrimOnly')
@@ -1008,6 +1009,14 @@ $diagContentAfter = Get-Content -Path (Join-Path $PSScriptRoot "PostInstall-Diag
 Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita NtfsDisable8dot3NameCreation" ($diagContentAfter -match 'NtfsDisable8dot3NameCreation')
 Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita Win32PrioritySeparation" ($diagContentAfter -match 'Win32PrioritySeparation')
 Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita ECN Capability" ($diagContentAfter -match 'ECN Capability')
+
+# PLAN-0033: Desacoplamiento del Módulo de Navegadores
+$optimizeWebBrowsers = Join-Path $PSScriptRoot "Optimize-WebBrowsers.ps1"
+Assert-FileExists "PLAN-0033: Optimize-WebBrowsers.ps1 existe en disco" $optimizeWebBrowsers
+Assert-False "PLAN-0033: Win11-Debloat-v3-Adaptive.ps1 ya no contiene Invoke-BrowserDebloat" ($debloatContent -match 'function Invoke-BrowserDebloat')
+Assert-False "PLAN-0033: Win11-Debloat-v3-Adaptive.ps1 ya no contiene parametro BrowsersOnly" ($debloatContent -match '\[switch\]\$BrowsersOnly')
+Assert-True "PLAN-0033: Win11-Debloat-v3-Adaptive.ps1 invoca a Optimize-WebBrowsers.ps1 en Seccion 16" ($debloatContent -match 'Optimize-WebBrowsers\.ps1')
+Assert-True "PLAN-0033: romanOS-Toolkit.ps1 invoca a Optimize-WebBrowsers.ps1" ($toolkitContent -match 'Optimize-WebBrowsers\.ps1')
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
