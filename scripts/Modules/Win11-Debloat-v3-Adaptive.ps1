@@ -294,7 +294,7 @@ Write-LogEntry -Level "INIT" -Message ("=" * 64)
 
 try {
 
-Write-Host "==== Windows setup started $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ====" -ForegroundColor Cyan
+Write-Host "==== Configuracion de Windows iniciada $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ====" -ForegroundColor Cyan
 
 # ============================================================
 # Helper: escribir un valor de registro creando la clave si no existe
@@ -1117,7 +1117,7 @@ if ($missingPrereqs.Count -gt 0) {
 # ============================================================
 #region 0.B Install applications (winget)
 # ============================================================
-Write-Host "`n[0.B] Installing applications via winget..." -ForegroundColor Cyan
+Write-Host "`n[0.B] Instalando aplicaciones via winget..." -ForegroundColor Cyan
 
 $appsList = @(
     [PSCustomObject]@{ Id='Brave.Brave';        Name='Brave Browser';       Note='Navegador rapido enfocado en privacidad' },
@@ -1283,7 +1283,7 @@ if ($presentBloatware.Count -eq 0) {
             $matchedProvPackages = $provisionedPackages | Where-Object { $_ -like "*$appName*" }
             if ($matchedProvPackages) {
                 foreach ($pkgFullName in $matchedProvPackages) {
-                    Write-Host "  - Removing provisioned: $pkgFullName" -ForegroundColor Gray
+                    Write-Host "  - Eliminando paquete provisionado: $pkgFullName" -ForegroundColor Gray
                     $dismRemove = & DISM.exe /Online /Remove-ProvisionedAppxPackage /PackageName:$pkgFullName 2>&1
                     if ($LASTEXITCODE -in @(0, 1641, 3010)) {
                         Write-Host "  - Removed (provisioned): $appName" -ForegroundColor DarkGreen
@@ -1594,9 +1594,9 @@ foreach ($t in $tasks) {
     $tPath = (Split-Path $t -Parent) + '\'
     try {
         Disable-ScheduledTask -TaskName $tName -TaskPath $tPath -ErrorAction Stop | Out-Null
-        Write-Host "  - Disabled task: $t" -ForegroundColor Green
+        Write-Host "  - Tarea deshabilitada: $t" -ForegroundColor Green
     } catch {
-        Write-Host "  - Task not found (OK): $tName" -ForegroundColor DarkGray
+        Write-Host "  - Tarea no encontrada (OK): $tName" -ForegroundColor DarkGray
     }
 }
 #endregion
@@ -1613,7 +1613,7 @@ if (-not $Unattended) {
 }
 
 if ($applyStartMenu) {
-    Write-Host "`n[9] Configuring Start menu..." -ForegroundColor Cyan
+    Write-Host "`n[9] Configurando menu de Inicio..." -ForegroundColor Cyan
     # [FIX-PS51] JSON con llaves {} en string comilla-simple confunde el parser de PS5.1.
     # Usar here-string @'...'@ o doble-quote con escape.
     $startJson = "{`"applyOnce`": true, `"pinnedList`": []}"
@@ -1630,7 +1630,7 @@ if ($applyStartMenu) {
 # ============================================================
 #region 10. Extra tweaks de sistema
 # ============================================================
-Write-Host "`n[10] Applying extra system tweaks..." -ForegroundColor Cyan
+Write-Host "`n[10] Aplicando ajustes adicionales del sistema..." -ForegroundColor Cyan
 Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh' 'AllowNewsAndInterests' 0
 Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings' 'TaskbarEndTask' 1
 Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'RotatingLockScreenEnabled' 0
@@ -1974,11 +1974,11 @@ if ($selectedTweaks) {
 # ============================================================
 #region 12. Gaming optimizations (Core) [FIXED]
 # ============================================================
-Write-Host "`n[12] Applying Core Gaming optimizations..." -ForegroundColor Cyan
+Write-Host "`n[12] Aplicando optimizaciones de Gaming (Core)..." -ForegroundColor Cyan
 
 # --- 12.A Condicional: GameBar / GameDVR ---
 if ($applyGameBar) {
-    Write-Host "  [12.A] Disabling Xbox GameBar / GameDVR..." -ForegroundColor Gray
+    Write-Host "  [12.A] Desactivando Xbox GameBar / GameDVR..." -ForegroundColor Gray
 
     # Game Mode ON (prioriza CPU/GPU para el proceso en primer plano)
     Set-Reg 'HKCU:\Software\Microsoft\GameBar' 'AllowAutoGameMode'         1
@@ -2002,7 +2002,7 @@ if ($applyGameBar) {
     # Ref: https://learn.microsoft.com/en-us/answers/questions/3741077/fullscreen-optimizations-windows-registry
     Set-Reg 'HKCU:\System\GameConfigStore' 'GameDVR_EFSEFeatureFlags'            0
 
-    Write-Host "    - GameBar/DVR deshabilitado. GameConfigStore actualizado." -ForegroundColor Green
+    Write-Host "    - GameBar/DVR desactivado. GameConfigStore actualizado." -ForegroundColor Green
 }
 # [FIX-7] FSO/GameConfigStore ahora SOLO se aplica cuando el usuario selecciono GameBar.
 
@@ -2015,7 +2015,7 @@ if ($applyGameBar) {
 # Intel:  Cualquier DCH driver moderno soporta HAGS.
 # Ref: https://learn.microsoft.com/windows-hardware/drivers/display/hardware-accelerated-gpu-scheduling
 if ($applyHags) {
-    Write-Host "  [12.B] Enabling Hardware-Accelerated GPU Scheduling (HAGS)..." -ForegroundColor Gray
+    Write-Host "  [12.B] Activando Hardware-Accelerated GPU Scheduling (HAGS)..." -ForegroundColor Gray
     $gpuDriverOk = $false
     $gpuForHags  = $null
     
@@ -2046,7 +2046,7 @@ if ($applyHags) {
     if ($gpuDriverOk) {
         Set-Reg $hwSchKey 'HwSchMode' 2
         $versionStr = if ($null -ne $gpuForHags) { $gpuForHags.DriverVersion } else { "SO Nativo" }
-        Write-Host "    - HAGS habilitado (HwSchMode=2). Driver: $versionStr. Requiere reinicio." -ForegroundColor Green
+        Write-Host "    - HAGS activado (HwSchMode=2). Driver: $versionStr. Requiere reinicio." -ForegroundColor Green
     } elseif ($null -ne $gpuForHags) {
         Write-Host "    ! HAGS NO activado: driver $($gpuForHags.DriverVersion) puede ser pre-WDDM 2.7." -ForegroundColor Yellow
         Write-Host "      Actualiza el driver a NVIDIA 451.48+ / AMD 20.5.1+ y vuelve a ejecutar." -ForegroundColor Yellow
@@ -2057,7 +2057,7 @@ if ($applyHags) {
 
 # --- 12.C Condicional: Ultimate Performance ---
 if ($applyUltimate) {
-    Write-Host "  [12.C] Activating Ultimate Performance power plan..." -ForegroundColor Gray
+    Write-Host "  [12.C] Activando plan de energia Ultimate Performance..." -ForegroundColor Gray
     try {
         $upGuid   = 'e9a42b02-d5df-448d-aa00-03f14749eb61'
         $existing = powercfg /list | Select-String $upGuid
@@ -2074,7 +2074,7 @@ if ($applyUltimate) {
 
 # --- 12.D Condicional: Timer fix (HPET/TSC para CPUs modernas) ---
 if ($applyFixTimer) {
-    Write-Host "  [12.D] Applying timer optimizations (Modern CPU)..." -ForegroundColor Gray
+    Write-Host "  [12.D] Aplicando optimizaciones de temporizador (CPU moderna)..." -ForegroundColor Gray
     Write-Host "  [!] AVISO: bcdedit tweaks NO son oficialmente soportados por Microsoft para gaming." -ForegroundColor Red
     Write-Host "      Pueden causar regresiones en algunos sistemas. Revertir con:" -ForegroundColor Red
     Write-Host "      bcdedit /deletevalue disabledynamictick && bcdedit /deletevalue tscsyncpolicy" -ForegroundColor DarkYellow
@@ -2111,8 +2111,8 @@ if ($applyFixTimer) {
     # Paso 2: Deshabilitar Dynamic Tick (reduce interrupciones del timer en CPUs modernas)
     try {
         & bcdedit.exe /set disabledynamictick yes | Out-Null
-        if ($LASTEXITCODE -eq 0) { Write-Host "    - disabledynamictick = yes." -ForegroundColor Green }
-        else { Write-Host "    ! disabledynamictick: exit code $LASTEXITCODE" -ForegroundColor Yellow }
+        if ($LASTEXITCODE -eq 0) { Write-Host "    - disabledynamictick = yes (aplicado)." -ForegroundColor Green }
+        else { Write-Host "    ! disabledynamictick: codigo de salida $LASTEXITCODE" -ForegroundColor Yellow }
     } catch {
         Write-Host "    ! bcdedit disabledynamictick: $($_.Exception.Message)" -ForegroundColor Yellow
     }
@@ -2423,13 +2423,13 @@ if ($isIsoOptimized) {
 # ============================================================
 #region 17. Restart Explorer
 # ============================================================
-Write-Host "`n[17] Restarting Explorer to apply visual changes..." -ForegroundColor Cyan
+Write-Host "`n[17] Reiniciando el Explorador para aplicar cambios visuales..." -ForegroundColor Cyan
 Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue)) { Start-Process explorer.exe }
 #endregion
 
-Write-Host "`n==== Windows setup finished $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ====" -ForegroundColor Cyan
+Write-Host "`n==== Configuracion de Windows finalizada $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ====" -ForegroundColor Cyan
 Write-Host "  Log guardado en: $log" -ForegroundColor Gray
 
 # ============================================================
