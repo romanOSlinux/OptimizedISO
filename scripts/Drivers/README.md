@@ -1,36 +1,87 @@
-# 🚗 Inyección Offline de Controladores (Drivers)
+﻿# 🚗 Ecosistema Integral de Gestión de Controladores (Drivers) - romanOS
 
-Esta carpeta está destinada a la integración automática y desatendida de controladores (`.inf`) en la imagen de Windows (`install.wim`) durante la creación de la ISO mediante `New-OptimizedWindowsISO.ps1`.
+Este subsistema administra el ciclo de vida completo de los controladores en Windows: desde la integración dual offline (`boot.wim` + `install.wim`), aprovisionamiento desatendido en `autounattend.xml`, hasta el respaldo del host y la depuración del almacén `DriverStore`.
 
 ---
 
-## 📂 ¿Qué colocar en esta carpeta?
+## 📂 1. Estructura Recomendada de Carpetas
 
 Coloque aquí las carpetas descomprimidas con los controladores de su hardware. DISM buscará recursivamente (`/Recurse`) todos los archivos `.inf` compatibles.
 
-### 💡 Casos de uso típicos recomendados:
-1. **Controladores de Almacenamiento NVMe / RAID / Intel RST (VMD):**
-   * Esenciales si su instalador no detecta el disco de estado sólido durante la instalación en equipos portátiles modernos (Intel 11va, 12va, 13va y 14va generación).
-2. **Controladores de Red (Ethernet / Wi-Fi):**
-   * Controladores de tarjetas Intel, Realtek, MediaTek o Qualcomm para contar con conectividad de red inmediata tras la instalación.
-3. **Controladores de Touchpad / Teclado (I2C / HID):**
-   * Especialmente útiles para laptops donde el teclado o touchpad no responden en la primera configuración.
-
----
-
-## ⚠️ Requisitos y Reglas de Formato
-
-* **Formato admitido:** Los controladores deben estar **desempaquetados** con sus archivos `.inf`, `.sys`, `.cat` y carpetas correspondientes.
-  * ❌ *No coloque instaladores `.exe` o `.msi` aquí (estos pertenecen a `$OEM$` o `Runtimes/`).*
-  * ✔️ *Coloque las carpetas extraídas que contienen los archivos `.inf`.*
-* **Firma de controladores:** El script ejecuta DISM con el flag `/ForceUnsigned`, permitiendo integrar controladores OEM personalizados.
-
----
-
-## 🚀 Uso en la línea de comandos
-
-Si prefiere almacenar los controladores en otra ruta o unidad de disco, puede indicarla directamente al ejecutar el script:
-
-```powershell
-.\New-OptimizedWindowsISO.ps1 -SourceISO "C:\ISOs\Win11.iso" -DriversPath "D:\MisControladores"
 ```
+scripts/Drivers/
+├── Storage/                   # Controladores críticos de arranque (Intel VMD, AMD RAID, VirtIO)
+│   ├── Intel-VMD/             # iaStorVD.inf (Intel Core 11va a 14va Gen)
+│   └── VirtIO-Storage/        # viostor.inf (KVM / Proxmox / QEMU)
+├── Network/                   # Adaptadores de Red (Ethernet / Wi-Fi)
+│   ├── Realtek-LAN/           # Realtek PCIe GbE / 2.5GbE
+│   └── Intel-WiFi/            # Intel Wi-Fi 6/6E/7
+├── Input/                     # Teclados, Touchpads e interfaces I2C/HID
+├── Backup-HardwareDrivers.ps1 # Herramienta de extracción y respaldo de drivers del host
+├── Clean-DriverStore.ps1      # Herramienta de depuración segura de FileRepository
+├── Get-CriticalDrivers.ps1    # Descargador asistido de paquetes universales
+└── README.md                  # Esta documentación técnica
+```
+
+---
+
+## 🚀 2. Capacidades y Herramientas del Ecosistema
+
+### A. Dual-Servicing Oficial (`boot.wim` + `install.wim`)
+Al compilar la ISO con `New-OptimizedWindowsISO-v2.ps1`:
+1. **`boot.wim` (Índice 2: Windows Setup / WinPE):** Se inyectan los controladores críticos de almacenamiento e interfaces HID para garantizar que el instalador detecte las unidades NVMe/SSD y el teclado/touchpad inmediatamente.
+2. **`install.wim`:** Se inyectan recursivamente todos los controladores con el flag `/PreventPending` para que ningún controlador deje tareas pendientes antes de la configuración de OOBE.
+3. **`autounattend.xml`:** Incorpora `Microsoft-Windows-PnpCustomizationsWinPE` para escanear controladores adicionales en medios extraíbles (`.\Drivers`).
+
+### B. Respaldo Asistido del Host (`Backup-HardwareDrivers.ps1`)
+Clona en 1 clic todos los controladores OEM de terceros activos en el equipo actual:
+```powershell
+# Respaldo automático en la carpeta Drivers lista para la ISO:
+.\Backup-HardwareDrivers.ps1
+
+# Respaldo en una ruta personalizada:
+.\Backup-HardwareDrivers.ps1 -DestinationPath "D:\MisDrivers" -WhatIf
+```
+*Genera automáticamente un manifiesto `Drivers-Manifest.json` con proveedor, clase, versión y fecha de cada driver.*
+
+### C. Depuración Segura de DriverStore (`Clean-DriverStore.ps1`)
+Elimina versiones antiguas y duplicadas de controladores acumuladas en `C:\Windows\System32\DriverStore\FileRepository` (típico en drivers de GPU tras múltiples actualizaciones):
+```powershell
+# Simulación segura (muestra espacio y candidatos sin borrar nada):
+.\Clean-DriverStore.ps1 -WhatIf
+
+# Ejecución de limpieza con confirmación:
+.\Clean-DriverStore.ps1 -Force
+```
+*Garantía de estabilidad:* Consulta `Win32_PnPSignedDriver` y bloquea la eliminación de cualquier controlador en uso activo por el hardware.
+
+### D. Descargador Asistido de Controladores Críticos (`Get-CriticalDrivers.ps1`)
+Descarga y descomprime automáticamente los controladores de almacenamiento más demandados:
+```powershell
+# Descarga Intel RST VMD y Red Hat VirtIO:
+.\Get-CriticalDrivers.ps1 -Package All
+
+# Descarga solo Intel VMD Floppy:
+.\Get-CriticalDrivers.ps1 -Package IntelVMD
+```
+
+---
+
+## 🛡️ 3. Políticas y Directivas Centralizadas (SSOT)
+
+Todas las directivas de registro de controladores se encuentran unificadas canónicamente en `scripts/Core/Policy-Engine.ps1`:
+* **`ExcludeWUDriversInQualityUpdate = 1`:** Evita que Windows Update sobreescriba controladores certificados de GPU o audio con versiones genéricas.
+* **`SearchOrderConfig = 0` / `DontSearchWindowsUpdate = 1`:** Prioriza la búsqueda local de controladores en el DriverStore.
+* **`AllowGenericDriverFallback = 0`:** Bloquea la instalación de controladores interinos genéricos que descargan bloatware OEM.
+* **`PreventDeviceMetadataFromNetwork = 1`:** Evita la descarga de aplicaciones de soporte de hardware (HSAs como Armoury Crate o Dell SupportAssist).
+
+---
+
+## 💻 4. Integración en `romanOS-Toolkit.ps1`
+
+El Toolkit Maestro incluye el módulo completo de controladores:
+* Desde el menú principal: **Opción [8] Gestión Integral de Controladores**.
+* Desde la consola de comandos:
+  ```powershell
+  .\romanOS-Toolkit.ps1 -Module Drivers
+  ```

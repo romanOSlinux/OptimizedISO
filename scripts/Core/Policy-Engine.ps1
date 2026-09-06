@@ -502,6 +502,77 @@ $global:RomanOS_Policies = @(
         Description   = "Programacion acelerada por hardware de GPU (HAGS = 2)"
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/hardware-accelerated-gpu-scheduling"
         UnattendDesc  = "Enable Hardware-Accelerated GPU Scheduling (HAGS)"
+    },
+    # --- MÓDULO G: POLÍTICAS DE CONTROLADORES (DRIVERS & DISPOSITIVOS) ---
+    @{
+        Id            = "POL_DRV_EXCLUDE_WU"
+        Module        = "Drivers - Windows Update"
+        Category      = "Controladores & Estabilidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "ExcludeWUDriversInQualityUpdate"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Excluir drivers de las actualizaciones de calidad de Windows Update (evita sobrescribir drivers OEM/GPU)"
+        OfficialDoc   = "https://learn.microsoft.com/windows-client-management/mdm/policy-csp-update"
+        UnattendDesc  = "Exclude Drivers from Windows Quality Updates"
+    },
+    @{
+        Id            = "POL_DRV_DONT_SEARCH_WU"
+        Module        = "Drivers - Busqueda GPO"
+        Category      = "Controladores & Estabilidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DriverSearching"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching"
+        ValueName     = "DontSearchWindowsUpdate"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Directiva GPO para no buscar controladores en Windows Update"
+        OfficialDoc   = "https://learn.microsoft.com/windows-client-management/mdm/policy-csp-deviceinstallation"
+        UnattendDesc  = "GPO Do Not Search Windows Update for Drivers"
+    },
+    @{
+        Id            = "POL_DRV_POL_SEARCH_ORDER"
+        Module        = "Drivers - Busqueda GPO"
+        Category      = "Controladores & Estabilidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DriverSearching"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching"
+        ValueName     = "SearchOrderConfig"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Directiva GPO de orden de busqueda de controladores local únicamente"
+        OfficialDoc   = "https://learn.microsoft.com/windows-client-management/mdm/policy-csp-deviceinstallation"
+        UnattendDesc  = "GPO Local Only Driver Search Order"
+    },
+    @{
+        Id            = "POL_DRV_ALLOW_GENERIC_FALLBACK"
+        Module        = "Drivers - Instalacion"
+        Category      = "Controladores & Estabilidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings"
+        ValueName     = "AllowGenericDriverFallback"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Deshabilitar instalacion de drivers genericos que instalan bloatware OEM"
+        OfficialDoc   = "https://learn.microsoft.com/windows-client-management/mdm/policy-csp-deviceinstallation"
+        UnattendDesc  = "Disable Generic Driver Fallback and OEM Bloatware Drivers"
+    },
+    @{
+        Id            = "POL_DRV_PREVENT_DEVICE_METADATA"
+        Module        = "Drivers - Metadatos"
+        Category      = "Controladores & Estabilidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Device Metadata"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata"
+        ValueName     = "PreventDeviceMetadataFromNetwork"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Evitar descarga de metadatos de dispositivos desde la red (previene instalacion de apps HSA de soporte de hardware)"
+        OfficialDoc   = "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-deviceinstallation"
+        UnattendDesc  = "Prevent Device Metadata Retrieval From Network"
     }
 )
 
@@ -1775,4 +1846,110 @@ function Apply-RomanOSBrowserPolicies {
         Failed  = $failCount
     }
 }
+
+# -----------------------------------------------------------------------------
+# 5. FUNCIONES CANÓNICAS DE POLÍTICAS DE CONTROLADORES (DRIVERS & DISPOSITIVOS)
+# -----------------------------------------------------------------------------
+
+function Get-RomanOSDriverPolicies {
+    <#
+    .SYNOPSIS
+        Retorna la lista de directivas oficiales de drivers registradas en Policy-Engine.
+    #>
+    [CmdletBinding()]
+    param()
+
+    return @($global:RomanOS_Policies | Where-Object { $_.Id -like "POL_DRV_*" })
+}
+
+function Export-RomanOSDriverCommands {
+    <#
+    .SYNOPSIS
+        Genera bloques RunSynchronousCommand para autounattend.xml o comandos reg add para SetupComplete.cmd.
+    #>
+    [CmdletBinding()]
+    param(
+        [ValidateSet("Xml", "Cmd")]
+        [string]$Format = "Xml",
+        [int]$StartOrder = 1
+    )
+
+    $policies = Get-RomanOSDriverPolicies
+    $order = $StartOrder
+    $sb = [System.Text.StringBuilder]::new()
+
+    foreach ($p in $policies) {
+        $regKey = $p.RegistryKey
+        $valName = $p.ValueName
+        $type = $p.Type
+        $val = $p.ExpectedValue
+
+        if ($Format -eq "Xml") {
+            [void]$sb.AppendLine(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$order</Order>
+          <Description>$($p.UnattendDesc)</Description>
+          <Path>reg add "$regKey" /v "$valName" /t $type /d $val /f</Path>
+        </RunSynchronousCommand>
+"@)
+        } else {
+            [void]$sb.AppendLine("reg.exe add `"$regKey`" /v `"$valName`" /t $type /d $val /f >nul 2>&1")
+        }
+        $order++
+    }
+
+    return [PSCustomObject]@{
+        Content   = $sb.ToString()
+        Count     = $policies.Count
+        NextOrder = $order
+    }
+}
+
+function Apply-RomanOSDriverPolicies {
+    <#
+    .SYNOPSIS
+        Aplica todas las directivas de aislamiento y control de drivers en vivo o en colmena montada.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [switch]$VerboseOutput
+    )
+
+    $policies = Get-RomanOSDriverPolicies
+    $appliedCount = 0
+    $failCount = 0
+
+    foreach ($p in $policies) {
+        if ($PSCmdlet.ShouldProcess("$($p.RegistryKey)\$($p.ValueName)", "Aplicar directiva de controlador: $($p.Description)")) {
+            try {
+                $regKey = $p.RegistryKey
+                $valName = $p.ValueName
+                $type = $p.Type
+                $val = $p.ExpectedValue
+
+                if (-not (Test-Path $p.PSPath)) {
+                    New-Item -Path $p.PSPath -Force -ErrorAction SilentlyContinue | Out-Null
+                }
+
+                & reg.exe add "$regKey" /v "$valName" /t $type /d $val /f 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    $appliedCount++
+                    if ($VerboseOutput) { Write-Host "  [OK] Driver Policy: $($p.ValueName) = $val" -ForegroundColor Green }
+                } else {
+                    $failCount++
+                    if ($VerboseOutput) { Write-Host "  [FAIL] Driver Policy: $($p.ValueName)" -ForegroundColor Red }
+                }
+            } catch {
+                $failCount++
+            }
+        }
+    }
+
+    return [PSCustomObject]@{
+        Total   = $policies.Count
+        Applied = $appliedCount
+        Failed  = $failCount
+    }
+}
+
 

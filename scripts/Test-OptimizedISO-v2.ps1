@@ -873,6 +873,36 @@ Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 delega Nagle en Win11-Netw
 
 Assert-True "PLAN-0026: romanOS-Toolkit.ps1 delega Shaders y TRIM en Invoke-WindowsMaintenance.ps1" ($toolkitContent -match 'Invoke-WindowsMaintenance\.ps1' -and $toolkitContent -match '-ShadersOnly' -and $toolkitContent -match '-TrimOnly')
 
+# PLAN-0027: Validaciones del Ecosistema Integral de Controladores (Drivers)
+Assert-True "PLAN-0027: Get-RomanOSDriverPolicies function registrada" ([bool](Get-Command Get-RomanOSDriverPolicies -ErrorAction SilentlyContinue))
+Assert-True "PLAN-0027: Apply-RomanOSDriverPolicies function registrada" ([bool](Get-Command Apply-RomanOSDriverPolicies -ErrorAction SilentlyContinue))
+Assert-True "PLAN-0027: Export-RomanOSDriverCommands function registrada" ([bool](Get-Command Export-RomanOSDriverCommands -ErrorAction SilentlyContinue))
+
+$driverPols = Get-RomanOSDriverPolicies
+Assert-True "PLAN-0027: Catalogo de directivas de drivers contiene al menos 6 directivas oficiales" ($driverPols.Count -ge 6)
+$driverXml = Export-RomanOSDriverCommands -Format Xml
+Assert-True "PLAN-0027: Export-RomanOSDriverCommands genera directivas ExcludeWUDriversInQualityUpdate" ($driverXml.Content -match 'ExcludeWUDriversInQualityUpdate')
+Assert-True "PLAN-0027: Export-RomanOSDriverCommands genera directivas PreventDeviceMetadataFromNetwork" ($driverXml.Content -match 'PreventDeviceMetadataFromNetwork')
+
+# Verificacion de Dual-Servicing y PnpCustomizations en New-OptimizedWindowsISO-v2.ps1
+Assert-True "PLAN-0027: v2 script implementa dual-servicing en boot.wim (WinPE/Setup)" ($v2ScriptContent -match 'DUAL-SERVICING.*boot\.wim' -and $v2ScriptContent -match 'boot_mount')
+Assert-True "PLAN-0027: v2 script inyecta flag /PreventPending en DISM /Add-Driver" ($v2ScriptContent -match '/PreventPending')
+Assert-True "PLAN-0027: autounattend.xml contiene componente Microsoft-Windows-PnpCustomizationsWinPE" ($v2ScriptContent -match 'Microsoft-Windows-PnpCustomizationsWinPE')
+Assert-True "PLAN-0027: v2 script soporta parametro -SkipBootWimDrivers" ($v2ScriptContent -match 'SkipBootWimDrivers')
+
+# Verificacion de scripts modulares de drivers
+$backupDrvScript = Join-Path $PSScriptRoot "Drivers\Backup-HardwareDrivers.ps1"
+Assert-FileExists "PLAN-0027: Backup-HardwareDrivers.ps1 existe en disco" $backupDrvScript
+$cleanDrvScript = Join-Path $PSScriptRoot "Drivers\Clean-DriverStore.ps1"
+Assert-FileExists "PLAN-0027: Clean-DriverStore.ps1 existe en disco" $cleanDrvScript
+$getDrvScript = Join-Path $PSScriptRoot "Drivers\Get-CriticalDrivers.ps1"
+Assert-FileExists "PLAN-0027: Get-CriticalDrivers.ps1 existe en disco" $getDrvScript
+
+# Verificacion de integracion en Toolkit Maestro y Debloat
+Assert-True "PLAN-0027: romanOS-Toolkit.ps1 resuelve e incluye directorio Drivers" ($toolkitContent -match 'Drivers')
+Assert-True "PLAN-0027: romanOS-Toolkit.ps1 soporta modulo -Module Drivers" ($toolkitContent -match 'Invoke-DriversModule')
+Assert-True "PLAN-0027: Win11-Debloat-v3-Adaptive.ps1 delega en Apply-RomanOSDriverPolicies" ($debloatContent -match 'Apply-RomanOSDriverPolicies')
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

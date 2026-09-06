@@ -1649,29 +1649,21 @@ Set-Reg 'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindo
 Set-Reg 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' 'DisableWPBT' 1
 
 # --- Bloqueo completo de drivers y apps OEM automaticas ---
-# Fuente: learn.microsoft.com/windows-client-management/mdm/policy-csp-update (ExcludeWUDriversInQualityUpdate)
-#         learn.microsoft.com/windows-client-management/mdm/policy-csp-deviceinstallation (AllowGenericDriverFallback)
+# SSOT: Delegado canónicamente a Policy-Engine.ps1 (POL_DRV_*)
 Write-Host "  [+] Bloqueando instalacion automatica de drivers y apps OEM..." -ForegroundColor Gray
 
-# Excluir drivers de las actualizaciones de calidad de Windows Update (solo opcional)
-Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'ExcludeWUDriversInQualityUpdate' 1
-
-# Bloquear descarga de metadata de dispositivo y apps OEM asociadas al hardware desde servidores MS
-# (dmd.metaservices.microsoft.com) - previene HP Support Assistant, Dell SupportAssist, etc.
-Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata' 'PreventDeviceMetadataFromNetwork' 1
-
-# Bloquear busqueda de drivers en Windows Update en hive CurrentVersion
-# NOTA: SearchOrderConfig=0 = solo local. SearchOrderConfig=1 = buscar en WU (valor erroneo comun)
-# Ref: learn.microsoft.com/windows/win32/setupapi/driver-store  
-Set-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching' 'SearchOrderConfig'    0
-
-# Bloquear busqueda en WU tambien via hive Policies (tiene precedencia sobre CurrentVersion)
-Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching' 'DontSearchWindowsUpdate'   1
-Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching' 'SearchOrderConfig'         0
-
-# Deshabilitar la instalacion de drivers genericos como interino mientras espera drivers especificos
-# Evita que Windows instale un driver HID generico de HP, Dell, etc. que luego arrastra bloatware
-Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings' 'AllowGenericDriverFallback' 0
+if (Get-Command "Apply-RomanOSDriverPolicies" -ErrorAction SilentlyContinue) {
+    $drvApplied = Apply-RomanOSDriverPolicies
+    Write-Host "    - Aplicadas $($drvApplied.Applied) directivas canónicas de aislamiento de drivers (SSOT)." -ForegroundColor DarkGray
+} else {
+    # Fallback standalone
+    Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'ExcludeWUDriversInQualityUpdate' 1
+    Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata' 'PreventDeviceMetadataFromNetwork' 1
+    Set-Reg 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching' 'SearchOrderConfig' 0
+    Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching' 'DontSearchWindowsUpdate' 1
+    Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching' 'SearchOrderConfig' 0
+    Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Settings' 'AllowGenericDriverFallback' 0
+}
 
 # Bloquear descarga automatica de apps OEM asociadas al hardware desde el Windows Store
 # (Device Support Apps: HP Support Assistant, Dell SupportAssist, ASUS Armoury Crate, etc.)

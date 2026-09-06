@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu")]
+    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers")]
     [string]$Module,
     [switch]$ShowDashboards
 )
@@ -127,9 +127,14 @@ foreach ($p in $policyEnginePaths) {
 $searchDirs = @(
     $PSScriptRoot,
     (Join-Path $PSScriptRoot "scripts"),
+    (Join-Path $PSScriptRoot "Drivers"),
+    (Join-Path $PSScriptRoot "scripts\Drivers"),
     "$env:WINDIR\Setup\Scripts",
+    "$env:WINDIR\Setup\Scripts\Drivers",
     "C:\Windows\Setup\Scripts",
-    "C:\OptimizedISO\scripts"
+    "C:\Windows\Setup\Scripts\Drivers",
+    "C:\OptimizedISO\scripts",
+    "C:\OptimizedISO\scripts\Drivers"
 )
 
 function Resolve-ToolScript {
@@ -279,6 +284,45 @@ function Invoke-ContextMenuModule {
     }
 }
 
+function Invoke-DriversModule {
+    Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Ecosistema de Controladores (Drivers) - romanOS"
+    $opts = @(
+        "Respaldar Controladores Activos del Host (Export-WindowsDriver)",
+        "Depuracion y Limpieza de DriverStore (Recuperar espacio en disco)",
+        "Descarga Asistida de Drivers Criticos (Intel VMD / VirtIO)"
+    )
+    $subChoice = Show-UnifiedMenu -Title "GESTION DE CONTROLADORES" -Options $opts -DefaultChoice 1 -AllowCancel -CancelText "Volver"
+    switch ($subChoice) {
+        1 {
+            $backupScript = Resolve-ToolScript "Backup-HardwareDrivers.ps1"
+            if ($backupScript) {
+                & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $backupScript
+            } else {
+                Write-ErrorMsg "No se encontro Backup-HardwareDrivers.ps1"
+            }
+            pause
+        }
+        2 {
+            $cleanScript = Resolve-ToolScript "Clean-DriverStore.ps1"
+            if ($cleanScript) {
+                & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $cleanScript
+            } else {
+                Write-ErrorMsg "No se encontro Clean-DriverStore.ps1"
+            }
+            pause
+        }
+        3 {
+            $getScript = Resolve-ToolScript "Get-CriticalDrivers.ps1"
+            if ($getScript) {
+                & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $getScript
+            } else {
+                Write-ErrorMsg "No se encontro Get-CriticalDrivers.ps1"
+            }
+            pause
+        }
+    }
+}
+
 function Show-QuickActionsMenu {
     Show-UnifiedBanner -Title "ACCIONES RAPIDAS DE SISTEMA" -Subtitle "Herramientas de Mantenimiento Express"
     
@@ -293,7 +337,9 @@ function Show-QuickActionsMenu {
         "Restaurar Servicios Hardcore (Wi-Fi, Bluetooth, Impresion, Busqueda)",
         "Alternar Hipervisor / VBS (Activar o Desactivar hypervisorlaunchtype)",
         "Auditoria e Introspeccion de Hardware (PCIe, GPU, RAM, MSI, SMBIOS)",
-        "Gestionar Menus Contextuales (Gamer, Take Ownership, UEFI, Clasico)"
+        "Gestionar Menus Contextuales (Gamer, Take Ownership, UEFI, Clasico)",
+        "Respaldar Controladores del Host para la ISO (Export-WindowsDriver)",
+        "Depuracion Segura del DriverStore (FileRepository)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -442,6 +488,16 @@ function Show-QuickActionsMenu {
         11 {
             Invoke-ContextMenuModule
         }
+        12 {
+            $backupScript = Resolve-ToolScript "Backup-HardwareDrivers.ps1"
+            if ($backupScript) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $backupScript } else { Write-ErrorMsg "No se encontro Backup-HardwareDrivers.ps1" }
+            pause
+        }
+        13 {
+            $cleanScript = Resolve-ToolScript "Clean-DriverStore.ps1"
+            if ($cleanScript) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $cleanScript } else { Write-ErrorMsg "No se encontro Clean-DriverStore.ps1" }
+            pause
+        }
         default { return }
     }
 
@@ -461,6 +517,7 @@ if ($Module) {
         "Browsers"     { Invoke-BrowsersModule; exit }
         "Updates"      { Invoke-UpdatesModule; exit }
         "ContextMenu"  { Invoke-ContextMenuModule; exit }
+        "Drivers"      { Invoke-DriversModule; exit }
         "QuickActions" { Show-QuickActionsMenu; exit }
     }
 }
@@ -488,6 +545,7 @@ $mainMenuOpts = @(
     "Auditoria de Seguridad & Hardening (ASR, VBS, Protocolos On-Demand)",
     "Optimizar y Debloat de Navegadores (GPU, Menos RAM, Sin Copilot/IA)",
     "Descargar Windows Updates Oficiales (MSU/CAB para Slipstream en ISO)",
+    "Gestion Integral de Controladores (Respaldo Host, DriverStore, Intel VMD)",
     "Generar y Abrir Dashboards HTML de Salud y Seguridad",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)"
 )
@@ -497,16 +555,17 @@ while ($true) {
     $choice = Show-UnifiedMenu -Title "MODULOS DEL TOOLKIT MAESTRO" -Options $mainMenuOpts -DefaultChoice 1 -AllowCancel -CancelText "Salir del Toolkit"
     
     switch ($choice) {
-        1 { Invoke-GamingModule }
-        2 { Invoke-NetworkModule }
-        3 { Invoke-MaintenanceModule }
-        4 { Invoke-DiagnosticsModule }
-        5 { Invoke-SecurityModule }
-        6 { Invoke-BrowsersModule; pause }
-        7 { Invoke-UpdatesModule }
-        8 { Invoke-OpenDashboards }
-        9 { Show-QuickActionsMenu }
-        0 {
+        1  { Invoke-GamingModule }
+        2  { Invoke-NetworkModule }
+        3  { Invoke-MaintenanceModule }
+        4  { Invoke-DiagnosticsModule }
+        5  { Invoke-SecurityModule }
+        6  { Invoke-BrowsersModule; pause }
+        7  { Invoke-UpdatesModule }
+        8  { Invoke-DriversModule }
+        9  { Invoke-OpenDashboards }
+        10 { Show-QuickActionsMenu }
+        0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit
         }

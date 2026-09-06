@@ -240,6 +240,9 @@ param(
     [string]$DriversPath = "",
 
     [Parameter()]
+    [switch]$SkipBootWimDrivers,
+
+    [Parameter()]
     [string]$UpdatesPath = "",
 
     [Parameter()]
@@ -5009,6 +5012,13 @@ $($firstLogonCommands -join "`n")
       <UILanguage>$Language</UILanguage>
       <UserLocale>$finalLocale</UserLocale>
     </component>
+    <component name="Microsoft-Windows-PnpCustomizationsWinPE" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <DriverPaths>
+        <PathAndCredentials wcm:action="add" wcm:keyValue="1">
+          <Path>.\Drivers</Path>
+        </PathAndCredentials>
+      </DriverPaths>
+    </component>
     <component name="Microsoft-Windows-Setup" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <EnableFirewall>true</EnableFirewall>
       <RunSynchronous>
@@ -5252,6 +5262,83 @@ if ($wimFile) {
         }
 
         New-Item -ItemType Directory -Path $ScratchDir -Force | Out-Null
+
+        #==================================================================
+        # DUAL-SERVICING DE CONTROLADORES EN boot.wim (WinPE / Setup)
+        #==================================================================
+        $bootWimCandidate = Join-Path $ISOFilesDir "sources\boot.wim"
+        if (-not (Test-Path $bootWimCandidate)) {
+            $bootWimFound = Get-ChildItem -Path $ISOFilesDir -Recurse -Filter "boot.wim" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($bootWimFound) { $bootWimCandidate = $bootWimFound.FullName }
+        }
+
+        if ($bootWimCandidate -and (Test-Path $bootWimCandidate) -and $resolvedDriversDir -and (-not $SkipBootWimDrivers)) {
+            Write-Host ""
+            Write-Host "    ══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+            Write-Host "    DUAL-SERVICING: Inyección de Drivers en boot.wim (WinPE / Setup)" -ForegroundColor Cyan
+            Write-Host "    ══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+            Write-Host "    Imagen de arranque: $bootWimCandidate" -ForegroundColor Gray
+
+            try {
+                $bootItem = Get-Item $bootWimCandidate -ErrorAction SilentlyContinue
+                if ($bootItem -and $bootItem.IsReadOnly) {
+                    Set-ItemProperty -Path $bootWimCandidate -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
+                }
+            } catch {}
+
+            $bootIndices = @()
+            try {
+                $bootImages = Get-WimImageList -WimPath $bootWimCandidate
+                if ($bootImages -and $bootImages.Count -ge 2) {
+                    # Servicing en Índice 2 (Windows Setup) e Índice 1 (WinPE)
+                    $bootIndices = @(2, 1)
+                } elseif ($bootImages -and $bootImages.Count -eq 1) {
+                    $bootIndices = @(1)
+                }
+            } catch {
+                $bootIndices = @(2)
+            }
+
+            $bootMountDir = Join-Path $ScratchDir "boot_mount"
+            if (-not (Test-Path $bootMountDir)) {
+                New-Item -ItemType Directory -Path $bootMountDir -Force | Out-Null
+            }
+
+            foreach ($bIdx in $bootIndices) {
+                Write-Host "    Inyectando drivers en boot.wim Índice $bIdx..." -ForegroundColor Gray
+                try {
+                    $mountedBoot = Invoke-SafeWimMount -ImagePath $bootWimCandidate -Index $bIdx -MountDir $bootMountDir -ScratchDirectory $ScratchDir
+                    if ($mountedBoot) {
+                        $dismBootLog = Join-Path $ScratchDir "dism_boot_drv_idx${bIdx}.log"
+                        $dismBootRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                            -ArgumentList @("/Image:$bootMountDir", "/Add-Driver", "/Driver:$resolvedDriversDir", "/Recurse", "/ForceUnsigned", "/PreventPending", "/ScratchDir:$ScratchDir", "/LogPath:$dismBootLog") `
+                            -AllowExitCodes @(0, 3010) `
+                            -TaskDescription "Inyección offline drivers boot.wim Idx $bIdx" `
+                            -TimeoutSeconds 600 `
+                            -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+
+                        if ($dismBootRes.Success) {
+                            Write-OK "Drivers inyectados con éxito en boot.wim (Índice $bIdx)."
+                            Add-AuditRecord -Resource "Drivers boot.wim (Setup/WinPE)" -Target "boot.wim Idx $bIdx" `
+                                            -Status "OK" -Details "Drivers offline inyectados correctamente con DISM"
+                        } else {
+                            Write-Warn "DISM Add-Driver devolvió exit code: $($dismBootRes.ExitCode) en boot.wim Idx $bIdx."
+                            Add-AuditRecord -Resource "Drivers boot.wim (Setup/WinPE)" -Target "boot.wim Idx $bIdx" `
+                                            -Status "WARN" -Details "DISM devolvió exit code $($dismBootRes.ExitCode)"
+                        }
+
+                        Invoke-SafeWimDismount -MountDir $bootMountDir -Action Save -ScratchDirectory $ScratchDir | Out-Null
+                    }
+                } catch {
+                    Write-Warn "Error inyectando en boot.wim Índice $($bIdx): $($_.Exception.Message)"
+                    Invoke-SafeWimDismount -MountDir $bootMountDir -Action Discard -ScratchDirectory $ScratchDir | Out-Null
+                }
+            }
+
+            if (Test-Path $bootMountDir) {
+                Remove-Item -Path $bootMountDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
 
         try {
             foreach ($wimIndex in $indexesToProcess) {
@@ -5553,7 +5640,7 @@ if ($wimFile) {
                                 $dismDriverLog = Join-Path $ScratchDir "dism_drivers.log"
 
                                 $dismDrv = Invoke-MonitoredProcess -FilePath "dism.exe" `
-                                    -ArgumentList @("/Image:$WimMountDir", "/Add-Driver", "/Driver:$resolvedDriversDir", "/Recurse", "/ForceUnsigned", "/ScratchDir:$ScratchDir", "/LogPath:$dismDriverLog") `
+                                    -ArgumentList @("/Image:$WimMountDir", "/Add-Driver", "/Driver:$resolvedDriversDir", "/Recurse", "/ForceUnsigned", "/PreventPending", "/ScratchDir:$ScratchDir", "/LogPath:$dismDriverLog") `
                                     -AllowExitCodes @(0, 3010) `
                                     -TaskDescription "Inyección offline de controladores" `
                                     -TimeoutSeconds 900 `
