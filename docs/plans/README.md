@@ -43,6 +43,8 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0025 | [PLAN-0025-20260905-deep-audit-script-redundancy-and-iso-vs-toolkit-matrix.md](PLAN-0025-20260905-deep-audit-script-redundancy-and-iso-vs-toolkit-matrix.md) | 2026-09-05 | Auditoría Transversal Script por Script, Desmitificación de Redundancias y Matriz de Decisión ISO vs. Toolkit | COMPLETADO |
 | 0026 | [PLAN-0026-20260905-refactor-redundancy-decoupling-iso-toolkit.md](PLAN-0026-20260905-refactor-redundancy-decoupling-iso-toolkit.md) | 2026-09-05 | Refactorización y Desacoplamiento de Redundancias Transversales e Integración Canónica ISO vs. Toolkit | COMPLETADO |
 | 0027 | [PLAN-0027-20260906-ecosistema-integral-gestion-drivers.md](PLAN-0027-20260906-ecosistema-integral-gestion-drivers.md) | 2026-09-06 | Ecosistema Integral de Gestión, Inyección y Mantenimiento de Controladores (Drivers) | COMPLETADO |
+| 0028 | [PLAN-0028-20260906-expansion-storage-drivers-amd-raid-intel-legacy.md](PLAN-0028-20260906-expansion-storage-drivers-amd-raid-intel-legacy.md) | 2026-09-06 | Expansión del Catálogo de Controladores Críticos: Soporte para AMD RAID e Intel RST Legacy | PENDIENTE |
+| 0029 | [PLAN-0029-20260906-refactor-context-menus-native-registry-and-iso-integration.md](PLAN-0029-20260906-refactor-context-menus-native-registry-and-iso-integration.md) | 2026-09-06 | Refactorización de Menús Contextuales con API Nativa de Registro e Integración Canónica en ISO | PENDIENTE |
 
 ---
 
