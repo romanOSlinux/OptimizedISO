@@ -301,8 +301,13 @@ function Show-QuickActionsMenu {
     switch ($actChoice) {
         1 {
             Write-SubStep "Vaciando cache DNS..."
-            ipconfig /flushdns
-            Write-OK "Cache DNS vaciada exitosamente."
+            try {
+                Clear-DnsClientCache -ErrorAction Stop
+                Write-OK "Cache DNS vaciada con exito (Clear-DnsClientCache)."
+            } catch {
+                ipconfig /flushdns
+                Write-OK "Cache DNS vaciada con exito (ipconfig /flushdns)."
+            }
             pause
         }
         2 {
@@ -326,30 +331,42 @@ function Show-QuickActionsMenu {
             pause
         }
         5 {
-            Write-SubStep "Limpiando caches de Shaders DirectX/NVIDIA/AMD..."
-            $shaderDirs = @(
-                "$env:LOCALAPPDATA\D3DSCache",
-                "$env:LOCALAPPDATA\NVIDIA\DXCache",
-                "$env:LOCALAPPDATA\AMD\DxCache",
-                "$env:LOCALAPPDATA\Temp"
-            )
-            foreach ($sd in $shaderDirs) {
-                if (Test-Path $sd) {
-                    Get-ChildItem -Path $sd -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+            Write-SubStep "Delegando purga de Shaders GPU a Invoke-WindowsMaintenance.ps1..."
+            $maintScript = Join-Path $PSScriptRoot "Invoke-WindowsMaintenance.ps1"
+            if (Test-Path $maintScript) {
+                & $maintScript -ShadersOnly -Unattended
+            } else {
+                Write-SubStep "Limpiando caches de Shaders DirectX/NVIDIA/AMD (fallback)..."
+                $shaderDirs = @(
+                    "$env:LOCALAPPDATA\D3DSCache",
+                    "$env:LOCALAPPDATA\NVIDIA\DXCache",
+                    "$env:LOCALAPPDATA\AMD\DxCache",
+                    "$env:LOCALAPPDATA\Temp"
+                )
+                foreach ($sd in $shaderDirs) {
+                    if (Test-Path $sd) {
+                        Get-ChildItem -Path $sd -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+                    }
                 }
             }
-            Write-OK "Caches de Shaders limpiadas."
+            Write-OK "Caches de Shaders GPU procesadas."
             pause
         }
         6 {
-            Write-SubStep "Ejecutando SSD TRIM (Optimize-Volume -ReTrim)..."
-            try {
-                Get-Volume | Where-Object { $_.DriveType -eq 'Fixed' } | ForEach-Object {
-                    Optimize-Volume -DriveLetter $_.DriveLetter -ReTrim -Verbose
+            Write-SubStep "Delegando SSD TRIM a Invoke-WindowsMaintenance.ps1..."
+            $maintScript = Join-Path $PSScriptRoot "Invoke-WindowsMaintenance.ps1"
+            if (Test-Path $maintScript) {
+                & $maintScript -TrimOnly -Unattended
+            } else {
+                Write-SubStep "Ejecutando SSD TRIM (fallback)..."
+                try {
+                    Get-Volume | Where-Object { $_.DriveType -eq 'Fixed' -and $_.DriveLetter } | ForEach-Object {
+                        Optimize-Volume -DriveLetter $_.DriveLetter -ReTrim -Verbose
+                    }
+                    Write-OK "SSD ReTrim finalizado."
+                } catch {
+                    Write-ErrorMsg "Error ejecutando Optimize-Volume: $($_.Exception.Message)"
                 }
-                Write-OK "SSD ReTrim finalizado."
-            } catch {
-                Write-ErrorMsg "Error ejecutando Optimize-Volume: $($_.Exception.Message)"
             }
             pause
         }

@@ -56,7 +56,9 @@ param(
     [switch]$Full,
     [switch]$SkipDism,
     [switch]$SkipBrowsers,
-    [switch]$ResetBase
+    [switch]$ResetBase,
+    [switch]$ShadersOnly,
+    [switch]$TrimOnly
 )
 
 # ============================================================
@@ -83,6 +85,8 @@ if (-not $isAdmin) {
         if ($SkipDism)         { $argList += "-SkipDism" }
         if ($SkipBrowsers)     { $argList += "-SkipBrowsers" }
         if ($ResetBase)        { $argList += "-ResetBase" }
+        if ($ShadersOnly)      { $argList += "-ShadersOnly" }
+        if ($TrimOnly)         { $argList += "-TrimOnly" }
 
         Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
         exit 0
@@ -200,7 +204,11 @@ $runMod4 = $false # Caches y Navegadores
 $runMod5 = $false # Reparacion y Salud
 $runMod6 = $false # Almacenamiento y TRIM
 
-if ($Full) {
+if ($ShadersOnly) {
+    $runMod4 = $true
+} elseif ($TrimOnly) {
+    $runMod6 = $true
+} elseif ($Full) {
     $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod5 = $true; $runMod6 = $true
 } elseif ($PostInstall) {
     $runMod1 = $true; $runMod3 = $true; $runMod4 = $true; $runMod6 = $true
@@ -411,74 +419,76 @@ if ($runMod4) {
         }
     }
 
-    # 4.B Caches Seguras de Navegadores Web (Preservando Sesiones, Cookies y Passwords)
-    if (-not $SkipBrowsers) {
-        Write-SubStep "Limpiando caches volatiles de navegadores (Edge, Chrome, Brave, Firefox)..."
-        foreach ($prof in $userProfiles) {
-            $browserCachePaths = @(
-                # Microsoft Edge (Chromium)
-                (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\Cache"),
-                (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\Code Cache"),
-                (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\GPUCache"),
-                (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Crashpad\reports"),
-                # Google Chrome
-                (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\Cache"),
-                (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\Code Cache"),
-                (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\GPUCache"),
-                (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Crashpad\reports"),
-                # Brave Browser
-                (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\Cache"),
-                (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\Code Cache"),
-                (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\GPUCache"),
-                # Mozilla Firefox (Volatile cache2)
-                (Join-Path $prof.LocalPath "AppData\Local\Mozilla\Firefox\Profiles")
-            )
+    if (-not $ShadersOnly) {
+        # 4.B Caches Seguras de Navegadores Web (Preservando Sesiones, Cookies y Passwords)
+        if (-not $SkipBrowsers) {
+            Write-SubStep "Limpiando caches volatiles de navegadores (Edge, Chrome, Brave, Firefox)..."
+            foreach ($prof in $userProfiles) {
+                $browserCachePaths = @(
+                    # Microsoft Edge (Chromium)
+                    (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\Cache"),
+                    (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\Code Cache"),
+                    (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\GPUCache"),
+                    (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Crashpad\reports"),
+                    # Google Chrome
+                    (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\Cache"),
+                    (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\Code Cache"),
+                    (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\GPUCache"),
+                    (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Crashpad\reports"),
+                    # Brave Browser
+                    (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\Cache"),
+                    (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\Code Cache"),
+                    (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\GPUCache"),
+                    # Mozilla Firefox (Volatile cache2)
+                    (Join-Path $prof.LocalPath "AppData\Local\Mozilla\Firefox\Profiles")
+                )
 
-            foreach ($bPath in $browserCachePaths) {
-                if (Test-Path -LiteralPath $bPath) {
-                    if ($bPath -match 'Mozilla\\Firefox\\Profiles') {
-                        $ffProfiles = Get-ChildItem -LiteralPath $bPath -Directory -ErrorAction SilentlyContinue
-                        foreach ($ffP in $ffProfiles) {
-                            $c2 = Join-Path $ffP.FullName "cache2"
-                            if (Test-Path $c2) { Remove-PathSilently -Path $c2 -ContentsOnly | Out-Null }
-                            $sc = Join-Path $ffP.FullName "startupCache"
-                            if (Test-Path $sc) { Remove-PathSilently -Path $sc -ContentsOnly | Out-Null }
+                foreach ($bPath in $browserCachePaths) {
+                    if (Test-Path -LiteralPath $bPath) {
+                        if ($bPath -match 'Mozilla\\Firefox\\Profiles') {
+                            $ffProfiles = Get-ChildItem -LiteralPath $bPath -Directory -ErrorAction SilentlyContinue
+                            foreach ($ffP in $ffProfiles) {
+                                $c2 = Join-Path $ffP.FullName "cache2"
+                                if (Test-Path $c2) { Remove-PathSilently -Path $c2 -ContentsOnly | Out-Null }
+                                $sc = Join-Path $ffP.FullName "startupCache"
+                                if (Test-Path $sc) { Remove-PathSilently -Path $sc -ContentsOnly | Out-Null }
+                            }
+                        } else {
+                            Remove-PathSilently -Path $bPath -ContentsOnly | Out-Null
                         }
-                    } else {
-                        Remove-PathSilently -Path $bPath -ContentsOnly | Out-Null
                     }
                 }
             }
+            Write-OK "Caches de navegadores purgadas de forma segura (Sesiones y Cookies protegidas)."
+        } else {
+            Write-Info "Limpieza de navegadores omitida por parametro -SkipBrowsers."
         }
-        Write-OK "Caches de navegadores purgadas de forma segura (Sesiones y Cookies protegidas)."
-    } else {
-        Write-Info "Limpieza de navegadores omitida por parametro -SkipBrowsers."
-    }
 
-    # 4.C Archivos Temporales del Sistema y Usuarios
-    Write-SubStep "Saneando archivos temporales globales (%TEMP% y Windows Temp)..."
-    Remove-PathSilently -Path "$env:WINDIR\Temp" -ContentsOnly | Out-Null
-    foreach ($prof in $userProfiles) {
-        $uTemp = Join-Path $prof.LocalPath "AppData\Local\Temp"
-        if (Test-Path $uTemp) {
-            Remove-PathSilently -Path $uTemp -ContentsOnly | Out-Null
+        # 4.C Archivos Temporales del Sistema y Usuarios
+        Write-SubStep "Saneando archivos temporales globales (%TEMP% y Windows Temp)..."
+        Remove-PathSilently -Path "$env:WINDIR\Temp" -ContentsOnly | Out-Null
+        foreach ($prof in $userProfiles) {
+            $uTemp = Join-Path $prof.LocalPath "AppData\Local\Temp"
+            if (Test-Path $uTemp) {
+                Remove-PathSilently -Path $uTemp -ContentsOnly | Out-Null
+            }
         }
+        Write-OK "Archivos temporales del sistema y usuarios purgados."
+
+        # 4.D Crash Dumps y Volcados de Memoria
+        Write-SubStep "Buscando volcados de memoria y crash dumps obsoletos..."
+        if (Test-Path "$env:WINDIR\MEMORY.DMP") { Remove-Item "$env:WINDIR\MEMORY.DMP" -Force -ErrorAction SilentlyContinue }
+        if (Test-Path "$env:WINDIR\Minidump")   { Remove-PathSilently -Path "$env:WINDIR\Minidump" -ContentsOnly | Out-Null }
+        Write-OK "Volcados de memoria depurados."
+
+        # 4.E Cache de Fuentes y Miniaturas
+        Write-SubStep "Regenerando cache de fuentes y miniaturas..."
+        Stop-Service -Name "FontCache" -Force -ErrorAction SilentlyContinue
+        $fontCacheFile = "$env:WINDIR\ServiceProfiles\LocalService\AppData\Local\FontCache\FntCache.dat"
+        if (Test-Path $fontCacheFile) { Remove-Item -LiteralPath $fontCacheFile -Force -ErrorAction SilentlyContinue }
+        Start-Service -Name "FontCache" -ErrorAction SilentlyContinue
+        Write-OK "Cache de fuentes regenerada."
     }
-    Write-OK "Archivos temporales del sistema y usuarios purgados."
-
-    # 4.D Crash Dumps y Volcados de Memoria
-    Write-SubStep "Buscando volcados de memoria y crash dumps obsoletos..."
-    if (Test-Path "$env:WINDIR\MEMORY.DMP") { Remove-Item "$env:WINDIR\MEMORY.DMP" -Force -ErrorAction SilentlyContinue }
-    if (Test-Path "$env:WINDIR\Minidump")   { Remove-PathSilently -Path "$env:WINDIR\Minidump" -ContentsOnly | Out-Null }
-    Write-OK "Volcados de memoria depurados."
-
-    # 4.E Cache de Fuentes y Miniaturas
-    Write-SubStep "Regenerando cache de fuentes y miniaturas..."
-    Stop-Service -Name "FontCache" -Force -ErrorAction SilentlyContinue
-    $fontCacheFile = "$env:WINDIR\ServiceProfiles\LocalService\AppData\Local\FontCache\FntCache.dat"
-    if (Test-Path $fontCacheFile) { Remove-Item -LiteralPath $fontCacheFile -Force -ErrorAction SilentlyContinue }
-    Start-Service -Name "FontCache" -ErrorAction SilentlyContinue
-    Write-OK "Cache de fuentes regenerada."
 }
 
 # ============================================================
@@ -558,33 +568,46 @@ if ($runMod6) {
     # 6.A Recorte NAND (TRIM) en SSDs / NVMe
     Write-SubStep "Detectando tipo de almacenamiento y ejecutando TRIM (Optimize-Volume)..."
     try {
-        $diskType = (Get-PhysicalDisk | Where-Object { $_.DeviceID -eq '0' } -ErrorAction SilentlyContinue).MediaType
-        if ($diskType -eq 'SSD' -or $null -eq $diskType) {
-            Optimize-Volume -DriveLetter C -ReTrim -Verbose -ErrorAction SilentlyContinue
-            Write-OK "Comando TRIM ejecutado en unidad C: (Rendimiento NAND restaurado)."
-        } else {
-            Write-Info "Unidad detectada como HDD mecanico. Omitiendo comando TRIM."
+        $volumes = Get-Volume -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 'Fixed' -and $_.DriveLetter }
+        if (-not $volumes) {
+            $volumes = @([PSCustomObject]@{ DriveLetter = 'C' })
+        }
+        foreach ($vol in $volumes) {
+            $dl = $vol.DriveLetter
+            try {
+                $diskType = (Get-PhysicalDisk | Where-Object { $_.DeviceID -eq '0' } -ErrorAction SilentlyContinue).MediaType
+                if ($diskType -eq 'SSD' -or $null -eq $diskType) {
+                    Optimize-Volume -DriveLetter $dl -ReTrim -Verbose -ErrorAction SilentlyContinue
+                    Write-OK "Comando TRIM ejecutado en unidad ${dl}: (Rendimiento NAND restaurado)."
+                } else {
+                    Write-Info "Unidad ${dl}: detectada como HDD mecanico. Omitiendo comando TRIM."
+                }
+            } catch {
+                Write-Warn "No se pudo ejecutar TRIM en unidad ${dl}: $($_.Exception.Message)"
+            }
         }
     } catch {
         Write-Warn "No se pudo ejecutar Optimize-Volume: $($_.Exception.Message)"
     }
 
-    # 6.B Depuracion de Copias de Sombra VSS Obsoletas
-    Write-SubStep "Depurando instantaneas de volumen VSS antiguas..."
-    try {
-        Start-Process -FilePath "vssadmin.exe" -ArgumentList @("delete", "shadows", "/for=C:", "/oldest", "/quiet") -Wait -PassThru -NoNewWindow | Out-Null
-        Write-OK "Sombras de volumen VSS obsoletas depuradas."
-    } catch {}
+    if (-not $TrimOnly) {
+        # 6.B Depuracion de Copias de Sombra VSS Obsoletas
+        Write-SubStep "Depurando instantaneas de volumen VSS antiguas..."
+        try {
+            Start-Process -FilePath "vssadmin.exe" -ArgumentList @("delete", "shadows", "/for=C:", "/oldest", "/quiet") -Wait -PassThru -NoNewWindow | Out-Null
+            Write-OK "Sombras de volumen VSS obsoletas depuradas."
+        } catch {}
 
-    # 6.C Precompilacion de Ensamblados .NET NGen
-    Write-SubStep "Compilando tareas nativas de .NET Framework pendientes (ngen.exe)..."
-    try {
-        $ngenPath = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\ngen.exe"
-        if (Test-Path $ngenPath) {
-            Start-Process -FilePath $ngenPath -ArgumentList @("executeQueuedItems") -Wait -PassThru -NoNewWindow | Out-Null
-            Write-OK "Tareas NGen .NET precompiladas."
-        }
-    } catch {}
+        # 6.C Precompilacion de Ensamblados .NET NGen
+        Write-SubStep "Compilando tareas nativas de .NET Framework pendientes (ngen.exe)..."
+        try {
+            $ngenPath = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\ngen.exe"
+            if (Test-Path $ngenPath) {
+                Start-Process -FilePath $ngenPath -ArgumentList @("executeQueuedItems") -Wait -PassThru -NoNewWindow | Out-Null
+                Write-OK "Tareas NGen .NET precompiladas."
+            }
+        } catch {}
+    }
 }
 
 # ============================================================
