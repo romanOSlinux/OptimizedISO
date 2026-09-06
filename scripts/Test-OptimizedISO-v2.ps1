@@ -843,6 +843,36 @@ Assert-True "PLAN-0022: romanOS-Toolkit.ps1 carga Core/Policy-Engine.ps1" ($tool
 $agentsRuleContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) ".agents\AGENTS.md") -Raw
 Assert-True "PLAN-0022: .agents/AGENTS.md contiene Regla 9 de Arquitectura Unificada (SSOT)" ($agentsRuleContent -match 'Regla 9|Arquitectura Unificada')
 
+# PLAN-0026: Validaciones de Desacoplamiento de Redundancias y SSOT Canonico
+Assert-True "PLAN-0026: Get-RomanOSBrowserPolicies function registrada" ([bool](Get-Command Get-RomanOSBrowserPolicies -ErrorAction SilentlyContinue))
+Assert-True "PLAN-0026: Apply-RomanOSBrowserPolicies function registrada" ([bool](Get-Command Apply-RomanOSBrowserPolicies -ErrorAction SilentlyContinue))
+Assert-True "PLAN-0026: Export-RomanOSBrowserCommands function registrada" ([bool](Get-Command Export-RomanOSBrowserCommands -ErrorAction SilentlyContinue))
+
+$browserPols = Get-RomanOSBrowserPolicies
+Assert-True "PLAN-0026: Catalogo de directivas de navegadores contiene al menos 80 directivas" ($browserPols.Count -ge 80)
+$browserCmd = Export-RomanOSBrowserCommands
+Assert-True "PLAN-0026: Export-RomanOSBrowserCommands genera comandos para Edge, Chrome, Firefox y Brave" ($browserCmd -match 'Microsoft\\Edge' -and $browserCmd -match 'Google\\Chrome' -and $browserCmd -match 'Mozilla\\Firefox' -and $browserCmd -match 'BraveSoftware\\Brave')
+
+# Verificacion de inyeccion Core/ en New-OptimizedWindowsISO-v2.ps1
+Assert-True "PLAN-0026: v2 script inyecta Core/ en `$OEM`$" ($v2ScriptContent -match 'scripts\\Core|Core/Policy-Engine\.ps1')
+Assert-True "PLAN-0026: v2 script invoca Add-OptimizedContextMenus.ps1 en SetupComplete.cmd" ($v2ScriptContent -match 'Add-OptimizedContextMenus\.ps1"\s+-Apply\s+-EnableClassicMenu')
+Assert-False "PLAN-0026: v2 script elimino las 6 claves obsoletas planas de SetupComplete.cmd" ($v2ScriptContent -match 'shell\\OpenElevatedPowerShell')
+
+# Verificacion de desacoplamiento modular en scripts auxiliares
+$maintContent = Get-Content -Path (Join-Path $PSScriptRoot "Invoke-WindowsMaintenance.ps1") -Raw
+Assert-True "PLAN-0026: Invoke-WindowsMaintenance.ps1 soporta -ShadersOnly" ($maintContent -match 'ShadersOnly')
+Assert-True "PLAN-0026: Invoke-WindowsMaintenance.ps1 soporta -TrimOnly" ($maintContent -match 'TrimOnly')
+
+$netOptContent = Get-Content -Path (Join-Path $PSScriptRoot "Win11-Network-Diagnostics-Optimizer.ps1") -Raw
+Assert-True "PLAN-0026: Win11-Network-Diagnostics-Optimizer.ps1 soporta -NagleOnly" ($netOptContent -match 'NagleOnly')
+
+$debloatContent = Get-Content -Path (Join-Path $PSScriptRoot "Win11-Debloat-v3-Adaptive.ps1") -Raw
+Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 carga Core/Policy-Engine.ps1" ($debloatContent -match 'Policy-Engine\.ps1')
+Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 delega en Apply-RomanOSBrowserPolicies" ($debloatContent -match 'Apply-RomanOSBrowserPolicies')
+Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 delega Nagle en Win11-Network-Diagnostics-Optimizer.ps1" ($debloatContent -match 'Win11-Network-Diagnostics-Optimizer\.ps1 -NagleOnly')
+
+Assert-True "PLAN-0026: romanOS-Toolkit.ps1 delega Shaders y TRIM en Invoke-WindowsMaintenance.ps1" ($toolkitContent -match 'Invoke-WindowsMaintenance\.ps1' -and $toolkitContent -match '-ShadersOnly' -and $toolkitContent -match '-TrimOnly')
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

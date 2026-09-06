@@ -1,4 +1,4 @@
-# Reglas Estrictas del Agente (.agents/AGENTS.md)
+﻿# Reglas Estrictas del Agente (.agents/AGENTS.md)
 
 Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualquier agente que trabaje en este proyecto.
 
@@ -58,4 +58,9 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **Consentimiento Explícito e Incondicional:** Está terminantemente prohibido ejecutar acciones modificatorias, ediciones de código o comandos destructivos tras la redacción o actualización de un plan de implementación (`PLAN-*.md` o `implementation_plan.md`), incluso si el sistema de la plataforma emite eventos de aprobación automática de artefactos (`always-proceed`).
 - **Parada Obligatoria y Espera de Confirmación:** Tras generar o actualizar un plan, el agente DEBE detenerse inmediatamente, presentar un resumen al usuario y esperar una orden expresa y afirmativa en el chat (ej. *"procede"*, *"adelante"*, *"aprobado"*) antes de ejecutar cualquier cambio en el código fuente.
 - **Configuración Preventiva de Metadatos:** Al generar artefactos de tipo plan (`implementation_plan.md`), el agente no debe asumir que el hook del sistema sustituye la decisión del usuario; la confirmación humana en el chat prevalece sobre cualquier política automática de la plataforma.
+
+## 9. Arquitectura Unificada y Ecosistema Integral (SSOT)
+- **Fuente Única de Verdad (Single Source of Truth):** Toda directiva de optimización, clave de registro de GPO, bypass o política de sistema compartida entre la ISO, el Debloat, el Toolkit y los diagnósticos DEBE residir canónicamente en `scripts/Core/Policy-Engine.ps1`.
+- **Prohibición de Directivas Huérfanas y Duplicadas:** Está estrictamente prohibido introducir strings hardcodeados o listas duplicadas de políticas en scripts consumidores (`SetupComplete.cmd`, `autounattend.xml`, `Win11-Debloat-v3-Adaptive.ps1`, `PostInstall-Diagnostics.ps1`). Cualquier directiva debe registrarse en `Policy-Engine.ps1` y exportarse o consultarse mediante las funciones canónicas (`Get-RomanOSPolicies`, `Export-RomanOSUnattendCommands`, `Get-RomanOSBrowserPolicies`, `Export-RomanOSBrowserCommands`, `Apply-RomanOSBrowserPolicies`).
+- **Inyección Física en la ISO:** La carpeta `scripts/Core/` debe ser inyectada físicamente en `$OEM$\$$\Setup\Scripts\Core` y en el WIM montado para que el ecosistema completo opere con paridad total en el sistema de destino.
 
