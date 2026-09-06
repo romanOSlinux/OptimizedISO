@@ -631,8 +631,7 @@ try {
             $fidoRel    = 'Latest'
 
             Write-Info "Consultando API de Microsoft vía Fido (Windows $fidoWinNum $fidoRel, $Language, x64)..."
-            $fidoArgs = @("-Win", $fidoWinNum, "-Rel", $fidoRel, "-Lang", $Language, "-Arch", "x64", "-GetUrl")
-            $fidoRawOutput = & $fidoScript @fidoArgs 2>&1
+            $fidoRawOutput = & $fidoScript -Win $fidoWinNum -Rel $fidoRel -Lang $Language -Arch "x64" -GetUrl 2>&1
             $downloadUrl = $fidoRawOutput | Where-Object { $_ -match '^https?://' } | Select-Object -Last 1
 
             if ($downloadUrl) {
