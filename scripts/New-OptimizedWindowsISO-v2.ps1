@@ -302,6 +302,42 @@ if (-not $uiLoaded) {
 }
 
 #------------------------------------------------------------------------------
+# CARGA DE MOTOR DE DIRECTIVAS UNIFICADO (Core\Policy-Engine.ps1)
+# Suministra SSOT para directivas de sistema, autounattend.xml y navegadores web
+#------------------------------------------------------------------------------
+$policyEnginePaths = [System.Collections.Generic.List[string]]::new()
+if ($PSScriptRoot) {
+    $policyEnginePaths.Add((Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"))
+    $policyEnginePaths.Add((Join-Path $PSScriptRoot "Policy-Engine.ps1"))
+    $policyEnginePaths.Add((Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"))
+    $policyEnginePaths.Add((Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"))
+}
+$loc = Get-Location
+if ($loc) {
+    $policyEnginePaths.Add((Join-Path $loc.Path "Core\Policy-Engine.ps1"))
+    $policyEnginePaths.Add((Join-Path $loc.Path "scripts\Core\Policy-Engine.ps1"))
+    $policyEnginePaths.Add((Join-Path $loc.Path "Policy-Engine.ps1"))
+}
+$policyEnginePaths.Add("C:\OptimizedISO\scripts\Core\Policy-Engine.ps1")
+$policyEnginePaths.Add("C:\scripts\Core\Policy-Engine.ps1")
+$policyEnginePaths.Add("C:\scripts\Policy-Engine.ps1")
+$policyEnginePaths.Add("C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1")
+
+$policyLoaded = $false
+foreach ($p in $policyEnginePaths) {
+    if ($p -and (Test-Path $p)) {
+        . $p
+        $policyLoaded = $true
+        break
+    }
+}
+if ($policyLoaded) {
+    Write-Info "Motor de directivas unificado cargado desde: $p"
+} else {
+    Write-Warn "Core/Policy-Engine.ps1 no detectado. Se utilizaran valores estaticos de respaldo."
+}
+
+#------------------------------------------------------------------------------
 # RUTAS DE TRABAJO
 #------------------------------------------------------------------------------
 
@@ -3581,6 +3617,7 @@ $debScriptCandidate   = Join-Path $ScriptsDir "Win11-Debloat-v3-Adaptive.ps1"
 $maintScriptCandidate = Join-Path $ScriptsDir "Invoke-WindowsMaintenance.ps1"
 $netScriptCandidate   = Join-Path $ScriptsDir "Win11-Network-Diagnostics-Optimizer.ps1"
 $secScriptCandidate   = Join-Path $ScriptsDir "Invoke-WindowsSecurityHardening.ps1"
+$contextCandidate     = Join-Path $ScriptsDir "Add-OptimizedContextMenus.ps1"
 $legacyCandidate      = Join-Path $ScriptsDir "Windows${detectedVersion}_PostInstall_Optimizer.ps1"
 
 # Verificar si se pasó ruta explícita por parámetro CLI
@@ -3611,10 +3648,11 @@ if ($scriptsToInject.Count -eq 0) {
     $hasMaint   = Test-Path $maintScriptCandidate
     $hasNet     = Test-Path $netScriptCandidate
     $hasSec     = Test-Path $secScriptCandidate
+    $hasContext = Test-Path $contextCandidate
     $hasLeg     = Test-Path $legacyCandidate
 
     if ($hasToolkit -or ($hasDeb -and $hasMaint)) {
-        Write-Host "  [1] Suite Completa romanOS: Toolkit Maestro + Debloat + Mantenimiento + Red + Seguridad [Recomendado]" -ForegroundColor Green
+        Write-Host "  [1] Suite Completa romanOS: Toolkit Maestro + Debloat + Mantenimiento + Red + Seguridad + Menus [Recomendado]" -ForegroundColor Green
     }
     if ($hasToolkit) {
         Write-Host "  [2] romanOS-Toolkit.ps1 (Hub Maestro Orquestador Completo)" -ForegroundColor White
@@ -3685,6 +3723,15 @@ if ($scriptsToInject.Count -eq 0) {
                     LauncherName = "Auditoria de Seguridad (On-Demand).cmd"
                     ShortcutName = "Auditoria de Seguridad (On-Demand).lnk"
                     Title        = "Auditoria de Seguridad y Hardening Desacoplado"
+                }
+            }
+            if ($hasContext) {
+                $scriptsToInject += @{
+                    Source       = $contextCandidate
+                    DestName     = [System.IO.Path]::GetFileName($contextCandidate)
+                    LauncherName = "Menu Contextual y Clasico.cmd"
+                    ShortcutName = "Menu Contextual y Clasico.lnk"
+                    Title        = "Configuracion de Menus Contextuales y Menu Clasico"
                 }
             }
         }
@@ -3896,6 +3943,42 @@ if ($runtimesInfo.Found -and (Test-Path $runtimesInfo.Path)) {
                     -Details "Carpeta Runtimes/ no detectada. Ejecute Get-EssentialRuntimes.ps1"
 }
 
+# ------------------------------------------------------------------
+# Copiar Motores Core (Policy, Hardware, UI) a sources\$OEM$\$$\Setup\Scripts\Core
+# ------------------------------------------------------------------
+$coreSrcDir = Join-Path $ScriptsDir "Core"
+if (Test-Path $coreSrcDir) {
+    $destCoreDir  = Join-Path $OEMScriptsDir "Core"
+    $destCoreDir1 = Join-Path $OEMScriptsDir1 "Core"
+    if (-not (Test-Path $destCoreDir))  { New-Item -ItemType Directory -Path $destCoreDir -Force | Out-Null }
+    if (-not (Test-Path $destCoreDir1)) { New-Item -ItemType Directory -Path $destCoreDir1 -Force | Out-Null }
+    Copy-Item -Path "$coreSrcDir\*" -Destination $destCoreDir -Recurse -Force
+    Copy-Item -Path "$coreSrcDir\*" -Destination $destCoreDir1 -Recurse -Force
+    Write-OK "Motores del sistema (Core: Policy-Engine, Hardware-Engine, UI-Engine) inyectados en `$OEM`$."
+    Add-AuditRecord -Resource "Motores Core" -Target '$OEM$' -Status "OK" -Details "Copiados a $destCoreDir"
+}
+
+# ------------------------------------------------------------------
+# Copiar Script de Menú Contextual Canónico y Diagnóstico Físico a $OEM$
+# ------------------------------------------------------------------
+$ctxMenuSrc = Join-Path $ScriptsDir "Add-OptimizedContextMenus.ps1"
+if (Test-Path $ctxMenuSrc) {
+    Copy-Item -Path $ctxMenuSrc -Destination (Join-Path $OEMScriptsDir "Add-OptimizedContextMenus.ps1") -Force
+    Copy-Item -Path $ctxMenuSrc -Destination (Join-Path $OEMScriptsDir1 "Add-OptimizedContextMenus.ps1") -Force
+    Write-OK "Script de menú contextual canónico inyectado en `$OEM`$."
+}
+
+$diagSourceCandidates = @(
+    (Join-Path $ScriptsDir "PostInstall-Diagnostics.ps1"),
+    (Join-Path (Split-Path $ScriptsDir -Parent) "scripts\PostInstall-Diagnostics.ps1")
+)
+$physicalDiag = $diagSourceCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($physicalDiag) {
+    Copy-Item -Path $physicalDiag -Destination (Join-Path $OEMScriptsDir "PostInstall-Diagnostics.ps1") -Force
+    Copy-Item -Path $physicalDiag -Destination (Join-Path $OEMScriptsDir1 "PostInstall-Diagnostics.ps1") -Force
+    Write-OK "Script de diagnóstico integral inyectado desde archivo físico en `$OEM`$."
+}
+
 #------------------------------------------------------------------------------
 # 3/6 - CREAR SetupComplete.cmd Y TAREAS PROGRAMADAS A DEMANDA
 #------------------------------------------------------------------------------
@@ -3948,157 +4031,17 @@ IF EXIST "%SCRIPTS_DIR%\Runtimes" (
 )
 
 REM ===========================================================
-REM Funciones Avanzadas de Menu Contextual (Nativo Windows Shell)
-REM Refs: learn.microsoft.com/windows/win32/shell/context-menu-handlers
+REM Sincronizacion Canonica de Menu Contextual (romanOS Suite)
+REM Aplica menus en cascada nativos y restaura menu clasico en Win11
 REM ===========================================================
-echo [%DATE% %TIME%] Registrando funciones de menu contextual... >> "%LOG%"
+echo [%DATE% %TIME%] Registrando funciones de menu contextual optimizado... >> "%LOG%"
+if exist "%SCRIPTS_DIR%\Add-OptimizedContextMenus.ps1" (
+    "%PS%" -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\Add-OptimizedContextMenus.ps1" -Apply -EnableClassicMenu -Quiet >> "%LOG%" 2>&1
+) else (
+    echo [%DATE% %TIME%] [WARN] Add-OptimizedContextMenus.ps1 no encontrado en %SCRIPTS_DIR% >> "%LOG%"
+)
 
-REM -- 1: PowerShell Admin (fondo carpeta + escritorio) --
-reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /ve /d "Terminal (Administrador)" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,109" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\PSAdmin\command" /ve /d "powershell.exe -Command \"Start-Process powershell.exe -ArgumentList '-NoExit','-Command','Set-Location -LiteralPath \"%V\"' -Verb RunAs\"" /f >> "%LOG%" 2>&1
-
-REM -- 2: Reiniciar Explorador (solo escritorio) --
-reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /ve /d "Reiniciar Explorador" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,178" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer\command" /ve /d "cmd.exe /c taskkill /f /im explorer.exe & start explorer.exe" /f >> "%LOG%" 2>&1
-
-REM -- 3: Flush DNS (fondo carpeta + escritorio) --
-reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS" /ve /d "Vaciar Cache DNS" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,23" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\Directory\Background\shell\FlushDNS\command" /ve /d "cmd.exe /c ipconfig /flushdns & pause" /f >> "%LOG%" 2>&1
-
-REM -- 4: God Mode (solo escritorio) --
-reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode" /ve /d "Panel de Control Maestro" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,104" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\GodMode\command" /ve /d "explorer.exe shell:::{ED7BA470-8E54-465E-825C-99712043E01C}" /f >> "%LOG%" 2>&1
-
-REM -- 5: Abrir con Bloc de Notas (cualquier archivo) --
-reg add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /ve /d "Abrir con Bloc de Notas" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\notepad.exe,0" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\*\shell\OpenWithNotepad\command" /ve /d "notepad.exe \"%1\"" /f >> "%LOG%" 2>&1
-
-REM -- 6: Reparacion del Sistema DISM + SFC (solo escritorio) --
-reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem" /ve /d "Reparar Sistema (DISM + SFC)" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem" /v "Icon" /t REG_SZ /d "%SystemRoot%\System32\imageres.dll,54" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem\command" /ve /d "powershell.exe -Command \"Start-Process cmd.exe -ArgumentList '/k DISM /Online /Cleanup-Image /RestoreHealth && sfc /scannow' -Verb RunAs\"" /f >> "%LOG%" 2>&1
-
-echo [%DATE% %TIME%] Funciones de menu contextual registradas. >> "%LOG%"
-
-REM ===========================================================
-REM Optimizacion y Debloat Oficial de Navegadores Web (GPO)
-REM Refs: learn.microsoft.com/deployedge/microsoft-edge-policies
-REM Refs: chromeenterprise.google/policies/
-REM ===========================================================
-echo [%DATE% %TIME%] Aplicando politicas GPO de rendimiento en navegadores... >> "%LOG%"
-
-REM -- Microsoft Edge: GPU, Sleeping Tabs, Limite de Cache y Debloat Completo --
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "HardwareAccelerationModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SmoothScrollingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "StartupBoostEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "BackgroundModeEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SleepingTabsEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SleepingTabsTimeout" /t REG_DWORD /d 300 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EfficiencyModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EfficiencyModeOption" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "IntensiveWakeUpThrottlingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NewTabPagePrerenderEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "DiskCacheSize" /t REG_DWORD /d 268435456 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NetworkPredictionOptions" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "HubsSidebarEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EdgeSidebarCustomizeEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EdgeShoppingAssistantEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "EdgeCollectionsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "ComposeInlineEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "DiagnosticData" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "PersonalizationReportingEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "ShowRecommendationsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "UserFeedbackAllowed" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SpotlightExperiencesAndRecommendationsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "ResolveNavigationErrorsUseWebService" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "AlternateErrorPagesEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "AllowCopilot" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "ConfigureCopilot" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "Microsoft365CopilotChatIconEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NewTabPageContentEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NewTabPageQuickLinksEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "NewTabPageHideDefaultTopSites" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "BingAdsSuppression" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "SearchSuggestEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "AllowPrelaunch" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "HideFirstRunExperience" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v "TrackingPrevention" /t REG_DWORD /d 3 /f >> "%LOG%" 2>&1
-
-REM -- Windows Copilot y AI (System-wide) --
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows AI" /v "DisableAIDataAnalysis" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-
-REM -- Google Chrome: GPU, Memory Saver, Limite de Cache, AI off y Debloat --
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "HardwareAccelerationModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "SmoothScrollingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "BackgroundModeEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "HighEfficiencyModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "NewTabPagePrerenderEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "DiskCacheSize" /t REG_DWORD /d 268435456 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "NetworkPredictionOptions" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PromotionalTabsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "ShoppingListEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "MetricsReportingEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "SpellCheckServiceEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PrivacySandboxAdMeasurementEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PrivacySandboxAdTopicsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "PrivacySandboxSiteTriggeredAttributionEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "AlternateErrorPagesEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "NTPContentSuggestionsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "NTPCardsVisible" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "SearchSuggestEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "GenAiDefaultSettings" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "GenAiHelpMeWriteSettings" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "GenAiHistorySearchSettings" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "GenAiTabOrganizationSettings" /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "BrowserSignin" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "SyncDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Google\Chrome" /v "ShowCastIconInToolbar" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-
-REM -- Mozilla Firefox: GPU, Telemetria, UserMessaging y FirefoxHome --
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "HardwareAcceleration" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisableTelemetry" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisablePocket" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisableFirefoxStudies" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "DisableFeedbackCommands" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "BackgroundAppUpdate" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "OverrideFirstRunPage" /t REG_SZ /d "" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox" /v "OverridePostUpdatePage" /t REG_SZ /d "" /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "ExtensionRecommendations" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "FeatureRecommendations" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "MoreFromMozilla" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "SkipOnboarding" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "WhatsNew" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\UserMessaging" /v "UrlbarInterventions" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome" /v "Pocket" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome" /v "SponsoredPocket" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome" /v "Snippets" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome" /v "SponsoredTopSites" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\Mozilla\Firefox\FirefoxHome" /v "Highlights" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-
-REM -- Brave Browser: GPU, Rewards, Wallet, Leo AI, IPFS, Tor y NTP --
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "HardwareAccelerationModeEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "SmoothScrollingEnabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BackgroundModeEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "DiskCacheSize" /t REG_DWORD /d 268435456 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "MetricsReportingEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "IPFSDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "TorDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BraveRewardsDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BraveWalletDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BraveVPNDisabled" /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "BraveAIChatEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "NTPSponsoredImagesEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "PromotionalTabsEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-reg add "HKLM\SOFTWARE\Policies\BraveSoftware\Brave" /v "SearchSuggestEnabled" /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
-
-echo [%DATE% %TIME%] Politicas de navegadores aplicadas exitosamente. >> "%LOG%"
+__BROWSER_POLICIES_BLOCK__
 
 __OPTIMIZATIONS_BLOCK__
 REM ===========================================================
@@ -4206,12 +4149,34 @@ bcdedit /set hypervisorlaunchtype off >> "%LOG%" 2>&1
 '@
 }
 
-$setupCompleteContent = $setupCompleteTemplate.Replace('__OPTIMIZATIONS_BLOCK__', $optimizationsBlock).Replace('__SCHEDULED_TASKS_BLOCK__', $tasksBlock)
+$browserPoliciesBlock = ""
+if (Get-Command "Export-RomanOSBrowserCommands" -ErrorAction SilentlyContinue) {
+    $exportedCommands = Export-RomanOSBrowserCommands -LogVariable "%LOG%"
+    $browserPoliciesBlock = @"
+REM ===========================================================
+REM Optimizacion y Debloat Oficial de Navegadores Web (GPO)
+REM Fuente SSOT: Core/Policy-Engine.ps1
+REM Refs: learn.microsoft.com/deployedge/microsoft-edge-policies
+REM Refs: chromeenterprise.google/policies/
+REM ===========================================================
+echo [%DATE% %TIME%] Aplicando politicas GPO de rendimiento en navegadores... >> "%LOG%"
+
+$exportedCommands
+
+echo [%DATE% %TIME%] Politicas de navegadores aplicadas exitosamente. >> "%LOG%"
+"@
+}
+
+$setupCompleteContent = $setupCompleteTemplate.Replace('__OPTIMIZATIONS_BLOCK__', $optimizationsBlock).Replace('__SCHEDULED_TASKS_BLOCK__', $tasksBlock).Replace('__BROWSER_POLICIES_BLOCK__', $browserPoliciesBlock)
 
 $setupCompletePath  = Join-Path $OEMScriptsDir "SetupComplete.cmd"
 $setupCompletePath1 = Join-Path $OEMScriptsDir1 "SetupComplete.cmd"
 $setupCompleteContent | Out-File -FilePath $setupCompletePath -Encoding ASCII -Force
 $setupCompleteContent | Out-File -FilePath $setupCompletePath1 -Encoding ASCII -Force
+
+Write-OK "SetupComplete.cmd generado con menus contextuales canonicos y directivas SSOT de navegadores."
+Add-AuditRecord -Resource "SetupComplete.cmd" -Target '$OEM$' -Status "OK" `
+                -Details "Menus contextuales sincronizados y directivas GPO de navegadores inyectadas"
 
 #------------------------------------------------------------------------------
 # GENERAR SCRIPT DE DIAGNOSTICO POST-INSTALACION (PostInstall-Diagnostics.ps1)
@@ -4456,14 +4421,15 @@ try {
         $reportLines.Add("- **Prevencion Cifrado BitLocker:** Inactiva o no configurada ($bitlockerPrevent).")
     }
 
-    # Verificacion de Claves de Menu Contextual Avanzado
+    # Verificacion de Claves de Menu Contextual Avanzado y Menu Clasico (romanOS Suite)
     $ctxMenuKeys = @(
         @{ Path = "HKLM:\SOFTWARE\Classes\Directory\Background\shell\PSAdmin";        Label = "PSAdmin (Terminal Administrador)" },
         @{ Path = "HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\RestartExplorer";   Label = "RestartExplorer (Reiniciar Explorer)" },
-        @{ Path = "HKLM:\SOFTWARE\Classes\Directory\Background\shell\FlushDNS";       Label = "FlushDNS (Vaciar Cache DNS)" },
-        @{ Path = "HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\GodMode";           Label = "GodMode (Panel Control Maestro)" },
-        @{ Path = "HKLM:\SOFTWARE\Classes\*\shell\OpenWithNotepad";                   Label = "OpenWithNotepad (Abrir con Notepad)" },
-        @{ Path = "HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\RepairSystem";      Label = "RepairSystem (DISM + SFC)" }
+        @{ Path = "HKLM:\SOFTWARE\Classes\Directory\Background\shell\GamerTools";     Label = "GamerTools (Submenu Gamer en Cascada)" },
+        @{ Path = "HKLM:\SOFTWARE\Classes\Directory\Background\shell\SystemTools";    Label = "SystemTools (Submenu Sistema en Cascada)" },
+        @{ Path = "HKLM:\SOFTWARE\Classes\DesktopBackground\Shell\PowerOptions";      Label = "PowerOptions (Submenu Energia/UEFI)" },
+        @{ Path = "HKLM:\SOFTWARE\Classes\*\shell\TakeOwnership";                     Label = "TakeOwnership (Tomar Posesion)" },
+        @{ Path = "HKLM:\SOFTWARE\Classes\*\shell\OpenWithNotepad";                   Label = "OpenWithNotepad (Abrir con Notepad)" }
     )
     $ctxAll = $true
     foreach ($k in $ctxMenuKeys) {
@@ -4474,7 +4440,7 @@ try {
             $reportLines.Add("- **Menu Contextual [$($k.Label)]:** NO encontrado.")
         }
     }
-    if ($ctxAll) { $passedChecks.Add("Funciones avanzadas de menu contextual (6/6) registradas.") }
+    if ($ctxAll) { $passedChecks.Add("Funciones avanzadas de menu contextual ($($ctxMenuKeys.Count)/$($ctxMenuKeys.Count)) registradas.") }
 
     # Verificacion de Directivas GPO de Rendimiento en Navegadores
     $edgeGPU   = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name HardwareAccelerationModeEnabled -ErrorAction SilentlyContinue).HardwareAccelerationModeEnabled
@@ -4924,7 +4890,13 @@ $($firstLogonCommands -join "`n")
     # Optimizaciones de sistema inyectadas en fase specialize (políticas HKLM 100% seguras)
     $nextOrder = if ($script:BlockOneDrive) { 3 } else { 2 }
 
-    $optimizeXml = @"
+    $optimizeXml = ""
+    if (Get-Command "Export-RomanOSUnattendCommands" -ErrorAction SilentlyContinue) {
+        $unattendResult = Export-RomanOSUnattendCommands -Profile "$optProfile" -StartOrder $nextOrder
+        $optimizeXml = $unattendResult.XmlContent
+        $nextOrder = $unattendResult.NextOrder
+    } else {
+        $optimizeXml = @"
         <RunSynchronousCommand wcm:action="add">
           <Order>$nextOrder</Order>
           <Description>Block Privacy Experience screens (Scoobe)</Description>
@@ -4982,11 +4954,11 @@ $($firstLogonCommands -join "`n")
         </RunSynchronousCommand>
 "@
 
-    $nextOrder += 11
+        $nextOrder += 11
 
-    if ($optProfile -ge 2) {
-        # Perfil 2+ (Gaming / Hardcore): Políticas de telemetría HKLM, Bloqueo de Drivers y Prevención BitLocker
-        $optimizeXml += @"
+        if ($optProfile -ge 2) {
+            # Perfil 2+ (Gaming / Hardcore): Políticas de telemetría HKLM, Bloqueo de Drivers y Prevención BitLocker
+            $optimizeXml += @"
 
         <RunSynchronousCommand wcm:action="add">
           <Order>$nextOrder</Order>
@@ -5019,7 +4991,8 @@ $($firstLogonCommands -join "`n")
           <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\BitLocker" /v PreventDeviceEncryption /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
 "@
-        $nextOrder += 6
+            $nextOrder += 6
+        }
     }
 
     # Generar XML completo sin espacios en namespaces (corrección crítica)
@@ -6164,6 +6137,26 @@ if ($wimFile) {
                          Write-OK "Inyectado en WIM índice ${wimIndex}: $($script.DestName)"
                      }
 
+                     # Inyectar motores Core (Policy, Hardware, UI) en WIM montado
+                     $coreSrcDir = Join-Path $ScriptsDir "Core"
+                     if (Test-Path $coreSrcDir) {
+                         $wimCoreDest = Join-Path $wimScriptsDir "Core"
+                         if (-not (Test-Path $wimCoreDest)) {
+                             New-Item -ItemType Directory -Path $wimCoreDest -Force | Out-Null
+                         }
+                         Copy-Item -Path "$coreSrcDir\*" -Destination $wimCoreDest -Recurse -Force
+                         Write-OK "Inyectado en WIM índice ${wimIndex}: Motores Core (Policy, Hardware, UI)"
+                         Add-AuditRecord -Resource "Motores Core" -Target "WIM Idx $wimIndex" `
+                                         -Status "OK" -Details "Copiado a $wimCoreDest"
+                     }
+
+                     # Inyectar script de menú contextual canónico en WIM montado
+                     $ctxMenuSrc = Join-Path $ScriptsDir "Add-OptimizedContextMenus.ps1"
+                     if (Test-Path $ctxMenuSrc) {
+                         Copy-Item -Path $ctxMenuSrc -Destination (Join-Path $wimScriptsDir "Add-OptimizedContextMenus.ps1") -Force
+                         Write-OK "Inyectado en WIM índice ${wimIndex}: Add-OptimizedContextMenus.ps1"
+                     }
+
                      if ($setupCompleteContent) {
                          $setupCmdDest = Join-Path $wimScriptsDir "SetupComplete.cmd"
                          $setupCompleteContent | Out-File -FilePath $setupCmdDest -Encoding ASCII -Force
@@ -6176,10 +6169,13 @@ if ($wimFile) {
                                          -Status "WARN" -Details "No existe contenido de SetupComplete.cmd para inyectar"
                      }
 
-                     if ($postInstallDiagContent) {
+                     if ($physicalDiag) {
+                         Copy-Item -Path $physicalDiag -Destination (Join-Path $wimScriptsDir "PostInstall-Diagnostics.ps1") -Force
+                         Write-OK "Inyectado en WIM índice ${wimIndex}: PostInstall-Diagnostics.ps1 (archivo físico)"
+                     } elseif ($postInstallDiagContent) {
                          $postDiagDest = Join-Path $wimScriptsDir "PostInstall-Diagnostics.ps1"
                          $postInstallDiagContent | Out-File -FilePath $postDiagDest -Encoding UTF8 -Force
-                         Write-OK "Inyectado en WIM índice ${wimIndex}: PostInstall-Diagnostics.ps1"
+                         Write-OK "Inyectado en WIM índice ${wimIndex}: PostInstall-Diagnostics.ps1 (plantilla)"
                      }
 
                      if ($auditarLauncherContent) {
