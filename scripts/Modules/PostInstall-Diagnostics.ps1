@@ -309,43 +309,7 @@ try {
         }
     } catch {}
 
-    # Auditoria de Rendimiento NTFS y Sistema de Archivos (PLAN-0034)
-    $fs8dot3 = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name NtfsDisable8dot3NameCreation -ErrorAction SilentlyContinue).NtfsDisable8dot3NameCreation
-    $fsMemUsage = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name NtfsMemoryUsage -ErrorAction SilentlyContinue).NtfsMemoryUsage
-    $fsLongPaths = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name LongPathsEnabled -ErrorAction SilentlyContinue).LongPathsEnabled
-    if ($fs8dot3 -eq 1) {
-        $passedChecks.Add("Desactivacion global de nombres cortos 8.3 NTFS verificada.")
-        $reportLines.Add("- **NTFS 8.3 Name Creation:** Deshabilitado globalmente (NtfsDisable8dot3NameCreation=1) [OK]")
-    }
-    if ($fsMemUsage -eq 2) {
-        $passedChecks.Add("Cache de metadatos NTFS en memoria ampliada verificada.")
-        $reportLines.Add("- **NTFS Memory Usage (Cache MFT):** Ampliado en RAM (NtfsMemoryUsage=2) [OK]")
-    }
-    if ($fsLongPaths -eq 1) {
-        $passedChecks.Add("Soporte de rutas largas (>260 caracteres) verificado.")
-        $reportLines.Add("- **Win32 Long Paths:** Habilitado (LongPathsEnabled=1) [OK]")
-    }
 
-    # Auditoria de MMCSS y Scheduler (PLAN-0034)
-    $mmcssNet = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name NetworkThrottlingIndex -ErrorAction SilentlyContinue).NetworkThrottlingIndex
-    $mmcssResp = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name SystemResponsiveness -ErrorAction SilentlyContinue).SystemResponsiveness
-    $mmcssLazy = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name NoLazyMode -ErrorAction SilentlyContinue).NoLazyMode
-    $schedPrio = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Name Win32PrioritySeparation -ErrorAction SilentlyContinue).Win32PrioritySeparation
-
-    if ($null -ne $mmcssNet -and ([int64]$mmcssNet -eq 0xFFFFFFFF -or [int64]$mmcssNet -eq -1 -or $mmcssNet -eq 4294967295)) {
-        $passedChecks.Add("MMCSS Network Throttling deshabilitado para latencia minima.")
-        $reportLines.Add("- **MMCSS Network Throttling:** Deshabilitado (0xFFFFFFFF - Sin limite de red) [OK]")
-    } else {
-        $reportLines.Add("- **MMCSS Network Throttling:** Estandar ($mmcssNet)")
-    }
-    if ($mmcssLazy -eq 1) {
-        $passedChecks.Add("MMCSS NoLazyMode verificado para renderizado constante.")
-        $reportLines.Add("- **MMCSS NoLazyMode:** Activo (1 - Maxima tasa de refresco) [OK]")
-    }
-    if ($schedPrio -eq 38) {
-        $passedChecks.Add("Separacion de prioridades del scheduler optimizada (cuantos fijos/cortos con boost 3:1).")
-        $reportLines.Add("- **Win32 Priority Separation:** Optimizado (0x26 / 38 - Foreground Boost 3:1) [OK]")
-    }
 
 
     # Auditoria HAGS (Hardware-Accelerated GPU Scheduling)
@@ -381,23 +345,7 @@ try {
         $reportLines.Add("- **Tema del Sistema y Aplicaciones:** Modo Claro o Estandar")
     }
 
-    # Optimizacion de Navegadores Web (GPO)
-    $edgeGPU = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name HardwareAccelerationModeEnabled -ErrorAction SilentlyContinue).HardwareAccelerationModeEnabled
-    $edgeSleep = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name SleepingTabsEnabled -ErrorAction SilentlyContinue).SleepingTabsEnabled
-    if ($edgeGPU -eq 1 -and $edgeSleep -eq 1) {
-        $passedChecks.Add("Optimizacion GPO de Microsoft Edge verificada (GPU On, Sleeping Tabs On).")
-        $reportLines.Add("- **Politicas GPO Microsoft Edge:** Optimizadas (GPU=1, SleepingTabs=1) [OK]")
-    } else {
-        $reportLines.Add("- **Politicas GPO Microsoft Edge:** No configuradas o estandar.")
-    }
 
-    $chromeGPU = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Google\Chrome" -Name HardwareAccelerationModeEnabled -ErrorAction SilentlyContinue).HardwareAccelerationModeEnabled
-    if ($chromeGPU -eq 1) {
-        $passedChecks.Add("Optimizacion GPO de Google Chrome verificada (GPU On, Memory Saver On).")
-        $reportLines.Add("- **Politicas GPO Google Chrome:** Optimizadas (GPU=1, MemorySaver=1) [OK]")
-    } else {
-        $reportLines.Add("- **Politicas GPO Google Chrome:** No configuradas o estandar.")
-    }
 
     # Auditoria de Pila de Red TCP (ECN Capability - PLAN-0034)
     try {

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     romanOS-Toolkit.ps1 - Hub Maestro de Optimizacion, Diagnostico, Mantenimiento y Seguridad
     Orquestador Central Desacoplado (Zero-Resident Footprint)
@@ -526,16 +526,16 @@ while ($true) {
     $choice = Show-UnifiedMenu -Title "MODULOS DEL TOOLKIT MAESTRO" -Options $mainMenuOpts -DefaultChoice 1 -AllowCancel -CancelText "Salir del Toolkit"
     
     switch ($choice) {
-        1  { Invoke-GamingModule }
-        2  { Invoke-NetworkModule }
-        3  { Invoke-MaintenanceModule }
-        4  { Invoke-DiagnosticsModule }
-        5  { Invoke-SecurityModule }
+        1  { Invoke-GamingModule; pause }
+        2  { Invoke-NetworkModule; pause }
+        3  { Invoke-MaintenanceModule; pause }
+        4  { Invoke-DiagnosticsModule; pause }
+        5  { Invoke-SecurityModule; pause }
         6  { Invoke-BrowsersModule; pause }
-        7  { Invoke-UpdatesModule }
-        8  { Invoke-DriversModule }
-        9  { Invoke-OpenDashboards }
-        10 { Show-QuickActionsMenu }
+        7  { Invoke-UpdatesModule; pause }
+        8  { Invoke-DriversModule; pause }
+        9  { Invoke-OpenDashboards; pause }
+        10 { Show-QuickActionsMenu; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit
@@ -546,7 +546,5 @@ while ($true) {
         }
     }
     
-    # Pausa Global Interactiva
-    Write-Host "`n  Presione cualquier tecla para volver al menu principal..." -ForegroundColor Cyan
-    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+    
 }
