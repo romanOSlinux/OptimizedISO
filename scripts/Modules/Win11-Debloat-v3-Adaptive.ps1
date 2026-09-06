@@ -2405,21 +2405,18 @@ if ($contextAlreadyInstalled) {
 #endregion
 
 # ============================================================
-#region 16. Optimizacion y Debloat Oficial de Navegadores Web (GPO)
+#region 16. Optimizacion de Navegadores Web (Desacoplado a Toolkit/Modulo Dedicado)
+# Ref: PLAN-0032 / PLAN-0033 - Desacoplamiento e Idempotencia
 # ============================================================
-Write-Host "
-[16] Verificando Optimizacion de Navegadores (Modulo Desacoplado)..." -ForegroundColor Cyan
-$optimizeScript = Join-Path $PSScriptRoot "Optimize-WebBrowsers.ps1"
-if (Test-Path $optimizeScript) {
-    & $optimizeScript -Audit | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  [OK] Todas las optimizaciones de navegadores ya estan aplicadas. Omitiendo." -ForegroundColor Green
-    } else {
-        Write-Host "  [INFO] Invocando modulo dedicado Optimize-WebBrowsers.ps1..." -ForegroundColor Cyan
-        & $optimizeScript -Browser "All"
-    }
+Write-Host "`n[16] Optimizacion de Navegadores Web (Modulo Desacoplado)..." -ForegroundColor Cyan
+if ($isIsoOptimized) {
+    Write-Host "  [OK] Las directivas GPO de navegadores (Edge, Chrome, Firefox, Brave) ya fueron" -ForegroundColor Green
+    Write-Host "       aplicadas por la ISO romanOS durante el despliegue inicial." -ForegroundColor Green
+    Write-Host "  [i] Para re-aplicar, auditar o actualizar directivas de navegadores, use:" -ForegroundColor DarkGray
+    Write-Host "      - romanOS-Toolkit.ps1 (Modulo Navegadores) o Optimize-WebBrowsers.ps1 directamente" -ForegroundColor Gray
 } else {
-    Write-Host "  [WARNING] No se encontro Optimize-WebBrowsers.ps1 en $optimizeScript." -ForegroundColor Yellow
+    Write-Host "  [i] Optimizacion de navegadores disponible a demanda (modulo dedicado desacoplado):" -ForegroundColor Gray
+    Write-Host "      - romanOS-Toolkit.ps1 (Modulo Navegadores) o Optimize-WebBrowsers.ps1 -Browser All" -ForegroundColor Gray
 }
 #endregion
 
@@ -2454,7 +2451,7 @@ Write-Host ("  | Timer fix   : {0,-37} |" -f $(if($applyFixTimer){'Aplicado (bcd
 Write-Host ("  | Nagle TCP   : {0,-37} |" -f $(if($applyNagle){'Deshabilitado'}else{'Sin cambio'})) -ForegroundColor Gray
 Write-Host ("  | Ultimate PP : {0,-37} |" -f $(if($applyUltimate){'Activado'}else{'Omitido'}))  -ForegroundColor Gray
 Write-Host ("  | Menu Context: {0,-37} |" -f $(if($applyContextMenu){'Suite Gamer & Power-User (Clasico)'}else{'Omitido'}))  -ForegroundColor Gray
-Write-Host ("  | Navegadores : {0,-37} |" -f $(if($applyBrowsers){'GPO Render+Debloat Visual (4 browsers)'}else{'Omitido'}))  -ForegroundColor Gray
+Write-Host ("  | Navegadores : {0,-37} |" -f "Modulo dedicado (bajo demanda)")  -ForegroundColor Gray
 Write-Host "  +---------------------------------------------------------+" -ForegroundColor DarkCyan
 #endregion
 
