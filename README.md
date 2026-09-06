@@ -1,4 +1,4 @@
-# OptimizedISO
+﻿# OptimizedISO
 
 > Genera una ISO de Windows 10/11 completamente desatendida (Zero-Touch) con limpieza de bloatware y optimizaciones de gaming/rendimiento preintegradas.
 
@@ -64,7 +64,7 @@ El script `New-OptimizedWindowsISO.ps1` ahora soporta optimizaciones avanzadas d
 # 2. Abre PowerShell como Administrador
 # 3. Ejecuta:
 
-.\scripts\New-OptimizedWindowsISO.ps1 -LocalUser "Roman" -LocalPassword "MiClave"
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -LocalUser "Roman" -LocalPassword "MiClave"
 ```
 
 **Consulta [docs/USAGE.md](docs/USAGE.md) para la guía de uso completo y [docs/AUTOUNATTEND.md](docs/AUTOUNATTEND.md) para entender cómo funciona la instalación desatendida.**
@@ -73,7 +73,7 @@ El script `New-OptimizedWindowsISO.ps1` ahora soporta optimizaciones avanzadas d
 
 ```powershell
 # ISO existente + usuario personalizado + idioma
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Downloads\Win11_Spanish_x64.iso" `
   -LocalUser "Roman" `
   -LocalPassword "Secreta123" `

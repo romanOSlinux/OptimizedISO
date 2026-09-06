@@ -1,4 +1,4 @@
-# Guía Oficial: Configuración del Entorno de Desarrollo en Windows 11
+﻿# Guía Oficial: Configuración del Entorno de Desarrollo en Windows 11
 
 Esta guía detalla paso a paso todo lo necesario para configurar una estación de trabajo en **Windows 11**, optimizada para el desarrollo, auditoría, compilación de imágenes de Windows (ISOs) y ejecución del agente de IA **Antigravity**.
 
@@ -102,7 +102,7 @@ Abre PowerShell **como Administrador** dentro del directorio del proyecto:
 
 ```powershell
 cd C:\OptimizedISO
-.\scripts\New-OptimizedWindowsISO-v2.ps1
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1
 ```
 
 * El script ofrecerá descargar en vivo la última ISO oficial de Microsoft Learn o utilizar una que ya tengas descargada.

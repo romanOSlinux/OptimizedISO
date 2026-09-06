@@ -1,4 +1,4 @@
-Comandos Rápidos para Probar en Windows
+﻿Comandos Rápidos para Probar en Windows
 Lleva estas instrucciones a tu computadora o máquina virtual con Windows 10/11. Puedes copiar y pegar los comandos directamente en PowerShell (como Administrador).
 
 1. Descargar el repositorio y preparar la carpeta
@@ -16,28 +16,28 @@ Copia y pega UNA de las siguientes opciones según lo que quieras hacer. (El par
 Opción A: Crear ISO descargando Windows 10 desde cero
 powershell
 
-.\scripts\New-OptimizedWindowsISO.ps1 -DownloadISO -WindowsVersion 10 -LocalUser "Roman" -LocalPassword "1234" -WindowsEdition "Pro" -AutoInstallDeps
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -DownloadISO -WindowsVersion 10 -LocalUser "Roman" -LocalPassword "1234" -WindowsEdition "Pro" -AutoInstallDeps
 Opción B: Crear ISO descargando Windows 11 desde cero
 powershell
 
-.\scripts\New-OptimizedWindowsISO.ps1 -DownloadISO -WindowsVersion 11 -LocalUser "Roman" -LocalPassword "1234" -WindowsEdition "Pro" -AutoInstallDeps
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -DownloadISO -WindowsVersion 11 -LocalUser "Roman" -LocalPassword "1234" -WindowsEdition "Pro" -AutoInstallDeps
 Opción C: Usar una ISO de Windows que ya tengas descargada
 (Cambia la ruta C:\ruta\a\tu\windows.iso por donde esté tu archivo real)
 
 powershell
 
-.\scripts\New-OptimizedWindowsISO.ps1 -SourceISO "C:\ruta\a\tu\windows.iso" -LocalUser "Roman" -LocalPassword "1234" -AutoInstallDeps
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -SourceISO "C:\ruta\a\tu\windows.iso" -LocalUser "Roman" -LocalPassword "1234" -AutoInstallDeps
 3. (Opcional) Probar solo el Optimizador/Debloat
 Si quieres ver cómo funciona la limpieza y optimización en la máquina actual (sin crear ninguna ISO):
 
 Para probar con menús (Modo Interactivo)
 powershell
 
-.\scripts\Win11-Debloat-v3-Adaptive.ps1
+.\scripts\Modules\Win11-Debloat-v3-Adaptive.ps1
 Para probar ejecución silenciosa (Como lo hace la ISO)
 powershell
 
-.\scripts\Win11-Debloat-v3-Adaptive.ps1 -Unattended
+.\scripts\Modules\Win11-Debloat-v3-Adaptive.ps1 -Unattended
 WARNING
 
 Advertencia de prueba: Recuerda que la ISO generada (Windows_Optimized_....iso) formatea automáticamente el disco principal sin preguntar. ¡Pruébala en una Máquina Virtual primero!

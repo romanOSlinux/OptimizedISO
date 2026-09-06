@@ -1,4 +1,4 @@
-# Guía Rápida de Uso: Creador de ISO Optimizada (Zero-Touch v2)
+﻿# Guía Rápida de Uso: Creador de ISO Optimizada (Zero-Touch v2)
 
 > 💡 **Manual Completo y Detallado:** Para consultar la guía paso a paso de toda la suite (Toolkit Maestro, Mantenimiento, Red y Seguridad), consulta [`docs/MANUAL_DE_USO.md`](file:///c:/OptimizedISO/docs/MANUAL_DE_USO.md).
 
@@ -22,32 +22,32 @@ Este documento resume cómo utilizar el script maestro [`scripts/New-OptimizedWi
 ### 1. El método interactivo (Recomendado)
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO-v2.ps1
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1
 ```
 Inicia el asistente en 6 pasos para seleccionar origen de ISO, suite de scripts, perfil de debloat (1, 2 o 3) y credenciales.
 
 ### 2. Descarga oficial automática y compilación directa
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO-v2.ps1 -DownloadOfficialISO -LocalUser "Roman" -OptProfile 2
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -DownloadOfficialISO -LocalUser "Roman" -OptProfile 2
 ```
 
 ### 3. Usar una ISO local existente
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO-v2.ps1 -SourceISO "C:\Users\Roman\Downloads\Win11_Spanish_x64.iso" -LocalUser "Roman"
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -SourceISO "C:\Users\Roman\Downloads\Win11_Spanish_x64.iso" -LocalUser "Roman"
 ```
 
 ### 5. Cambiar idioma y zona horaria
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO.ps1 -Language "es-ES" -Timezone "Argentina Standard Time"
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -Language "es-ES" -Timezone "Argentina Standard Time"
 ```
 
 ### 6. Guardar la ISO en otra carpeta o pendrive
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO.ps1 -OutputDir "D:\ISOs_Modificadas" -LocalUser "Roman"
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -OutputDir "D:\ISOs_Modificadas" -LocalUser "Roman"
 ```
 
 ---
@@ -93,10 +93,10 @@ Este script se ejecuta automáticamente al terminar la instalación, pero tambi�
 
 ```powershell
 # Modo interactivo (muestra menús para seleccionar qué aplicar)
-.\scripts\Win11-Debloat-v3-Adaptive.ps1
+.\scripts\Modules\Win11-Debloat-v3-Adaptive.ps1
 
 # Modo desatendido (aplica todo automáticamente, sin preguntas)
-.\scripts\Win11-Debloat-v3-Adaptive.ps1 -Unattended
+.\scripts\Modules\Win11-Debloat-v3-Adaptive.ps1 -Unattended
 ```
 
 ### ¿Qué hace el script de debloat?

@@ -1,4 +1,4 @@
-# Referencia Rápida de Comandos — New-OptimizedWindowsISO.ps1
+﻿# Referencia Rápida de Comandos — New-OptimizedWindowsISO.ps1
 
 > 💡 **Guía Completa de la Suite romanOS:** Para consultar todas las opciones de ejecución, menús interactivos y parámetros CLI de **todos los scripts del repositorio** (Toolkit Maestro, Debloat, Mantenimiento, Red, Seguridad, Diagnósticos y Compilación de ISOs), consulta la **[Guía Maestra de Lanzamiento y Comandos](GUIA_DE_EJECUCION_Y_COMANDOS.md)**.
 
@@ -13,7 +13,7 @@
 El script pedirá la ISO origen, el script optimizador y mostrará menús de selección.
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO.ps1
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1
 ```
 
 ---
@@ -22,10 +22,10 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 
 ```powershell
 # Usuario "Roman" sin contraseña
-.\scripts\New-OptimizedWindowsISO.ps1 -LocalUser "Roman"
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -LocalUser "Roman"
 
 # Usuario "Roman" con contraseña
-.\scripts\New-OptimizedWindowsISO.ps1 -LocalUser "Roman" -LocalPassword "MiClave123"
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -LocalUser "Roman" -LocalPassword "MiClave123"
 ```
 
 ---
@@ -34,12 +34,12 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 
 ```powershell
 # ISO de Windows 11 descargada manualmente
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Users\Roman\Downloads\Win11_24H2_Spanish_x64.iso" `
   -LocalUser "Roman"
 
 # ISO de Windows 10
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "D:\ISOs\Win10_22H2.iso" `
   -LocalUser "Roman" `
   -WindowsVersion "10"
@@ -51,35 +51,35 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 
 ```powershell
 # España (por defecto)
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -Language "es-ES" `
   -Timezone "Romance Standard Time"
 
 # Argentina
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -Language "es-AR" `
   -Timezone "Argentina Standard Time"
 
 # México
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -Language "es-MX" `
   -Timezone "Central Standard Time (Mexico)"
 
 # Estados Unidos (Inglés)
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -Language "en-US" `
   -Timezone "Eastern Standard Time"
 
 # Brasil (Portugués)
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -Language "pt-BR" `
@@ -92,14 +92,14 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 
 ```powershell
 # Idioma español de España, pero teclado latinoamericano
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -Language "es-ES" `
   -KeyboardOverride "es-419"
 
 # Idioma español, teclado US International
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -Language "es-ES" `
@@ -112,19 +112,19 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 
 ```powershell
 # Solo inyectar en Windows 11 Pro (índice 3, verificar con el menú)
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -TargetWimIndex "3"
 
 # Inyectar en dos ediciones específicas (ej. Home e Pro)
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -TargetWimIndex "1,3"
 
 # Inyectar en TODAS las ediciones (mismo efecto que omitirlo y elegir "A")
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -TargetWimIndex "all"
@@ -136,13 +136,13 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 
 ```powershell
 # Guardar la ISO en otra carpeta
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -OutputDir "D:\ISOs_Modificadas"
 
 # Guardar directamente en un pendrive (letra E:)
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -OutputDir "E:\"
@@ -154,7 +154,7 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 
 ```powershell
 # El script instalará 7-Zip y oscdimg via winget si no están presentes
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -AutoInstallDeps
@@ -166,7 +166,7 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 
 ```powershell
 # Iniciar sesión automáticamente 3 veces (útil para scripts que necesitan reiniciar)
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -AutoLogonCount 3
@@ -178,7 +178,7 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 
 ```powershell
 # Extrae, inyecta y prepara todo, pero NO empaqueta la ISO final
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -LocalUser "Roman" `
   -SkipISOCreation
@@ -191,7 +191,7 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 ```powershell
 # Crea la ISO con los scripts inyectados, pero SIN autounattend.xml
 # La instalación será manual (seleccionar disco, usuario, etc.)
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
   -SkipAutoUnattend
 ```
@@ -201,7 +201,7 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 ## Comando Completo (Todos los Parámetros)
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO.ps1 `
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Users\Roman\Downloads\Win11_24H2_Spanish_x64.iso" `
   -OutputDir "D:\ISOs_Modificadas" `
   -WindowsVersion "11" `

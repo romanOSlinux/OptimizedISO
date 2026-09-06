@@ -1,4 +1,4 @@
-# 📖 Manual de Uso Oficial: romanOS Toolkit & ISO Optimizada v2
+﻿# 📖 Manual de Uso Oficial: romanOS Toolkit & ISO Optimizada v2
 
 Guía integral de uso y referencia técnica para la creación de imágenes ISO desatendidas de Windows 10/11 y la suite de herramientas **romanOS Toolkit Maestro** (Optimización Extrema para Gaming/Streaming, Mantenimiento, Red y Seguridad Desacoplada).
 
@@ -42,7 +42,7 @@ El script [`scripts/New-OptimizedWindowsISO-v2.ps1`](file:///c:/OptimizedISO/scr
 Abre PowerShell como Administrador y ejecuta:
 
 ```powershell
-.\scripts\New-OptimizedWindowsISO-v2.ps1
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1
 ```
 
 El asistente te guiará en 6 sencillos pasos:
@@ -81,7 +81,7 @@ El Hub Maestro [`scripts/romanOS-Toolkit.cmd`](file:///c:/OptimizedISO/scripts/r
 * Haz doble clic en el acceso directo del Menú Inicio **`romanOS Toolkit Maestro`**, o
 * Ejecuta desde consola:
   ```powershell
-  .\scripts\romanOS-Toolkit.cmd
+  .\scripts\Modules\romanOS-Toolkit.cmd
   ```
 
 ### 📋 Menú Principal del Hub
