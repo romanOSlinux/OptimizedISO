@@ -56,6 +56,20 @@ $global:RomanOS_Policies = @(
         UnattendDesc  = "Disable News and Interests on Taskbar (Win10/11)"
     },
     @{
+        Id            = "POL_CHAT_ICON"
+        Module        = "Modulo F - Widgets"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Chat"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Chat"
+        ValueName     = "ChatIcon"
+        Type          = "REG_DWORD"
+        ExpectedValue = 3
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar icono y precarga de Chat / Teams consumidor en barra de tareas"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-experience"
+        UnattendDesc  = "Disable Chat / Teams Taskbar Icon and Background Preload"
+    },
+    @{
         Id            = "POL_SEARCH_DISABLE_WEB"
         Module        = "Modulo F - Bing Web Search"
         Category      = "Privacidad & Shell"

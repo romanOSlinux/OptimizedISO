@@ -6177,6 +6177,25 @@ if ($wimFile) {
                                              Type = "REG_DWORD"
                                              Data = "0"
                                          }
+                                         # Neutralizacion de Widgets, Chat y Copilot en Barra de Tareas (PLAN-0057)
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                                             Name = "TaskbarDa"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                                             Name = "TaskbarMn"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+                                             Name = "ShowCopilotButton"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
                                          @{
                                              Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Search"
                                              Name = "SearchboxTaskbarMode"
@@ -6332,6 +6351,25 @@ if ($wimFile) {
                                             Name = "AllowCortana"
                                             Type = "REG_DWORD"
                                             Data = "0"
+                                        }
+                                        # Neutralizacion de Widgets, Noticias e Intereses y Chat en SOFTWARE hive (PLAN-0057)
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Widgets"
+                                            Name = "AllowWidgets"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Dsh"
+                                            Name = "AllowNewsAndInterests"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\Windows Chat"
+                                            Name = "ChatIcon"
+                                            Type = "REG_DWORD"
+                                            Data = "3"
                                         }
                                     )
                                     foreach ($st in $swTweaks) {

@@ -228,9 +228,25 @@ foreach ($t in $targetAudits) {
             $verdictMd = "❌ VAMPIRO ACTIVO"
             Write-Host ("  ❌ {0,-28} : {1,-26} | RAM: {2,8} | PIDs: {3}" -f $t.DisplayName, $verdictConsole, $ramStr, $pidStr) -ForegroundColor Red
         }
+
+        # Diagnostico forense de linea de comandos para instancias inesperadas de WebView2
+        if ($t.Name -eq "msedgewebview2") {
+            try {
+                $cimProcs = @(Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" -ErrorAction SilentlyContinue)
+                if ($cimProcs.Count -gt 0) {
+                    Write-Host "    🔍 Detalle forense de instancias WebView2 activas:" -ForegroundColor DarkYellow
+                    foreach ($cp in $cimProcs) {
+                        $parentProc = Get-Process -Id $cp.ParentProcessId -ErrorAction SilentlyContinue
+                        $parentName = if ($parentProc) { "$($parentProc.Name) ($($cp.ParentProcessId))" } else { "PID $($cp.ParentProcessId)" }
+                        $cmdArgs = if ($cp.CommandLine) { ($cp.CommandLine -replace '^.*msedgewebview2\.exe"?\s*', '') } else { "N/A" }
+                        Write-Host ("      - PID {0,-5} | Padre: {1,-20} | Args: {2}" -f $cp.ProcessId, $parentName, $cmdArgs) -ForegroundColor DarkGray
+                    }
+                }
+            } catch {}
+        }
     }
 
-    $report.Add("| **$($t.DisplayName)** (`$($t.Name)`) | $count | $ramStr | $pidStr | $verdictMd |")
+    $report.Add(("| **{0}** (`{1}.exe`) | {2} | {3} | {4} | {5} |" -f $t.DisplayName, $t.Name, $count, $ramStr, $pidStr, $verdictMd))
 }
 
 $report.Add("")
@@ -265,10 +281,10 @@ foreach ($rp in $runPaths) {
             
             if ($isSuspect) {
                 Write-Host ("  ⚠️ [{0}] {1} = {2}" -f $rp.Scope, $vn, $valData) -ForegroundColor Yellow
-                $report.Add("| $($rp.Scope) | **$vn** | `$valData` | ⚠️ Sospechoso (Auto-inicio de telemetría/app) |")
+                $report.Add(("| {0} | **{1}** | `{2}` | ⚠️ Sospechoso (Auto-inicio de telemetría/app) |" -f $rp.Scope, $vn, $valData))
             } else {
                 Write-Host ("  ℹ️ [{0}] {1} = {2}" -f $rp.Scope, $vn, $valData) -ForegroundColor Gray
-                $report.Add("| $($rp.Scope) | $vn | `$valData` | ℹ️ Común / Sistema |")
+                $report.Add(("| {0} | {1} | `{2}` | ℹ️ Común / Sistema |" -f $rp.Scope, $vn, $valData))
             }
         }
     }
@@ -363,6 +379,27 @@ $policiesToAudit = @(
         Name     = "ShowCopilotButton"
         Expected = 0
         Desc     = "Botón de Copilot oculto en barra de tareas"
+    },
+    @{
+        Id       = "AllowWidgets (GPO)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Widgets"
+        Name     = "AllowWidgets"
+        Expected = 0
+        Desc     = "Desactivar subsistema de Widgets a nivel de máquina (PLAN-0057)"
+    },
+    @{
+        Id       = "AllowNewsAndInterests"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Dsh"
+        Name     = "AllowNewsAndInterests"
+        Expected = 0
+        Desc     = "Desactivar Noticias e Intereses a nivel de máquina (PLAN-0057)"
+    },
+    @{
+        Id       = "ChatIcon (GPO)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Chat"
+        Name     = "ChatIcon"
+        Expected = 3
+        Desc     = "Desactivar Chat consumidor a nivel de directiva (PLAN-0057)"
     }
 )
 
@@ -376,14 +413,14 @@ foreach ($pol in $policiesToAudit) {
     if ($null -ne $actual) {
         if ([string]$actual -eq [string]$pol.Expected) {
             Write-Host ("  ✅ {0,-26} : {1,-6} [OK - Aplicada]" -f $pol.Id, $actual) -ForegroundColor Green
-            $report.Add("| $($pol.Id) | `$($pol.Path)` | $($pol.Name) | `$actual` (Esperado: `$($pol.Expected)`) | ✅ APLICADA |")
+            $report.Add(("| {0} | `{1}` | {2} | `{3}` (Esperado: `{4}`) | ✅ APLICADA |" -f $pol.Id, $pol.Path, $pol.Name, $actual, $pol.Expected))
         } else {
             Write-Host ("  ⚠️ {0,-26} : {1,-6} [DISCREPANTE - Esperado: {2}]" -f $pol.Id, $actual, $pol.Expected) -ForegroundColor Yellow
-            $report.Add("| $($pol.Id) | `$($pol.Path)` | $($pol.Name) | `$actual` (Esperado: `$($pol.Expected)`) | ⚠️ DISCREPANTE |")
+            $report.Add(("| {0} | `{1}` | {2} | `{3}` (Esperado: `{4}`) | ⚠️ DISCREPANTE |" -f $pol.Id, $pol.Path, $pol.Name, $actual, $pol.Expected))
         }
     } else {
         Write-Host ("  ⚪ {0,-26} : NO CONFIGURADA (Valor por defecto de Windows)" -f $pol.Id) -ForegroundColor Gray
-        $report.Add("| $($pol.Id) | `$($pol.Path)` | $($pol.Name) | No configurada | ⚪ POR DEFECTO WINDOWS |")
+        $report.Add(("| {0} | `{1}` | {2} | No configurada | ⚪ POR DEFECTO WINDOWS |" -f $pol.Id, $pol.Path, $pol.Name))
     }
 }
 

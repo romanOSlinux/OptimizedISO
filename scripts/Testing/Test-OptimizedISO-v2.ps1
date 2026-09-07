@@ -1211,6 +1211,34 @@ $v2FreshContent56 = Get-Content $TargetScript -Raw
 Assert-True "PLAN-0056: Builder inyecta Audit-FreshInstallFootprint.ps1 en `$OEM`$" ([bool]($v2FreshContent56 -match 'Copy-Item -Path \$auditFootprintSrc -Destination \(Join-Path \$OEMScriptsDir "Audit-FreshInstallFootprint\.ps1"\)'))
 Assert-True "PLAN-0056: Builder inyecta Audit-FreshInstallFootprint.ps1 en WIM offline" ([bool]($v2FreshContent56 -match 'Copy-Item -Path \$auditFootprintSrc -Destination \(Join-Path \$wimModulesDest "Audit-FreshInstallFootprint\.ps1"\)'))
 
+# =============================================================================
+# PLAN-0057: NEUTRALIZACION DE WIDGETS, TASKBAR Y ZERO-OVERHEAD WEBVIEW2
+# =============================================================================
+Write-HarnessHeader2 "PLAN-0057: Neutralizacion de Widgets, Taskbar y Zero-Overhead WebView2"
+
+# 1. Validar inyeccion de TaskbarDa, TaskbarMn y ShowCopilotButton en NTUSER.DAT del Builder
+$v2FreshContent57 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0057: Builder inyecta TaskbarDa = 0 en NTUSER.DAT" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"TaskbarDa`""))
+Assert-True "PLAN-0057: Builder inyecta TaskbarMn = 0 en NTUSER.DAT" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"TaskbarMn`""))
+Assert-True "PLAN-0057: Builder inyecta ShowCopilotButton = 0 en NTUSER.DAT" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"ShowCopilotButton`""))
+
+# 2. Validar inyeccion de AllowWidgets, AllowNewsAndInterests y ChatIcon en SOFTWARE hive del Builder
+Assert-True "PLAN-0057: Builder inyecta AllowWidgets = 0 en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"AllowWidgets`""))
+Assert-True "PLAN-0057: Builder inyecta AllowNewsAndInterests = 0 en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"AllowNewsAndInterests`""))
+Assert-True "PLAN-0057: Builder inyecta ChatIcon = 3 en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"ChatIcon`""))
+
+# 3. Validar registro de POL_CHAT_ICON en Policy-Engine.ps1
+$policyEnginePath57 = Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"
+$peContent57 = Get-Content $policyEnginePath57 -Raw
+Assert-True "PLAN-0057: Policy-Engine registra directiva POL_CHAT_ICON" ([bool]($peContent57 -match 'Id\s*=\s*"POL_CHAT_ICON"'))
+
+# 4. Validar sintaxis y formato limpio en Audit-FreshInstallFootprint.ps1
+$auditFootprintPath57 = Join-Path $modulesDir "Audit-FreshInstallFootprint.ps1"
+$auditContent57 = Get-Content $auditFootprintPath57 -Raw
+Assert-False "PLAN-0057: Audit-FreshInstallFootprint no contiene artefactos rotos de interpolacion" ([bool]($auditContent57 -match '\$\(System\.Collections\.Hashtable'))
+Assert-True "PLAN-0057: Audit-FreshInstallFootprint audita AllowWidgets (GPO)" ([bool]($auditContent57 -match 'AllowWidgets \(GPO\)'))
+Assert-True "PLAN-0057: Audit-FreshInstallFootprint incluye diagnostico CIM de WebView2" ([bool]($auditContent57 -match 'Get-CimInstance Win32_Process -Filter "Name = ''msedgewebview2\.exe''"'))
+
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
