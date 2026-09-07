@@ -56,6 +56,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0041 | [PLAN-0041-20260906-refactor-ssot-redundancies-y-limpieza-codigo-muerto.md](PLAN-0041-20260906-refactor-ssot-redundancies-y-limpieza-codigo-muerto.md) | 2026-09-06 | Refactorización SSOT de Redundancias y Limpieza de Código Muerto | PENDIENTE |
 | 0043 | [PLAN-0043-20260906-ai-pc-npu-gpu-hardware-intelligence.md](PLAN-0043-20260906-ai-pc-npu-gpu-hardware-intelligence.md) | 2026-09-06 | Modernización del Motor de Inteligencia de Hardware (AI PC, NPU e iGPUs) | PENDIENTE |
 | 0044 | [PLAN-0044-20260906-resilient-bootloader-discovery-and-anti-workloss-iso-builder.md](PLAN-0044-20260906-resilient-bootloader-discovery-and-anti-workloss-iso-builder.md) | 2026-09-06 | Búsqueda Resiliente de Bootloaders (BIOS/UEFI), Auto-Inyección y Salvaguarda Anti-Pérdida | COMPLETADO |
+| 0047 | [PLAN-0047-20260907-fix-optimize-webbrowsers-ui-elevation-y-cierre.md](PLAN-0047-20260907-fix-optimize-webbrowsers-ui-elevation-y-cierre.md) | 2026-09-07 | Corrección de Bloqueo, Auto-Elevación y Experiencia de Usuario en Optimize-WebBrowsers.ps1 | COMPLETADO |
 
 ---
 

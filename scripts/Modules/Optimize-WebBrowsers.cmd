@@ -1,17 +1,17 @@
 @echo off
-title Lanzador: Optimize-WebBrowsers
+title Optimizacion y Debloat Oficial de Navegadores Web
 echo.
 echo ======================================================================
-echo   Optimize-WebBrowsers
+echo   Optimizacion y Debloat Oficial de Navegadores (GPO)
 echo   Ejecucion automatica con elevacion y Bypass de ExecutionPolicy
 echo ======================================================================
 echo.
 
-:: Comprobar privilegios de Administrador y auto-elevar
+:: Comprobar privilegios de Administrador y auto-elevar si es necesario
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo [!] Solicitando elevacion de privilegios de Administrador...
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process cmd.exe -ArgumentList '/c \"\"%~f0\"\"' -Verb RunAs"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process cmd.exe -ArgumentList '/c \"\"%~f0\"\" %*' -Verb RunAs"
     exit /b 0
 )
 
@@ -25,8 +25,4 @@ if exist "%~dp0Optimize-WebBrowsers.ps1" (
     exit /b 1
 )
 
-echo.
-echo ======================================================================
-echo   Ejecucion finalizada. Presione cualquier tecla para cerrar...
-echo ======================================================================
-pause >nul
+exit /b %errorlevel%

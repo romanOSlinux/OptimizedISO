@@ -2361,18 +2361,30 @@ function Apply-RomanOSBrowserPolicies {
     foreach ($p in $policies) {
         if ($PSCmdlet.ShouldProcess("$($p.RegistryKey)\$($p.ValueName)", "Aplicar directiva GPO de $($p.Browser)")) {
             try {
-                $regKey = $p.RegistryKey
-                $valName = $p.ValueName
-                $type = $p.Type
                 $val = if ($p.Type -eq "REG_SZ" -and [string]::IsNullOrEmpty($p.ExpectedValue)) { "" } else { $p.ExpectedValue }
+                $psType = if ($p.PSType) { $p.PSType } elseif ($p.Type -eq "REG_DWORD") { "DWord" } else { "String" }
 
                 # Asegurar ruta intermedia en HKLM
                 if (-not (Test-Path $p.PSPath)) {
                     New-Item -Path $p.PSPath -Force -ErrorAction SilentlyContinue | Out-Null
                 }
 
-                & reg.exe add "$regKey" /v "$valName" /t $type /d "$val" /f 2>&1 | Out-Null
-                if ($LASTEXITCODE -eq 0) {
+                $applied = $false
+                try {
+                    Set-ItemProperty -Path $p.PSPath -Name $p.ValueName -Value $val -Type $psType -Force -ErrorAction Stop
+                    $applied = $true
+                } catch {
+                    # Fallback a reg.exe add nativo
+                    $regKey = $p.RegistryKey
+                    $valName = $p.ValueName
+                    $type = $p.Type
+                    & reg.exe add "$regKey" /v "$valName" /t $type /d "$val" /f 2>&1 | Out-Null
+                    if ($LASTEXITCODE -eq 0) {
+                        $applied = $true
+                    }
+                }
+
+                if ($applied) {
                     $appliedCount++
                     if ($VerboseOutput) { Write-Host "  [OK] $($p.Browser): $($p.ValueName) = $val" -ForegroundColor Green }
                 } else {
@@ -2381,6 +2393,7 @@ function Apply-RomanOSBrowserPolicies {
                 }
             } catch {
                 $failCount++
+                if ($VerboseOutput) { Write-Host "  [FAIL] $($p.Browser): $($p.ValueName)" -ForegroundColor Red }
             }
         }
     }
