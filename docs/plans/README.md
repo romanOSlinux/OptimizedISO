@@ -60,6 +60,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0048 | [PLAN-0048-20260907-hardware-engine-ai-pc-npu-ssot-builder-y-test-harness.md](PLAN-0048-20260907-hardware-engine-ai-pc-npu-ssot-builder-y-test-harness.md) | 2026-09-07 | Hardware Intelligence para AI PC (NPU, RDNA3/Arc), Saneamiento SSOT en el Builder y Certificación 100% del Test Harness | COMPLETADO |
 | 0049 | [PLAN-0049-20260907-fix-passwordless-autologon-oobe.md](PLAN-0049-20260907-fix-passwordless-autologon-oobe.md) | 2026-09-07 | Corrección de AutoLogon y Despliegue sin Contraseña (Passwordless) en OOBE | COMPLETADO |
 | 0050 | [PLAN-0050-20260907-integracion-total-toolkit-maestro-drivers-y-modulos-en-iso.md](PLAN-0050-20260907-integracion-total-toolkit-maestro-drivers-y-modulos-en-iso.md) | 2026-09-07 | Integración Total de Módulos del Toolkit Maestro, Controladores y Scripts Faltantes en la ISO | COMPLETADO |
+| 0051 | [PLAN-0051-20260907-integracion-subagentes-antigravity-qa-y-servicing.md](PLAN-0051-20260907-integracion-subagentes-antigravity-qa-y-servicing.md) | 2026-09-07 | Integración de Subagentes Especializados de Antigravity para Control de Calidad y Servicing | COMPLETADO |
 
 ---
 
