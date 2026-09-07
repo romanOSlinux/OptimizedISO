@@ -4314,6 +4314,77 @@ if ($physicalDiag) {
     Write-OK "Script de diagnóstico integral inyectado desde archivo físico en `$OEM`$."
 }
 
+# ------------------------------------------------------------------
+# Copiar Suite de Gestión de Controladores (Drivers) a sources\$OEM$\$$\Setup\Scripts\Drivers
+# ------------------------------------------------------------------
+$driversSrcDir = Join-Path $ScriptsDir "Drivers"
+if (Test-Path $driversSrcDir) {
+    $destDriversDir  = Join-Path $OEMScriptsDir "Drivers"
+    $destDriversDir1 = Join-Path $OEMScriptsDir1 "Drivers"
+    if (-not (Test-Path $destDriversDir))  { New-Item -ItemType Directory -Path $destDriversDir -Force | Out-Null }
+    if (-not (Test-Path $destDriversDir1)) { New-Item -ItemType Directory -Path $destDriversDir1 -Force | Out-Null }
+    Copy-Item -Path "$driversSrcDir\*" -Destination $destDriversDir -Recurse -Force
+    Copy-Item -Path "$driversSrcDir\*" -Destination $destDriversDir1 -Recurse -Force
+    Write-OK "Suite de gestion de controladores (Drivers) inyectada en `$OEM`$."
+    Add-AuditRecord -Resource "Drivers Suite" -Target '$OEM$' -Status "OK" -Details "Copiados a $destDriversDir"
+}
+
+# ------------------------------------------------------------------
+# Copiar Módulos Complementarios Físicos (Navegadores, Migración, Updates) a $OEM$
+# ------------------------------------------------------------------
+$browserSrc = Join-Path $ScriptsDir "Modules\Optimize-WebBrowsers.ps1"
+if (Test-Path $browserSrc) {
+    Copy-Item -Path $browserSrc -Destination (Join-Path $OEMScriptsDir "Optimize-WebBrowsers.ps1") -Force
+    Copy-Item -Path $browserSrc -Destination (Join-Path $OEMScriptsDir1 "Optimize-WebBrowsers.ps1") -Force
+    $browserCmd = Join-Path $ScriptsDir "Modules\Optimize-WebBrowsers.cmd"
+    if (Test-Path $browserCmd) {
+        Copy-Item -Path $browserCmd -Destination (Join-Path $OEMScriptsDir "Optimize-WebBrowsers.cmd") -Force
+        Copy-Item -Path $browserCmd -Destination (Join-Path $OEMScriptsDir1 "Optimize-WebBrowsers.cmd") -Force
+    }
+    Write-OK "Optimizador oficial de navegadores web inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Optimize-WebBrowsers" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts"
+}
+
+$userMigSrc = Join-Path $ScriptsDir "Modules\Migrar-Usuario-W11.ps1"
+if (Test-Path $userMigSrc) {
+    Copy-Item -Path $userMigSrc -Destination (Join-Path $OEMScriptsDir "Migrar-Usuario-W11.ps1") -Force
+    Copy-Item -Path $userMigSrc -Destination (Join-Path $OEMScriptsDir1 "Migrar-Usuario-W11.ps1") -Force
+    Write-OK "Herramienta de migracion de usuario inyectada en `$OEM`$."
+    Add-AuditRecord -Resource "Migrar-Usuario-W11" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts"
+}
+
+$updatesSrc = Join-Path $ScriptsDir "Builder\Get-WindowsUpdates.ps1"
+if (Test-Path $updatesSrc) {
+    Copy-Item -Path $updatesSrc -Destination (Join-Path $OEMScriptsDir "Get-WindowsUpdates.ps1") -Force
+    Copy-Item -Path $updatesSrc -Destination (Join-Path $OEMScriptsDir1 "Get-WindowsUpdates.ps1") -Force
+    $updatesCmd = Join-Path $ScriptsDir "Builder\Get-WindowsUpdates.cmd"
+    if (Test-Path $updatesCmd) {
+        Copy-Item -Path $updatesCmd -Destination (Join-Path $OEMScriptsDir "Get-WindowsUpdates.cmd") -Force
+        Copy-Item -Path $updatesCmd -Destination (Join-Path $OEMScriptsDir1 "Get-WindowsUpdates.cmd") -Force
+    }
+    Write-OK "Descargador oficial de Windows Updates inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Get-WindowsUpdates" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts"
+}
+
+# ------------------------------------------------------------------
+# Garantizar Presencia de Submódulos del Toolkit Maestro en $OEM$
+# ------------------------------------------------------------------
+$suiteSubmodules = @(
+    @{ Path = $debScriptCandidate; Name = [System.IO.Path]::GetFileName($debScriptCandidate) },
+    @{ Path = $maintScriptCandidate; Name = [System.IO.Path]::GetFileName($maintScriptCandidate) },
+    @{ Path = $netScriptCandidate; Name = [System.IO.Path]::GetFileName($netScriptCandidate) },
+    @{ Path = $secScriptCandidate; Name = [System.IO.Path]::GetFileName($secScriptCandidate) },
+    @{ Path = $toolkitCandidate; Name = [System.IO.Path]::GetFileName($toolkitCandidate) }
+)
+foreach ($subm in $suiteSubmodules) {
+    if ($subm.Path -and (Test-Path $subm.Path)) {
+        $destFile  = Join-Path $OEMScriptsDir $subm.Name
+        $destFile1 = Join-Path $OEMScriptsDir1 $subm.Name
+        if (-not (Test-Path $destFile))  { Copy-Item -Path $subm.Path -Destination $destFile -Force }
+        if (-not (Test-Path $destFile1)) { Copy-Item -Path $subm.Path -Destination $destFile1 -Force }
+    }
+}
+
 #------------------------------------------------------------------------------
 # 3/6 - CREAR SetupComplete.cmd Y TAREAS PROGRAMADAS A DEMANDA
 #------------------------------------------------------------------------------
@@ -6180,6 +6251,70 @@ if ($wimFile) {
                          Add-AuditRecord -Resource "Runtimes (VC++ / DirectX)" -Target "WIM Idx $wimIndex" `
                                          -Status "SKIP" -Details "No disponibles para inyección offline"
                      }
+
+                      # Inyectar script de menú contextual canónico en WIM montado
+                      $ctxMenuSrc = Join-Path $ScriptsDir "Modules\Add-OptimizedContextMenus.ps1"
+                      if (Test-Path $ctxMenuSrc) {
+                          Copy-Item -Path $ctxMenuSrc -Destination (Join-Path $wimScriptsDir "Add-OptimizedContextMenus.ps1") -Force
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Add-OptimizedContextMenus.ps1"
+                      }
+
+                      # Inyectar suite de Drivers en WIM montado
+                      $driversSrcDir = Join-Path $ScriptsDir "Drivers"
+                      if (Test-Path $driversSrcDir) {
+                          $wimDriversDest = Join-Path $wimScriptsDir "Drivers"
+                          if (-not (Test-Path $wimDriversDest)) {
+                              New-Item -ItemType Directory -Path $wimDriversDest -Force | Out-Null
+                          }
+                          Copy-Item -Path "$driversSrcDir\*" -Destination $wimDriversDest -Recurse -Force
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Suite de Drivers (Clean, Backup, Critical)"
+                          Add-AuditRecord -Resource "Drivers Suite" -Target "WIM Idx $wimIndex" `
+                                          -Status "OK" -Details "Copiado a $wimDriversDest"
+                      }
+
+                      # Inyectar módulos complementarios (Navegadores, Migración, Updates) en WIM montado
+                      $browserSrc = Join-Path $ScriptsDir "Modules\Optimize-WebBrowsers.ps1"
+                      if (Test-Path $browserSrc) {
+                          Copy-Item -Path $browserSrc -Destination (Join-Path $wimScriptsDir "Optimize-WebBrowsers.ps1") -Force
+                          $browserCmd = Join-Path $ScriptsDir "Modules\Optimize-WebBrowsers.cmd"
+                          if (Test-Path $browserCmd) {
+                              Copy-Item -Path $browserCmd -Destination (Join-Path $wimScriptsDir "Optimize-WebBrowsers.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Optimize-WebBrowsers.ps1"
+                      }
+
+                      $userMigSrc = Join-Path $ScriptsDir "Modules\Migrar-Usuario-W11.ps1"
+                      if (Test-Path $userMigSrc) {
+                          Copy-Item -Path $userMigSrc -Destination (Join-Path $wimScriptsDir "Migrar-Usuario-W11.ps1") -Force
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Migrar-Usuario-W11.ps1"
+                      }
+
+                      $updatesSrc = Join-Path $ScriptsDir "Builder\Get-WindowsUpdates.ps1"
+                      if (Test-Path $updatesSrc) {
+                          Copy-Item -Path $updatesSrc -Destination (Join-Path $wimScriptsDir "Get-WindowsUpdates.ps1") -Force
+                          $updatesCmd = Join-Path $ScriptsDir "Builder\Get-WindowsUpdates.cmd"
+                          if (Test-Path $updatesCmd) {
+                              Copy-Item -Path $updatesCmd -Destination (Join-Path $wimScriptsDir "Get-WindowsUpdates.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Get-WindowsUpdates.ps1"
+                      }
+
+                      # Inyectar submódulos de la suite para soporte del Toolkit en WIM montado
+                      $suiteSubmodules = @(
+                          @{ Path = $debScriptCandidate; Name = [System.IO.Path]::GetFileName($debScriptCandidate) },
+                          @{ Path = $maintScriptCandidate; Name = [System.IO.Path]::GetFileName($maintScriptCandidate) },
+                          @{ Path = $netScriptCandidate; Name = [System.IO.Path]::GetFileName($netScriptCandidate) },
+                          @{ Path = $secScriptCandidate; Name = [System.IO.Path]::GetFileName($secScriptCandidate) },
+                          @{ Path = $toolkitCandidate; Name = [System.IO.Path]::GetFileName($toolkitCandidate) }
+                      )
+                      foreach ($subm in $suiteSubmodules) {
+                          if ($subm.Path -and (Test-Path $subm.Path)) {
+                              $wimSubmDest = Join-Path $wimScriptsDir $subm.Name
+                              if (-not (Test-Path $wimSubmDest)) {
+                                  Copy-Item -Path $subm.Path -Destination $wimSubmDest -Force
+                              }
+                          }
+                      }
 
                      foreach ($script in $scriptsToInject) {
                          $dest = Join-Path $wimScriptsDir $script.DestName

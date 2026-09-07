@@ -1074,6 +1074,43 @@ Assert-True "PLAN-0049: v2 script resetea AutoAdminLogon a 0 en FirstLogonComman
 Assert-False "PLAN-0049: v2 script elimino el falso AutoAdminLogon=1 tardio de FirstLogonCommands" ([bool]($v2ScriptContent -match 'Force AutoAdminLogon in Winlogon for passwordless account'))
 Assert-True "PLAN-0049: v2 script utiliza finalLocalUser unificado en AutoLogon y LocalAccount" ([bool]($v2ScriptContent -match '<Username>\$finalLocalUser</Username>' -and $v2ScriptContent -match '<Name>\$finalLocalUser</Name>'))
 
+# PLAN-0050: Integracion Total de Modulos del Toolkit Maestro, Controladores y Scripts Faltantes en la ISO
+Write-HarnessHeader2 "PLAN-0050: Validacion de Inyeccion Total de Modulos, Drivers y Resiliencia del Toolkit"
+
+# 1. Validar inyeccion de Drivers en OEM y WIM dentro de New-OptimizedWindowsISO-v2.ps1
+Assert-True "PLAN-0050: Builder inyecta carpeta Drivers en `$OEMScriptsDir" ([bool]($v2ScriptContent -match 'destDriversDir\s*=\s*Join-Path \$OEMScriptsDir "Drivers"'))
+Assert-True "PLAN-0050: Builder inyecta suite de Drivers en WIM offline" ([bool]($v2ScriptContent -match 'wimDriversDest\s*=\s*Join-Path \$wimScriptsDir "Drivers"'))
+
+# 2. Validar inyeccion de modulos complementarios en OEM y WIM
+Assert-True "PLAN-0050: Builder inyecta Optimize-WebBrowsers.ps1 en `$OEM`$" ([bool]($v2ScriptContent -match 'Join-Path \$OEMScriptsDir "Optimize-WebBrowsers\.ps1"'))
+Assert-True "PLAN-0050: Builder inyecta Optimize-WebBrowsers.ps1 en WIM" ([bool]($v2ScriptContent -match 'Join-Path \$wimScriptsDir "Optimize-WebBrowsers\.ps1"'))
+Assert-True "PLAN-0050: Builder inyecta Migrar-Usuario-W11.ps1 en `$OEM`$" ([bool]($v2ScriptContent -match 'Join-Path \$OEMScriptsDir "Migrar-Usuario-W11\.ps1"'))
+Assert-True "PLAN-0050: Builder inyecta Migrar-Usuario-W11.ps1 en WIM" ([bool]($v2ScriptContent -match 'Join-Path \$wimScriptsDir "Migrar-Usuario-W11\.ps1"'))
+Assert-True "PLAN-0050: Builder inyecta Get-WindowsUpdates.ps1 en `$OEM`$" ([bool]($v2ScriptContent -match 'Join-Path \$OEMScriptsDir "Get-WindowsUpdates\.ps1"'))
+Assert-True "PLAN-0050: Builder inyecta Get-WindowsUpdates.ps1 en WIM" ([bool]($v2ScriptContent -match 'Join-Path \$wimScriptsDir "Get-WindowsUpdates\.ps1"'))
+
+# 3. Validar garantia de submodulos para soporte del Toolkit
+Assert-True "PLAN-0050: Builder garantiza submodulos de la suite en `$OEM`$" ([bool]($v2ScriptContent -match 'Garantizar Presencia de Submódulos del Toolkit Maestro en \$OEM\$' -or $v2ScriptContent -match 'suiteSubmodules'))
+Assert-True "PLAN-0050: Builder garantiza submodulos de la suite en WIM" ([bool]($v2ScriptContent -match 'Inyectar submódulos de la suite para soporte del Toolkit en WIM montado' -or $v2ScriptContent -match 'wimSubmDest'))
+
+# 4. Validar resiliencia y resolucion en romanOS-Toolkit.ps1
+$toolkitFreshContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\romanOS-Toolkit.ps1") -Raw
+Assert-True "PLAN-0050: romanOS-Toolkit.ps1 expande searchDirs a Modules y Builder" ([bool]($toolkitFreshContent -match 'repoScriptsRoot' -and $toolkitFreshContent -match 'Builder'))
+Assert-True "PLAN-0050: romanOS-Toolkit.ps1 usa Resolve-ToolScript en acciones rapidas DNS" ([bool]($toolkitFreshContent -match 'Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer\.ps1"'))
+Assert-True "PLAN-0050: romanOS-Toolkit.ps1 usa Resolve-ToolScript en acciones rapidas Mantenimiento" ([bool]($toolkitFreshContent -match 'Resolve-ToolScript "Invoke-WindowsMaintenance\.ps1"'))
+
+# 5. Validar existencia fisica de los scripts del ecosistema en el repositorio
+$driversDirDisk = Join-Path (Split-Path $PSScriptRoot -Parent) "Drivers"
+$modulesDirDisk = Join-Path (Split-Path $PSScriptRoot -Parent) "Modules"
+$builderDirDisk = Join-Path (Split-Path $PSScriptRoot -Parent) "Builder"
+
+Assert-FileExists "PLAN-0050: Clean-DriverStore.ps1 existe en Drivers/" (Join-Path $driversDirDisk "Clean-DriverStore.ps1")
+Assert-FileExists "PLAN-0050: Backup-HardwareDrivers.ps1 existe en Drivers/" (Join-Path $driversDirDisk "Backup-HardwareDrivers.ps1")
+Assert-FileExists "PLAN-0050: Get-CriticalDrivers.ps1 existe en Drivers/" (Join-Path $driversDirDisk "Get-CriticalDrivers.ps1")
+Assert-FileExists "PLAN-0050: Optimize-WebBrowsers.ps1 existe en Modules/" (Join-Path $modulesDirDisk "Optimize-WebBrowsers.ps1")
+Assert-FileExists "PLAN-0050: Migrar-Usuario-W11.ps1 existe en Modules/" (Join-Path $modulesDirDisk "Migrar-Usuario-W11.ps1")
+Assert-FileExists "PLAN-0050: Get-WindowsUpdates.ps1 existe en Builder/" (Join-Path $builderDirDisk "Get-WindowsUpdates.ps1")
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

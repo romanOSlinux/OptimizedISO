@@ -124,17 +124,27 @@ foreach ($p in $policyEnginePaths) {
 }
 
 # Resolucion de rutas de scripts hermanos
+$repoScriptsRoot = Split-Path $PSScriptRoot -Parent
 $searchDirs = @(
     $PSScriptRoot,
     (Join-Path $PSScriptRoot "scripts"),
     (Join-Path $PSScriptRoot "Drivers"),
     (Join-Path $PSScriptRoot "scripts\Drivers"),
+    (Join-Path $PSScriptRoot "Modules"),
+    (Join-Path $PSScriptRoot "scripts\Modules"),
+    (Join-Path $PSScriptRoot "Builder"),
+    (Join-Path $PSScriptRoot "scripts\Builder"),
+    (Join-Path $repoScriptsRoot "Drivers"),
+    (Join-Path $repoScriptsRoot "Modules"),
+    (Join-Path $repoScriptsRoot "Builder"),
     "$env:WINDIR\Setup\Scripts",
     "$env:WINDIR\Setup\Scripts\Drivers",
     "C:\Windows\Setup\Scripts",
     "C:\Windows\Setup\Scripts\Drivers",
     "C:\OptimizedISO\scripts",
-    "C:\OptimizedISO\scripts\Drivers"
+    "C:\OptimizedISO\scripts\Drivers",
+    "C:\OptimizedISO\scripts\Modules",
+    "C:\OptimizedISO\scripts\Builder"
 )
 
 function Resolve-ToolScript {
@@ -347,8 +357,8 @@ function Show-QuickActionsMenu {
     switch ($actChoice) {
         1 {
             Write-SubStep "Delegando vaciado de cache DNS a especialista..."
-            $netScript = Join-Path $PSScriptRoot "Win11-Network-Diagnostics-Optimizer.ps1"
-            if (Test-Path $netScript) {
+            $netScript = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+            if ($netScript) {
                 & $netScript -FlushDNSOnly -Unattended
             } else {
                 ipconfig /flushdns
@@ -376,8 +386,8 @@ function Show-QuickActionsMenu {
         }
         5 {
             Write-SubStep "Delegando purga de Shaders GPU a Invoke-WindowsMaintenance.ps1..."
-            $maintScript = Join-Path $PSScriptRoot "Invoke-WindowsMaintenance.ps1"
-            if (Test-Path $maintScript) {
+            $maintScript = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+            if ($maintScript) {
                 & $maintScript -ShadersOnly -Unattended
             } else {
                 Write-ErrorMsg "Modulo de mantenimiento no encontrado."
@@ -386,8 +396,8 @@ function Show-QuickActionsMenu {
         }
         6 {
             Write-SubStep "Delegando SSD TRIM a Invoke-WindowsMaintenance.ps1..."
-            $maintScript = Join-Path $PSScriptRoot "Invoke-WindowsMaintenance.ps1"
-            if (Test-Path $maintScript) {
+            $maintScript = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+            if ($maintScript) {
                 & $maintScript -TrimOnly -Unattended
             } else {
                 Write-ErrorMsg "Modulo de mantenimiento no encontrado."
