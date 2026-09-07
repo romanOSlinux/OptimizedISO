@@ -212,8 +212,10 @@ function Prompt-UnifiedYesNo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
+        [Alias("Title", "Question", "Message")]
         [string]$Prompt,
         [Parameter()]
+        [Alias("DefaultYes")]
         [bool]$Default = $true
     )
 
@@ -322,4 +324,128 @@ function Show-UnifiedSummary {
 
     Write-Host "  ╚$border╝" -ForegroundColor DarkCyan
     Write-Host ""
+}
+
+#------------------------------------------------------------------------------
+# FUNCIONES DE PRESET JSON (PLAN-0046)
+#------------------------------------------------------------------------------
+function Import-BuildPreset {
+    param(
+        [Parameter(Position = 0)]
+        [Alias("Path")]
+        [string]$PresetPath,
+
+        [hashtable]$ScriptBoundParameters = @{}
+    )
+
+    if (-not $PresetPath -or -not (Test-Path $PresetPath)) {
+        Write-Host "  [!] Ruta de Preset no valida o no encontrada: $PresetPath" -ForegroundColor Yellow
+        return
+    }
+
+    try {
+        $rawContent = [System.IO.File]::ReadAllText($PresetPath, [System.Text.Encoding]::UTF8)
+        $presetData = $rawContent | ConvertFrom-Json
+
+        foreach ($prop in $presetData.psobject.properties) {
+            $key = $prop.Name
+            $val = $prop.Value
+
+            # Precedencia CLI
+            if ($ScriptBoundParameters.ContainsKey($key)) {
+                continue
+            }
+            if ($key -eq "OptimizationProfile" -and $ScriptBoundParameters.ContainsKey("OptimizationProfile")) {
+                continue
+            }
+
+            Set-Variable -Name $key -Value $val -Scope Script -Force -ErrorAction SilentlyContinue
+            Set-Variable -Name $key -Value $val -Scope 1 -Force -ErrorAction SilentlyContinue
+
+            if ($key -eq "OptimizationProfile") {
+                Set-Variable -Name "OptProfile" -Value "$val" -Scope Script -Force -ErrorAction SilentlyContinue
+                Set-Variable -Name "OptProfile" -Value "$val" -Scope 1 -Force -ErrorAction SilentlyContinue
+            }
+            if ($key -eq "BlockOneDrive") {
+                Set-Variable -Name "NoBlockOneDrive" -Value (-not [bool]$val) -Scope Script -Force -ErrorAction SilentlyContinue
+                Set-Variable -Name "NoBlockOneDrive" -Value (-not [bool]$val) -Scope 1 -Force -ErrorAction SilentlyContinue
+            }
+        }
+        Write-Host "  [i] Preset JSON cargado exitosamente desde: $PresetPath" -ForegroundColor Cyan
+    } catch {
+        Write-Host "  [!] Error cargando Preset JSON: $($_.Exception.Message)" -ForegroundColor Red
+        throw
+    }
+}
+
+function Export-BuildPreset {
+    param(
+        [string]$OutputDirectory = (Get-Location).Path
+    )
+
+    $optVal = if ($script:OptProfile) { $script:OptProfile }
+              elseif ($script:OptimizationProfile) { $script:OptimizationProfile }
+              elseif ($OptimizationProfile) { $OptimizationProfile }
+              else { "1" }
+
+    $langVal = if ($script:Language) { $script:Language }
+               elseif ($Language) { $Language }
+               else { "es-ES" }
+
+    $locVal = if ($script:Locale) { $script:Locale }
+              elseif ($Locale) { $Locale }
+              else { "" }
+
+    $tzVal = if ($script:Timezone) { $script:Timezone }
+             elseif ($Timezone) { $Timezone }
+             else { "Romance Standard Time" }
+
+    $userVal = if ($script:LocalUser) { $script:LocalUser }
+               elseif ($LocalUser) { $LocalUser }
+               else { "Usuario" }
+
+    $passVal = if ($script:LocalPassword) { $script:LocalPassword }
+               elseif ($LocalPassword) { $LocalPassword }
+               else { "" }
+
+    $wimCompVal = if ($script:WimCompression) { $script:WimCompression }
+                  elseif ($WimCompression) { $WimCompression }
+                  else { "Max" }
+
+    $blockOneDriveVal = if ($null -ne $script:BlockOneDrive) { [bool]$script:BlockOneDrive }
+                        elseif ($null -ne $BlockOneDrive) { [bool]$BlockOneDrive }
+                        elseif ($null -ne $script:NoBlockOneDrive) { -not [bool]$script:NoBlockOneDrive }
+                        elseif ($null -ne $NoBlockOneDrive) { -not [bool]$NoBlockOneDrive }
+                        else { $true }
+
+    $presetObj = [ordered]@{
+        SourceISO           = if ($script:SourceISO) { $script:SourceISO } else { $SourceISO }
+        DownloadOfficialISO = if ($script:DownloadOfficialISO) { $script:DownloadOfficialISO } else { [bool]$DownloadOfficialISO }
+        DownloadVersion     = if ($script:DownloadVersion) { $script:DownloadVersion } else { $DownloadVersion }
+        DownloadEdition     = if ($script:DownloadEdition) { $script:DownloadEdition } else { $DownloadEdition }
+        DownloadLanguage    = if ($script:DownloadLanguage) { $script:DownloadLanguage } else { $DownloadLanguage }
+        TargetWimIndex      = if ($script:TargetWimIndex) { $script:TargetWimIndex } else { $TargetWimIndex }
+        OptimizationProfile = "$optVal"
+        LocalUser           = "$userVal"
+        LocalPassword       = "$passVal"
+        ZeroTouch           = if ($script:ZeroTouch) { [bool]$script:ZeroTouch } else { [bool]$ZeroTouch }
+        InjectWin11Script   = if ($null -ne $script:InjectWin11Script) { [bool]$script:InjectWin11Script } else { [bool]$InjectWin11Script }
+        WimCompression      = "$wimCompVal"
+        Language            = "$langVal"
+        Locale              = "$locVal"
+        Timezone            = "$tzVal"
+        KeyboardOverride    = if ($script:KeyboardOverride) { $script:KeyboardOverride } else { $KeyboardOverride }
+        BlockOneDrive       = $blockOneDriveVal
+        InjectVisualTweaks  = if ($null -ne $script:InjectVisualTweaks) { [bool]$script:InjectVisualTweaks } else { [bool]$InjectVisualTweaks }
+    }
+
+    if (-not (Test-Path $OutputDirectory)) {
+        New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
+    }
+
+    $presetOut = Join-Path $OutputDirectory "Preset_romanOS_$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
+    $jsonText = $presetObj | ConvertTo-Json -Depth 4
+    [System.IO.File]::WriteAllText($presetOut, $jsonText, [System.Text.Encoding]::UTF8)
+    Write-Host "  [OK] Preset JSON guardado en: $presetOut" -ForegroundColor Green
+    return $presetOut
 }

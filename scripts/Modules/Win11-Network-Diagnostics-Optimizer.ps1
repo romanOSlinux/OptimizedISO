@@ -70,7 +70,7 @@ if (-not $uiLoaded) {
     function Write-Warn         { param($Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
     function Write-ErrorMsg     { param($Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
     function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
-    function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
+    function Prompt-UnifiedYesNo { param([Alias("Title", "Question", "Message")]$Prompt, [Alias("DefaultYes")][bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
     function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
     function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
 }
@@ -357,7 +357,7 @@ try {
     if (-not $Unattended) {
         Write-Host "
   [+] Parametrizacion Inteligente" -ForegroundColor Cyan
-        $ans = Prompt-UnifiedYesNo -Title "¿Tu conexion de internet supera 1 Gbps (Fibra Optica)?" -DefaultYes $false
+        $ans = Prompt-UnifiedYesNo -Prompt "¿Tu conexion de internet supera 1 Gbps (Fibra Optica)?" -Default $false
         if ($ans) { $gigabit = $true; Write-Host "      > Se aplicara AutoTuning Experimental." -ForegroundColor Gray }
         
         $dohChoice = Show-UnifiedMenu -Title "Selecciona un proveedor nativo DNS over HTTPS (DoH)" -Options @("Cloudflare (Recomendado - Baja latencia)", "Quad9 (Alta Privacidad)") -AllowCancel -CancelText "Omitir (Mantener DNS actual)"
