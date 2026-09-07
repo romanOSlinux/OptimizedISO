@@ -57,6 +57,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0043 | [PLAN-0043-20260906-ai-pc-npu-gpu-hardware-intelligence.md](PLAN-0043-20260906-ai-pc-npu-gpu-hardware-intelligence.md) | 2026-09-06 | Modernización del Motor de Inteligencia de Hardware (AI PC, NPU e iGPUs) | PENDIENTE |
 | 0044 | [PLAN-0044-20260906-resilient-bootloader-discovery-and-anti-workloss-iso-builder.md](PLAN-0044-20260906-resilient-bootloader-discovery-and-anti-workloss-iso-builder.md) | 2026-09-06 | Búsqueda Resiliente de Bootloaders (BIOS/UEFI), Auto-Inyección y Salvaguarda Anti-Pérdida | COMPLETADO |
 | 0047 | [PLAN-0047-20260907-fix-optimize-webbrowsers-ui-elevation-y-cierre.md](PLAN-0047-20260907-fix-optimize-webbrowsers-ui-elevation-y-cierre.md) | 2026-09-07 | Corrección de Bloqueo, Auto-Elevación y Experiencia de Usuario en Optimize-WebBrowsers.ps1 | COMPLETADO |
+| 0048 | [PLAN-0048-20260907-hardware-engine-ai-pc-npu-ssot-builder-y-test-harness.md](PLAN-0048-20260907-hardware-engine-ai-pc-npu-ssot-builder-y-test-harness.md) | 2026-09-07 | Hardware Intelligence para AI PC (NPU, RDNA3/Arc), Saneamiento SSOT en el Builder y Certificación 100% del Test Harness | PENDIENTE |
 
 ---
 

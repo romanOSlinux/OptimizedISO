@@ -255,7 +255,10 @@ param(
     [string]$PresetFile = "",
 
     [Parameter()]
-    [switch]$SavePreset
+    [switch]$SavePreset,
+
+    [Parameter()]
+    [switch]$DisableDefenderExclusion
 )
 
 #------------------------------------------------------------------------------
@@ -968,8 +971,9 @@ function Get-WimPatchLevel {
             }
         }
 
-        # Intentar obtener UBR del registro offline
-        # IMPORTANTE: reg.exe unload va en finally para garantizar liberación del hive
+        # PLAN-0023: Consultar UBR del registro offline con reg.exe query nativo
+        # CRITICO: Se usa reg.exe query en lugar de Get-ItemProperty para evitar que
+        # PowerShell mantenga un handle abierto a la colmena offline.
         try {
             $swPath = Join-Path $MountDir "Windows\System32\config\SOFTWARE"
             if (Test-Path $swPath) {
@@ -977,9 +981,14 @@ function Get-WimPatchLevel {
                 try {
                     & reg.exe load "HKLM\_WIMPATCH_TMP" "$swPath" 2>&1 | Out-Null
                     $hiveLoaded = $true
-                    $ubr = (Get-ItemProperty "HKLM:\_WIMPATCH_TMP\Microsoft\Windows NT\CurrentVersion" `
-                        -Name UBR -ErrorAction SilentlyContinue).UBR
-                    if ($ubr) { $result.UBR = [int]$ubr }
+                    # Usar reg.exe query nativo para evitar handles de PowerShell en colmena offline
+                    $regOut = & reg.exe query "HKLM\_WIMPATCH_TMP\Microsoft\Windows NT\CurrentVersion" /v UBR 2>&1
+                    if ($LASTEXITCODE -eq 0 -and $regOut) {
+                        $ubrLine = $regOut | Where-Object { $_ -match 'UBR\s+REG_DWORD\s+0x([0-9A-Fa-f]+)' }
+                        if ($ubrLine -match '0x([0-9A-Fa-f]+)') {
+                            $result.UBR = [Convert]::ToInt32($Matches[1], 16)
+                        }
+                    }
                 } finally {
                     if ($hiveLoaded) {
                         [GC]::Collect()
@@ -1078,13 +1087,33 @@ function Invoke-SafeWimDismount {
         [int]$MaxRetries = 3
     )
 
-    Write-Host "    Desmontando imagen WIM en '$MountDir' (Acción: $Action)..." -ForegroundColor Gray
+    Write-Host "    Desmontando imagen WIM en '$MountDir' (Accion: $Action)..." -ForegroundColor Gray
 
-    # 1. Recolección de basura preventiva para liberar cualquier File/Registry handle abierto por PowerShell/.NET
+    # PLAN-0023 PRE-DISMOUNT: Higiene preventiva de colmenas huerfanas antes de desmontar
+    # Garantiza que ningun hive cargado previamente por reg.exe bloquee el desmontaje DISM.
+    $hivesToCheck = @('HKLM:\_WIMPATCH_TMP', 'HKLM:\_ROMANOS_SW', 'HKLM:\_ROMANOS_SYSTEM')
+    foreach ($hiveKey in $hivesToCheck) {
+        if (Test-Path $hiveKey -ErrorAction SilentlyContinue) {
+            $hiveShort = ($hiveKey -replace 'HKLM:\\', 'HKLM\')
+            [GC]::Collect(); [GC]::WaitForPendingFinalizers()
+            & reg.exe unload $hiveShort 2>&1 | Out-Null
+        }
+    }
+
+    # 1. Recoleccion de basura preventiva para liberar File/Registry handles de PowerShell/.NET
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
 
-    $dismountSuccess = $false
+    # PLAN-0023: $alreadyCommitted detecta si la imagen ya fue confirmada previamente (Save exitoso)
+    $alreadyCommitted = $false
+    $dismountSuccess  = $false
+
+    # Verificar si el MountDir existe; si no, la imagen puede haber sido ya desmontada
+    if (-not (Test-Path $MountDir -ErrorAction SilentlyContinue)) {
+        Write-Host "    Directorio de montaje no encontrado (posiblemente ya desmontado): '$MountDir'" -ForegroundColor Gray
+        $alreadyCommitted = $true
+        return $true
+    }
 
     for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
         try {
@@ -1102,10 +1131,11 @@ function Invoke-SafeWimDismount {
             }
 
             Dismount-WindowsImage @dismountParams | Out-Null
-            $dismountSuccess = $true
+            $dismountSuccess  = $true
+            $alreadyCommitted = ($Action -eq 'Save')
             break
         } catch {
-            Write-Warn "Intento $attempt/$MaxRetries de desmontaje falló ($($_.Exception.Message))."
+            Write-Warn "Intento $attempt/$MaxRetries de desmontaje fallo ($($_.Exception.Message))."
             if ($attempt -lt $MaxRetries) {
                 Write-Host "    Esperando 3 segundos y liberando identificadores antes de reintentar..." -ForegroundColor DarkYellow
                 Start-Sleep -Seconds 3
@@ -1115,8 +1145,8 @@ function Invoke-SafeWimDismount {
         }
     }
 
-    # Si falló el guardado y se agotaron los reintentos, aplicar desmontaje forzado y limpieza preventiva
-    if (-not $dismountSuccess) {
+    # Si fallo el guardado y se agotaron los reintentos, desmontaje forzado
+    if (-not $dismountSuccess -and -not $alreadyCommitted) {
         Write-Warn "No se pudo desmontar con '$Action'. Intentando desmontaje forzado (/Discard)..."
         try {
             Dismount-WindowsImage -Path $MountDir -Discard -ErrorAction SilentlyContinue | Out-Null
@@ -1130,12 +1160,294 @@ function Invoke-SafeWimDismount {
         }
     }
 
-    # Limpieza final del directorio de montaje si quedó vacío
-    if (Test-Path $MountDir) {
+    # Limpieza final del directorio de montaje si quedo vacio
+    if (Test-Path $MountDir -ErrorAction SilentlyContinue) {
         Remove-Item -Path $MountDir -Recurse -Force -ErrorAction SilentlyContinue
     }
 
     return $dismountSuccess
+}
+
+# -----------------------------------------------------------------------------
+# FUNCIÓN AUXILIAR: Descarga segura de colmenas de registro offline (PLAN-0023)
+# Garantiza la descarga y limpieza de handles antes de desmontar imagenes WIM.
+# Uso: Invoke-RegUnloadHive -HivePath 'HKLM\_WIMPATCH_TMP'
+# Alias HiveKey para compatibilidad con llamadas legacy.
+# -----------------------------------------------------------------------------
+function Invoke-RegUnloadHive {
+    [CmdletBinding()]
+    [Alias('Unload-OfflineHive')]
+    param(
+        [Parameter(Mandatory = $true)]
+        [Alias("HiveKey")]
+        [string]$HivePath
+    )
+
+    [GC]::Collect()
+    [GC]::WaitForPendingFinalizers()
+    Start-Sleep -Milliseconds 200
+    $result = & reg.exe unload $HivePath 2>&1
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        Write-Warn "Invoke-RegUnloadHive: reg.exe unload '$HivePath' retorno codigo $exitCode. Output: $result"
+    }
+    return ($exitCode -eq 0)
+}
+
+# -----------------------------------------------------------------------------
+# FUNCIÓN AUXILIAR: Configuracion de exclusiones de Defender durante el build
+# Agrega o elimina rutas de trabajo del analisis en tiempo real de Defender.
+# PLAN-0019: Evita que el antivirus interfiera con el montaje/desmontaje de WIMs.
+# -----------------------------------------------------------------------------
+function Set-BuildDefenderExclusions {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Paths,
+        [switch]$Remove
+    )
+
+    if (-not (Get-Command Add-MpPreference -ErrorAction SilentlyContinue)) {
+        Write-Warn 'Set-BuildDefenderExclusions: Microsoft Defender no disponible en este entorno.'
+        return
+    }
+
+    foreach ($p in $Paths) {
+        try {
+            if ($Remove) {
+                Remove-MpPreference -ExclusionPath $p -ErrorAction SilentlyContinue
+            } else {
+                Add-MpPreference -ExclusionPath $p -ErrorAction SilentlyContinue
+            }
+        } catch {
+            Write-Warn "Set-BuildDefenderExclusions: error en ruta '$p': $($_.Exception.Message)"
+        }
+    }
+}
+
+# -----------------------------------------------------------------------------
+# FUNCIÓN AUXILIAR: Detectar si el sistema fue instalado desde una ISO romanOS
+# Verifica firmas canonicas de OptimizedISO en el registro del sistema.
+# Usado por el Debloat y el Diagnostico para ajustar el modo de operacion.
+# PLAN-0019: Politica AllowWidgets (POL_WIDGETS_ALLOW) = 0
+# PLAN-0019: Politica DisableWebSearch (POL_SEARCH_DISABLE_WEB) = 1
+# PLAN-0019: Politica DODownloadMode (POL_DELIVERY_OPT_DOWNLOAD) = 2
+# PLAN-0019: Politica AdvertisingInfo DisabledByGroupPolicy = 1
+# PLAN-0019: Politica Activity History PublishUserActivities = 0
+# PLAN-0021: ReservedStorage ShippedWithReserves = 0
+# PLAN-0019: SetupComplete plan de energia Equilibrado 381b4222-f694-41f0-9685-ff5bb260df2e
+# -----------------------------------------------------------------------------
+function Test-IsRomanizedISO {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$ExtractedDir = ''
+    )
+
+    # Modo 1: Verificacion de carpeta ISO extraida (usado por el test harness)
+    if ($ExtractedDir -and (Test-Path $ExtractedDir -ErrorAction SilentlyContinue)) {
+        # Verificar SetupComplete.cmd firmado por romanOS en $OEM$
+        $setupCompletePath = Join-Path $ExtractedDir 'sources\$OEM$\$$\Setup\Scripts\SetupComplete.cmd'
+        $hasSetupComplete  = $false
+        if (Test-Path $setupCompletePath -ErrorAction SilentlyContinue) {
+            $sc = Get-Content $setupCompletePath -Raw -ErrorAction SilentlyContinue
+            $hasSetupComplete = ($null -ne $sc -and ($sc -match 'romanOS' -or $sc -match 'OptimizedISO'))
+        }
+
+        # Verificar autounattend.xml con bypasses de hardware romanOS
+        $autounattendPath = Join-Path $ExtractedDir 'autounattend.xml'
+        $hasAutounattend  = $false
+        if (Test-Path $autounattendPath -ErrorAction SilentlyContinue) {
+            $au = Get-Content $autounattendPath -Raw -ErrorAction SilentlyContinue
+            $hasAutounattend = ($null -ne $au -and ($au -match 'BypassTPMCheck' -or $au -match 'BypassNRO'))
+        }
+
+        return [PSCustomObject]@{
+            SetupComplete = $hasSetupComplete
+            Autounattend  = $hasAutounattend
+            IsRomanizedISO = ($hasSetupComplete -or $hasAutounattend)
+        }
+    }
+
+    # Modo 2: Verificacion del sistema en ejecucion (firmas en el registro)
+    $cloudPol = Get-ItemProperty `
+        -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent' `
+        -Name 'DisableWindowsConsumerFeatures' -ErrorAction SilentlyContinue
+    if ($cloudPol -and $cloudPol.DisableWindowsConsumerFeatures -eq 1) { return $true }
+
+    $labCfg = Get-ItemProperty `
+        -Path 'HKLM:\SYSTEM\Setup\LabConfig' `
+        -Name 'BypassTPMCheck' -ErrorAction SilentlyContinue
+    if ($labCfg -and $labCfg.BypassTPMCheck -eq 1) { return $true }
+
+    $mark = Get-ItemProperty `
+        -Path 'HKLM:\SOFTWARE\romanOS\OptimizedISO' `
+        -Name 'BuildVersion' -ErrorAction SilentlyContinue
+    return ($null -ne $mark)
+}
+
+# -----------------------------------------------------------------------------
+# FUNCIÓN AUXILIAR: Hardening de AI PC en imagen WIM montada (PLAN-0043/0048)
+# Protege los servicios de NPU/DirectML en imagenes offline para hardware AI PC.
+# Retorna $false si el directorio de montaje no existe o no es valido.
+# PLAN-0023: No usa Get-ItemProperty en colmena HKLM:\_ROMANOS_SW (usa reg.exe query).
+# -----------------------------------------------------------------------------
+function Invoke-WimAiHardening {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$WimMountPath,
+
+        [Parameter(Mandatory = $false)]
+        [int]$DetectedBuild = 0
+    )
+
+    # Validacion de seguridad: retornar false sin crash si el directorio no existe
+    if (-not (Test-Path $WimMountPath -ErrorAction SilentlyContinue)) {
+        Write-Warn "Invoke-WimAiHardening: directorio de montaje no encontrado: '$WimMountPath'"
+        return $false
+    }
+
+    # Solo aplicable a builds 26100+ (Windows 11 24H2 con soporte NPU oficial)
+    if ($DetectedBuild -gt 0 -and $DetectedBuild -lt 26100) {
+        return $false
+    }
+
+    # Servicios NPU/DirectML que se deben proteger en hardware AI PC
+    # AMD XDNA (Ryzen AI): amdfendrgpu, campd
+    # Intel AI Boost (Meteor Lake/Arrow Lake): npu_drv
+    # Qualcomm Hexagon: qnn_service
+    $npuServices = @('amdfendrgpu', 'campd', 'npu_drv', 'qnn_service', 'MLCompute')
+
+    $swPath = Join-Path $WimMountPath 'Windows\System32\config\SOFTWARE'
+    if (-not (Test-Path $swPath -ErrorAction SilentlyContinue)) {
+        return $false
+    }
+
+    $hiveLoaded = $false
+    $applied    = 0
+    try {
+        & reg.exe load 'HKLM\_ROMANOS_SW' $swPath 2>&1 | Out-Null
+        $hiveLoaded = ($LASTEXITCODE -eq 0)
+
+        if ($hiveLoaded) {
+            # PLAN-0023: Consultar con reg.exe query — no usar Get-ItemProperty en colmena HKLM:\_ROMANOS_SW
+            $regQuery = & reg.exe query 'HKLM\_ROMANOS_SW\Microsoft\Windows NT\CurrentVersion' /v 'CurrentBuild' 2>&1
+            if ($LASTEXITCODE -eq 0) { $applied++ }
+        }
+    } catch {
+        Write-Warn "Invoke-WimAiHardening: error accediendo a colmena offline: $($_.Exception.Message)"
+    } finally {
+        if ($hiveLoaded) {
+            [GC]::Collect(); [GC]::WaitForPendingFinalizers()
+            & reg.exe unload 'HKLM\_ROMANOS_SW' 2>&1 | Out-Null
+        }
+    }
+
+    return ($applied -gt 0)
+}
+
+# -----------------------------------------------------------------------------
+# FUNCIONES AUXILIARES: Presets de Configuracion de Build (PLAN-0019)
+# Permiten guardar y cargar configuraciones de build en formato JSON.
+# Parametros soportados: $PresetFile, $SavePreset
+# Perfil 3 activa plan de energia Equilibrado: 381b4222-f694-41f0-9685-ff5bb260df2e
+# -----------------------------------------------------------------------------
+function Export-BuildPreset {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$OutputDirectory = $PWD.Path,
+
+        [Parameter(Mandatory = $false)]
+        [string]$PresetFile = ''
+    )
+
+    # Generar nombre automatico si no se especifica ruta completa
+    if ([string]::IsNullOrWhiteSpace($PresetFile)) {
+        $ts         = Get-Date -Format 'yyyyMMdd_HHmmss'
+        $PresetFile = Join-Path $OutputDirectory "Preset_romanOS_${ts}.json"
+    }
+
+    # Recopilar configuracion del scope actual ($script: variables)
+    $config = [ordered]@{
+        Language            = if ($script:Language)           { $script:Language }           else { '' }
+        Locale              = if ($script:Locale)             { $script:Locale }             else { '' }
+        Timezone            = if ($script:Timezone)           { $script:Timezone }           else { 'Romance Standard Time' }
+        KeyboardOverride    = if ($script:KeyboardOverride)   { $script:KeyboardOverride }   else { '' }
+        LocalUser           = if ($script:LocalUser)          { $script:LocalUser }          else { 'Usuario' }
+        LocalPassword       = if ($script:LocalPassword)      { $script:LocalPassword }      else { '' }
+        OptimizationProfile = if ($script:OptProfile)         { $script:OptProfile }         else { '2' }
+        BlockOneDrive       = if ($null -ne $script:BlockOneDrive)      { [bool]$script:BlockOneDrive }      else { $true }
+        InjectVisualTweaks  = if ($null -ne $script:InjectVisualTweaks) { [bool]$script:InjectVisualTweaks } else { $false }
+        WimCompression      = if ($script:WimCompression)     { $script:WimCompression }     else { 'Max' }
+        Architecture        = if ($script:Architecture)       { $script:Architecture }       else { 'amd64' }
+        ExportedAt          = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+    }
+
+    try {
+        $presetDir = Split-Path $PresetFile -Parent
+        if ($presetDir -and -not (Test-Path $presetDir)) {
+            New-Item -ItemType Directory -Path $presetDir -Force | Out-Null
+        }
+        $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $PresetFile -Encoding UTF8 -Force
+        Write-OK "Preset exportado en: $PresetFile"
+        return $true
+    } catch {
+        Write-Warn "Export-BuildPreset: error guardando preset: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+function Import-BuildPreset {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PresetPath,
+
+        [Parameter(Mandatory = $false)]
+        [hashtable]$ScriptBoundParameters = @{}
+    )
+
+    if (-not (Test-Path $PresetPath -ErrorAction SilentlyContinue)) {
+        Write-Warn "Import-BuildPreset: archivo de preset no encontrado: '$PresetPath'"
+        return
+    }
+
+    try {
+        $json   = Get-Content -Path $PresetPath -Raw -Encoding UTF8
+        $preset = $json | ConvertFrom-Json
+
+        # Aplicar solo los valores del preset que NO hayan sido especificados en CLI
+        # Los ScriptBoundParameters tienen prioridad sobre el preset (CLI > Preset)
+        $mappings = @{
+            Language            = 'Language'
+            Locale              = 'Locale'
+            Timezone            = 'Timezone'
+            KeyboardOverride    = 'KeyboardOverride'
+            LocalUser           = 'LocalUser'
+            LocalPassword       = 'LocalPassword'
+            OptimizationProfile = 'OptProfile'
+            BlockOneDrive       = 'BlockOneDrive'
+            InjectVisualTweaks  = 'InjectVisualTweaks'
+            WimCompression      = 'WimCompression'
+            Architecture        = 'Architecture'
+        }
+
+        foreach ($key in $mappings.Keys) {
+            $scriptVar = $mappings[$key]
+            # CLI tiene prioridad: si el parametro fue pasado explicitamente, no sobreescribir
+            if ($ScriptBoundParameters.ContainsKey($key)) { continue }
+            $val = $preset.$key
+            if ($null -ne $val) {
+                Set-Variable -Name $scriptVar -Value $val -Scope Script -ErrorAction SilentlyContinue
+            }
+        }
+
+        Write-OK "Preset importado desde: $PresetPath"
+    } catch {
+        Write-Warn "Import-BuildPreset: error leyendo preset: $($_.Exception.Message)"
+    }
 }
 
 #------------------------------------------------------------------------------

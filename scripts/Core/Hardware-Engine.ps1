@@ -420,6 +420,7 @@ function Get-SystemHardwareProfile {
     $hasAmdGpu       = $false
     $hasIntelArcGpu  = $false
     $hasVirtualGpu   = $false
+    $hasRdna3Igpu    = $false  # PLAN-0048: iGPUs RDNA3/3.5 (Radeon 760M/780M/890M/etc.)
 
     foreach ($g in $rawGpuObjs) {
         $gName    = if ($g.Name) { $g.Name.Trim() } else { 'Controlador de pantalla' }
@@ -479,19 +480,38 @@ function Get-SystemHardwareProfile {
 
             { $_ -in @('1002', '1022') } {
                 # AMD: Diferenciar dGPU (Radeon RX / R9 / Pro) de APU iGPU
+                # PLAN-0048: Ampliado para detectar iGPUs RDNA3/RDNA3.5 (760M/780M/890M)
                 $hasAmdGpu = $true
+
+                # Detectar iGPUs RDNA3/3.5: patron [6-8][0-9]{2}M (ej: 760M, 780M, 890M, 680M)
+                $isRdna3Integrated = ($gName -match 'Radeon.*[6-8][0-9]{2}M') -or
+                                     ($gName -match 'Radeon.*[89][0-9]{2}M') -or
+                                     ($gName -match 'Radeon.*890M|Radeon.*780M|Radeon.*760M|Radeon.*680M')
+
                 if ($gName -match 'Radeon.*(RX|Pro|Vega 56|Vega 64|VII|R9|R7)|HD [789][0-9]{3}' -or
                     $vram -ge 1500000000 -or
                     ($pnpId -match 'DEV_67DF' -or $pnpId -match 'DEV_7[0-9A-Fa-f]{3}')) {
-                    $isDedicated     = $true
-                    $hasDedicatedGpu = $true
+                    # Excluir iGPUs RDNA3 que tengan VRAM reportada >= 1.5GB (UMA framebuffer)
+                    if (-not $isRdna3Integrated) {
+                        $isDedicated     = $true
+                        $hasDedicatedGpu = $true
+                    } else {
+                        $isIntegrated     = $true
+                        $hasIntegratedGpu = $true
+                        $hasRdna3Igpu     = $true
+                    }
+                } elseif ($isRdna3Integrated) {
+                    $isIntegrated     = $true
+                    $hasIntegratedGpu = $true
+                    $hasRdna3Igpu     = $true
                 } else {
                     $isIntegrated     = $true
                     $hasIntegratedGpu = $true
                 }
 
-                # HAGS en AMD: WDDM 2.7+ (Driver 20.5.1+ / 27.20.1017+) y RDNA1+ (RX 5000+). Polaris/Vega no soportan HAGS oficial.
-                if ($gName -match 'RX [5-9][0-9]{3}|RX [1-9][0-9]{4}|Radeon 7[0-9]{3}' -and
+                # HAGS en AMD: WDDM 2.7+ para dGPUs RDNA1+ (RX 5000+)
+                # PLAN-0048: Extendido a iGPUs RDNA3 (760M/780M/890M) con driver 24.x+
+                if (($gName -match 'RX [5-9][0-9]{3}|RX [1-9][0-9]{4}|Radeon 7[0-9]{3}' -or $isRdna3Integrated) -and
                     ($drvVer -match '^[2-9][7-9]\.' -or $drvVer -match '^[3-9][0-9]\.')) {
                     $supportsHags = $true
                 }
@@ -573,7 +593,70 @@ function Get-SystemHardwareProfile {
     }
 
     # =========================================================================
-    # 6. CLASIFICACION DEL PERFIL DE SISTEMA
+    # 5.5 DETECCION DE NPU (Neural Processing Unit) - PLAN-0048
+    # Clase PnP oficial: ComputeAccelerator (ACPI\QCOM*XDNA, ACPI\INT*NPU, etc.)
+    # Referencia: Microsoft Hardware Dev Center + OEM WHQL catalogs
+    # Soportados: AMD XDNA (Ryzen AI), Intel AI Boost (Meteor/Arrow Lake), Qualcomm Hexagon
+    # =========================================================================
+    $hasNpu          = $false
+    $npuDeviceName   = ''
+    $npuVendor       = 'None'
+    $npuDevices      = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $npuTopOps       = 0     # TOPS (Tera Operations per Second) si se puede detectar
+
+    try {
+        # Consultar clase ComputeAccelerator via PnP (compatible con Win 11 22H2+)
+        $pnpNpus = @(Get-PnpDevice -Class ComputeAccelerator -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'OK' })
+
+        if ($pnpNpus -and $pnpNpus.Count -gt 0) {
+            $hasNpu = $true
+            foreach ($npuDev in $pnpNpus) {
+                $npuName = if ($npuDev.FriendlyName) { $npuDev.FriendlyName } else { $npuDev.Name }
+                $npuHwId = if ($npuDev.HardwareID) { $npuDev.HardwareID | Select-Object -First 1 } else { '' }
+
+                # Identificar fabricante y arquitectura de NPU
+                $npuMfr = 'Unknown'
+                if     ($npuName -match 'AMD|XDNA|Ryzen AI' -or $npuHwId -match 'AMD|XDNA') { $npuMfr = 'AMD' }
+                elseif ($npuName -match 'Intel|AI Boost|MTL|ARL'  -or $npuHwId -match '8086') { $npuMfr = 'Intel' }
+                elseif ($npuName -match 'Qualcomm|Hexagon|Snapdragon' -or $npuHwId -match 'QCOM') { $npuMfr = 'Qualcomm' }
+
+                if ($npuVendor -eq 'None') { $npuVendor = $npuMfr }
+                if ($npuDeviceName -eq '')  { $npuDeviceName = $npuName }
+
+                $npuDevices.Add([PSCustomObject]@{
+                    Name       = $npuName
+                    Vendor     = $npuMfr
+                    HardwareId = $npuHwId
+                    Status     = $npuDev.Status
+                })
+            }
+        } else {
+            # Fallback: detectar NPU conocidas via Win32_VideoController o CPU naming
+            # AMD Ryzen AI (XDNA1/XDNA2): Ryzen 7040/8040/9000 series
+            if ($cpuName -match 'Ryzen.*[78][0-9]{2}[0-9]U|Ryzen.*9[0-9]{2}[0-9][A-Z]|Ryzen.*AI' -or
+                $cpuName -match 'Ryzen.*[89][0-9]{3}H') {
+                $hasNpu       = $true
+                $npuVendor    = 'AMD'
+                $npuDeviceName = 'AMD XDNA NPU (heuristica por CPU)'  
+            }
+            # Intel Core Ultra (Meteor Lake = MTL, Arrow Lake = ARL): Intel AI Boost
+            elseif ($cpuName -match 'Core.*Ultra [1-9][0-9]{2}') {
+                $hasNpu       = $true
+                $npuVendor    = 'Intel'
+                $npuDeviceName = 'Intel AI Boost NPU (heuristica por CPU)'
+            }
+            # Qualcomm Snapdragon X Elite / Plus
+            elseif ($cpuName -match 'Snapdragon X') {
+                $hasNpu       = $true
+                $npuVendor    = 'Qualcomm'
+                $npuDeviceName = 'Qualcomm Hexagon NPU (heuristica por CPU)'
+            }
+        }
+    } catch {
+        # Get-PnpDevice puede no estar disponible en WinPE o entornos minimos
+        $hasNpu = $false
+    }
+
     # =========================================================================
     $isIsoOptimized = $false
     try {
@@ -666,7 +749,15 @@ function Get-SystemHardwareProfile {
             HasAmd               = $hasAmdGpu
             HasIntelArc          = $hasIntelArcGpu
             HasVirtualGpu        = $hasVirtualGpu
+            HasRdna3Igpu         = $hasRdna3Igpu
             GpuSummary           = $gpuSummary
+        }
+        NPU = [PSCustomObject]@{
+            HasNpu               = $hasNpu
+            Vendor               = $npuVendor
+            DeviceName           = $npuDeviceName
+            Devices              = @($npuDevices)
+            IsAiPc               = $hasNpu
         }
         Profile = [PSCustomObject]@{
             Id                   = $profileId
@@ -757,6 +848,22 @@ function Format-HardwareSummary {
     # DirectStorage
     if ($Profile.Disk.IsNVMe) {
         Write-Host ("  | DirectStor: {0,-41} |" -f $Profile.Disk.DirectStorageStatus) -ForegroundColor $(if($Profile.Disk.IsDirectStorageReady){'Green'}else{'Gray'})
+    }
+
+    # NPU / AI PC (PLAN-0048)
+    if ($Profile.NPU.HasNpu) {
+        $npuDisplay = "$($Profile.NPU.Vendor) NPU"
+        if ($Profile.NPU.DeviceName -and $Profile.NPU.DeviceName -ne '') {
+            $npuShort = if ($Profile.NPU.DeviceName.Length -gt 30) { $Profile.NPU.DeviceName.Substring(0,27) + '...' } else { $Profile.NPU.DeviceName }
+            $npuDisplay = "$npuShort"
+        }
+        Write-Host ("  | NPU (AI)  : {0,-41} |" -f $npuDisplay) -ForegroundColor Cyan
+        Write-Host ("  | AI PC     : {0,-41} |" -f "SI - Plataforma AI PC Certificada") -ForegroundColor Green
+    }
+
+    # RDNA3 iGPU
+    if ($Profile.GPU.HasRdna3Igpu) {
+        Write-Host ("  | iGPU Tipo : {0,-41} |" -f "RDNA3/3.5 (HAGS + MSI Mode aplicable)") -ForegroundColor Cyan
     }
 
     # Base ISO

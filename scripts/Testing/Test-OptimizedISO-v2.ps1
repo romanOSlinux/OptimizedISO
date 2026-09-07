@@ -48,7 +48,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 58
+$EXPECTED_FUNCS  = 61
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -329,7 +329,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "58 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "61 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -844,17 +844,30 @@ Assert-True "PLAN-0022: PostInstall-Diagnostics.ps1 audita paquete WebExperience
 Assert-True "PLAN-0022: PostInstall-Diagnostics.ps1 incluye tabla HTML de Policy-Engine" ($postDiagContent -match 'Directivas Oficiales de Optimizacion \(Policy-Engine\)')
 
 # Paridad con New-OptimizedWindowsISO-v2.ps1 y romanOS-Toolkit.ps1
-Assert-True "PLAN-0022: v2 script carga Core/Policy-Engine.ps1" ($v2ScriptContent -match 'Policy-Engine\.ps1')
-Assert-True "PLAN-0022: v2 script invoca Export-RomanOSUnattendCommands" ($v2ScriptContent -match 'Export-RomanOSUnattendCommands')
-Assert-True "PLAN-0022: v2 script inyecta PostInstall-Diagnostics.ps1 desde archivo fisico" ($v2ScriptContent -match 'diagSourceCandidates')
+Assert-True "PLAN-0022: v2 script carga Core/Policy-Engine.ps1" ([bool]($v2ScriptContent -match 'Policy-Engine\.ps1'))
+Assert-True "PLAN-0022: v2 script invoca Export-RomanOSUnattendCommands" ([bool]($v2ScriptContent -match 'Export-RomanOSUnattendCommands'))
+Assert-True "PLAN-0022: v2 script inyecta PostInstall-Diagnostics.ps1 desde archivo fisico" ([bool]($v2ScriptContent -match 'diagSourceCandidates'))
 
-$toolkitPath = Join-Path $PSScriptRoot "romanOS-Toolkit.ps1"
-$toolkitContent = Get-Content -Path $toolkitPath -Raw
-Assert-True "PLAN-0022: romanOS-Toolkit.ps1 carga Core/Policy-Engine.ps1" ($toolkitContent -match 'Policy-Engine\.ps1')
+# Busqueda del toolkit en Modules/ con fallback a Testing/
+$toolkitModulesDir = Join-Path (Split-Path $PSScriptRoot -Parent) "Modules"
+$toolkitPath = if (Test-Path (Join-Path $toolkitModulesDir "romanOS-Toolkit.ps1")) {
+    Join-Path $toolkitModulesDir "romanOS-Toolkit.ps1"
+} else {
+    Join-Path $PSScriptRoot "romanOS-Toolkit.ps1"
+}
+$toolkitContent = if (Test-Path $toolkitPath -ErrorAction SilentlyContinue) { Get-Content -Path $toolkitPath -Raw } else { '' }
+Assert-True "PLAN-0022: romanOS-Toolkit.ps1 carga Core/Policy-Engine.ps1" ([bool]($toolkitContent -match 'Policy-Engine\.ps1'))
 
 # Paridad de Gobernanza en .agents/AGENTS.md
-$agentsRuleContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) ".agents\AGENTS.md") -Raw
-Assert-True "PLAN-0022: .agents/AGENTS.md contiene Regla 9 de Arquitectura Unificada (SSOT)" ($agentsRuleContent -match 'Regla 9|Arquitectura Unificada')
+# El archivo .agents/AGENTS.md esta en la RAIZ del repositorio, dos niveles por encima de scripts\Testing\
+$repoRoot          = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$agentsPath1       = Join-Path $repoRoot ".agents\AGENTS.md"
+$agentsPath2       = Join-Path (Split-Path $PSScriptRoot -Parent) ".agents\AGENTS.md"
+$agentsPath3       = "C:\OptimizedISO\.agents\AGENTS.md"
+$agentsRulePath    = @($agentsPath1, $agentsPath2, $agentsPath3) | Where-Object { Test-Path $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
+$agentsRuleContent = if ($agentsRulePath) { Get-Content -Path $agentsRulePath -Raw -ErrorAction SilentlyContinue } else { '' }
+if (-not $agentsRuleContent) { $agentsRuleContent = '' }
+Assert-True "PLAN-0022: .agents/AGENTS.md contiene Regla 9 de Arquitectura Unificada (SSOT)" ([bool]($agentsRuleContent -match 'Regla 9|Arquitectura Unificada'))
 
 # PLAN-0026: Validaciones de Desacoplamiento de Redundancias y SSOT Canonico
 Assert-True "PLAN-0026: Get-RomanOSBrowserPolicies function registrada" ([bool](Get-Command Get-RomanOSBrowserPolicies -ErrorAction SilentlyContinue))
@@ -864,28 +877,33 @@ Assert-True "PLAN-0026: Export-RomanOSBrowserCommands function registrada" ([boo
 $browserPols = Get-RomanOSBrowserPolicies
 Assert-True "PLAN-0026: Catalogo de directivas de navegadores contiene al menos 80 directivas" ($browserPols.Count -ge 80)
 $browserCmd = Export-RomanOSBrowserCommands
-Assert-True "PLAN-0026: Export-RomanOSBrowserCommands genera comandos para Edge, Chrome, Firefox y Brave" ($browserCmd -match 'Microsoft\\Edge' -and $browserCmd -match 'Google\\Chrome' -and $browserCmd -match 'Mozilla\\Firefox' -and $browserCmd -match 'BraveSoftware\\Brave')
+Assert-True "PLAN-0026: Export-RomanOSBrowserCommands genera comandos para Edge, Chrome, Firefox y Brave" ([bool]($browserCmd -match 'Microsoft\\Edge' -and $browserCmd -match 'Google\\Chrome' -and $browserCmd -match 'Mozilla\\Firefox' -and $browserCmd -match 'BraveSoftware\\Brave'))
 
 # Verificacion de inyeccion Core/ en New-OptimizedWindowsISO-v2.ps1
-Assert-True "PLAN-0026: v2 script inyecta Core/ en `$OEM`$" ($v2ScriptContent -match 'scripts\\Core|Core/Policy-Engine\.ps1')
-Assert-True "PLAN-0026: v2 script invoca Add-OptimizedContextMenus.ps1 en SetupComplete.cmd" ($v2ScriptContent -match 'Add-OptimizedContextMenus\.ps1"\s+-Apply\s+-EnableClassicMenu')
-Assert-False "PLAN-0026: v2 script elimino las 6 claves obsoletas planas de SetupComplete.cmd" ($v2ScriptContent -match 'shell\\OpenElevatedPowerShell')
+Assert-True "PLAN-0026: v2 script inyecta Core/ en `$OEM`$" ([bool]($v2ScriptContent -match 'scripts\\Core|Core/Policy-Engine\.ps1'))
+Assert-True "PLAN-0026: v2 script invoca Add-OptimizedContextMenus.ps1 en SetupComplete.cmd" ([bool]($v2ScriptContent -match 'Add-OptimizedContextMenus\.ps1"\s+-Apply\s+-EnableClassicMenu'))
+Assert-False "PLAN-0026: v2 script elimino las 6 claves obsoletas planas de SetupComplete.cmd" ([bool]($v2ScriptContent -match 'shell\\OpenElevatedPowerShell'))
 
-# Verificacion de desacoplamiento modular en scripts auxiliares
-$maintContent = Get-Content -Path (Join-Path $PSScriptRoot "Invoke-WindowsMaintenance.ps1") -Raw
-Assert-True "PLAN-0026: Invoke-WindowsMaintenance.ps1 soporta -ShadersOnly" ($maintContent -match 'ShadersOnly')
-Assert-True "PLAN-0026: Invoke-WindowsMaintenance.ps1 soporta -TrimOnly" ($maintContent -match 'TrimOnly')
+# Verificacion de desacoplamiento modular — buscar scripts en Modules/ con fallback a Testing/
+$modulesDir    = Join-Path (Split-Path $PSScriptRoot -Parent) "Modules"
+$maintScript   = if (Test-Path (Join-Path $modulesDir "Invoke-WindowsMaintenance.ps1"))           { Join-Path $modulesDir "Invoke-WindowsMaintenance.ps1"           } else { Join-Path $PSScriptRoot "Invoke-WindowsMaintenance.ps1" }
+$netOptScript  = if (Test-Path (Join-Path $modulesDir "Win11-Network-Diagnostics-Optimizer.ps1")) { Join-Path $modulesDir "Win11-Network-Diagnostics-Optimizer.ps1" } else { Join-Path $PSScriptRoot "Win11-Network-Diagnostics-Optimizer.ps1" }
+$debloatScript = if (Test-Path (Join-Path $modulesDir "Win11-Debloat-v3-Adaptive.ps1"))           { Join-Path $modulesDir "Win11-Debloat-v3-Adaptive.ps1"           } else { Join-Path $PSScriptRoot "Win11-Debloat-v3-Adaptive.ps1" }
 
-$netOptContent = Get-Content -Path (Join-Path $PSScriptRoot "Win11-Network-Diagnostics-Optimizer.ps1") -Raw
-Assert-True "PLAN-0026: Win11-Network-Diagnostics-Optimizer.ps1 soporta -NagleOnly" ($netOptContent -match 'NagleOnly')
+$maintContent     = if (Test-Path $maintScript   -ErrorAction SilentlyContinue) { Get-Content -Path $maintScript   -Raw } else { '' }
+$netOptContent    = if (Test-Path $netOptScript  -ErrorAction SilentlyContinue) { Get-Content -Path $netOptScript  -Raw } else { '' }
+$debloatContent   = if (Test-Path $debloatScript -ErrorAction SilentlyContinue) { Get-Content -Path $debloatScript -Raw } else { '' }
 
-$debloatContent = Get-Content -Path (Join-Path $PSScriptRoot "Win11-Debloat-v3-Adaptive.ps1") -Raw
-Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 carga Core/Policy-Engine.ps1" ($debloatContent -match 'Policy-Engine\.ps1')
+Assert-True "PLAN-0026: Invoke-WindowsMaintenance.ps1 soporta -ShadersOnly" ([bool]($maintContent -match 'ShadersOnly'))
+Assert-True "PLAN-0026: Invoke-WindowsMaintenance.ps1 soporta -TrimOnly" ([bool]($maintContent -match 'TrimOnly'))
+Assert-True "PLAN-0026: Win11-Network-Diagnostics-Optimizer.ps1 soporta -NagleOnly" ([bool]($netOptContent -match 'NagleOnly'))
+Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 carga Core/Policy-Engine.ps1" ([bool]($debloatContent -match 'Policy-Engine\.ps1'))
+
 $optimizeBrowsersContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\Optimize-WebBrowsers.ps1") -Raw -ErrorAction SilentlyContinue
-Assert-True "PLAN-0026: Optimize-WebBrowsers.ps1 delega en Apply-RomanOSBrowserPolicies" ($optimizeBrowsersContent -match 'Apply-RomanOSBrowserPolicies')
-Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 delega Nagle en Win11-Network-Diagnostics-Optimizer.ps1" ($debloatContent -match 'Win11-Network-Diagnostics-Optimizer\.ps1 -NagleOnly')
-
-Assert-True "PLAN-0026: romanOS-Toolkit.ps1 delega Shaders y TRIM en Invoke-WindowsMaintenance.ps1" ($toolkitContent -match 'Invoke-WindowsMaintenance\.ps1' -and $toolkitContent -match '-ShadersOnly' -and $toolkitContent -match '-TrimOnly')
+if (-not $optimizeBrowsersContent) { $optimizeBrowsersContent = '' }
+Assert-True "PLAN-0026: Optimize-WebBrowsers.ps1 delega en Apply-RomanOSBrowserPolicies" ([bool]($optimizeBrowsersContent -match 'Apply-RomanOSBrowserPolicies'))
+Assert-True "PLAN-0026: Win11-Debloat-v3-Adaptive.ps1 delega Nagle en Win11-Network-Diagnostics-Optimizer.ps1" ([bool]($debloatContent -match 'Win11-Network-Diagnostics-Optimizer\.ps1 -NagleOnly'))
+Assert-True "PLAN-0026: romanOS-Toolkit.ps1 delega Shaders y TRIM en Invoke-WindowsMaintenance.ps1" ([bool]($toolkitContent -match 'Invoke-WindowsMaintenance\.ps1' -and $toolkitContent -match '-ShadersOnly' -and $toolkitContent -match '-TrimOnly'))
 
 # PLAN-0027: Validaciones del Ecosistema Integral de Controladores (Drivers)
 Assert-True "PLAN-0027: Get-RomanOSDriverPolicies function registrada" ([bool](Get-Command Get-RomanOSDriverPolicies -ErrorAction SilentlyContinue))
@@ -977,13 +995,13 @@ $diagContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "
 Assert-True "PLAN-0030: PostInstall-Diagnostics.ps1 audita HKCU prioritariamente para temas" ($diagContent -match 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize')
 
 # PLAN-0032: Validaciones de Saneamiento Debloat, Deteccion ISO y Desacoplamiento de Toolkit
-Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 implementa deteccion multi-capa `$isIsoOptimized" ($debloatContent -match '\$isIsoOptimized\s*=')
-Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 verifica scripts de setup o politicas de nube en preflight" ($debloatContent -match 'Setup\\Scripts' -and $debloatContent -match 'DisableCloudOptimizedContent')
-Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 verifica apps Win32 instaladas antes de abrir selector" ($debloatContent -match '\$presentWin32\s*=' -and $debloatContent -match 'Microsoft\.OneDrive')
-Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 filtra servicios activos no deshabilitados antes de abrir selector" ($debloatContent -match '\$activeServices\s*=' -and $debloatContent -match 'StartType\s+-ne\s+[''"]Disabled[''"]')
-Assert-False "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 no ejecuta StartComponentCleanup bloqueante en debloat" ($debloatContent -match 'DISM\.exe\s+/Online\s+/Cleanup-Image\s+/StartComponentCleanup')
-Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 verifica instalacion previa de menus contextuales" ($debloatContent -match '\$contextAlreadyInstalled\s*=' -and $debloatContent -match 'GamerTools')
-Assert-False "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 erradico duplicacion de reg.exe add en seccion 15" ($debloatContent -match 'reg\.exe\s+add.*Directory\\Background\\shell\\GamerTools')
+Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 implementa deteccion multi-capa `$isIsoOptimized" ([bool]($debloatContent -match '\$isIsoOptimized\s*='))
+Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 verifica scripts de setup o politicas de nube en preflight" ([bool]($debloatContent -match 'Setup\\Scripts' -and $debloatContent -match 'DisableCloudOptimizedContent'))
+Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 verifica apps Win32 instaladas antes de abrir selector" ([bool]($debloatContent -match '\$presentWin32\s*=' -and $debloatContent -match 'Microsoft\.OneDrive'))
+Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 filtra servicios activos no deshabilitados antes de abrir selector" ([bool]($debloatContent -match '\$activeServices\s*=' -and $debloatContent -match 'StartType\s+-ne\s+[''"]Disabled[''"]'))
+Assert-False "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 no ejecuta StartComponentCleanup bloqueante en debloat" ([bool]($debloatContent -match 'DISM\.exe\s+/Online\s+/Cleanup-Image\s+/StartComponentCleanup'))
+Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 verifica instalacion previa de menus contextuales" ([bool]($debloatContent -match '\$contextAlreadyInstalled\s*=' -and $debloatContent -match 'GamerTools'))
+Assert-False "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 erradico duplicacion de reg.exe add en seccion 15" ([bool]($debloatContent -match 'reg\.exe\s+add.*Directory\\Background\\shell\\GamerTools'))
 
 # PLAN-0034: Validaciones de Optimizaciones Oficiales NTFS, Kernel Scheduler y Red (ECN)
 $polFs83 = $allPols | Where-Object { $_.Id -eq "POL_FS_DISABLE_8DOT3" }
