@@ -4578,33 +4578,42 @@ Add-AuditRecord -Resource "Auditar-Instalacion.cmd" -Target '$OEM$' -Status "OK"
 if (-not $SkipAutoUnattend) {
     Write-Step "4/6 - Creando autounattend.xml..."
 
-    # Codificación de contraseña según documentación oficial de Microsoft:
-    # Windows requiere concatenar el sufijo "Password" al texto plano ANTES
-    # de codificar en Base64 UTF-16LE cuando PlainText=false.
-    # Si la contraseña está vacía, PlainText debe ser 'true'.
+    # PLAN-0049: Estrategia de AutoLogon sin contraseña para Windows 10/11 (KB324737 Workaround).
+    # Si la cuenta se crea sin contraseña en autounattend.xml, Winlogon revoca AutoAdminLogon de 1 a 0
+    # durante OOBE deteniéndose en LogonUI con solicitud de contraseña.
+    # Solución oficial: Cuando no se define contraseña, se asigna una credencial efímera de instalación
+    # que cumple con complejidad (mayúscula, minúscula, dígito, símbolo), permitiendo que Winlogon complete
+    # el inicio de sesión automático desatendido en el primer arranque.
+    # Inmediatamente en FirstLogonCommands, la contraseña efímera es purgada con 'net user ""' y DefaultPassword eliminada.
+
+    $effectivePassword = if ($script:LocalPassword) { $script:LocalPassword } elseif ($LocalPassword) { $LocalPassword } else { "" }
+    $isPasswordless = [string]::IsNullOrWhiteSpace($effectivePassword)
+    $finalLocalUser = if ($script:LocalUser) { $script:LocalUser } elseif ($LocalUser) { $LocalUser } else { "Usuario" }
 
     $encodedPasswordForAccount = ""
     $encodedPasswordForAutologon = ""
-    $passwordPlainTextAccount = "true"
-    $passwordPlainTextAutologon = "true"
+    $passwordPlainTextAccount = "false"
+    $passwordPlainTextAutologon = "false"
 
-    if ($LocalPassword) {
-        $encodedPasswordForAccount = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($LocalPassword + "Password"))
-        $encodedPasswordForAutologon = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($LocalPassword + "Password"))
-        $passwordPlainTextAccount = "false"
-        $passwordPlainTextAutologon = "false"
+    if ($isPasswordless) {
+        $setupPassword = "RomanOS#Setup_" + [guid]::NewGuid().ToString('N').Substring(0, 8) + "!"
+        $encodedPasswordForAccount = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($setupPassword + "Password"))
+        $encodedPasswordForAutologon = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($setupPassword + "Password"))
+    } else {
+        $encodedPasswordForAccount = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($effectivePassword + "Password"))
+        $encodedPasswordForAutologon = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($effectivePassword + "Password"))
     }
 
     # Construcción dinámica de FirstLogonCommands:
-    # Respaldo para garantizar AutoLogon sin contraseña en Windows 11 24H2+.
     $firstLogonCommands = [System.Collections.Generic.List[string]]::new()
     $cmdOrder = 1
 
-    if (-not $LocalPassword) {
+    if ($isPasswordless) {
+        # PLAN-0049: Purgar credencial efímera para dejar la cuenta local 100% sin contraseña
         $firstLogonCommands.Add(@"
         <SynchronousCommand wcm:action="add">
-          <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d 1 /f</CommandLine>
-          <Description>Force AutoAdminLogon in Winlogon for passwordless account</Description>
+          <CommandLine>cmd.exe /c net user "$finalLocalUser" ""</CommandLine>
+          <Description>Purge ephemeral setup password to ensure passwordless account</Description>
           <Order>$cmdOrder</Order>
           <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
@@ -4612,8 +4621,8 @@ if (-not $SkipAutoUnattend) {
         $cmdOrder++
         $firstLogonCommands.Add(@"
         <SynchronousCommand wcm:action="add">
-          <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName /t REG_SZ /d "$($script:LocalUser)" /f</CommandLine>
-          <Description>Set DefaultUserName for AutoLogon</Description>
+          <CommandLine>reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /f</CommandLine>
+          <Description>Delete DefaultPassword from Winlogon registry</Description>
           <Order>$cmdOrder</Order>
           <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
@@ -4621,8 +4630,8 @@ if (-not $SkipAutoUnattend) {
         $cmdOrder++
         $firstLogonCommands.Add(@"
         <SynchronousCommand wcm:action="add">
-          <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /t REG_SZ /d "" /f</CommandLine>
-          <Description>Set DefaultPassword empty for passwordless AutoLogon</Description>
+          <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d 0 /f</CommandLine>
+          <Description>Reset AutoAdminLogon to normal mode for passwordless account</Description>
           <Order>$cmdOrder</Order>
           <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
@@ -4748,42 +4757,47 @@ $($firstLogonCommands -join "`n")
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>$($nextOrder + 4)</Order>
+          <Description>Allow Blank Password Usage for Local Accounts</Description>
+          <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 5)</Order>
           <Description>Hide Recommended section in Start Menu</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer /v HideRecommendedSection /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 5)</Order>
+          <Order>$($nextOrder + 6)</Order>
           <Description>Disable Search Box Suggestions in Start and Taskbar</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer /v DisableSearchBoxSuggestions /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 6)</Order>
+          <Order>$($nextOrder + 7)</Order>
           <Description>Disable Cloud Optimized Content (W11 24H2+)</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent /v DisableCloudOptimizedContent /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 7)</Order>
+          <Order>$($nextOrder + 8)</Order>
           <Description>Disable Consumer Account State Content</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent /v DisableConsumerAccountStateContent /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 8)</Order>
+          <Order>$($nextOrder + 9)</Order>
           <Description>Disable Automatic Microsoft Store App Downloads</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsStore /v AutoDownload /t REG_DWORD /d 2 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 9)</Order>
+          <Order>$($nextOrder + 10)</Order>
           <Description>Block Silent App Installation System-Wide (CDM)</Description>
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager /v SilentInstalledAppsEnabled /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 10)</Order>
+          <Order>$($nextOrder + 11)</Order>
           <Description>Block Pre-Installed Apps System-Wide (CDM)</Description>
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager /v PreInstalledAppsEnabled /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
 "@
 
-        $nextOrder += 11
+        $nextOrder += 12
 
         if ($optProfile -ge 2) {
             # Perfil 2+ (Gaming / Hardcore): Políticas de telemetría HKLM, Bloqueo de Drivers y Prevención BitLocker
@@ -4920,7 +4934,7 @@ $optimizeXml
         </Password>
         <Enabled>true</Enabled>
         <LogonCount>$AutoLogonCount</LogonCount>
-        <Username>$LocalUser</Username>
+        <Username>$finalLocalUser</Username>
       </AutoLogon>
 $firstLogonXml
       <OOBE>
@@ -4941,9 +4955,9 @@ $firstLogonXml
               <Value>$encodedPasswordForAccount</Value>
               <PlainText>$passwordPlainTextAccount</PlainText>
             </Password>
-            <DisplayName>$LocalUser</DisplayName>
+            <DisplayName>$finalLocalUser</DisplayName>
             <Group>Administrators</Group>
-            <Name>$LocalUser</Name>
+            <Name>$finalLocalUser</Name>
           </LocalAccount>
         </LocalAccounts>
       </UserAccounts>

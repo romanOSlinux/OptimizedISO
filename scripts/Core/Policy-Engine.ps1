@@ -346,6 +346,20 @@ $global:RomanOS_Policies = @(
         UnattendDesc  = "Disable PasswordLess sign-in to allow AutoLogon without password (W11 24H2+)"
     },
     @{
+        Id            = "POL_AUTH_LIMIT_BLANK_PASSWORD"
+        Module        = "Base - OOBE & AutoLogon"
+        Category      = "Autenticacion & Shell"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\Lsa"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
+        ValueName     = "LimitBlankPasswordUse"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Permitir uso y autenticacion con contrasena en blanco en cuentas locales"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/blank-password-restriction-policy"
+        UnattendDesc  = "Allow Blank Password Usage for Local Accounts (LimitBlankPasswordUse=0)"
+    },
+    @{
         Id            = "POL_EXPLORER_RECOMMENDED"
         Module        = "Base - Shell"
         Category      = "Privacidad & Shell"

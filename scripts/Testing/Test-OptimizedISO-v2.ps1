@@ -1050,6 +1050,30 @@ Assert-False "PLAN-0033: Win11-Debloat-v3-Adaptive.ps1 ya no contiene parametro 
 Assert-True "PLAN-0033: Win11-Debloat-v3-Adaptive.ps1 invoca a Optimize-WebBrowsers.ps1 en Seccion 16" ($debloatContent -match 'Optimize-WebBrowsers\.ps1')
 Assert-True "PLAN-0033: romanOS-Toolkit.ps1 invoca a Optimize-WebBrowsers.ps1" ($toolkitContent -match 'Optimize-WebBrowsers\.ps1')
 
+# PLAN-0049: AutoLogon sin Contraseña y Credenciales Efímeras en OOBE
+Write-HarnessHeader2 "PLAN-0049: Validacion de Arquitectura de AutoLogon sin Contrasena en OOBE"
+$pols49 = Get-RomanOSPolicies -Profile '1'
+$blankPwdPol = $pols49 | Where-Object { $_.Id -eq 'POL_AUTH_LIMIT_BLANK_PASSWORD' }
+Assert-NotNull "PLAN-0049: Politica POL_AUTH_LIMIT_BLANK_PASSWORD registrada en Policy-Engine" $blankPwdPol
+Assert-Equal "PLAN-0049: Politica LimitBlankPasswordUse valor esperado es 0" $blankPwdPol.ExpectedValue 0
+Assert-Equal "PLAN-0049: Politica LimitBlankPasswordUse apunta a Lsa" $blankPwdPol.RegistryKey "HKLM\SYSTEM\CurrentControlSet\Control\Lsa"
+
+$pwdLessPol = $pols49 | Where-Object { $_.Id -eq 'POL_PASSWORDLESS_BUILD' }
+Assert-NotNull "PLAN-0049: Politica POL_PASSWORDLESS_BUILD registrada en Policy-Engine" $pwdLessPol
+Assert-Equal "PLAN-0049: Politica DevicePasswordLessBuildVersion valor esperado es 0" $pwdLessPol.ExpectedValue 0
+
+$unattendExp49 = Export-RomanOSUnattendCommands -Profile '1' -StartOrder 2
+Assert-True "PLAN-0049: Export-RomanOSUnattendCommands incluye directiva LimitBlankPasswordUse" ([bool]($unattendExp49.XmlContent -match 'LimitBlankPasswordUse'))
+Assert-True "PLAN-0049: Export-RomanOSUnattendCommands incluye directiva DevicePasswordLessBuildVersion" ([bool]($unattendExp49.XmlContent -match 'DevicePasswordLessBuildVersion'))
+
+# Validacion de logica en New-OptimizedWindowsISO-v2.ps1
+Assert-True "PLAN-0049: v2 script implementa generacion de credencial efimera para passwordless" ([bool]($v2ScriptContent -match 'RomanOS#Setup_'))
+Assert-True "PLAN-0049: v2 script purga contrasena en FirstLogonCommands via net user" ([bool]($v2ScriptContent -match 'net user "\$finalLocalUser" ""'))
+Assert-True "PLAN-0049: v2 script elimina DefaultPassword en FirstLogonCommands" ([bool]($v2ScriptContent -match 'reg delete "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultPassword /f'))
+Assert-True "PLAN-0049: v2 script resetea AutoAdminLogon a 0 en FirstLogonCommands" ([bool]($v2ScriptContent -match 'reg add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v AutoAdminLogon /t REG_SZ /d 0 /f'))
+Assert-False "PLAN-0049: v2 script elimino el falso AutoAdminLogon=1 tardio de FirstLogonCommands" ([bool]($v2ScriptContent -match 'Force AutoAdminLogon in Winlogon for passwordless account'))
+Assert-True "PLAN-0049: v2 script utiliza finalLocalUser unificado en AutoLogon y LocalAccount" ([bool]($v2ScriptContent -match '<Username>\$finalLocalUser</Username>' -and $v2ScriptContent -match '<Name>\$finalLocalUser</Name>'))
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

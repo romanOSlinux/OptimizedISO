@@ -58,6 +58,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0044 | [PLAN-0044-20260906-resilient-bootloader-discovery-and-anti-workloss-iso-builder.md](PLAN-0044-20260906-resilient-bootloader-discovery-and-anti-workloss-iso-builder.md) | 2026-09-06 | Búsqueda Resiliente de Bootloaders (BIOS/UEFI), Auto-Inyección y Salvaguarda Anti-Pérdida | COMPLETADO |
 | 0047 | [PLAN-0047-20260907-fix-optimize-webbrowsers-ui-elevation-y-cierre.md](PLAN-0047-20260907-fix-optimize-webbrowsers-ui-elevation-y-cierre.md) | 2026-09-07 | Corrección de Bloqueo, Auto-Elevación y Experiencia de Usuario en Optimize-WebBrowsers.ps1 | COMPLETADO |
 | 0048 | [PLAN-0048-20260907-hardware-engine-ai-pc-npu-ssot-builder-y-test-harness.md](PLAN-0048-20260907-hardware-engine-ai-pc-npu-ssot-builder-y-test-harness.md) | 2026-09-07 | Hardware Intelligence para AI PC (NPU, RDNA3/Arc), Saneamiento SSOT en el Builder y Certificación 100% del Test Harness | COMPLETADO |
+| 0049 | [PLAN-0049-20260907-fix-passwordless-autologon-oobe.md](PLAN-0049-20260907-fix-passwordless-autologon-oobe.md) | 2026-09-07 | Corrección de AutoLogon y Despliegue sin Contraseña (Passwordless) en OOBE | COMPLETADO |
 
 ---
 
