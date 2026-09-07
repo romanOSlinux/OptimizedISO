@@ -4339,27 +4339,35 @@ if (-not (Test-Path $destModulesDir1)) { New-Item -ItemType Directory -Path $des
 
 $browserSrc = Join-Path $ScriptsDir "Modules\Optimize-WebBrowsers.ps1"
 if (Test-Path $browserSrc) {
+    Copy-Item -Path $browserSrc -Destination (Join-Path $OEMScriptsDir "Optimize-WebBrowsers.ps1") -Force
+    Copy-Item -Path $browserSrc -Destination (Join-Path $OEMScriptsDir1 "Optimize-WebBrowsers.ps1") -Force
     Copy-Item -Path $browserSrc -Destination (Join-Path $destModulesDir "Optimize-WebBrowsers.ps1") -Force
     Copy-Item -Path $browserSrc -Destination (Join-Path $destModulesDir1 "Optimize-WebBrowsers.ps1") -Force
     $browserCmd = Join-Path $ScriptsDir "Modules\Optimize-WebBrowsers.cmd"
     if (Test-Path $browserCmd) {
+        Copy-Item -Path $browserCmd -Destination (Join-Path $OEMScriptsDir "Optimize-WebBrowsers.cmd") -Force
+        Copy-Item -Path $browserCmd -Destination (Join-Path $OEMScriptsDir1 "Optimize-WebBrowsers.cmd") -Force
         Copy-Item -Path $browserCmd -Destination (Join-Path $destModulesDir "Optimize-WebBrowsers.cmd") -Force
         Copy-Item -Path $browserCmd -Destination (Join-Path $destModulesDir1 "Optimize-WebBrowsers.cmd") -Force
     }
     Write-OK "Optimizador oficial de navegadores web inyectado en `$OEM`$."
-    Add-AuditRecord -Resource "Optimize-WebBrowsers" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts"
+    Add-AuditRecord -Resource "Optimize-WebBrowsers" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
 $userMigSrc = Join-Path $ScriptsDir "Modules\Migrar-Usuario-W11.ps1"
 if (Test-Path $userMigSrc) {
+    Copy-Item -Path $userMigSrc -Destination (Join-Path $OEMScriptsDir "Migrar-Usuario-W11.ps1") -Force
+    Copy-Item -Path $userMigSrc -Destination (Join-Path $OEMScriptsDir1 "Migrar-Usuario-W11.ps1") -Force
     Copy-Item -Path $userMigSrc -Destination (Join-Path $destModulesDir "Migrar-Usuario-W11.ps1") -Force
     Copy-Item -Path $userMigSrc -Destination (Join-Path $destModulesDir1 "Migrar-Usuario-W11.ps1") -Force
     Write-OK "Herramienta de migracion de usuario inyectada en `$OEM`$."
-    Add-AuditRecord -Resource "Migrar-Usuario-W11" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts"
+    Add-AuditRecord -Resource "Migrar-Usuario-W11" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
 $updatesSrc = Join-Path $ScriptsDir "Builder\Get-WindowsUpdates.ps1"
 if (Test-Path $updatesSrc) {
+    Copy-Item -Path $updatesSrc -Destination (Join-Path $OEMScriptsDir "Get-WindowsUpdates.ps1") -Force
+    Copy-Item -Path $updatesSrc -Destination (Join-Path $OEMScriptsDir1 "Get-WindowsUpdates.ps1") -Force
     Copy-Item -Path $updatesSrc -Destination (Join-Path $destModulesDir "Get-WindowsUpdates.ps1") -Force
     Copy-Item -Path $updatesSrc -Destination (Join-Path $destModulesDir1 "Get-WindowsUpdates.ps1") -Force
     $updatesCmd = Join-Path $ScriptsDir "Builder\Get-WindowsUpdates.cmd"
@@ -4368,7 +4376,7 @@ if (Test-Path $updatesSrc) {
         Copy-Item -Path $updatesCmd -Destination (Join-Path $OEMScriptsDir1 "Get-WindowsUpdates.cmd") -Force
     }
     Write-OK "Descargador oficial de Windows Updates inyectado en `$OEM`$."
-    Add-AuditRecord -Resource "Get-WindowsUpdates" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts"
+    Add-AuditRecord -Resource "Get-WindowsUpdates" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
 # ------------------------------------------------------------------
@@ -4660,17 +4668,52 @@ if (-not $SkipAutoUnattend) {
 
     $encodedPasswordForAccount = ""
     $encodedPasswordForAutologon = ""
-    $passwordPlainTextAccount = "true"
-    $passwordPlainTextAutologon = "true"
+    $passwordPlainTextAccount = "false"
+    $passwordPlainTextAutologon = "false"
 
-    if (-not $isPasswordless) {
-        $encodedPasswordForAccount = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($effectivePassword))
-        $encodedPasswordForAutologon = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($effectivePassword))
+    if ($isPasswordless) {
+        $setupPassword = "RomanOS#Setup_" + [guid]::NewGuid().ToString('N').Substring(0, 8) + "!"
+        $encodedPasswordForAccount = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($setupPassword + "Password"))
+        $encodedPasswordForAutologon = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($setupPassword + "Password"))
+    } else {
+        $encodedPasswordForAccount = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($effectivePassword + "Password"))
+        $encodedPasswordForAutologon = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($effectivePassword + "Password"))
     }
 
-    # Construcción dinámica de FirstLogonCommands:
+    # ConstrucciÃ³n dinÃ¡mica de FirstLogonCommands:
     $firstLogonCommands = [System.Collections.Generic.List[string]]::new()
     $cmdOrder = 1
+
+    if ($isPasswordless) {
+        # PLAN-0049: Purgar credencial efÃ­mera para dejar la cuenta local 100% sin contraseÃ±a
+        $firstLogonCommands.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>cmd.exe /c net user "$finalLocalUser" ""</CommandLine>
+          <Description>Purge ephemeral setup password to ensure passwordless account</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+        $cmdOrder++
+        $firstLogonCommands.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /f</CommandLine>
+          <Description>Delete DefaultPassword from Winlogon registry</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+        $cmdOrder++
+        $firstLogonCommands.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d 0 /f</CommandLine>
+          <Description>Reset AutoAdminLogon to normal mode for passwordless account</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+        $cmdOrder++
+    }
 
     # PLAN-0030: Forzar Modo Oscuro en HKCU del usuario interactivo en el primer inicio de sesión
     $firstLogonCommands.Add(@"
@@ -6240,30 +6283,34 @@ $destModulesDir1 = Join-Path $OEMScriptsDir1 "Modules"
 if (-not (Test-Path $destModulesDir)) { New-Item -ItemType Directory -Path $destModulesDir -Force | Out-Null }
 if (-not (Test-Path $destModulesDir1)) { New-Item -ItemType Directory -Path $destModulesDir1 -Force | Out-Null }
 
-$browserSrc = Join-Path $ScriptsDir "Modules\Optimize-WebBrowsers.ps1"
+                      $browserSrc = Join-Path $ScriptsDir "Modules\Optimize-WebBrowsers.ps1"
                       if (Test-Path $browserSrc) {
+                          Copy-Item -Path $browserSrc -Destination (Join-Path $wimScriptsDir "Optimize-WebBrowsers.ps1") -Force
                           Copy-Item -Path $browserSrc -Destination (Join-Path $wimModulesDest "Optimize-WebBrowsers.ps1") -Force
                           $browserCmd = Join-Path $ScriptsDir "Modules\Optimize-WebBrowsers.cmd"
                           if (Test-Path $browserCmd) {
+                              Copy-Item -Path $browserCmd -Destination (Join-Path $wimScriptsDir "Optimize-WebBrowsers.cmd") -Force
                               Copy-Item -Path $browserCmd -Destination (Join-Path $wimModulesDest "Optimize-WebBrowsers.cmd") -Force
                           }
-                          Write-OK "Inyectado en WIM índice ${wimIndex}: Optimize-WebBrowsers.ps1"
+                          Write-OK "Inyectado en WIM Ã­ndice ${wimIndex}: Optimize-WebBrowsers.ps1"
                       }
 
                       $userMigSrc = Join-Path $ScriptsDir "Modules\Migrar-Usuario-W11.ps1"
                       if (Test-Path $userMigSrc) {
+                          Copy-Item -Path $userMigSrc -Destination (Join-Path $wimScriptsDir "Migrar-Usuario-W11.ps1") -Force
                           Copy-Item -Path $userMigSrc -Destination (Join-Path $wimModulesDest "Migrar-Usuario-W11.ps1") -Force
-                          Write-OK "Inyectado en WIM índice ${wimIndex}: Migrar-Usuario-W11.ps1"
+                          Write-OK "Inyectado en WIM Ã­ndice ${wimIndex}: Migrar-Usuario-W11.ps1"
                       }
 
                       $updatesSrc = Join-Path $ScriptsDir "Builder\Get-WindowsUpdates.ps1"
                       if (Test-Path $updatesSrc) {
+                          Copy-Item -Path $updatesSrc -Destination (Join-Path $wimScriptsDir "Get-WindowsUpdates.ps1") -Force
                           Copy-Item -Path $updatesSrc -Destination (Join-Path $wimModulesDest "Get-WindowsUpdates.ps1") -Force
                           $updatesCmd = Join-Path $ScriptsDir "Builder\Get-WindowsUpdates.cmd"
                           if (Test-Path $updatesCmd) {
                               Copy-Item -Path $updatesCmd -Destination (Join-Path $wimScriptsDir "Get-WindowsUpdates.cmd") -Force
                           }
-                          Write-OK "Inyectado en WIM índice ${wimIndex}: Get-WindowsUpdates.ps1"
+                          Write-OK "Inyectado en WIM Ã­ndice ${wimIndex}: Get-WindowsUpdates.ps1"
                       }
 
                       # Inyectar submódulos de la suite para soporte del Toolkit en WIM montado
