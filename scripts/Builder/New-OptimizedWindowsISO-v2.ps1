@@ -4431,6 +4431,16 @@ if (Test-Path $updatesSrc) {
     Add-AuditRecord -Resource "Get-WindowsUpdates" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$auditFootprintSrc = Join-Path $ScriptsDir "Modules\Audit-FreshInstallFootprint.ps1"
+if (Test-Path $auditFootprintSrc) {
+    Copy-Item -Path $auditFootprintSrc -Destination (Join-Path $OEMScriptsDir "Audit-FreshInstallFootprint.ps1") -Force
+    Copy-Item -Path $auditFootprintSrc -Destination (Join-Path $OEMScriptsDir1 "Audit-FreshInstallFootprint.ps1") -Force
+    Copy-Item -Path $auditFootprintSrc -Destination (Join-Path $destModulesDir "Audit-FreshInstallFootprint.ps1") -Force
+    Copy-Item -Path $auditFootprintSrc -Destination (Join-Path $destModulesDir1 "Audit-FreshInstallFootprint.ps1") -Force
+    Write-OK "Herramienta de auditoria forense de huella (Footprint) inyectada en `$OEM`$."
+    Add-AuditRecord -Resource "Audit-FreshInstallFootprint" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 # ------------------------------------------------------------------
 # Garantizar Presencia de Submódulos del Toolkit Maestro en $OEM$
 # ------------------------------------------------------------------
@@ -6479,6 +6489,13 @@ if ($wimFile) {
                               Copy-Item -Path $updatesCmd -Destination (Join-Path $wimModulesDest "Get-WindowsUpdates.cmd") -Force
                           }
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Get-WindowsUpdates.ps1"
+                      }
+
+                      $auditFootprintSrc = Join-Path $ScriptsDir "Modules\Audit-FreshInstallFootprint.ps1"
+                      if (Test-Path $auditFootprintSrc) {
+                          Copy-Item -Path $auditFootprintSrc -Destination (Join-Path $wimScriptsDir "Audit-FreshInstallFootprint.ps1") -Force
+                          Copy-Item -Path $auditFootprintSrc -Destination (Join-Path $wimModulesDest "Audit-FreshInstallFootprint.ps1") -Force
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Audit-FreshInstallFootprint.ps1"
                       }
 
                       # Inyectar submódulos de la suite para soporte del Toolkit en WIM montado

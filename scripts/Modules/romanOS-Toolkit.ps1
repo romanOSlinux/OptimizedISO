@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers")]
+    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration")]
     [string]$Module,
     [switch]$ShowDashboards
 )
@@ -138,8 +138,10 @@ $searchDirs = @(
     (Join-Path $repoScriptsRoot "Modules"),
     (Join-Path $repoScriptsRoot "Builder"),
     "$env:WINDIR\Setup\Scripts",
+    "$env:WINDIR\Setup\Scripts\Modules",
     "$env:WINDIR\Setup\Scripts\Drivers",
     "C:\Windows\Setup\Scripts",
+    "C:\Windows\Setup\Scripts\Modules",
     "C:\Windows\Setup\Scripts\Drivers",
     "C:\OptimizedISO\scripts",
     "C:\OptimizedISO\scripts\Drivers",
@@ -203,6 +205,17 @@ function Invoke-DiagnosticsModule {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -DesktopOutput
     } else {
         Write-ErrorMsg "No se encontro PostInstall-Diagnostics.ps1"
+        pause
+    }
+}
+
+function Invoke-FootprintAuditModule {
+    $scriptFile = Resolve-ToolScript "Audit-FreshInstallFootprint.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Auditoria Forense de Huella en Reposo (Footprint Audit)"
+        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
+    } else {
+        Write-ErrorMsg "No se encontro Audit-FreshInstallFootprint.ps1"
         pause
     }
 }
@@ -489,18 +502,19 @@ function Show-QuickActionsMenu {
 # -----------------------------------------------------------------------------
 if ($Module) {
     switch ($Module) {
-        "Gaming"       { Invoke-GamingModule; exit }
-        "Network"      { Invoke-NetworkModule; exit }
-        "Maintenance"  { Invoke-MaintenanceModule; exit }
-        "Diagnostics"  { Invoke-DiagnosticsModule; exit }
-        "Security"     { Invoke-SecurityModule; exit }
-        "Dashboards"   { Invoke-OpenDashboards; exit }
-        "Browsers"     { Invoke-BrowsersModule; exit }
-        "Updates"      { Invoke-UpdatesModule; exit }
-        "ContextMenu"  { Invoke-ContextMenuModule; exit }
-        "Drivers"      { Invoke-DriversModule; exit }
-        "UserMigration"{ $ms = Resolve-ToolScript "Migrar-Usuario-W11.ps1"; if ($ms) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ms } else { Write-ErrorMsg "No se encontro Migrar-Usuario-W11.ps1" }; exit }
-        "QuickActions" { Show-QuickActionsMenu; exit }
+        "Gaming"        { Invoke-GamingModule; exit }
+        "Network"       { Invoke-NetworkModule; exit }
+        "Maintenance"   { Invoke-MaintenanceModule; exit }
+        "Diagnostics"   { Invoke-DiagnosticsModule; exit }
+        "FootprintAudit"{ Invoke-FootprintAuditModule; exit }
+        "Security"      { Invoke-SecurityModule; exit }
+        "Dashboards"    { Invoke-OpenDashboards; exit }
+        "Browsers"      { Invoke-BrowsersModule; exit }
+        "Updates"       { Invoke-UpdatesModule; exit }
+        "ContextMenu"   { Invoke-ContextMenuModule; exit }
+        "Drivers"       { Invoke-DriversModule; exit }
+        "UserMigration" { $ms = Resolve-ToolScript "Migrar-Usuario-W11.ps1"; if ($ms) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ms } else { Write-ErrorMsg "No se encontro Migrar-Usuario-W11.ps1" }; exit }
+        "QuickActions"  { Show-QuickActionsMenu; exit }
     }
 }
 
@@ -524,6 +538,7 @@ $mainMenuOpts = @(
     "Diagnostico de Red & Latencia (Benchmarks DNS, TCP/IP, Sockets)",
     "Mantenimiento & Limpieza Profunda (WinSxS DISM, Shaders, SSD TRIM)",
     "Auditoria Forense Post-Instalacion & Salud (Panther, CompactOS, PnP)",
+    "Auditoria Forense de Huella en Reposo (Procesos en Segundo Plano, RAM y Directivas)",
     "Auditoria de Seguridad & Hardening (ASR, VBS, Protocolos On-Demand)",
     "Optimizar y Debloat de Navegadores (GPU, Menos RAM, Sin Copilot/IA)",
     "Descargar Windows Updates Oficiales (MSU/CAB para Slipstream en ISO)",
@@ -542,13 +557,14 @@ while ($true) {
         2  { Invoke-NetworkModule; pause }
         3  { Invoke-MaintenanceModule; pause }
         4  { Invoke-DiagnosticsModule; pause }
-        5  { Invoke-SecurityModule; pause }
-        6  { Invoke-BrowsersModule; pause }
-        7  { Invoke-UpdatesModule; pause }
-        8  { Invoke-DriversModule; pause }
-        9  { $ms = Resolve-ToolScript "Migrar-Usuario-W11.ps1"; if ($ms) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ms } else { Write-ErrorMsg "No se encontro Migrar-Usuario-W11.ps1" }; pause }
-        10 { Invoke-OpenDashboards; pause }
-        11 { Show-QuickActionsMenu; pause }
+        5  { Invoke-FootprintAuditModule; pause }
+        6  { Invoke-SecurityModule; pause }
+        7  { Invoke-BrowsersModule; pause }
+        8  { Invoke-UpdatesModule; pause }
+        9  { Invoke-DriversModule; pause }
+        10 { $ms = Resolve-ToolScript "Migrar-Usuario-W11.ps1"; if ($ms) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ms } else { Write-ErrorMsg "No se encontro Migrar-Usuario-W11.ps1" }; pause }
+        11 { Invoke-OpenDashboards; pause }
+        12 { Show-QuickActionsMenu; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

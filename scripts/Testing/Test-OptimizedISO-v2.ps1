@@ -1186,6 +1186,31 @@ Assert-True "PLAN-0055: Builder inyecta BingSearchEnabled en NTUSER.DAT" ([bool]
 Assert-True "PLAN-0055: Builder inyecta EnableDynamicContentInWSB en SOFTWARE hive" ([bool]($v2FreshContent55 -match 'HKLM\\OfflineSoftware\\Policies\\Microsoft\\Windows\\Windows Search' -and $v2FreshContent55 -match 'EnableDynamicContentInWSB'))
 Assert-True "PLAN-0055: Builder configura LimitBlankPasswordUse en 1 en autounattend" ([bool]($v2FreshContent55 -match 'LimitBlankPasswordUse\s+/t\s+REG_DWORD\s+/d\s+1\s+/f'))
 
+# --- PLAN-0056: AUDITORIA FORENSE DE HUELLA EN REPOSO E INTEGRACION TOOLKIT/ISO ---
+Write-HarnessHeader2 "PLAN-0056: Auditoria Forense de Huella en Reposo (Footprint Audit)"
+$auditScriptCandidate = Join-Path $modulesDir "Audit-FreshInstallFootprint.ps1"
+Assert-True "PLAN-0056: Audit-FreshInstallFootprint.ps1 existe en Modules/" (Test-Path $auditScriptCandidate)
+
+$auditBytes = [System.IO.File]::ReadAllBytes($auditScriptCandidate)
+$auditHasBom = ($auditBytes.Length -ge 3 -and $auditBytes[0] -eq 0xEF -and $auditBytes[1] -eq 0xBB -and $auditBytes[2] -eq 0xBF)
+Assert-True "PLAN-0056: Audit-FreshInstallFootprint.ps1 tiene codificacion UTF-8 con BOM" $auditHasBom
+
+$auditTokens = $null; $auditErrs = $null
+$auditAst = [System.Management.Automation.Language.Parser]::ParseFile($auditScriptCandidate, [ref]$auditTokens, [ref]$auditErrs)
+Assert-Equal "PLAN-0056: Audit-FreshInstallFootprint.ps1 no tiene errores de sintaxis AST" $auditErrs.Count 0
+
+# Validacion en romanOS-Toolkit.ps1
+$toolkitScript = Join-Path $modulesDir "romanOS-Toolkit.ps1"
+$toolkitContent56 = Get-Content $toolkitScript -Raw
+Assert-True "PLAN-0056: romanOS-Toolkit.ps1 acepta parámetro FootprintAudit en ValidateSet" ([bool]($toolkitContent56 -match 'FootprintAudit'))
+Assert-True "PLAN-0056: romanOS-Toolkit.ps1 declara funcion Invoke-FootprintAuditModule" ([bool]($toolkitContent56 -match 'function Invoke-FootprintAuditModule'))
+Assert-True "PLAN-0056: romanOS-Toolkit.ps1 incluye FootprintAudit en el menu interactivo" ([bool]($toolkitContent56 -match 'Auditoria Forense de Huella en Reposo'))
+
+# Validacion en New-OptimizedWindowsISO-v2.ps1
+$v2FreshContent56 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0056: Builder inyecta Audit-FreshInstallFootprint.ps1 en `$OEM`$" ([bool]($v2FreshContent56 -match 'Copy-Item -Path \$auditFootprintSrc -Destination \(Join-Path \$OEMScriptsDir "Audit-FreshInstallFootprint\.ps1"\)'))
+Assert-True "PLAN-0056: Builder inyecta Audit-FreshInstallFootprint.ps1 en WIM offline" ([bool]($v2FreshContent56 -match 'Copy-Item -Path \$auditFootprintSrc -Destination \(Join-Path \$wimModulesDest "Audit-FreshInstallFootprint\.ps1"\)'))
+
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
