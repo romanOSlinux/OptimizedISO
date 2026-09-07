@@ -944,21 +944,21 @@ $mmcssNet = $allPols | Where-Object { $_.Id -eq "POL_MMCSS_THROTTLING" }
 Assert-NotNull "PLAN-0029: POL_MMCSS_THROTTLING existe en Policy-Engine" $mmcssNet
 Assert-Equal "PLAN-0029: POL_MMCSS_THROTTLING tiene ExpectedValue = 4294967295" $mmcssNet.ExpectedValue 4294967295
 
-$ctxMenuContent = Get-Content -Path (Join-Path $PSScriptRoot "Add-OptimizedContextMenus.ps1") -Raw
-Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 utiliza New-Item para crear claves" ($ctxMenuContent -match 'New-Item\s+-Path.*-Force')
-Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 utiliza Set-ItemProperty para valores" ($ctxMenuContent -match 'Set-ItemProperty\s+-Path')
-Assert-False "PLAN-0029: Add-OptimizedContextMenus.ps1 no contiene reg.exe add (despojo de comillas erradicado)" ($ctxMenuContent -match 'reg\.exe\s+add')
-Assert-False "PLAN-0029: Add-OptimizedContextMenus.ps1 no contiene reg.exe delete" ($ctxMenuContent -match 'reg\.exe\s+delete')
-Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 configura CLSID clasico {86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" ($ctxMenuContent -match '86ca1aa0-34aa-4e8b-a509-50c905bae2a2')
+$ctxMenuContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\Add-OptimizedContextMenus.ps1") -Raw
+Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 utiliza New-Item para crear claves" (([bool]($ctxMenuContent -match 'New-Item\s+-Path.*-Force')))
+Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 utiliza Set-ItemProperty para valores" (([bool]($ctxMenuContent -match 'Set-ItemProperty\s+-Path')))
+Assert-False "PLAN-0029: Add-OptimizedContextMenus.ps1 no contiene reg.exe add (despojo de comillas erradicado)" (([bool]($ctxMenuContent -match 'reg\.exe\s+add')))
+Assert-False "PLAN-0029: Add-OptimizedContextMenus.ps1 no contiene reg.exe delete" (([bool]($ctxMenuContent -match 'reg\.exe\s+delete')))
+Assert-True "PLAN-0029: Add-OptimizedContextMenus.ps1 configura CLSID clasico {86ca1aa0-34aa-4e8b-a509-50c905bae2a2}" (([bool]($ctxMenuContent -match '86ca1aa0-34aa-4e8b-a509-50c905bae2a2')))
 
 Assert-True "PLAN-0029: v2 script utiliza Register-ScheduledTask permanente para tareas a demanda" ($v2ScriptContent -match 'Register-ScheduledTask\s+-TaskName')
 Assert-False "PLAN-0029: v2 script erradico schtasks efimero /sc ONCE /st 00:00" ($v2ScriptContent -match 'schtasks\s+/create.*/sc\s+ONCE\s+/st\s+00:00\s+/ru\s+["'']SYSTEM["'']\s+/rl\s+HIGHEST')
 
 # PLAN-0031: Validaciones de Erradicacion de SubCommands en Comandos Ejecutables y Cascada Nativa
-Assert-True "PLAN-0031: Set-ShellVerb verifica PSBoundParameters para SubCommands" ($ctxMenuContent -match '\$PSBoundParameters\.ContainsKey\([''"]SubCommands[''"]\)')
-Assert-True "PLAN-0031: Set-ShellVerb auto-sana purgando SubCommands en comandos hoja" ($ctxMenuContent -match 'Remove-ItemProperty.*SubCommands')
-Assert-True "PLAN-0031: Lanzador Aplicar-Hotfix-Menus.cmd existe en la raiz" (Test-Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Aplicar-Hotfix-Menus.cmd"))
-Assert-True "PLAN-0031: 01_PowerMax incluye recuperacion/duplicacion automatica de GUID de energia" ($ctxMenuContent -match 'powercfg\s+-duplicatescheme\s+e9a42b02-d5df-448d-aa00-03f14749eb61')
+Assert-True "PLAN-0031: Set-ShellVerb verifica PSBoundParameters para SubCommands" (([bool]($ctxMenuContent -match '\$PSBoundParameters\.ContainsKey\([''"]SubCommands[''"]\)')))
+Assert-True "PLAN-0031: Set-ShellVerb auto-sana purgando SubCommands en comandos hoja" (([bool]($ctxMenuContent -match 'Remove-ItemProperty.*SubCommands')))
+Assert-True "PLAN-0031: Lanzador Aplicar-Hotfix-Menus.cmd existe en la raiz" ([bool](Test-Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Aplicar-Hotfix-Menus.cmd")))
+Assert-True "PLAN-0031: 01_PowerMax incluye recuperacion/duplicacion automatica de GUID de energia" (([bool]($ctxMenuContent -match 'powercfg\s+-duplicatescheme\s+e9a42b02-d5df-448d-aa00-03f14749eb61')))
 
 
 # PLAN-0030: Validaciones de Integracion de Modo Oscuro Nativo Multi-Capa
@@ -991,8 +991,8 @@ Assert-True "PLAN-0030: SetupComplete.cmd configura RunOnce ApplyDarkMode" ($v2S
 Assert-True "PLAN-0030: v2 script carga SOFTWARE hive offline para dark.theme" ($v2ScriptContent -match 'OfflineSoftware' -and $v2ScriptContent -match 'dark\.theme')
 
 # Validacion de PostInstall-Diagnostics.ps1
-$diagContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "PostInstall-Diagnostics.ps1") -Raw
-Assert-True "PLAN-0030: PostInstall-Diagnostics.ps1 audita HKCU prioritariamente para temas" ($diagContent -match 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize')
+$diagContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\PostInstall-Diagnostics.ps1") -Raw
+Assert-True "PLAN-0030: PostInstall-Diagnostics.ps1 audita HKCU prioritariamente para temas" ([bool]($diagContent -match 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize'))
 
 # PLAN-0032: Validaciones de Saneamiento Debloat, Deteccion ISO y Desacoplamiento de Toolkit
 Assert-True "PLAN-0032: Win11-Debloat-v3-Adaptive.ps1 implementa deteccion multi-capa `$isIsoOptimized" ([bool]($debloatContent -match '\$isIsoOptimized\s*='))
@@ -1032,14 +1032,15 @@ Assert-True "PLAN-0034: SetupComplete.cmd inyecta Win32PrioritySeparation" ($v2S
 Assert-True "PLAN-0034: v2 script inyecta NoLazyMode en SOFTWARE hive offline" ($v2ScriptContent -match 'OfflineSoftware' -and $v2ScriptContent -match 'NoLazyMode')
 Assert-True "PLAN-0034: v2 script inyecta NtfsMemoryUsage y Win32PrioritySeparation en SYSTEM hive offline" ($v2ScriptContent -match 'OfflineSystem' -and $v2ScriptContent -match 'NtfsMemoryUsage')
 
-$netOptContent = Get-Content -Path (Join-Path $PSScriptRoot "Win11-Network-Diagnostics-Optimizer.ps1") -Raw
-Assert-True "PLAN-0034: Win11-Network-Diagnostics-Optimizer.ps1 incluye EcnCapability en tweaks" ($netOptContent -match 'Id=''EcnCapability''')
-Assert-True "PLAN-0034: Win11-Network-Diagnostics-Optimizer.ps1 ejecuta configuracion de ECN" ($netOptContent -match 'netsh\.exe\s+int\s+tcp\s+set\s+global\s+ecncapability=enabled')
+$netOptContent = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\Win11-Network-Diagnostics-Optimizer.ps1") -Raw
+Assert-True "PLAN-0034: Win11-Network-Diagnostics-Optimizer.ps1 carga motor de directivas RomanOS_NetworkPolicies" (([bool]($netOptContent -match 'RomanOS_NetworkPolicies' -or $netOptContent -match 'Policy-Engine\.ps1')))
+$polEngineRaw = Get-Content -Path $policyEnginePath -Raw
+Assert-True "PLAN-0034: Policy-Engine.ps1 define directiva de mitigacion ECN NET_TCP_ECN_CAPABILITY" (([bool]($polEngineRaw -match 'NET_TCP_ECN_CAPABILITY' -and $polEngineRaw -match 'ecncapability=enabled')))
 
-$diagContentAfter = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "PostInstall-Diagnostics.ps1") -Raw
-Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita NtfsDisable8dot3NameCreation" ($diagContentAfter -match 'NtfsDisable8dot3NameCreation')
-Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita Win32PrioritySeparation" ($diagContentAfter -match 'Win32PrioritySeparation')
-Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita ECN Capability" ($diagContentAfter -match 'ECN Capability')
+$diagContentAfter = Get-Content -Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\PostInstall-Diagnostics.ps1") -Raw
+Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita directivas dinamicamente via Get-RomanOSPolicies" (([bool]($diagContentAfter -match 'Get-RomanOSPolicies')))
+Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 valida directivas con Test-RomanOSPolicy" (([bool]($diagContentAfter -match 'Test-RomanOSPolicy')))
+Assert-True "PLAN-0034: PostInstall-Diagnostics.ps1 audita ECN Capability" (([bool]($diagContentAfter -match 'ECN Capability')))
 
 # PLAN-0033: Desacoplamiento del Módulo de Navegadores
 $optimizeWebBrowsers = Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\Optimize-WebBrowsers.ps1"

@@ -19,6 +19,7 @@ WinISO_Scratch_*
 Log/*.log
 Log/*_transcript.log
 *.tmp
+*.log
 
 # VS Code / IDE settings locales
 .vscode/
@@ -31,13 +32,8 @@ scratch/
 Log/
 log_prueba_ISO/
 pruebadeblot/
-scripts/Runtimes/Logs/
-scratch/
-*.log
 
-scripts/Updates/Logs/
-
-
-# Exclusiones de descargas pesadas de modulos
-Updates/
-scripts/Builder/Runtimes/
+# Exclusiones de descargas pesadas de módulos (Ancladas a la raíz)
+/Updates/
+/Drivers/
+/Runtimes/

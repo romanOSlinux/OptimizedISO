@@ -578,14 +578,31 @@ try {
 # --- GPU: dedicada vs integrada, nombre ---
 $gpuObjs  = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue
 $isGaming = $false
+$is_iGPU = $false
 $gpuNames = @()
 foreach ($g in $gpuObjs) {
     $gpuNames += $g.Name
-    if ($g.Name -match 'NVIDIA|AMD Radeon [RX]|Intel Arc') { $isGaming = $true }
+    if ($g.Name -match 'NVIDIA|AMD Radeon (RX|[6-8][0-9]{2}M)|Intel Arc') { $isGaming = $true }
+    if ($g.Name -match 'AMD Radeon [6-8][0-9]{2}M|Intel Iris|Intel Arc Graphics') { $is_iGPU = $true }
+}
+
+if ($isLaptop -and ($gpuNames -match 'NVIDIA') -and ($gpuNames -match 'AMD Radeon|Intel')) { $hasMuxRisk = $true; Write-Host "  [!] NVIDIA Advanced Optimus (MUX Switch) detectado. Se protegeran servicios de display." -ForegroundColor Yellow 
 }
 # [FIX-PS51] Ternario inline a nivel de sentencia confunde al parser PS5.1.
 # Envolver en $() lo convierte en subexpresion valida en todos los runtime.
 $gpuLabel = $(if ($gpuNames.Count -gt 0) { $gpuNames -join ' | ' } else { 'No detectada' })
+
+# --- NPU (Neural Processing Unit) ---
+$hasNpu = $false
+$npuName = 'Ausente'
+try {
+    # [PLAN-0043] Detectar NPUs (AI PC) via clase PnP de Microsoft o nombre heuristico
+    $npuDevice = Get-PnpDevice -ErrorAction Stop | Where-Object { $_.Class -eq 'ComputeAccelerator' -or $_.FriendlyName -match 'NPU|Neural|IPU|AI' } | Select-Object -First 1
+    if ($npuDevice) {
+        $hasNpu = $true
+        $npuName = $npuDevice.FriendlyName
+    }
+} catch {}
 
 # --- Perfil de equipo consolidado ---
 # Usamos una etiqueta de perfil para mostrar al usuario y para tomar decisiones
@@ -619,6 +636,7 @@ if ($isNVMe) { $diskDisplayLabel += ' -- Acceso instantaneo' }
 Write-Host ("  | Disco     : {0,-39} |" -f $diskDisplayLabel.Substring(0,[Math]::Min($diskDisplayLabel.Length,39))) -ForegroundColor $(if($isHDD){'Yellow'} else {'Gray'})
 Write-Host ("  | Bus Disco : {0,-39} |" -f $diskBusType) -ForegroundColor Gray
 Write-Host ("  | GPU       : {0,-39} |" -f ($gpuLabel.Substring(0, [Math]::Min($gpuLabel.Length,39)))) -ForegroundColor Gray
+Write-Host ("  | NPU       : {0,-39} |" -f ($npuName.Substring(0, [Math]::Min($npuName.Length,39)))) -ForegroundColor $(if($hasNpu){'Cyan'}else{'Gray'})
 Write-Host ("  | CPU Gen   : {0,-39} |" -f $(if($isModernCPU){'MODERNA (12th+/Ryzen5k+)'}elseif($isLowEndCPU){'LOW-END'}else{'GENERACION MEDIA'})) -ForegroundColor Gray
 # Temperatura CPU (si disponible)
 if ($null -ne $cpuTempC) {
@@ -666,6 +684,10 @@ if ($cpuTempWarn) {
     Write-Host "  [ADVERTENCIA] Temperatura CPU alta en idle ($cpuTempC C)." -ForegroundColor Red
     Write-Host "    -> Posible throttling termico activo o pasta termica deteriorada." -ForegroundColor Red
     Write-Host "    -> Se recomienda revisar el sistema de enfriamiento antes de aplicar tweaks." -ForegroundColor Red
+}
+if ($hasNpu) {
+    Write-Host "  [INFO] AI PC: Procesador Neuronal (NPU) detectado." -ForegroundColor Cyan
+    Write-Host "    -> Se bloqueara la desactivacion de servicios criticos de Inteligencia Artificial." -ForegroundColor Cyan
 }
 if ($isSingleChannel -and -not $isGaming) {
     Write-Host "  [AVISO] RAM en Single Channel detectada." -ForegroundColor Yellow
@@ -1553,6 +1575,14 @@ if ($activeServices.Count -eq 0) {
     } else {
         Write-Host "  Modo desatendido: deshabilitando servicios seguros activos (excepto críticos [!] y SysMain que es dinámico)..." -ForegroundColor Gray
         $selectedServices = $activeServices | Where-Object { $_.DisplayName -notmatch '\[!\]' -and $_.Name -notmatch 'SysMain' }
+
+        # Filtrado de Salvaguardas Arquitectonicas
+        $selectedServices = $selectedServices | Where-Object { 
+            $skip = $false
+            if ($hasNpu -and ($_.Name -match 'NPU' -or $_.DisplayName -match 'NPU|OpenVINO|Neural')) { $skip = $true; Write-Host "  - Protegido:  (NPU AI Boost)" -ForegroundColor DarkGray }
+            if ($hasMuxRisk -and ($_.Name -match 'nvdisplay|nvcontainer')) { $skip = $true; Write-Host "  - Protegido:  (MUX Switch)" -ForegroundColor DarkGray }
+            -not $skip
+        }
     }
 }
 
@@ -1689,7 +1719,7 @@ if ($isHDD) {
 
 # -- SysMain segun RAM y disco --
 $sysMainSvc = Get-Service -Name SysMain -ErrorAction SilentlyContinue
-if ($isLowRAM -and -not $isHDD) {
+if ($isLowRAM -and -not $isHDD -and -not $isARM64) {
     # RAM escasa + SSD: deshabilitar SysMain (libera RAM real, SSD no necesita pre-carga)
     if ($sysMainSvc) {
         try {
@@ -1698,6 +1728,8 @@ if ($isLowRAM -and -not $isHDD) {
             Write-Host "    - SysMain DESHABILITADO (<=4GB RAM + SSD: libera RAM real)." -ForegroundColor Green
         } catch { Write-Host "    ! SysMain disable: $($_.Exception.Message)" -ForegroundColor Yellow }
     }
+} elseif ($isARM64) {
+    Write-Host "    - SysMain MANTENIDO activo (Modo Seguro ARM64: Prism requiere agresividad de cache)." -ForegroundColor Green
 } elseif ($isLowRAM -and $isHDD) {
     # RAM escasa + HDD: mantener SysMain igualmente (paginar a HDD es peor que SysMain)
     Write-Host "    - SysMain MANTENIDO activo (HDD + poca RAM: paginar a HDD seria peor)." -ForegroundColor Green
@@ -1716,6 +1748,8 @@ if ($sysMainNowDisabled -and -not $isHDD) {
     # y suprimir stream de error del host para evitar ruido en el log.
     try { Disable-MMAgent -MemoryCompression -ErrorAction SilentlyContinue 2>$null; Write-Host "    - MemoryCompression DESACTIVADO (SysMain off + SSD)." -ForegroundColor Green } catch {}
     try { Disable-MMAgent -PageCombining    -ErrorAction SilentlyContinue 2>$null; Write-Host "    - PageCombining DESACTIVADO." -ForegroundColor Green } catch {}
+} elseif ($isARM64) {
+    Write-Host "    - SysMain MANTENIDO activo (Modo Seguro ARM64: Prism requiere agresividad de cache)." -ForegroundColor Green
 } elseif ($isLowRAM -and $isHDD) {
     # Poca RAM + HDD: MANTENER compresion (comprimir es mas rapido que paginar al HDD)
     try { Enable-MMAgent -MemoryCompression -ErrorAction SilentlyContinue; Write-Host "    - MemoryCompression ACTIVO (HDD + poca RAM: mejor comprimir que paginar)." -ForegroundColor Green } catch {}
@@ -1950,6 +1984,12 @@ if (-not $Unattended) {
 
 $applyUltimate = $false
 $applyFixTimer = $false
+
+# Override TimerFix si es ARM64
+if ($isARM64 -and $selectedTweaks) {
+    $timerTweak = $selectedTweaks | Where-Object Id -eq 'FixTimer'
+    if ($timerTweak) { $selectedTweaks = $selectedTweaks | Where-Object Id -ne 'FixTimer'; Write-Host "  [!] Timer fix omitido por seguridad (ARM64 Scheduler incompatibilidad)." -ForegroundColor Yellow }
+}
 $applyGameBar  = $false
 $applyHags     = $false
 $applyVbs      = $false
@@ -2014,7 +2054,11 @@ if ($applyGameBar) {
 # AMD:    DriverVersion "27.20.xx.xxxx" o superior para WDDM 2.7+.
 # Intel:  Cualquier DCH driver moderno soporta HAGS.
 # Ref: https://learn.microsoft.com/windows-hardware/drivers/display/hardware-accelerated-gpu-scheduling
-if ($applyHags) {
+if ($applyHags -and $is_iGPU) {
+    Write-Host "  [12.B] HAGS Omitido: iGPU de Memoria Unificada (UMA) detectada." -ForegroundColor Yellow
+    Write-Host "         -> Forzar HAGS en arquitecturas UMA provoca pantallazos negros (Regresion WDDM)." -ForegroundColor Yellow
+}
+if ($applyHags -and -not $is_iGPU) {
     Write-Host "  [12.B] Activando Hardware-Accelerated GPU Scheduling (HAGS)..." -ForegroundColor Gray
     $gpuDriverOk = $false
     $gpuForHags  = $null
