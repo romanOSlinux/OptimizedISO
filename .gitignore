@@ -20,6 +20,10 @@ Log/*.log
 Log/*_transcript.log
 *.tmp
 *.log
+logpostintall.md
+
+# Presets generados localmente por el usuario o builder
+Preset_*.json
 
 # VS Code / IDE settings locales
 .vscode/
