@@ -4885,8 +4885,8 @@ $($firstLogonCommands -join "`n")
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>$($nextOrder + 4)</Order>
-          <Description>Allow Blank Password Usage for Local Accounts</Description>
-          <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f</Path>
+          <Description>Restrict Blank Password Usage to Console Logon Only (Security Hardened)</Description>
+          <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>$($nextOrder + 5)</Order>
@@ -4900,32 +4900,37 @@ $($firstLogonCommands -join "`n")
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>$($nextOrder + 7)</Order>
+          <Description>Disable Search Highlights Dynamic Content in Search Box (EnableDynamicContentInWSB=0)</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v EnableDynamicContentInWSB /t REG_DWORD /d 0 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 8)</Order>
           <Description>Disable Cloud Optimized Content (W11 24H2+)</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent /v DisableCloudOptimizedContent /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 8)</Order>
+          <Order>$($nextOrder + 9)</Order>
           <Description>Disable Consumer Account State Content</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent /v DisableConsumerAccountStateContent /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 9)</Order>
+          <Order>$($nextOrder + 10)</Order>
           <Description>Disable Automatic Microsoft Store App Downloads</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsStore /v AutoDownload /t REG_DWORD /d 2 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 10)</Order>
+          <Order>$($nextOrder + 11)</Order>
           <Description>Block Silent App Installation System-Wide (CDM)</Description>
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager /v SilentInstalledAppsEnabled /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 11)</Order>
+          <Order>$($nextOrder + 12)</Order>
           <Description>Block Pre-Installed Apps System-Wide (CDM)</Description>
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager /v PreInstalledAppsEnabled /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
 "@
 
-        $nextOrder += 12
+        $nextOrder += 13
 
         if ($optProfile -ge 2) {
             # Perfil 2+ (Gaming / Hardcore): Políticas de telemetría HKLM, Bloqueo de Drivers y Prevención BitLocker
@@ -6174,6 +6179,25 @@ if ($wimFile) {
                                              Type = "REG_DWORD"
                                              Data = "1"
                                          }
+                                         # Neutralizacion Quirurgica de Search Highlights y Bing en HKCU (PLAN-0055)
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
+                                             Name = "IsDynamicSearchBoxEnabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Search"
+                                             Name = "BingSearchEnabled"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
+                                         @{
+                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Search"
+                                             Name = "CortanaConsent"
+                                             Type = "REG_DWORD"
+                                             Data = "0"
+                                         }
                                      )
 
                                      foreach ($tweak in $tweaks) {
@@ -6259,6 +6283,43 @@ if ($wimFile) {
                                         @{
                                             Path = "HKLM\OfflineSoftware\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
                                             Name = "SystemResponsiveness"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        # Neutralizacion Quirurgica de Search Highlights y Bing en SOFTWARE hive (PLAN-0055)
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\Windows Search"
+                                            Name = "EnableDynamicContentInWSB"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\Windows Search"
+                                            Name = "DisableWebSearch"
+                                            Type = "REG_DWORD"
+                                            Data = "1"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\Windows Search"
+                                            Name = "ConnectedSearchUseWeb"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\Windows Search"
+                                            Name = "ConnectedSearchUseWebOverMeteredConnections"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\Windows Search"
+                                            Name = "AllowCloudSearch"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\Windows Search"
+                                            Name = "AllowCortana"
                                             Type = "REG_DWORD"
                                             Data = "0"
                                         }

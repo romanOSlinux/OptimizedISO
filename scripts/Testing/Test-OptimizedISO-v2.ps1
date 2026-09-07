@@ -1055,7 +1055,7 @@ Write-HarnessHeader2 "PLAN-0049: Validacion de Arquitectura de AutoLogon sin Con
 $pols49 = Get-RomanOSPolicies -Profile '1'
 $blankPwdPol = $pols49 | Where-Object { $_.Id -eq 'POL_AUTH_LIMIT_BLANK_PASSWORD' }
 Assert-NotNull "PLAN-0049: Politica POL_AUTH_LIMIT_BLANK_PASSWORD registrada en Policy-Engine" $blankPwdPol
-Assert-Equal "PLAN-0049: Politica LimitBlankPasswordUse valor esperado es 0" $blankPwdPol.ExpectedValue 0
+Assert-Equal "PLAN-0049/0055: Politica LimitBlankPasswordUse valor esperado es 1 (Consola Local Segura)" $blankPwdPol.ExpectedValue 1
 Assert-Equal "PLAN-0049: Politica LimitBlankPasswordUse apunta a Lsa" $blankPwdPol.RegistryKey "HKLM\SYSTEM\CurrentControlSet\Control\Lsa"
 
 $pwdLessPol = $pols49 | Where-Object { $_.Id -eq 'POL_PASSWORDLESS_BUILD' }
@@ -1159,6 +1159,33 @@ Assert-True "PLAN-0054: Builder New-OptimizedWindowsISO-v2 invoca Write-Forensic
 Assert-True "PLAN-0054: Builder New-OptimizedWindowsISO-v2 invoca Assert-ResourceCommitment en Updates" ([bool]($v2FreshContent -match 'Assert-ResourceCommitment\s+-ResourceName\s+"Windows Updates'))
 Assert-True "PLAN-0054: Builder New-OptimizedWindowsISO-v2 invoca Assert-ResourceCommitment en Drivers" ([bool]($v2FreshContent -match 'Assert-ResourceCommitment\s+-ResourceName\s+"Controladores Hardware'))
 Assert-True "PLAN-0054: Builder sincroniza variables globales de telemetria en Initialize-Log" ([bool]($v2FreshContent -match '\$global:RomanOS_LogFile\s*=\s*\$script:LogFile'))
+
+# --- PLAN-0055: NEUTRALIZACION QUIRURGICA DE SEARCH HIGHLIGHTS Y BING (ZERO-OVERHEAD WEBVIEW2) ---
+Write-HarnessHeader2 "PLAN-0055: Neutralizacion Quirurgica de Search Highlights y WebView2"
+$pols55 = Get-RomanOSPolicies -Profile '1'
+$dynamicWsbPol = $pols55 | Where-Object { $_.Id -eq 'POL_SEARCH_DYNAMIC_CONTENT_WSB' }
+Assert-NotNull "PLAN-0055: Politica POL_SEARCH_DYNAMIC_CONTENT_WSB registrada en Policy-Engine" $dynamicWsbPol
+Assert-Equal "PLAN-0055: Politica EnableDynamicContentInWSB valor esperado es 0" $dynamicWsbPol.ExpectedValue 0
+Assert-Equal "PLAN-0055: Politica EnableDynamicContentInWSB apunta a Windows Search" $dynamicWsbPol.RegistryKey "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+
+$meteredPol = $pols55 | Where-Object { $_.Id -eq 'POL_SEARCH_CONNECTED_METERED' }
+Assert-NotNull "PLAN-0055: Politica POL_SEARCH_CONNECTED_METERED registrada en Policy-Engine" $meteredPol
+Assert-Equal "PLAN-0055: Politica ConnectedSearchUseWebOverMeteredConnections valor esperado es 0" $meteredPol.ExpectedValue 0
+
+$cortanaPol = $pols55 | Where-Object { $_.Id -eq 'POL_SEARCH_CORTANA_ALLOW' }
+Assert-NotNull "PLAN-0055: Politica POL_SEARCH_CORTANA_ALLOW registrada en Policy-Engine" $cortanaPol
+Assert-Equal "PLAN-0055: Politica AllowCortana valor esperado es 0" $cortanaPol.ExpectedValue 0
+
+$unattendExp55 = Export-RomanOSUnattendCommands -Profile '1' -StartOrder 2
+Assert-True "PLAN-0055: Export-RomanOSUnattendCommands incluye directiva EnableDynamicContentInWSB" ([bool]($unattendExp55.XmlContent -match 'EnableDynamicContentInWSB'))
+
+# Validacion en el Builder New-OptimizedWindowsISO-v2.ps1
+$v2FreshContent55 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0055: Builder inyecta IsDynamicSearchBoxEnabled en NTUSER.DAT" ([bool]($v2FreshContent55 -match 'IsDynamicSearchBoxEnabled'))
+Assert-True "PLAN-0055: Builder inyecta BingSearchEnabled en NTUSER.DAT" ([bool]($v2FreshContent55 -match 'BingSearchEnabled'))
+Assert-True "PLAN-0055: Builder inyecta EnableDynamicContentInWSB en SOFTWARE hive" ([bool]($v2FreshContent55 -match 'HKLM\\OfflineSoftware\\Policies\\Microsoft\\Windows\\Windows Search' -and $v2FreshContent55 -match 'EnableDynamicContentInWSB'))
+Assert-True "PLAN-0055: Builder configura LimitBlankPasswordUse en 1 en autounattend" ([bool]($v2FreshContent55 -match 'LimitBlankPasswordUse\s+/t\s+REG_DWORD\s+/d\s+1\s+/f'))
+
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"

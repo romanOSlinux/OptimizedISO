@@ -83,6 +83,48 @@ $global:RomanOS_Policies = @(
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
         UnattendDesc  = "Disable Connected Search Web Previews in Start Menu"
     },
+    @{
+        Id            = "POL_SEARCH_DYNAMIC_CONTENT_WSB"
+        Module        = "Modulo F - Bing Web Search"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        ValueName     = "EnableDynamicContentInWSB"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar Search Highlights (contenido dinamico en cuadro de busqueda de Windows)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
+        UnattendDesc  = "Disable Search Highlights Dynamic Content in Search Box (EnableDynamicContentInWSB=0)"
+    },
+    @{
+        Id            = "POL_SEARCH_CONNECTED_METERED"
+        Module        = "Modulo F - Bing Web Search"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        ValueName     = "ConnectedSearchUseWebOverMeteredConnections"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar busqueda web conectada sobre conexiones medidas"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
+        UnattendDesc  = "Disable Connected Search Web Over Metered Connections"
+    },
+    @{
+        Id            = "POL_SEARCH_CORTANA_ALLOW"
+        Module        = "Modulo F - Bing Web Search"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        ValueName     = "AllowCortana"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar asistente Cortana a nivel de sistema"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
+        UnattendDesc  = "Disable Cortana Assistant System-Wide"
+    },
 
     # --- MÓDULO D: IA, COPILOT Y RECALL (W11 24H2+) ---
     @{
@@ -353,11 +395,11 @@ $global:RomanOS_Policies = @(
         PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
         ValueName     = "LimitBlankPasswordUse"
         Type          = "REG_DWORD"
-        ExpectedValue = 0
+        ExpectedValue = 1
         Profiles      = @(1, 2, 3)
-        Description   = "Permitir uso y autenticacion con contrasena en blanco en cuentas locales"
+        Description   = "Restringir uso de cuentas con contrasena en blanco exclusivamente a inicio de sesion en consola local (Seguridad de Red)"
         OfficialDoc   = "https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/blank-password-restriction-policy"
-        UnattendDesc  = "Allow Blank Password Usage for Local Accounts (LimitBlankPasswordUse=0)"
+        UnattendDesc  = "Restrict Blank Password Usage to Console Logon Only (LimitBlankPasswordUse=1)"
     },
     @{
         Id            = "POL_EXPLORER_RECOMMENDED"
