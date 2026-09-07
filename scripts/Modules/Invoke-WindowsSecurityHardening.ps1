@@ -482,7 +482,11 @@ function Export-SecurityAuditReports {
     $mdFilePath = Join-Path $OutputDir "SecurityAudit_Report.md"
     $desktopMdFilePath = Join-Path $desktopPath "INFORME_SEGURIDAD.md"
     [System.IO.File]::WriteAllText($mdFilePath, $mdText, [System.Text.Encoding]::UTF8)
-    try { [System.IO.File]::WriteAllText($desktopMdFilePath, $mdText, [System.Text.Encoding]::UTF8) } catch {}
+    try { 
+        [System.IO.File]::WriteAllText($desktopMdFilePath, $mdText, [System.Text.Encoding]::UTF8) 
+    } catch {
+        Write-Warn -Message "No se pudo copiar el informe de seguridad al escritorio del usuario." -Cause $_.Exception.Message -Action "El informe permanece disponible en $mdFilePath"
+    }
 
     # Generar Reporte HTML Offline Dashboard
     $htmlRows = [System.Collections.Generic.List[string]]::new()
@@ -625,7 +629,11 @@ function Export-SecurityAuditReports {
     $htmlFilePath = Join-Path $OutputDir "SecurityAudit_Report.html"
     $desktopHtmlFilePath = Join-Path $desktopPath "INFORME_SEGURIDAD.html"
     [System.IO.File]::WriteAllText($htmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8)
-    try { [System.IO.File]::WriteAllText($desktopHtmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8) } catch {}
+    try { 
+        [System.IO.File]::WriteAllText($desktopHtmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8) 
+    } catch {
+        Write-Warn -Message "No se pudo copiar el dashboard HTML de seguridad al escritorio del usuario." -Cause $_.Exception.Message -Action "El dashboard permanece disponible en $htmlFilePath"
+    }
 
     Write-Host ""
     Write-Host "==========================================================================" -ForegroundColor Cyan

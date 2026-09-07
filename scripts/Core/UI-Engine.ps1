@@ -21,6 +21,17 @@ $global:RomanOS_UI_Engine_Loaded = $true
 # Configurar ancho estandar de consola
 $script:UI_BoxWidth = 74
 
+# Telemetria y Observabilidad Global (PLAN-0054 SSOT)
+if ($null -eq $global:RomanOS_LogErrors) {
+    $global:RomanOS_LogErrors = New-Object System.Collections.ArrayList
+}
+if ($null -eq $global:RomanOS_LogWarns) {
+    $global:RomanOS_LogWarns = New-Object System.Collections.ArrayList
+}
+if ($null -eq $global:RomanOS_LogFile) {
+    $global:RomanOS_LogFile = ""
+}
+
 function Show-UnifiedBanner {
     [CmdletBinding()]
     param(
@@ -110,28 +121,253 @@ function Write-SubStep {
     Write-Host "  -> $Message" -ForegroundColor Gray
 }
 
+function Initialize-UnifiedLog {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter()]
+        [switch]$Append
+    )
+
+    $dir = Split-Path -Parent $Path
+    if ($dir -and -not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+
+    $global:RomanOS_LogFile = $Path
+    if (-not $Append) {
+        $header = "=== romanOS Unified Log Session Started: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ==="
+        [System.IO.File]::WriteAllLines($Path, @($header), [System.Text.Encoding]::UTF8)
+    }
+}
+
+function Write-UnifiedLogEntry {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+        [Parameter()]
+        [ValidateSet("INFO", "OK", "WARN", "ERROR", "DEBUG", "TRACE")]
+        [string]$Level = "INFO",
+        [Parameter()]
+        [string]$TargetLogFile = $global:RomanOS_LogFile
+    )
+
+    $ts = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+    $logLine = "[$ts] [$Level] $Message"
+
+    if ($TargetLogFile) {
+        try {
+            [System.IO.File]::AppendAllLines($TargetLogFile, @($logLine), [System.Text.Encoding]::UTF8)
+        } catch {
+            # Fallback silencioso para no generar bucles de error
+        }
+    }
+    return $logLine
+}
+
 function Write-OK {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][string]$Message)
     Write-Host "  [OK] $Message" -ForegroundColor Green
+    Write-UnifiedLogEntry -Message $Message -Level "OK" | Out-Null
+    try {
+        if ($script:CurrentStepObj) {
+            if ($script:CurrentStepObj.Status -eq "IN_PROGRESS") {
+                $script:CurrentStepObj.Status = "OK"
+            }
+            if (-not $script:CurrentStepObj.Note) {
+                $script:CurrentStepObj.Note = $Message
+            }
+        }
+    } catch {}
 }
 
 function Write-Warn {
     [CmdletBinding()]
-    param([Parameter(Mandatory = $true)][string]$Message)
-    Write-Host "  [WARN] $Message" -ForegroundColor Yellow
+    param(
+        [Parameter(Mandatory = $true)][string]$Message,
+        [Parameter()][string]$Cause = "",
+        [Parameter()][string]$Action = ""
+    )
+
+    $fullMsg = $Message
+    if ($Cause -or $Action) {
+        $details = @()
+        if ($Cause) { $details += "Causa: $Cause" }
+        if ($Action) { $details += "Accion: $Action" }
+        $fullMsg = "$Message (" + ($details -join " | ") + ")"
+    }
+
+    Write-Host "  [WARN] $fullMsg" -ForegroundColor Yellow
+    Write-UnifiedLogEntry -Message $fullMsg -Level "WARN" | Out-Null
+    if ($null -ne $global:RomanOS_LogWarns) {
+        [void]$global:RomanOS_LogWarns.Add($fullMsg)
+    }
+    try {
+        if ($null -ne $script:LogWarns -and -not [object]::ReferenceEquals($script:LogWarns, $global:RomanOS_LogWarns)) {
+            [void]$script:LogWarns.Add($fullMsg)
+        }
+    } catch {}
+    try {
+        if ($script:CurrentStepObj -and $script:CurrentStepObj.Status -ne "ERROR") {
+            $script:CurrentStepObj.Status = "WARN"
+            $script:CurrentStepObj.Note = $fullMsg
+        }
+    } catch {}
 }
 
 function Write-ErrorMsg {
     [CmdletBinding()]
-    param([Parameter(Mandatory = $true)][string]$Message)
-    Write-Host "  [ERROR] $Message" -ForegroundColor Red
+    param(
+        [Parameter(Mandatory = $true)][string]$Message,
+        [Parameter()][string]$Cause = "",
+        [Parameter()][string]$Action = ""
+    )
+
+    $fullMsg = $Message
+    if ($Cause -or $Action) {
+        $details = @()
+        if ($Cause) { $details += "Causa: $Cause" }
+        if ($Action) { $details += "Accion: $Action" }
+        $fullMsg = "$Message (" + ($details -join " | ") + ")"
+    }
+
+    Write-Host "  [ERROR] $fullMsg" -ForegroundColor Red
+    Write-UnifiedLogEntry -Message $fullMsg -Level "ERROR" | Out-Null
+    if ($null -ne $global:RomanOS_LogErrors) {
+        [void]$global:RomanOS_LogErrors.Add($fullMsg)
+    }
+    try {
+        if ($null -ne $script:LogErrors -and -not [object]::ReferenceEquals($script:LogErrors, $global:RomanOS_LogErrors)) {
+            [void]$script:LogErrors.Add($fullMsg)
+        }
+    } catch {}
+    try {
+        if ($script:CurrentStepObj) {
+            $script:CurrentStepObj.Status = "ERROR"
+            $script:CurrentStepObj.Note = $fullMsg
+        }
+    } catch {}
 }
 
 function Write-Info {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][string]$Message)
     Write-Host "  [i] $Message" -ForegroundColor DarkGray
+    Write-UnifiedLogEntry -Message $Message -Level "INFO" | Out-Null
+}
+
+function Write-ForensicException {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        $Record,
+        [Parameter()]
+        [string]$Context = "",
+        [Parameter()]
+        [string]$SuggestedAction = ""
+    )
+
+    $msg = ""
+    $scriptName = "Desconocido"
+    $lineNum = 0
+    $lineCode = ""
+    $stackTrace = ""
+
+    if ($Record -is [System.Management.Automation.ErrorRecord]) {
+        $msg = $Record.Exception.Message
+        if ($Record.InvocationInfo) {
+            $scriptName = if ($Record.InvocationInfo.ScriptName) { Split-Path -Leaf $Record.InvocationInfo.ScriptName } else { $Record.InvocationInfo.MyCommand.Name }
+            $lineNum = $Record.InvocationInfo.ScriptLineNumber
+            $lineCode = if ($Record.InvocationInfo.Line) { $Record.InvocationInfo.Line.Trim() } else { "" }
+        }
+        $stackTrace = $Record.ScriptStackTrace
+    } elseif ($Record -is [System.Exception]) {
+        $msg = $Record.Message
+        $stackTrace = $Record.StackTrace
+    } else {
+        $msg = "$Record"
+    }
+
+    $ctxPrefix = if ($Context) { "[$Context] " } else { "" }
+    $locStr = if ($lineNum -gt 0) { " en ${scriptName}:${lineNum}" } else { " en $scriptName" }
+    
+    $forensicHeader = "$($ctxPrefix)Excepcion$($locStr): $msg"
+    Write-Host "  [ERROR FORENSE] $forensicHeader" -ForegroundColor Red
+
+    if ($lineCode) {
+        Write-Host "    -> Linea de codigo : $lineCode" -ForegroundColor DarkYellow
+    }
+    if ($SuggestedAction) {
+        Write-Host "    -> Accion sugerida : $SuggestedAction" -ForegroundColor Cyan
+    }
+    if ($stackTrace) {
+        $cleanStack = ($stackTrace -split "`r?`n" | Select-Object -First 3) -join " <- "
+        Write-Host "    -> Pila de llamadas: $cleanStack" -ForegroundColor DarkGray
+    }
+
+    $logPayload = "$forensicHeader | Linea: [$lineCode] | Stack: [$stackTrace]"
+    if ($SuggestedAction) { $logPayload += " | Accion: [$SuggestedAction]" }
+
+    Write-UnifiedLogEntry -Message $logPayload -Level "ERROR" | Out-Null
+    if ($null -ne $global:RomanOS_LogErrors) {
+        [void]$global:RomanOS_LogErrors.Add($forensicHeader)
+    }
+    try {
+        if ($null -ne $script:LogErrors -and -not [object]::ReferenceEquals($script:LogErrors, $global:RomanOS_LogErrors)) {
+            [void]$script:LogErrors.Add($forensicHeader)
+        }
+    } catch {}
+    try {
+        if ($script:CurrentStepObj) {
+            $script:CurrentStepObj.Status = "ERROR"
+            $script:CurrentStepObj.Note = $forensicHeader
+        }
+    } catch {}
+
+    return [PSCustomObject]@{
+        Header          = $forensicHeader
+        LineNumber      = $lineNum
+        LineCode        = $lineCode
+        ScriptName      = $scriptName
+        SuggestedAction = $SuggestedAction
+        Message         = $msg
+    }
+}
+
+function Assert-ResourceCommitment {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceName,
+        [Parameter(Mandatory = $true)]
+        [bool]$PreflightFound,
+        [Parameter(Mandatory = $true)]
+        [bool]$ExecutionApplied,
+        [Parameter()]
+        [string]$ExpectedPath = "",
+        [Parameter()]
+        [string]$FailureReason = "",
+        [Parameter()]
+        [switch]$Fatal
+    )
+
+    if ($PreflightFound -and -not $ExecutionApplied) {
+        $reason = if ($FailureReason) { $FailureReason } else { "El recurso fue detectado en Preflight pero no se aplico durante la fase de ejecucion." }
+        $pathInfo = if ($ExpectedPath) { " (Ruta: '$ExpectedPath')" } else { "" }
+        $alertMsg = "DESVIO DE COMPROMISO: Recurso '$ResourceName'$pathInfo detectado en Preflight pero OMITIDO en ejecucion."
+
+        if ($Fatal) {
+            Write-ErrorMsg -Message $alertMsg -Cause $reason -Action "Verifique que la ruta de origen no este bloqueada y contenga los artefactos requeridos."
+            throw $alertMsg
+        } else {
+            Write-Warn -Message $alertMsg -Cause $reason -Action "Revise la configuracion y los logs para determinar si fue intencional o un error de ruta."
+        }
+        return $false
+    }
+    return $true
 }
 
 function Show-UnifiedMenu {
@@ -264,6 +500,13 @@ function Show-UnifiedSummary {
         [Parameter()]
         [hashtable]$Logs = @{}
     )
+
+    if (-not $PSBoundParameters.ContainsKey("ErrorsCount") -and ($null -ne $global:RomanOS_LogErrors)) {
+        $ErrorsCount = $global:RomanOS_LogErrors.Count
+    }
+    if (-not $PSBoundParameters.ContainsKey("WarnsCount") -and ($null -ne $global:RomanOS_LogWarns)) {
+        $WarnsCount = $global:RomanOS_LogWarns.Count
+    }
 
     $w = if ($script:UI_BoxWidth -and $script:UI_BoxWidth -gt 10) { $script:UI_BoxWidth } else { 74 }
     $border = "═" * [math]::Max(1, ($w - 2))

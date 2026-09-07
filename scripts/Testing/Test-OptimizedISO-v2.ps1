@@ -48,7 +48,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 61
+$EXPECTED_FUNCS  = 67
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -329,7 +329,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "61 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "67 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -1120,6 +1120,45 @@ Assert-True "PLAN-0053: Builder crea wimModulesDest con New-Item" ([bool]($v2Fre
 Assert-True "PLAN-0053: Resolucion de Updates en Paso 5 comprueba paquetes reales" ([bool]($v2FreshContent -match 'Get-ChildItem -Path \$resolvedUpdatesDir -Include \*\.msu, \*\.cab'))
 Assert-True "PLAN-0053: Resolucion de Drivers en Paso 5 comprueba drivers reales" ([bool]($v2FreshContent -match 'Get-ChildItem -Path \$resolvedDriversDir -Include \*\.inf'))
 Assert-True "PLAN-0053: Submodulos de la suite inyectan en wimModulesDest" ([bool]($v2FreshContent -match 'wimSubmModDest\s*=\s*Join-Path \$wimModulesDest \$subm\.Name'))
+
+# --- PLAN-0054: ECOSISTEMA UNIFICADO DE OBSERVABILIDAD Y DIAGNOSTICO FORENSE ---
+Write-HarnessHeader2 "PLAN-0054: Observabilidad y Diagnostico Forense"
+if ($UIEngine -and (Test-Path $UIEngine)) {
+    . $UIEngine
+}
+$uiEngineContent = if ($UIEngine) { Get-Content $UIEngine -Raw -Encoding UTF8 -ErrorAction SilentlyContinue } else { "" }
+
+Assert-True "PLAN-0054: UI-Engine exporta Write-ForensicException" ([bool]($uiEngineContent -match 'function\s+Write-ForensicException'))
+Assert-True "PLAN-0054: UI-Engine exporta Assert-ResourceCommitment" ([bool]($uiEngineContent -match 'function\s+Assert-ResourceCommitment'))
+Assert-True "PLAN-0054: UI-Engine declara telemetria global RomanOS_LogErrors" ([bool]($uiEngineContent -match '\$global:RomanOS_LogErrors'))
+Assert-True "PLAN-0054: UI-Engine declara telemetria global RomanOS_LogWarns" ([bool]($uiEngineContent -match '\$global:RomanOS_LogWarns'))
+Assert-True "PLAN-0054: UI-Engine declara telemetria global RomanOS_LogFile" ([bool]($uiEngineContent -match '\$global:RomanOS_LogFile'))
+
+# Prueba funcional sintética de Write-ForensicException
+$forensicTestResult = $null
+try {
+    $nullObj = $null
+    $nullObj.NonExistentMethod()
+} catch {
+    $forensicTestResult = Write-ForensicException -Record $_ -Context "TestHarness" -SuggestedAction "Accion de prueba"
+}
+Assert-NotNull "PLAN-0054: Write-ForensicException retorna objeto de diagnostico estructurado" $forensicTestResult
+Assert-True "PLAN-0054: Write-ForensicException captura numero de linea (>0)" ([bool]($forensicTestResult.LineNumber -gt 0))
+Assert-True "PLAN-0054: Write-ForensicException captura la linea de codigo exacta" ([bool]($forensicTestResult.LineCode -match 'NonExistentMethod'))
+Assert-True "PLAN-0054: Write-ForensicException registra mensaje en acumulador global" ([bool]($global:RomanOS_LogErrors -and $global:RomanOS_LogErrors.Count -gt 0))
+
+# Prueba funcional sintética de Assert-ResourceCommitment
+$assertPass = Assert-ResourceCommitment -ResourceName "TestRec" -PreflightFound $true -ExecutionApplied $true
+Assert-True "PLAN-0054: Assert-ResourceCommitment valida ejecucion correcta" $assertPass
+
+$assertFail = Assert-ResourceCommitment -ResourceName "TestRecDesvio" -PreflightFound $true -ExecutionApplied $false -FailureReason "Simulacion de omision"
+Assert-False "PLAN-0054: Assert-ResourceCommitment detecta desvio cuando preflight es true y execution es false" $assertFail
+
+# Verificación en el Builder New-OptimizedWindowsISO-v2.ps1
+Assert-True "PLAN-0054: Builder New-OptimizedWindowsISO-v2 invoca Write-ForensicException en WIM servicing" ([bool]($v2FreshContent -match 'Write-ForensicException\s+-Record\s+\$_.*Inyeccion en WIM'))
+Assert-True "PLAN-0054: Builder New-OptimizedWindowsISO-v2 invoca Assert-ResourceCommitment en Updates" ([bool]($v2FreshContent -match 'Assert-ResourceCommitment\s+-ResourceName\s+"Windows Updates'))
+Assert-True "PLAN-0054: Builder New-OptimizedWindowsISO-v2 invoca Assert-ResourceCommitment en Drivers" ([bool]($v2FreshContent -match 'Assert-ResourceCommitment\s+-ResourceName\s+"Controladores Hardware'))
+Assert-True "PLAN-0054: Builder sincroniza variables globales de telemetria en Initialize-Log" ([bool]($v2FreshContent -match '\$global:RomanOS_LogFile\s*=\s*\$script:LogFile'))
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"

@@ -573,7 +573,9 @@ try {
     $desktopReportPath = Join-Path $desktopPath "INFORME_INSTALACION.md"
     try {
         [System.IO.File]::WriteAllText($desktopReportPath, $finalReport, [System.Text.Encoding]::UTF8)
-    } catch {}
+    } catch {
+        Write-Warn -Message "No se pudo copiar el informe al escritorio del usuario." -Cause $_.Exception.Message -Action "El informe permanece disponible en $systemReportPath"
+    }
 
     # Generar Dashboard HTML Offline
     $badgeClassFinal = if ($criticalErrors.Count -gt 0) { 'badge-danger' } elseif ($warnings.Count -gt 0) { 'badge-warn' } else { 'badge-ok' }
@@ -751,7 +753,9 @@ try {
     [System.IO.File]::WriteAllText($systemReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
     try {
         [System.IO.File]::WriteAllText($desktopReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
-    } catch {}
+    } catch {
+        Write-Warn -Message "No se pudo copiar el dashboard HTML al escritorio del usuario." -Cause $_.Exception.Message -Action "El dashboard permanece disponible en $systemReportHtmlPath"
+    }
 
     # Salida en consola
     $logMap = @{

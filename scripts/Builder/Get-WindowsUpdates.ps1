@@ -254,7 +254,9 @@ function Write-LogSummary {
         if ($script:AiSummaryFile) {
             [System.IO.File]::WriteAllText($script:AiSummaryFile, $sb.ToString(), [System.Text.Encoding]::UTF8)
         }
-    } catch {}
+    } catch {
+        Write-ForensicException -Record $_ -Context "Generacion AI_SUMMARY.md" -SuggestedAction "Verifique permisos de escritura en la carpeta de Logs"
+    }
 
     $logMap = @{}
     if ($script:AiSummaryFile)  { $logMap["AI Diagnostic MD"] = $script:AiSummaryFile }
@@ -834,7 +836,9 @@ try {
     $manifestJson = $manifestData | ConvertTo-Json -Depth 4
     [System.IO.File]::WriteAllText($manifestPath, $manifestJson, [System.Text.Encoding]::UTF8)
     Write-OK "Manifiesto de actualizaciones guardado: $manifestPath"
-} catch {}
+} catch {
+    Write-ForensicException -Record $_ -Context "Guardado de Manifiesto de Updates" -SuggestedAction "Verifique permisos de escritura en la carpeta de destino"
+}
 
 Write-LogSummary
 

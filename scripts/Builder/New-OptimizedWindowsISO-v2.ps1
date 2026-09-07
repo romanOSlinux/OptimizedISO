@@ -314,12 +314,35 @@ if (-not $uiLoaded) {
     function Write-StepHeader    { param([int]$StepNumber, [int]$TotalSteps, [string]$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
     function Write-SubStep       { param([string]$Message) Write-Host "  -> $Message" -ForegroundColor Gray }
     function Write-OK            { param([string]$Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
-    function Write-Warn          { param([string]$Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
-    function Write-ErrorMsg      { param([string]$Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
+    function Write-Warn          { param([string]$Message, [string]$Cause = "", [string]$Action = "") Write-Host "  [WARN] $Message $(if($Cause){"(Causa: $Cause)"})" -ForegroundColor Yellow }
+    function Write-ErrorMsg      { param([string]$Message, [string]$Cause = "", [string]$Action = "") Write-Host "  [ERROR] $Message $(if($Cause){"(Causa: $Cause)"})" -ForegroundColor Red }
     function Write-Info          { param([string]$Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
     function Prompt-UnifiedYesNo { param($Prompt, [bool]$Default = $true) $d = if ($Default) { "S" } else { "N" }; $r = Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if ([string]::IsNullOrWhiteSpace($r)) { return $Default }; return ($r -match '^(s|si|y|yes)$') }
     function Show-UnifiedMenu    { param($Title, $Options, [int]$DefaultChoice = 1, [switch]$AllowCancel, [string]$CancelText = "Salir") for ($i = 0; $i -lt $Options.Count; $i++) { Write-Host "  [$($i+1)] $($Options[$i])" }; if ($AllowCancel) { Write-Host "  [0] $CancelText" }; $r = Read-Host "  Opción"; if (-not $r) { return $DefaultChoice }; return [int]$r }
     function Show-UnifiedSummary { param($Title, $Status, $DurationSeconds, $ErrorsCount, $WarnsCount, $Logs) Write-Host "`n=== $Title : $Status ($($DurationSeconds)s) ===`n" -ForegroundColor Cyan }
+    function Write-ForensicException {
+        param($Record, [string]$Context = "", [string]$SuggestedAction = "")
+        $msg = if ($Record -is [System.Management.Automation.ErrorRecord]) { $Record.Exception.Message } else { "$Record" }
+        $ln = if ($Record -is [System.Management.Automation.ErrorRecord] -and $Record.InvocationInfo) { $Record.InvocationInfo.ScriptLineNumber } else { 1 }
+        $lc = if ($Record -is [System.Management.Automation.ErrorRecord] -and $Record.InvocationInfo) { $Record.InvocationInfo.Line.Trim() } else { "" }
+        Write-Host "  [ERROR FORENSE] [$Context] $msg" -ForegroundColor Red
+        return [PSCustomObject]@{
+            Header          = "[$Context] $msg"
+            LineNumber      = $ln
+            LineCode        = $lc
+            ScriptName      = "Fallback"
+            SuggestedAction = $SuggestedAction
+            Message         = $msg
+        }
+    }
+    function Assert-ResourceCommitment {
+        param($ResourceName, $PreflightFound, $ExecutionApplied, $ExpectedPath = "", $FailureReason = "", [switch]$Fatal)
+        if ($PreflightFound -and -not $ExecutionApplied) {
+            Write-Host "  [WARN CRITICO] DESVIO: $ResourceName" -ForegroundColor Yellow
+            return $false
+        }
+        return $true
+    }
 }
 
 #------------------------------------------------------------------------------
@@ -425,6 +448,11 @@ function Initialize-Log {
     $script:TranscriptFile  = Join-Path $logDir "ISO_Build_${ts}_transcript.log"
     $script:AiSummaryFile   = Join-Path $logDir "ISO_Build_${ts}_AI_SUMMARY.md"
     $script:BuildStartTime  = Get-Date
+
+    # Sincronizar con motor global de telemetria y observabilidad (PLAN-0054)
+    $global:RomanOS_LogFile   = $script:LogFile
+    $global:RomanOS_LogErrors = $script:LogErrors
+    $global:RomanOS_LogWarns  = $script:LogWarns
 
     # Abrir transcript de consola completo
     try {
@@ -718,12 +746,23 @@ function Write-OK {
 }
 
 function Write-Warn {
-    param([string]$Message)
-    Write-Host "  [WARN] $Message" -ForegroundColor Yellow
-    Write-LogEntry -Level "WARN" -Message $Message
+    param(
+        [string]$Message,
+        [string]$Cause = "",
+        [string]$Action = ""
+    )
+    $fullMsg = $Message
+    if ($Cause -or $Action) {
+        $details = @()
+        if ($Cause) { $details += "Causa: $Cause" }
+        if ($Action) { $details += "Accion: $Action" }
+        $fullMsg = "$Message (" + ($details -join " | ") + ")"
+    }
+    Write-Host "  [WARN] $fullMsg" -ForegroundColor Yellow
+    Write-LogEntry -Level "WARN" -Message $fullMsg
     if ($script:CurrentStepObj -and $script:CurrentStepObj.Status -ne "ERROR") {
         $script:CurrentStepObj.Status = "WARN"
-        $script:CurrentStepObj.Note = $Message
+        $script:CurrentStepObj.Note = $fullMsg
     }
 }
 
@@ -734,12 +773,23 @@ function Write-Info {
 }
 
 function Write-ErrorMsg {
-    param([string]$Message)
-    Write-Host "  [ERROR] $Message" -ForegroundColor Red
-    Write-LogEntry -Level "ERROR" -Message $Message
+    param(
+        [string]$Message,
+        [string]$Cause = "",
+        [string]$Action = ""
+    )
+    $fullMsg = $Message
+    if ($Cause -or $Action) {
+        $details = @()
+        if ($Cause) { $details += "Causa: $Cause" }
+        if ($Action) { $details += "Accion: $Action" }
+        $fullMsg = "$Message (" + ($details -join " | ") + ")"
+    }
+    Write-Host "  [ERROR] $fullMsg" -ForegroundColor Red
+    Write-LogEntry -Level "ERROR" -Message $fullMsg
     if ($script:CurrentStepObj) {
         $script:CurrentStepObj.Status = "ERROR"
-        $script:CurrentStepObj.Note = $Message
+        $script:CurrentStepObj.Note = $fullMsg
     }
 }
 
@@ -3806,6 +3856,7 @@ foreach ($candUpd in $candidateUpdates) {
         }
     }
 }
+$script:PreflightUpdatesDetected = [bool]$resolvedUpdatesDir
 if (-not $resolvedUpdatesDir) {
     Write-Info "Actualizaciones (MSU): No detectadas (Opcional - ejecute scripts\Builder\Get-WindowsUpdates.ps1 si requiere parches offline)"
     Write-LogEntry -Level "INFO" -Message "Updates no detectados. Se omitirá slipstreaming offline."
@@ -3842,6 +3893,7 @@ foreach ($candDrv in $candidateDrivers) {
         }
     }
 }
+$script:PreflightDriversDetected = [bool]$resolvedDriversDir
 if (-not $resolvedDriversDir) {
     Write-Info "Controladores (INF) : No detectados (Opcional - coloque drivers .inf en Drivers/ si los requiere)"
     Write-LogEntry -Level "INFO" -Message "Drivers no detectados. Se omitirá inyección de drivers."
@@ -5373,13 +5425,22 @@ if ($wimFile) {
                     Write-Host "    ══ Slipstreaming de actualizaciones ══" -ForegroundColor Cyan
 
                     if (-not $resolvedUpdatesDir) {
-                        Write-Host "    Carpeta 'Updates' no encontrada. Slipstreaming omitido." -ForegroundColor DarkYellow
-                        Write-Host "    Para inyectar parches, descarguelos con scripts\Builder\Get-WindowsUpdates.ps1 o coloquew archivos .msu/.cab en 'Updates\'." -ForegroundColor Gray
+                        Assert-ResourceCommitment -ResourceName "Windows Updates (MSU/CAB)" `
+                            -PreflightFound ([bool]$script:PreflightUpdatesDetected) `
+                            -ExecutionApplied $false `
+                            -ExpectedPath "" `
+                            -FailureReason "La carpeta de actualizaciones detectada en Preflight ya no esta accesible o no contiene paquetes .msu/.cab"
+                        Write-Warn -Message "Slipstreaming de actualizaciones omitido." -Cause "Carpeta 'Updates' no resuelta o sin paquetes .msu/.cab" -Action "Descargue actualizaciones ejecutando scripts\Builder\Get-WindowsUpdates.ps1"
                     } else {
                         $packages = Get-ChildItem -Path $resolvedUpdatesDir -Include *.msu, *.cab -Recurse -ErrorAction SilentlyContinue
 
                         if ($packages.Count -eq 0) {
-                            Write-Host "    Carpeta '$resolvedUpdatesDir' encontrada pero sin archivos .msu/.cab." -ForegroundColor DarkYellow
+                            Assert-ResourceCommitment -ResourceName "Windows Updates (MSU/CAB)" `
+                                -PreflightFound ([bool]$script:PreflightUpdatesDetected) `
+                                -ExecutionApplied $false `
+                                -ExpectedPath $resolvedUpdatesDir `
+                                -FailureReason "Carpeta '$resolvedUpdatesDir' encontrada pero sin archivos .msu/.cab validos"
+                            Write-Warn -Message "Slipstreaming de actualizaciones omitido." -Cause "Carpeta '$resolvedUpdatesDir' sin archivos .msu/.cab" -Action "Coloque paquetes .msu/.cab dentro de la carpeta"
                         } else {
                             # Ordenación técnica oficial:
                             # 1. SSU (Servicing Stack)
@@ -5527,6 +5588,7 @@ if ($wimFile) {
                                 } catch {
                                     $failCount++
                                     Write-Host " ERROR: $($_.Exception.Message)." -ForegroundColor Red
+                                    Write-ForensicException -Record $_ -Context "Slipstream Update ($($pkg.Name))" -SuggestedAction "Verifique la compatibilidad del paquete KB con la version de Windows en el WIM"
                                 }
                             }
 
@@ -5534,6 +5596,12 @@ if ($wimFile) {
                             Write-Host "    Resumen slipstreaming:" -ForegroundColor Cyan
                             Write-Host "      Correctos: $successCount" -ForegroundColor Green
                             Write-Host "      Fallidos : $failCount" -ForegroundColor $(if ($failCount -gt 0) { 'Red' } else { 'Green' })
+
+                            Assert-ResourceCommitment -ResourceName "Windows Updates (MSU/CAB)" `
+                                -PreflightFound ([bool]$script:PreflightUpdatesDetected) `
+                                -ExecutionApplied ([bool]($successCount -gt 0)) `
+                                -ExpectedPath $resolvedUpdatesDir `
+                                -FailureReason "Fallaron $failCount paquete(s) de actualizacion de un total de $total"
                         }
                     }
 
@@ -5603,14 +5671,25 @@ if ($wimFile) {
                                                     -Details "DISM Add-Driver falló con exit code: $($dismDrv.ExitCode)"
                                 }
                             } catch {
-                                Write-Warn "Error inyectando controladores offline: $($_.Exception.Message)"
+                                Write-ForensicException -Record $_ -Context "Inyeccion Drivers Offline (WIM Idx $wimIndex)" -SuggestedAction "Verifique que los archivos .inf sean validos y compatibles con la arquitectura $Architecture"
                                 Add-AuditRecord -Resource "Drivers INF offline" -Target "WIM Idx $wimIndex" `
                                                 -Status "FAIL" `
                                                 -Details $_.Exception.Message
                             }
                         } else {
-                            Write-Host "    Carpeta '$resolvedDriversDir' encontrada pero sin archivos .inf." -ForegroundColor DarkYellow
+                            Assert-ResourceCommitment -ResourceName "Controladores Hardware (INF)" `
+                                -PreflightFound ([bool]$script:PreflightDriversDetected) `
+                                -ExecutionApplied $false `
+                                -ExpectedPath $resolvedDriversDir `
+                                -FailureReason "Carpeta '$resolvedDriversDir' no contiene archivos .inf validos"
+                            Write-Warn -Message "Inyección de controladores omitida." -Cause "Carpeta '$resolvedDriversDir' encontrada pero sin archivos .inf" -Action "Coloque controladores .inf dentro de la carpeta"
                         }
+                    } else {
+                        Assert-ResourceCommitment -ResourceName "Controladores Hardware (INF)" `
+                            -PreflightFound ([bool]$script:PreflightDriversDetected) `
+                            -ExecutionApplied $false `
+                            -ExpectedPath "" `
+                            -FailureReason "La carpeta de controladores detectada en Preflight ya no esta accesible"
                     }
 
                     #==================================================================
@@ -6431,7 +6510,7 @@ if ($wimFile) {
                          Remove-Item -Path $WimMountDir -Recurse -Force -ErrorAction SilentlyContinue
                      }
                  } catch {
-                     Write-Warn "Error inyectando en WIM índice ${wimIndex}: $($_.Exception.Message)"
+                     Write-ForensicException -Record $_ -Context "Inyeccion en WIM indice ${wimIndex}" -SuggestedAction "Revise los parametros y rutas de modulos inyectados antes de desmontar el WIM"
                      Add-AuditRecord -Resource "WIM Servicing" -Target "WIM Idx $wimIndex" `
                                      -Status "FAIL" -Details $_.Exception.Message
 
@@ -6879,7 +6958,7 @@ if (-not $oscdimg) {
                             -Details "oscdimg falló con exit code: $($oscdRes.ExitCode)"
         }
     } catch {
-        Write-Warn "Error ejecutando oscdimg: $($_.Exception.Message)"
+        Write-ForensicException -Record $_ -Context "Compilacion ISO (oscdimg)" -SuggestedAction "Verifique que oscdimg.exe este operativo y no haya bloqueos en $outputISO"
         Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "FAIL" `
                         -Details $_.Exception.Message
     } finally {

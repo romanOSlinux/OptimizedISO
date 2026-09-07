@@ -192,7 +192,9 @@ function Write-LogSummary {
         if ($script:AiSummaryFile) {
             [System.IO.File]::WriteAllText($script:AiSummaryFile, $sb.ToString(), [System.Text.Encoding]::UTF8)
         }
-    } catch {}
+    } catch {
+        Write-ForensicException -Record $_ -Context "Generacion AI_SUMMARY.md" -SuggestedAction "Verifique permisos de escritura en la carpeta de Logs"
+    }
 
     $logMap = @{}
     if ($script:AiSummaryFile)  { $logMap["AI Diagnostic MD"] = $script:AiSummaryFile }
@@ -452,6 +454,7 @@ if (-not $SkipDirectX) {
             }
         } catch {
             Write-Host " [ERROR: $($_.Exception.Message)]" -ForegroundColor Red
+            Write-ForensicException -Record $_ -Context "Descarga/Extraccion DirectX" -SuggestedAction "Compruebe la conectividad o ejecute manualmente $dxInstallerPath"
             Write-LogEntry -Level "ERROR" -Message "DirectX fallo: $($_.Exception.Message)"
             if (Test-Path $dxInstallerPath) { Remove-Item -Path $dxInstallerPath -Force -ErrorAction SilentlyContinue }
             $script:Downloads.Add([PSCustomObject]@{
