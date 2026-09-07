@@ -114,7 +114,7 @@ foreach ($p in $uiEnginePaths) {
 
 function Out-LogInfo    { param($msg) if (-not $Quiet) { if ($uiLoaded -and (Get-Command Write-Info -ErrorAction SilentlyContinue)) { Write-Info $msg } else { Write-Host "  [i] $msg" -ForegroundColor DarkGray } } }
 function Out-LogOK      { param($msg) if (-not $Quiet) { if ($uiLoaded -and (Get-Command Write-OK -ErrorAction SilentlyContinue)) { Write-OK $msg } else { Write-Host "  [OK] $msg" -ForegroundColor Green } } }
-function Out-LogWarn    { param($msg) if (-not $Quiet) { if ($uiLoaded -and (Get-Command Write-Warn -ErrorAction SilentlyContinue)) { Write-Warn $msg } else { Write-Host "  [WARN] $msg" -ForegroundColor Yellow } } }
+
 function Out-LogError   { param($msg) if (-not $Quiet) { if ($uiLoaded -and (Get-Command Write-ErrorMsg -ErrorAction SilentlyContinue)) { Write-ErrorMsg $msg } else { Write-Host "  [ERROR] $msg" -ForegroundColor Red } } }
 function Out-LogHeader  { param($title) if (-not $Quiet) { if ($uiLoaded -and (Get-Command Show-UnifiedBanner -ErrorAction SilentlyContinue)) { Show-UnifiedBanner -Title $title -Subtitle "Suite de Menús Contextuales romanOS" -NoClear } else { Write-Host "`n=== $title ===`n" -ForegroundColor Cyan } } }
 

@@ -248,8 +248,14 @@ param(
     [Parameter()]
     [switch]$ZeroTouch,
 
+        [Parameter()]
+    [int]$ZeroTouchDisk = 0,
+
     [Parameter()]
-    [int]$ZeroTouchDisk = 0
+    [string]$PresetFile = "",
+
+    [Parameter()]
+    [switch]$SavePreset
 )
 
 #------------------------------------------------------------------------------
@@ -288,6 +294,15 @@ foreach ($p in $uiEnginePaths) {
         . $p
         $uiLoaded = $true
         break
+    }
+}
+
+# Cargar Preset JSON si se especifico
+if ($PresetFile) {
+    if (Test-Path $PresetFile) {
+        Import-BuildPreset -PresetPath $PresetFile -ScriptBoundParameters $PSBoundParameters
+    } else {
+        Write-Warn "Archivo Preset '$PresetFile' no encontrado."
     }
 }
 
@@ -3409,6 +3424,11 @@ Invoke-WizardConfig -ScriptBoundParameters $PSBoundParameters
 # Si se pasaron por parámetro, se respetan; si no, se preguntan.
 Invoke-DeploymentChoices -ScriptBoundParameters $PSBoundParameters -SkipAutoUnattend:$SkipAutoUnattend
 
+# Guardar configuracion en Preset JSON si se solicito
+if ($SavePreset) {
+    Export-BuildPreset -OutputDirectory (Get-Location).Path
+}
+
 #------------------------------------------------------------------------------
 # INICIALIZAR LOGGING (antes del paso 1/6)
 #------------------------------------------------------------------------------
@@ -5160,7 +5180,7 @@ if ($wimFile) {
                                                 -Details $_.Exception.Message
                             }
                         } else {
-                            Write-Host "    Carpeta 'Drivers' encontrada pero sin archivos .inf." -ForegroundColor DarkYellow
+                            Write-Host "    Carpeta '$resolvedDriversDir' encontrada pero sin archivos .inf." -ForegroundColor DarkYellow
                         }
                     }
 
@@ -6166,26 +6186,88 @@ if ($isoLabel.Length -gt 32) {
 }
 
 #------------------------------------------------------------------------------
-# ARCHIVOS DE BOOT
+# ARCHIVOS DE BOOT (RESOLUCIÓN SIMÉTRICA BIOS / UEFI CON FALLBACK ADK)
 #------------------------------------------------------------------------------
 
-$biosBootFile = Join-Path $ISOFilesDir "boot\etfsboot.com"
+$oscdimgDir = if ($oscdimg) { Split-Path $oscdimg -Parent } else { $null }
 
-# Búsqueda inteligente de bootloader UEFI:
+# 1. Búsqueda inteligente de bootloader BIOS (El Torito x86/x64):
+$candidateBiosBoot = [System.Collections.Generic.List[string]]::new()
+$candidateBiosBoot.Add((Join-Path $ISOFilesDir "boot\etfsboot.com"))
+if ($oscdimgDir) { $candidateBiosBoot.Add((Join-Path $oscdimgDir "etfsboot.com")) }
+$candidateBiosBoot.Add("${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\etfsboot.com")
+$candidateBiosBoot.Add("$env:ProgramFiles\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\etfsboot.com")
+$candidateBiosBoot.Add("${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\x86\Oscdimg\etfsboot.com")
+$candidateBiosBoot.Add("$env:ProgramFiles\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\x86\Oscdimg\etfsboot.com")
+$candidateBiosBoot.Add("${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\arm64\Oscdimg\etfsboot.com")
+
+$recBios = Get-ChildItem -Path $ISOFilesDir -Recurse -Filter "etfsboot.com" -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($recBios) { $candidateBiosBoot.Add($recBios.FullName) }
+
+$biosBootFile = $null
+foreach ($cand in $candidateBiosBoot) {
+    if ($cand -and (Test-Path $cand)) {
+        $biosBootFile = $cand
+        break
+    }
+}
+
+# 2. Búsqueda inteligente de bootloader UEFI:
 # Preferir 'efisys_noprompt.bin' para arranque directo en Hyper-V/UEFI sin requerir
 # presionar una tecla ("Press any key to boot from CD..."), evitando timeouts de arranque.
-$candidateUefiBoot = @(
-    (Join-Path $ISOFilesDir "efi\microsoft\boot\efisys_noprompt.bin"),
-    "${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\efisys_noprompt.bin",
-    "${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\arm64\Oscdimg\efisys_noprompt.bin",
-    (Join-Path $ISOFilesDir "efi\microsoft\boot\efisys.bin")
-)
+$candidateUefiBoot = [System.Collections.Generic.List[string]]::new()
+$candidateUefiBoot.Add((Join-Path $ISOFilesDir "efi\microsoft\boot\efisys_noprompt.bin"))
+if ($oscdimgDir) { $candidateUefiBoot.Add((Join-Path $oscdimgDir "efisys_noprompt.bin")) }
+$candidateUefiBoot.Add("${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\efisys_noprompt.bin")
+$candidateUefiBoot.Add("$env:ProgramFiles\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\efisys_noprompt.bin")
+$candidateUefiBoot.Add("${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\x86\Oscdimg\efisys_noprompt.bin")
+$candidateUefiBoot.Add("${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\arm64\Oscdimg\efisys_noprompt.bin")
+$candidateUefiBoot.Add((Join-Path $ISOFilesDir "efi\microsoft\boot\efisys.bin"))
+if ($oscdimgDir) { $candidateUefiBoot.Add((Join-Path $oscdimgDir "efisys.bin")) }
+$candidateUefiBoot.Add("${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\efisys.bin")
+$candidateUefiBoot.Add("$env:ProgramFiles\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\efisys.bin")
+
+$recUefiPrompt = Get-ChildItem -Path $ISOFilesDir -Recurse -Filter "efisys_noprompt.bin" -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($recUefiPrompt) { $candidateUefiBoot.Add($recUefiPrompt.FullName) }
+$recUefiStd = Get-ChildItem -Path $ISOFilesDir -Recurse -Filter "efisys.bin" -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($recUefiStd) { $candidateUefiBoot.Add($recUefiStd.FullName) }
 
 $uefiBootFile = $null
 foreach ($cand in $candidateUefiBoot) {
     if ($cand -and (Test-Path $cand)) {
         $uefiBootFile = $cand
         break
+    }
+}
+
+# 3. Auto-inyección y reparación preventiva en el árbol de directorios de la ISO:
+# Garantiza que los medios generados sean 100% estándar y auto-contenidos.
+$isoBootDir = Join-Path $ISOFilesDir "boot"
+$isoBootFileStandard = Join-Path $isoBootDir "etfsboot.com"
+if ($biosBootFile -and (-not (Test-Path $isoBootFileStandard))) {
+    try {
+        if (-not (Test-Path $isoBootDir)) { New-Item -ItemType Directory -Path $isoBootDir -Force | Out-Null }
+        Copy-Item -Path $biosBootFile -Destination $isoBootFileStandard -Force -ErrorAction SilentlyContinue
+        if (Test-Path $isoBootFileStandard) {
+            $biosBootFile = $isoBootFileStandard
+            Write-Host "    [AUTO-REPAIR] 'etfsboot.com' inyectado en directorio 'boot\' de la ISO." -ForegroundColor DarkGreen
+        }
+    } catch {}
+}
+
+$isoEfiBootDir = Join-Path $ISOFilesDir "efi\microsoft\boot"
+if ($uefiBootFile) {
+    $uefiFileName = Split-Path $uefiBootFile -Leaf
+    $isoEfiFileStandard = Join-Path $isoEfiBootDir $uefiFileName
+    if (-not (Test-Path $isoEfiFileStandard)) {
+        try {
+            if (-not (Test-Path $isoEfiBootDir)) { New-Item -ItemType Directory -Path $isoEfiBootDir -Force | Out-Null }
+            Copy-Item -Path $uefiBootFile -Destination $isoEfiFileStandard -Force -ErrorAction SilentlyContinue
+            if (Test-Path $isoEfiFileStandard) {
+                $uefiBootFile = $isoEfiFileStandard
+                Write-Host "    [AUTO-REPAIR] Bootloader UEFI ($uefiFileName) inyectado en 'efi\microsoft\boot\' de la ISO." -ForegroundColor DarkGreen
+            }
+        } catch {}
     }
 }
 
@@ -6202,10 +6284,16 @@ if (-not $oscdimg) {
     Write-Warn "O instala el Windows ADK Deployment Tools."
     Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "SKIP" `
                     -Details "oscdimg.exe no disponible"
-} elseif (-not (Test-Path $biosBootFile) -or (-not $uefiBootFile) -or (-not (Test-Path $uefiBootFile))) {
-    Write-Warn "Faltan archivos de arranque críticos en la ISO extraída o en el sistema."
-    Write-Warn "Ruta BIOS esperada: $biosBootFile"
-    Write-Warn "Ruta UEFI esperada: $($candidateUefiBoot -join ' O ')"
+} elseif (-not $biosBootFile -or (-not (Test-Path $biosBootFile)) -or (-not $uefiBootFile) -or (-not (Test-Path $uefiBootFile))) {
+    Write-Warn "Faltan archivos de arranque críticos para generar la ISO."
+    if (-not $biosBootFile -or (-not (Test-Path $biosBootFile))) {
+        Write-Warn "  [BIOS] No se localizó 'etfsboot.com' en la ISO ni en el Windows ADK."
+        Write-Warn "         Rutas buscadas: $($candidateBiosBoot -join '; ')"
+    }
+    if (-not $uefiBootFile -or (-not (Test-Path $uefiBootFile))) {
+        Write-Warn "  [UEFI] No se localizó 'efisys_noprompt.bin' ni 'efisys.bin' en la ISO ni en ADK."
+        Write-Warn "         Rutas buscadas: $($candidateUefiBoot -join '; ')"
+    }
     Write-Warn "No se generará una ISO no arrancable."
     Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "FAIL" `
                     -Details "Faltan archivos de arranque críticos (BIOS/UEFI)"
@@ -6313,6 +6401,22 @@ if ($KeepExtractDir) {
     Write-Host "  [INFO] -KeepExtractDir activo. Carpeta de extracción conservada en:" -ForegroundColor DarkYellow
     Write-Host "  $ExtractDir" -ForegroundColor DarkYellow
     Write-Host "  Recuerda eliminarla manualmente cuando ya no la necesites." -ForegroundColor DarkYellow
+} elseif (-not $isoCreated) {
+    Write-Host ""
+    Write-Host "  ╔══════════════════════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
+    Write-Host "  ║  [SALVAGUARDA ANTI-PÉRDIDA DE TRABAJO]                                           ║" -ForegroundColor Yellow
+    Write-Host "  ║  La ISO final no se pudo compilar con oscdimg, pero todos los cambios offline   ║" -ForegroundColor Yellow
+    Write-Host "  ║  (WIM actualizado, Debloat, Drivers, Runtimes y Autounattend) SE HAN PRESERVADO.║" -ForegroundColor Yellow
+    Write-Host "  ╚══════════════════════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+    Write-Host "  Carpeta preservada: $ExtractDir" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  Puedes compilar la ISO manualmente en 15 segundos sin repetir el proceso:" -ForegroundColor Green
+    if ($oscdimg -and $biosBootFile -and $uefiBootFile) {
+        Write-Host "  oscdimg.exe -m -o -u2 -udfver102 -l`"$isoLabel`" -bootdata:2#p0,e,b`"$biosBootFile`"#pEF,e,b`"$uefiBootFile`" `"$ISOFilesDir`" `"$outputISO`"" -ForegroundColor Gray
+    } else {
+        Write-Host "  oscdimg.exe -m -o -u2 -udfver102 -l`"$isoLabel`" -bootdata:2#p0,e,b`"<ruta_etfsboot.com>`"#pEF,e,b`"<ruta_efisys.bin>`" `"$ISOFilesDir`" `"$outputISO`"" -ForegroundColor Gray
+    }
+    Write-Host ""
 } else {
     Write-Host ""
     Write-Host "  Limpiando carpeta temporal de extracción..." -ForegroundColor DarkGray

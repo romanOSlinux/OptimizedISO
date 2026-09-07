@@ -57,10 +57,12 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 }
 
-# Resolver carpeta de destino
+# Resolver carpeta de destino (alineado con la raíz del proyecto SSOT)
 if (-not $DestinationPath) {
     $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $DestinationPath = Join-Path $scriptDir "Runtimes"
+    # Retroceder dos niveles desde scripts\Builder -> raíz
+    $projectRoot = Split-Path (Split-Path $scriptDir -Parent) -Parent
+    $DestinationPath = Join-Path $projectRoot "Runtimes"
 }
 
 if (-not (Test-Path $DestinationPath)) {

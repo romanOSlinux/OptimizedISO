@@ -53,6 +53,9 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0038 | [PLAN-0038-20260906-integracion-ssot-modulos-red-y-debloat.md](PLAN-0038-20260906-integracion-ssot-modulos-red-y-debloat.md) | 2026-09-06 | Integración y Migración SSOT de Tweaks de Red y Debloat al Policy-Engine | COMPLETADO |
 | 0039 | [PLAN-0039-20260906-optimizacion-avanzada-red-doh-y-qos.md](PLAN-0039-20260906-optimizacion-avanzada-red-doh-y-qos.md) | 2026-09-06 | Optimización Avanzada de Red (DoH Nativo, QoS 802.1p, Offloads y AutoTuning) | EN PROGRESO |
 | 0040 | [PLAN-0040-20260906-paridad-ssot-diagnostico-postinstall-y-orden-setupcomplete.md](PLAN-0040-20260906-paridad-ssot-diagnostico-postinstall-y-orden-setupcomplete.md) | 2026-09-06 | Paridad SSOT en Diagnóstico Post-Instalación y Orden Determinista en SetupComplete.cmd | COMPLETADO |
+| 0041 | [PLAN-0041-20260906-refactor-ssot-redundancies-y-limpieza-codigo-muerto.md](PLAN-0041-20260906-refactor-ssot-redundancies-y-limpieza-codigo-muerto.md) | 2026-09-06 | Refactorización SSOT de Redundancias y Limpieza de Código Muerto | PENDIENTE |
+| 0043 | [PLAN-0043-20260906-ai-pc-npu-gpu-hardware-intelligence.md](PLAN-0043-20260906-ai-pc-npu-gpu-hardware-intelligence.md) | 2026-09-06 | Modernización del Motor de Inteligencia de Hardware (AI PC, NPU e iGPUs) | PENDIENTE |
+| 0044 | [PLAN-0044-20260906-resilient-bootloader-discovery-and-anti-workloss-iso-builder.md](PLAN-0044-20260906-resilient-bootloader-discovery-and-anti-workloss-iso-builder.md) | 2026-09-06 | Búsqueda Resiliente de Bootloaders (BIOS/UEFI), Auto-Inyección y Salvaguarda Anti-Pérdida | COMPLETADO |
 
 ---
 
