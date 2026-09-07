@@ -5338,18 +5338,31 @@ if ($wimFile) {
                     # SLIPSTREAMING DE ACTUALIZACIONES (WINDOWS UPDATES)
                     #==================================================================
 
-                    $resolvedUpdatesDir = $null
-                    $candidateUpdates = @(
-                        $UpdatesPath,
-                        (Join-Path $ScriptsDir "Updates"),
-                        (Join-Path (Split-Path -Parent $ScriptsDir) "Updates"),
-                        "C:\OptimizedISO\Updates"
-                    )
+                    # Reutilizar resolución canónica de Paso 0 o resolver validando presencia de paquetes .msu/.cab
+                    if ($resolvedUpdatesDir -and (Test-Path $resolvedUpdatesDir)) {
+                        $updTestCount = (Get-ChildItem -Path $resolvedUpdatesDir -Include *.msu, *.cab -Recurse -File -ErrorAction SilentlyContinue).Count
+                        if ($updTestCount -eq 0) {
+                            $resolvedUpdatesDir = $null
+                        }
+                    }
 
-                    foreach ($cand in $candidateUpdates) {
-                        if ($cand -and (Test-Path $cand)) {
-                            $resolvedUpdatesDir = $cand
-                            break
+                    if (-not $resolvedUpdatesDir) {
+                        $candidateUpdates = @(
+                            $UpdatesPath,
+                            (Join-Path (Split-Path -Parent $ScriptsDir) "Updates"),
+                            "C:\OptimizedISO\Updates",
+                            (Join-Path (Get-Location) "Updates"),
+                            (Join-Path $ScriptsDir "Updates")
+                        )
+
+                        foreach ($cand in $candidateUpdates) {
+                            if ($cand -and (Test-Path $cand)) {
+                                $pkgFound = (Get-ChildItem -Path $cand -Include *.msu, *.cab -Recurse -File -ErrorAction SilentlyContinue).Count
+                                if ($pkgFound -gt 0) {
+                                    $resolvedUpdatesDir = (Resolve-Path $cand).Path
+                                    break
+                                }
+                            }
                         }
                     }
 
@@ -5528,17 +5541,31 @@ if ($wimFile) {
                     # INYECCIÓN OFFLINE DE CONTROLADORES (DRIVERS)
                     #==================================================================
 
-                    $resolvedDriversDir = $null
-                    $candidateDrivers = @(
-                        $DriversPath,
-                        (Join-Path $ScriptsDir "Drivers"),
-                        (Join-Path (Split-Path -Parent $ScriptsDir) "Drivers")
-                    )
+                    # Reutilizar resolución canónica de Paso 0 o resolver validando presencia de drivers .inf reales
+                    if ($resolvedDriversDir -and (Test-Path $resolvedDriversDir)) {
+                        $drvTestCount = (Get-ChildItem -Path $resolvedDriversDir -Include *.inf -Recurse -File -ErrorAction SilentlyContinue).Count
+                        if ($drvTestCount -eq 0) {
+                            $resolvedDriversDir = $null
+                        }
+                    }
 
-                    foreach ($cand in $candidateDrivers) {
-                        if ($cand -and (Test-Path $cand)) {
-                            $resolvedDriversDir = $cand
-                            break
+                    if (-not $resolvedDriversDir) {
+                        $candidateDrivers = @(
+                            $DriversPath,
+                            (Join-Path (Split-Path -Parent $ScriptsDir) "Drivers"),
+                            "C:\OptimizedISO\Drivers",
+                            (Join-Path (Get-Location) "Drivers"),
+                            (Join-Path $ScriptsDir "Drivers")
+                        )
+
+                        foreach ($cand in $candidateDrivers) {
+                            if ($cand -and (Test-Path $cand)) {
+                                $infFound = (Get-ChildItem -Path $cand -Include *.inf -Recurse -File -ErrorAction SilentlyContinue).Count
+                                if ($infFound -gt 0) {
+                                    $resolvedDriversDir = (Resolve-Path $cand).Path
+                                    break
+                                }
+                            }
                         }
                     }
 
@@ -6278,10 +6305,10 @@ if ($wimFile) {
                       }
 
                       # Inyectar módulos complementarios (Navegadores, Migración, Updates) en WIM montado
-                      $destModulesDir = Join-Path $OEMScriptsDir "Modules"
-$destModulesDir1 = Join-Path $OEMScriptsDir1 "Modules"
-if (-not (Test-Path $destModulesDir)) { New-Item -ItemType Directory -Path $destModulesDir -Force | Out-Null }
-if (-not (Test-Path $destModulesDir1)) { New-Item -ItemType Directory -Path $destModulesDir1 -Force | Out-Null }
+                      $wimModulesDest = Join-Path $wimScriptsDir "Modules"
+                      if (-not (Test-Path $wimModulesDest)) {
+                          New-Item -ItemType Directory -Path $wimModulesDest -Force | Out-Null
+                      }
 
                       $browserSrc = Join-Path $ScriptsDir "Modules\Optimize-WebBrowsers.ps1"
                       if (Test-Path $browserSrc) {
@@ -6292,14 +6319,14 @@ if (-not (Test-Path $destModulesDir1)) { New-Item -ItemType Directory -Path $des
                               Copy-Item -Path $browserCmd -Destination (Join-Path $wimScriptsDir "Optimize-WebBrowsers.cmd") -Force
                               Copy-Item -Path $browserCmd -Destination (Join-Path $wimModulesDest "Optimize-WebBrowsers.cmd") -Force
                           }
-                          Write-OK "Inyectado en WIM Ã­ndice ${wimIndex}: Optimize-WebBrowsers.ps1"
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Optimize-WebBrowsers.ps1"
                       }
 
                       $userMigSrc = Join-Path $ScriptsDir "Modules\Migrar-Usuario-W11.ps1"
                       if (Test-Path $userMigSrc) {
                           Copy-Item -Path $userMigSrc -Destination (Join-Path $wimScriptsDir "Migrar-Usuario-W11.ps1") -Force
                           Copy-Item -Path $userMigSrc -Destination (Join-Path $wimModulesDest "Migrar-Usuario-W11.ps1") -Force
-                          Write-OK "Inyectado en WIM Ã­ndice ${wimIndex}: Migrar-Usuario-W11.ps1"
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Migrar-Usuario-W11.ps1"
                       }
 
                       $updatesSrc = Join-Path $ScriptsDir "Builder\Get-WindowsUpdates.ps1"
@@ -6309,8 +6336,9 @@ if (-not (Test-Path $destModulesDir1)) { New-Item -ItemType Directory -Path $des
                           $updatesCmd = Join-Path $ScriptsDir "Builder\Get-WindowsUpdates.cmd"
                           if (Test-Path $updatesCmd) {
                               Copy-Item -Path $updatesCmd -Destination (Join-Path $wimScriptsDir "Get-WindowsUpdates.cmd") -Force
+                              Copy-Item -Path $updatesCmd -Destination (Join-Path $wimModulesDest "Get-WindowsUpdates.cmd") -Force
                           }
-                          Write-OK "Inyectado en WIM Ã­ndice ${wimIndex}: Get-WindowsUpdates.ps1"
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Get-WindowsUpdates.ps1"
                       }
 
                       # Inyectar submódulos de la suite para soporte del Toolkit en WIM montado
@@ -6326,6 +6354,10 @@ if (-not (Test-Path $destModulesDir1)) { New-Item -ItemType Directory -Path $des
                               $wimSubmDest = Join-Path $wimScriptsDir $subm.Name
                               if (-not (Test-Path $wimSubmDest)) {
                                   Copy-Item -Path $subm.Path -Destination $wimSubmDest -Force
+                              }
+                              $wimSubmModDest = Join-Path $wimModulesDest $subm.Name
+                              if (-not (Test-Path $wimSubmModDest)) {
+                                  Copy-Item -Path $subm.Path -Destination $wimSubmModDest -Force
                               }
                           }
                       }

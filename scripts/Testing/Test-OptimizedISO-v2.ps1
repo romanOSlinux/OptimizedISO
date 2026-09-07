@@ -1111,6 +1111,16 @@ Assert-FileExists "PLAN-0050: Optimize-WebBrowsers.ps1 existe en Modules/" (Join
 Assert-FileExists "PLAN-0050: Migrar-Usuario-W11.ps1 existe en Modules/" (Join-Path $modulesDirDisk "Migrar-Usuario-W11.ps1")
 Assert-FileExists "PLAN-0050: Get-WindowsUpdates.ps1 existe en Builder/" (Join-Path $builderDirDisk "Get-WindowsUpdates.ps1")
 
+# --- PLAN-0053: PREVENCION DE WIM DISCARD Y RESOLUCION CANONICA DE UPDATES Y DRIVERS ---
+Write-HarnessHeader2 "PLAN-0053: Prevencion de WIM Discard y Resolucion Canonica de Updates y Drivers"
+$v2FreshContent = Get-Content $TargetScript -Raw
+
+Assert-True "PLAN-0053: Builder define e inicializa wimModulesDest" ([bool]($v2FreshContent -match '\$wimModulesDest\s*=\s*Join-Path \$wimScriptsDir "Modules"'))
+Assert-True "PLAN-0053: Builder crea wimModulesDest con New-Item" ([bool]($v2FreshContent -match 'New-Item -ItemType Directory -Path \$wimModulesDest'))
+Assert-True "PLAN-0053: Resolucion de Updates en Paso 5 comprueba paquetes reales" ([bool]($v2FreshContent -match 'Get-ChildItem -Path \$resolvedUpdatesDir -Include \*\.msu, \*\.cab'))
+Assert-True "PLAN-0053: Resolucion de Drivers en Paso 5 comprueba drivers reales" ([bool]($v2FreshContent -match 'Get-ChildItem -Path \$resolvedDriversDir -Include \*\.inf'))
+Assert-True "PLAN-0053: Submodulos de la suite inyectan en wimModulesDest" ([bool]($v2FreshContent -match 'wimSubmModDest\s*=\s*Join-Path \$wimModulesDest \$subm\.Name'))
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"
