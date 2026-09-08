@@ -4622,6 +4622,13 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v Win32Priority
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v NoLazyMode /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 
+REM ===========================================================
+REM Deshabilitar Telemetria y Diagnosticos del Kernel (Universal - Todos los Perfiles) (PLAN-0061)
+REM ===========================================================
+echo [%DATE% %TIME%] Deshabilitando telemetria base de Microsoft (DiagTrack)... >> "%LOG%"
+sc config DiagTrack start=disabled >> "%LOG%" 2>&1
+sc config dmwappushservice start=disabled >> "%LOG%" 2>&1
+
 "@
 
 $optProfileIntSetup = if ($script:OptProfile) { [int]$script:OptProfile } else { 1 }
@@ -4629,11 +4636,9 @@ $optProfileIntSetup = if ($script:OptProfile) { [int]$script:OptProfile } else {
 if ($optProfileIntSetup -ge 2) {
     $optimizationsBlock += @'
 REM ===========================================================
-REM Deshabilitar Servicios de Telemetria, Diagnosticos y Oficina (Perfil 2+)
+REM Deshabilitar Diagnosticos, Oficina, BitLocker y SysMain (Perfil 2+) (PLAN-0061)
 REM ===========================================================
-echo [%DATE% %TIME%] Deshabilitando servicios de telemetria y diagnosticos... >> "%LOG%"
-sc config DiagTrack start=disabled >> "%LOG%" 2>&1
-sc config dmwappushservice start=disabled >> "%LOG%" 2>&1
+echo [%DATE% %TIME%] Deshabilitando servicios de diagnosticos avanzados y reportes de error... >> "%LOG%"
 sc config WerSvc start=disabled >> "%LOG%" 2>&1
 sc config TroubleshootingSvc start=disabled >> "%LOG%" 2>&1
 
@@ -4648,6 +4653,9 @@ sc config lfsvc start=disabled >> "%LOG%" 2>&1
 echo [%DATE% %TIME%] Deshabilitando servicio de BitLocker... >> "%LOG%"
 sc config BDESVC start=disabled >> "%LOG%" 2>&1
 
+echo [%DATE% %TIME%] Deshabilitando SysMain (SuperFetch) para optimizar latencia en gaming... >> "%LOG%"
+sc config SysMain start=disabled >> "%LOG%" 2>&1
+
 '@
 }
 
@@ -4659,7 +4667,6 @@ REM ===========================================================
 echo [%DATE% %TIME%] Deshabilitando servicios hardcore... >> "%LOG%"
 sc config WSearch start=disabled >> "%LOG%" 2>&1
 sc config Spooler start=disabled >> "%LOG%" 2>&1
-sc config SysMain start=disabled >> "%LOG%" 2>&1
 sc config WlanSvc start=disabled >> "%LOG%" 2>&1
 sc config bthserv start=disabled >> "%LOG%" 2>&1
 sc config SensorService start=disabled >> "%LOG%" 2>&1
@@ -4671,6 +4678,7 @@ bcdedit /set hypervisorlaunchtype off >> "%LOG%" 2>&1
 
 '@
 }
+
 
 $browserPoliciesBlock = ""
 if (Get-Command "Export-RomanOSBrowserCommands" -ErrorAction SilentlyContinue) {
@@ -4984,12 +4992,37 @@ $($firstLogonCommands -join "`n")
           <Description>Defer Quality Updates by 7 Days (KIR Maturation Window)</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /v DeferQualityUpdatesPeriodInDays /t REG_DWORD /d 7 /f</Path>
         </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 17)</Order>
+          <Description>Exclude Drivers from Automatic Updates (Move to Optional Updates - PLAN-0061)</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /v ExcludeWUDriversInQualityUpdate /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 18)</Order>
+          <Description>Block Driver Search on Windows Update via CurrentVersion hive (SearchOrderConfig=0 = local-only - PLAN-0061)</Description>
+          <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching /v SearchOrderConfig /t REG_DWORD /d 0 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 19)</Order>
+          <Description>Prevent Device Metadata and OEM App Download from Network (PLAN-0061)</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" /v PreventDeviceMetadataFromNetwork /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 20)</Order>
+          <Description>Disable WPBT ACPI Execution (Block OEM BIOS Bloatware on Notebooks/Motherboards - PLAN-0061)</Description>
+          <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v DisableWPBT /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 21)</Order>
+          <Description>Prevent Automatic BitLocker Device Encryption on Clean Install (PLAN-0061)</Description>
+          <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\BitLocker" /v PreventDeviceEncryption /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
 "@
 
-        $nextOrder += 17
+        $nextOrder += 22
 
         if ($optProfile -ge 2) {
-            # Perfil 2+ (Gaming / Hardcore): Políticas de telemetría HKLM, Bloqueo de Drivers y Prevención BitLocker
+            # Perfil 2+ (Gaming / Hardcore): Políticas de telemetría HKLM y Windows Update Bajo Demanda (PLAN-0059)
             $optimizeXml += @"
 
         <RunSynchronousCommand wcm:action="add">
@@ -4999,46 +5032,21 @@ $($firstLogonCommands -join "`n")
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
           <Order>$($nextOrder + 1)</Order>
-          <Description>Exclude Drivers from Automatic Updates (Move to Optional Updates)</Description>
-          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /v ExcludeWUDriversInQualityUpdate /t REG_DWORD /d 1 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 2)</Order>
-          <Description>Block Driver Search on Windows Update via CurrentVersion hive (SearchOrderConfig=0 = local-only)</Description>
-          <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching /v SearchOrderConfig /t REG_DWORD /d 0 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 3)</Order>
-          <Description>Prevent Device Metadata and OEM App Download from Network (Profile 2+)</Description>
-          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Device Metadata" /v PreventDeviceMetadataFromNetwork /t REG_DWORD /d 1 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 4)</Order>
-          <Description>Disable WPBT ACPI Execution (Block OEM BIOS Bloatware on Notebooks/Motherboards)</Description>
-          <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" /v DisableWPBT /t REG_DWORD /d 1 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 5)</Order>
-          <Description>Prevent Automatic BitLocker Device Encryption on Clean Install (Profile 2+)</Description>
-          <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\BitLocker" /v PreventDeviceEncryption /t REG_DWORD /d 1 /f</Path>
-        </RunSynchronousCommand>
-        <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 6)</Order>
           <Description>Disable Automatic Background Updates (Manual On-Demand Scan and Download Only)</Description>
           <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 7)</Order>
+          <Order>$($nextOrder + 2)</Order>
           <Description>Configure AUOptions to 2 (Notify Before Download and Install)</Description>
           <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v AUOptions /t REG_DWORD /d 2 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>$($nextOrder + 8)</Order>
+          <Order>$($nextOrder + 3)</Order>
           <Description>Prevent Automatic Reboots While Users Are Logged On</Description>
           <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoRebootWithLoggedOnUsers /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
 "@
-            $nextOrder += 9
+            $nextOrder += 4
         }
     }
 
@@ -6457,6 +6465,25 @@ if ($wimFile) {
                                             Type = "REG_DWORD"
                                             Data = "0"
                                         }
+                                        # Proteccion de Drivers GPU y Dispositivos (PLAN-0027 / PLAN-0061)
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate"
+                                            Name = "ExcludeWUDriversInQualityUpdate"
+                                            Type = "REG_DWORD"
+                                            Data = "1"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Microsoft\Windows\CurrentVersion\DriverSearching"
+                                            Name = "SearchOrderConfig"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\Device Metadata"
+                                            Name = "PreventDeviceMetadataFromNetwork"
+                                            Type = "REG_DWORD"
+                                            Data = "1"
+                                        }
                                     )
                                     # PLAN-0059: Modo Bajo Demanda de Windows Update para Perfiles 2+ (Gaming / Hardcore)
                                     $optProfileInt = if ($script:OptProfile) { [int]$script:OptProfile } else { 1 }
@@ -6487,11 +6514,12 @@ if ($wimFile) {
                                     }
                                     Write-OK "Tema oscuro y MMCSS (NoLazyMode) inyectados en SOFTWARE hive offline."
                                     Write-OK "Cuarentena de actualizaciones acumulativas (7 días) y bloqueo de previews inyectados en SOFTWARE hive offline."
+                                    Write-OK "Protección de drivers GPU (AMD/NVIDIA) y metadatos inyectados en SOFTWARE hive offline (PLAN-0061)."
                                     if ($optProfileInt -ge 2) {
                                         Write-OK "Windows Update configurado en Modo Bajo Demanda (On-Demand) en SOFTWARE hive offline."
                                     }
                                     Add-AuditRecord -Resource "Tema Oscuro / MMCSS (SOFTWARE)" -Target "WIM Idx $wimIndex" `
-                                                    -Status "OK" -Details "dark.theme y NoLazyMode configurados en SOFTWARE hive"
+                                                    -Status "OK" -Details "dark.theme, NoLazyMode y proteccion de drivers configurados en SOFTWARE hive"
                                 } else {
                                     Write-Warn "No se pudo cargar SOFTWARE hive offline. Exit code: $($procSw.ExitCode)."
                                 }
@@ -6540,13 +6568,27 @@ if ($wimFile) {
                                             Type = "REG_DWORD"
                                             Data = "38"
                                         }
+                                        # Bloqueo Bloatware BIOS WPBT y Prevencion BitLocker (PLAN-0061)
+                                        @{
+                                            Path = "HKLM\OfflineSystem\ControlSet001\Control\Session Manager"
+                                            Name = "DisableWPBT"
+                                            Type = "REG_DWORD"
+                                            Data = "1"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSystem\ControlSet001\Control\BitLocker"
+                                            Name = "PreventDeviceEncryption"
+                                            Type = "REG_DWORD"
+                                            Data = "1"
+                                        }
                                     )
                                     foreach ($st in $sysTweaks) {
                                         & reg.exe add $st.Path /v $st.Name /t $st.Type /d $st.Data /f 2>&1 | Out-Null
                                     }
                                     Write-OK "Optimizaciones oficiales de FileSystem y Scheduler inyectadas en SYSTEM hive offline."
-                                    Add-AuditRecord -Resource "FileSystem / Scheduler (SYSTEM)" -Target "WIM Idx $wimIndex" `
-                                                    -Status "OK" -Details "NtfsDisable8dot3NameCreation=1, NtfsMemoryUsage=2, LongPathsEnabled=1, Win32PrioritySeparation=38"
+                                    Write-OK "Bloqueo de bloatware BIOS (WPBT) y prevención BitLocker inyectados en SYSTEM hive offline (PLAN-0061)."
+                                    Add-AuditRecord -Resource "FileSystem / Scheduler / WPBT (SYSTEM)" -Target "WIM Idx $wimIndex" `
+                                                    -Status "OK" -Details "NtfsDisable8dot3NameCreation=1, LongPathsEnabled=1, DisableWPBT=1, PreventDeviceEncryption=1"
                                 } else {
                                     Write-Warn "No se pudo cargar SYSTEM hive offline. Exit code: $($procSys.ExitCode)."
                                 }
@@ -6555,6 +6597,7 @@ if ($wimFile) {
                             } finally {
                                 if ($sysLoaded) {
                                     Write-Host "    Descargando colmena SYSTEM..." -ForegroundColor Gray
+
                                     [void](Invoke-RegUnloadHive -HiveName "HKLM\OfflineSystem")
                                 }
                             }

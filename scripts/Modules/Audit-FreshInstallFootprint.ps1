@@ -476,6 +476,42 @@ $policiesToAudit = @(
         Name     = "DeferQualityUpdatesPeriodInDays"
         Expected = 7
         Desc     = "Ventana de maduracion de 7 dias para KIR (PLAN-0060)"
+    },
+    # PLAN-0061: Proteccion de Drivers GPU, Bloqueo Bloatware BIOS WPBT y Prevencion BitLocker
+    @{
+        Id       = "ExcludeWUDrivers (WU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        Name     = "ExcludeWUDriversInQualityUpdate"
+        Expected = 1
+        Desc     = "Proteccion de drivers GPU frente a Windows Update (PLAN-0061)"
+    },
+    @{
+        Id       = "SearchOrderConfig (Drv)"
+        Path     = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DriverSearching"
+        Name     = "SearchOrderConfig"
+        Expected = 0
+        Desc     = "Busqueda de controladores local exclusivamente (PLAN-0061)"
+    },
+    @{
+        Id       = "PreventDeviceMetadata (Drv)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Device Metadata"
+        Name     = "PreventDeviceMetadataFromNetwork"
+        Expected = 1
+        Desc     = "Bloqueo de descarga de metadatos OEM por red (PLAN-0061)"
+    },
+    @{
+        Id       = "DisableWPBT (ACPI)"
+        Path     = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager"
+        Name     = "DisableWPBT"
+        Expected = 1
+        Desc     = "Bloqueo de inyeccion bloatware BIOS/UEFI WPBT (PLAN-0061)"
+    },
+    @{
+        Id       = "PreventDeviceEncryption (BitLocker)"
+        Path     = "HKLM:\SYSTEM\CurrentControlSet\Control\BitLocker"
+        Name     = "PreventDeviceEncryption"
+        Expected = 1
+        Desc     = "Prevencion de auto-cifrado BitLocker en SSD (PLAN-0061)"
     }
 )
 

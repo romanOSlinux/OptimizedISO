@@ -1382,6 +1382,65 @@ $auditContent60 = Get-Content (Join-Path $modulesDir "Audit-FreshInstallFootprin
 Assert-True "PLAN-0060: Audit-FreshInstallFootprint.ps1 incluye AllowOptionalContent en politicas auditadas" ([bool]($auditContent60 -match 'AllowOptionalContent \(WU\)'))
 Assert-True "PLAN-0060: Audit-FreshInstallFootprint.ps1 incluye DeferQualityDays en politicas auditadas" ([bool]($auditContent60 -match 'DeferQualityDays \(WU\)'))
 
+# -----------------------------------------------------------------------------
+# FASE 2.13: VALIDACIÓN DE PARIDAD EN PERFIL 1 Y MATRIZ DE SERVICIOS (PLAN-0061)
+# -----------------------------------------------------------------------------
+Write-HarnessHeader2 "FASE 2.13: Paridad en Perfil 1: Drivers GPU, WPBT, BitLocker y Servicios (PLAN-0061)"
+
+# 1. Validar SSOT en Policy-Engine para Perfil 1
+$pols61 = Get-RomanOSPolicies
+$polWuExclude = $pols61 | Where-Object { $_.Id -eq "POL_WU_EXCLUDE_DRIVERS" }
+$polDrvSearch = $pols61 | Where-Object { $_.Id -eq "POL_DRV_SEARCH_LOCAL" }
+$polDevMeta   = $pols61 | Where-Object { $_.Id -eq "POL_DEV_METADATA_BLOCK" }
+$polWpbt      = $pols61 | Where-Object { $_.Id -eq "POL_WPBT_DISABLE" }
+$polBitLocker = $pols61 | Where-Object { $_.Id -eq "POL_BITLOCKER_PREVENT" }
+
+Assert-NotNull "PLAN-0061: Objeto POL_WU_EXCLUDE_DRIVERS obtenido de Policy-Engine" $polWuExclude
+Assert-True "PLAN-0061: POL_WU_EXCLUDE_DRIVERS activo en Perfil 1" ($polWuExclude.Profiles -contains 1)
+Assert-NotNull "PLAN-0061: Objeto POL_DRV_SEARCH_LOCAL obtenido de Policy-Engine" $polDrvSearch
+Assert-True "PLAN-0061: POL_DRV_SEARCH_LOCAL activo en Perfil 1" ($polDrvSearch.Profiles -contains 1)
+Assert-NotNull "PLAN-0061: Objeto POL_DEV_METADATA_BLOCK obtenido de Policy-Engine" $polDevMeta
+Assert-True "PLAN-0061: POL_DEV_METADATA_BLOCK activo en Perfil 1" ($polDevMeta.Profiles -contains 1)
+Assert-NotNull "PLAN-0061: Objeto POL_WPBT_DISABLE obtenido de Policy-Engine" $polWpbt
+Assert-True "PLAN-0061: POL_WPBT_DISABLE activo en Perfil 1" ($polWpbt.Profiles -contains 1)
+Assert-NotNull "PLAN-0061: Objeto POL_BITLOCKER_PREVENT obtenido de Policy-Engine" $polBitLocker
+Assert-True "PLAN-0061: POL_BITLOCKER_PREVENT activo en Perfil 1" ($polBitLocker.Profiles -contains 1)
+
+# 2. Validar exportacion semantica de unattend para Perfil 1 (Export-RomanOSUnattendCommands)
+$unattendP1_61 = Export-RomanOSUnattendCommands -Profile '1' -StartOrder 2
+Assert-True "PLAN-0061: Perfil 1 Unattend incluye ExcludeWUDriversInQualityUpdate" ([bool]($unattendP1_61.XmlContent -match 'ExcludeWUDriversInQualityUpdate'))
+Assert-True "PLAN-0061: Perfil 1 Unattend incluye SearchOrderConfig" ([bool]($unattendP1_61.XmlContent -match 'SearchOrderConfig'))
+Assert-True "PLAN-0061: Perfil 1 Unattend incluye PreventDeviceMetadataFromNetwork" ([bool]($unattendP1_61.XmlContent -match 'PreventDeviceMetadataFromNetwork'))
+Assert-True "PLAN-0061: Perfil 1 Unattend incluye DisableWPBT" ([bool]($unattendP1_61.XmlContent -match 'DisableWPBT'))
+Assert-True "PLAN-0061: Perfil 1 Unattend incluye PreventDeviceEncryption" ([bool]($unattendP1_61.XmlContent -match 'PreventDeviceEncryption'))
+
+# 3. Validar fallback autounattend y servicing offline en Builder New-OptimizedWindowsISO-v2.ps1
+$v2FreshContent61 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0061: Builder autounattend fallback incluye Exclude Drivers en bloque base universal" ([bool]($v2FreshContent61 -match 'Exclude Drivers from Automatic Updates \(Move to Optional Updates - PLAN-0061\)'))
+Assert-True "PLAN-0061: Builder autounattend fallback incluye SearchOrderConfig en bloque base universal" ([bool]($v2FreshContent61 -match 'SearchOrderConfig=0 = local-only - PLAN-0061'))
+Assert-True "PLAN-0061: Builder autounattend fallback incluye PreventDeviceMetadata en bloque base universal" ([bool]($v2FreshContent61 -match 'Prevent Device Metadata and OEM App Download from Network \(PLAN-0061\)'))
+Assert-True "PLAN-0061: Builder autounattend fallback incluye DisableWPBT en bloque base universal" ([bool]($v2FreshContent61 -match 'Disable WPBT ACPI Execution \(Block OEM BIOS Bloatware on Notebooks/Motherboards - PLAN-0061\)'))
+Assert-True "PLAN-0061: Builder autounattend fallback incluye PreventDeviceEncryption en bloque base universal" ([bool]($v2FreshContent61 -match 'Prevent Automatic BitLocker Device Encryption on Clean Install \(PLAN-0061\)'))
+
+Assert-True "PLAN-0061: Builder inyecta ExcludeWUDriversInQualityUpdate en SOFTWARE hive offline" ([bool]($v2FreshContent61 -match 'ExcludeWUDriversInQualityUpdate'))
+Assert-True "PLAN-0061: Builder inyecta DisableWPBT en SYSTEM hive offline" ([bool]($v2FreshContent61 -match 'DisableWPBT'))
+Assert-True "PLAN-0061: Builder inyecta PreventDeviceEncryption en SYSTEM hive offline" ([bool]($v2FreshContent61 -match 'PreventDeviceEncryption'))
+
+# 4. Validar matriz de servicios en SetupComplete.cmd
+Assert-True "PLAN-0061: SetupComplete deshabilita DiagTrack universalmente en bloque base" ([bool]($v2FreshContent61 -match 'sc config DiagTrack start=disabled'))
+Assert-True "PLAN-0061: SetupComplete deshabilita dmwappushservice universalmente en bloque base" ([bool]($v2FreshContent61 -match 'sc config dmwappushservice start=disabled'))
+Assert-True "PLAN-0061: SetupComplete deshabilita SysMain en Perfil 2+ (Gaming)" ([bool]($v2FreshContent61 -match 'Deshabilitando SysMain \(SuperFetch\) para optimizar latencia en gaming'))
+Assert-True "PLAN-0061: SetupComplete preserva WSearch exclusivo para Perfil 3" ([bool]($v2FreshContent61 -match 'sc config WSearch start=disabled'))
+
+# 5. Validar catalogo de auditoria forense en Audit-FreshInstallFootprint.ps1
+$auditContent61 = Get-Content (Join-Path $modulesDir "Audit-FreshInstallFootprint.ps1") -Raw
+Assert-True "PLAN-0061: Audit-FreshInstallFootprint.ps1 incluye ExcludeWUDrivers en politicas auditadas" ([bool]($auditContent61 -match 'ExcludeWUDrivers \(WU\)'))
+Assert-True "PLAN-0061: Audit-FreshInstallFootprint.ps1 incluye SearchOrderConfig en politicas auditadas" ([bool]($auditContent61 -match 'SearchOrderConfig \(Drv\)'))
+Assert-True "PLAN-0061: Audit-FreshInstallFootprint.ps1 incluye PreventDeviceMetadata en politicas auditadas" ([bool]($auditContent61 -match 'PreventDeviceMetadata \(Drv\)'))
+Assert-True "PLAN-0061: Audit-FreshInstallFootprint.ps1 incluye DisableWPBT en politicas auditadas" ([bool]($auditContent61 -match 'DisableWPBT \(ACPI\)'))
+Assert-True "PLAN-0061: Audit-FreshInstallFootprint.ps1 incluye PreventDeviceEncryption en politicas auditadas" ([bool]($auditContent61 -match 'PreventDeviceEncryption \(BitLocker\)'))
+
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

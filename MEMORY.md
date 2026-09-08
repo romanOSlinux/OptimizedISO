@@ -1,3 +1,20 @@
+## [2026-09-08T00:30:00-03:00] Paridad en Perfil 1: Drivers GPU, Bloqueo Bloatware BIOS (WPBT), Prevención BitLocker y Matriz de Servicios (PLAN-0061)
+
+- **Archivos Modificados:** `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Modules/Audit-FreshInstallFootprint.ps1`, `scripts/Testing/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0061-20260908-paridad-perfil-1-drivers-wpbt-bitlocker.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Paridad Universal en Perfil 1 (Conservador):**
+    1. **Protección de Drivers GPU (AMD / NVIDIA / Intel Arc):** Se configuraron `ExcludeWUDriversInQualityUpdate = 1`, `SearchOrderConfig = 0` y `PreventDeviceMetadataFromNetwork = 1` en el bloque universal base del fallback de `autounattend.xml` y en la inyección de la colmena `SOFTWARE` offline del WIM montado (`$swTweaks`) para todos los perfiles (incluyendo Perfil 1).
+    2. **Bloqueo Bloatware BIOS (WPBT):** Se inyectó `DisableWPBT = 1` (`HKLM\SYSTEM\CurrentControlSet\Control\Session Manager`) en el bloque base universal de `autounattend.xml` y en la colmena `SYSTEM` offline del WIM (`$sysTweaks`) para bloquear de raíz ejecutables de la tabla ACPI en todos los perfiles.
+    3. **Prevención BitLocker en SSD:** Se inyectó `PreventDeviceEncryption = 1` (`HKLM\SYSTEM\CurrentControlSet\Control\BitLocker`) en el bloque base universal de `autounattend.xml` y en la colmena `SYSTEM` offline del WIM (`$sysTweaks`) para evitar el cifrado silencioso automático no advertido en instalaciones limpias de Windows 11 24H2.
+  - **Matriz de Servicios Equilibrada y Calibrada:**
+    1. `DiagTrack` & `dmwappushservice`: Se movió su desactivación al bloque base universal de `SetupComplete.cmd` (deshabilitado en Perfiles 1, 2 y 3), logrando cero telemetría invasiva en toda la ISO sin impacto en aplicaciones.
+    2. `SysMain` (Superfetch): Se promovió su desactivación a Perfil 2+ (Gaming y Hardcore) para eliminar picos de I/O y latencia en SSDs durante sesiones de juego, conservándolo activo en Perfil 1 para proteger la compresión de RAM en equipos de bajos recursos.
+    3. `WSearch` (Indexador): Se mantuvo activo y optimizado quirúrgicamente (con la poda de Working Set a 18 MB de PLAN-0058) en Perfiles 1 y 2 para preservar la búsqueda instantánea del Menú Inicio y Explorador; su desactivación completa permanece exclusiva del Perfil 3 (Hardcore).
+  - **Auditoría Forense y Monitoreo:**
+    - `Audit-FreshInstallFootprint.ps1`: Se catalogaron las 5 directivas en `$policiesToAudit` para certificar el estado de protección de drivers, WPBT y BitLocker en auditorías post-instalación.
+  - **Certificación Total:** **489 PASS / 0 FAIL / 1 SKIP** (490 pruebas en `Test-OptimizedISO-v2.ps1`) y **SUCCESS (48.8s)** en `Invoke-TestSuite.ps1`.
+- **Pendiente:** Ninguno.
+
 ## [2026-09-07T23:50:00-03:00] Estabilidad de Actualizaciones Acumulativas: Cuarentena de Calidad (7 días) y Bloqueo de Previews/CFR para Todos los Perfiles (PLAN-0060)
 
 - **Archivos Modificados:** `scripts/Core/Policy-Engine.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Modules/PostInstall-Diagnostics.ps1`, `scripts/Modules/Audit-FreshInstallFootprint.ps1`, `scripts/Testing/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0060-20260907-estabilidad-actualizaciones-acumulativas-cuarentena-y-bloqueo-previews.md`, `docs/plans/README.md`, `MEMORY.md`
