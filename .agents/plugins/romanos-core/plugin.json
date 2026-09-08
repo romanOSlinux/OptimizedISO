@@ -1,0 +1,12 @@
+{
+  "name": "romanos-core",
+  "description": "Core deterministic skills and rules for romanOS project",
+  "skills": [
+    "ecosystem-sync",
+    "git-workflow",
+    "debug-strategy",
+    "powershell-windows",
+    "unattended-deployment",
+    "windows-updates-servicing"
+  ]
+}
