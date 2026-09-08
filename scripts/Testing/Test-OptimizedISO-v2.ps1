@@ -1282,6 +1282,47 @@ $auditFootprintPath58 = Join-Path $modulesDir "Audit-FreshInstallFootprint.ps1"
 $auditContent58 = Get-Content $auditFootprintPath58 -Raw
 Assert-True "PLAN-0058: Audit-FreshInstallFootprint diferencia instancias de WebView2 hijas de SearchHost" ([bool]($auditContent58 -match 'SEARCH UI'))
 
+# =============================================================================
+# PLAN-0059: WINDOWS UPDATE ON-DEMAND PARA PERFILES GAMING Y HARDCORE
+# =============================================================================
+Write-HarnessHeader2 "PLAN-0059: Windows Update On-Demand para Perfiles Gaming y Hardcore"
+
+# 1. Validar registro de politicas AU en Policy-Engine.ps1
+$policyEnginePath59 = Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"
+$peContent59 = Get-Content $policyEnginePath59 -Raw
+Assert-True "PLAN-0059: Policy-Engine registra directiva POL_WU_NO_AUTO_UPDATE" ([bool]($peContent59 -match 'Id\s*=\s*"POL_WU_NO_AUTO_UPDATE"'))
+Assert-True "PLAN-0059: Policy-Engine registra directiva POL_WU_AU_OPTIONS" ([bool]($peContent59 -match 'Id\s*=\s*"POL_WU_AU_OPTIONS"'))
+Assert-True "PLAN-0059: Policy-Engine registra directiva POL_WU_NO_AUTO_REBOOT" ([bool]($peContent59 -match 'Id\s*=\s*"POL_WU_NO_AUTO_REBOOT"'))
+
+# 2. Validar perfiles asignados en Policy-Engine
+$pols59 = Get-RomanOSPolicies
+$polWuNoAuto = $pols59 | Where-Object { $_.Id -eq "POL_WU_NO_AUTO_UPDATE" }
+Assert-NotNull "PLAN-0059: Objeto POL_WU_NO_AUTO_UPDATE obtenido de Policy-Engine" $polWuNoAuto
+Assert-True "PLAN-0059: POL_WU_NO_AUTO_UPDATE activo en Perfil 2 (Gaming)" ($polWuNoAuto.Profiles -contains 2)
+Assert-True "PLAN-0059: POL_WU_NO_AUTO_UPDATE activo en Perfil 3 (Hardcore)" ($polWuNoAuto.Profiles -contains 3)
+Assert-False "PLAN-0059: POL_WU_NO_AUTO_UPDATE inactivo en Perfil 1 (Conservador)" ($polWuNoAuto.Profiles -contains 1)
+Assert-Equal "PLAN-0059: POL_WU_NO_AUTO_UPDATE ExpectedValue es 1" $polWuNoAuto.ExpectedValue 1
+
+# 3. Validar exportacion semantica de unattend por perfil
+$unattendP1 = Export-RomanOSUnattendCommands -Profile '1' -StartOrder 2
+$unattendP2 = Export-RomanOSUnattendCommands -Profile '2' -StartOrder 2
+Assert-False "PLAN-0059: Perfil 1 Unattend no incluye NoAutoUpdate" ([bool]($unattendP1.XmlContent -match 'NoAutoUpdate'))
+Assert-True "PLAN-0059: Perfil 2 Unattend incluye NoAutoUpdate = 1" ([bool]($unattendP2.XmlContent -match 'NoAutoUpdate'))
+Assert-True "PLAN-0059: Perfil 2 Unattend incluye AUOptions = 2" ([bool]($unattendP2.XmlContent -match 'AUOptions'))
+Assert-True "PLAN-0059: Perfil 2 Unattend incluye NoAutoRebootWithLoggedOnUsers" ([bool]($unattendP2.XmlContent -match 'NoAutoRebootWithLoggedOnUsers'))
+
+# 4. Validar inyeccion en Builder New-OptimizedWindowsISO-v2.ps1
+$v2FreshContent59 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0059: Builder inyecta NoAutoUpdate en SOFTWARE hive offline para Perfiles 2+" ([bool]($v2FreshContent59 -match 'Name\s*=\s*"NoAutoUpdate"'))
+Assert-True "PLAN-0059: Builder inyecta AUOptions en SOFTWARE hive offline para Perfiles 2+" ([bool]($v2FreshContent59 -match 'Name\s*=\s*"AUOptions"'))
+Assert-True "PLAN-0059: Builder autounattend fallback incluye NoAutoUpdate para Perfil 2+" ([bool]($v2FreshContent59 -match 'Disable Automatic Background Updates \(Manual On-Demand Scan and Download Only\)'))
+
+# 5. Validar integracion en herramientas de diagnostico y auditoria
+$diagContent59 = Get-Content (Join-Path $modulesDir "PostInstall-Diagnostics.ps1") -Raw
+Assert-True "PLAN-0059: PostInstall-Diagnostics.ps1 audita modo On-Demand de Windows Update" ([bool]($diagContent59 -match 'Modo Bajo Demanda \(On-Demand\) de Windows Update verificado'))
+
+$auditContent59 = Get-Content (Join-Path $modulesDir "Audit-FreshInstallFootprint.ps1") -Raw
+Assert-True "PLAN-0059: Audit-FreshInstallFootprint.ps1 incluye NoAutoUpdate en politicas auditadas" ([bool]($auditContent59 -match 'NoAutoUpdate \(WU AU\)'))
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"

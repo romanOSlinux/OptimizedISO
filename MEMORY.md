@@ -1,3 +1,23 @@
+## [2026-09-07T22:40:00-03:00] Windows Update Bajo Demanda (Manual On-Demand) en Perfiles Gaming y Hardcore (PLAN-0059)
+
+- **Archivos Modificados:** `scripts/Core/Policy-Engine.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Modules/PostInstall-Diagnostics.ps1`, `scripts/Modules/Audit-FreshInstallFootprint.ps1`, `scripts/Testing/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0059-20260907-windows-update-on-demand-perfiles-gaming-y-hardcore.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Gobernanza Canónica y SSOT:** Se registraron en `Policy-Engine.ps1` con directivas oficiales de Microsoft las claves GPO bajo `HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU`:
+    1. `POL_WU_NO_AUTO_UPDATE` (`NoAutoUpdate = 1`): Desactiva la búsqueda, escaneo y descarga periódica automática en segundo plano para Perfiles 2 (Gaming) y 3 (Hardcore), manteniendo el servicio `wuauserv` 100% intacto y funcional para búsquedas manuales del usuario.
+    2. `POL_WU_AU_OPTIONS` (`AUOptions = 2`): Configura la semántica oficial de notificar antes de descargar e instalar.
+    3. `POL_WU_NO_AUTO_REBOOT` (`NoAutoRebootWithLoggedOnUsers = 1`): Prohíbe reinicios automáticos mientras haya una sesión de usuario iniciada.
+  - **Aislamiento por Perfiles:**
+    - Perfil 1 (Conservador): Preserva el ciclo estándar automático de Windows Update para usuarios domésticos u oficina.
+    - Perfiles 2 y 3 (Gaming / Hardcore): Conmutan automáticamente al modo Manual On-Demand.
+  - **Inyección en Despliegue y Builder:**
+    - `Export-RomanOSUnattendCommands` exporta los comandos de registro a `autounattend.xml` según el perfil resuelto.
+    - `New-OptimizedWindowsISO-v2.ps1` inyecta las directivas en `autounattend.xml` (tanto en la ruta canónica como en el fallback) y en la colmena `SOFTWARE` del WIM offline si `$script:OptProfile -ge 2`.
+  - **Auditoría Post-Instalación y Forense:**
+    - `PostInstall-Diagnostics.ps1`: Audita e informa el modo de operación (Bajo Demanda vs Automático Estándar) en la sección 5.
+    - `Audit-FreshInstallFootprint.ps1`: Audita la directiva `NoAutoUpdate (WU AU)` en la matriz forense.
+  - **Certificación Total:** **427 PASS / 0 FAIL / 1 SKIP** (428 pruebas en `Test-OptimizedISO-v2.ps1`) y **SUCCESS (42.5s)** en `Invoke-TestSuite.ps1`.
+- **Pendiente:** Ninguno.
+
 ## [2026-09-07T22:15:00-03:00] Optimización Quirúrgica de SearchHost.exe / WebView2 y Poda Automatizada de Memoria (PLAN-0058)
 
 - **Archivos Modificados:** `scripts/Core/Policy-Engine.ps1`, `scripts/Modules/Optimize-ProcessMemory.ps1`, `scripts/Modules/Optimize-ProcessMemory.cmd`, `scripts/Modules/romanOS-Toolkit.ps1`, `scripts/Modules/Audit-FreshInstallFootprint.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Testing/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0058-20260907-optimizacion-searchhost-webview2-y-working-set-trim.md`, `docs/plans/README.md`, `MEMORY.md`

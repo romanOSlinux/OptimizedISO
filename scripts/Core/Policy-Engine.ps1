@@ -488,6 +488,48 @@ $global:RomanOS_Policies = @(
         UnattendDesc  = "Exclude Drivers from Automatic Updates (Move to Optional Updates)"
     },
     @{
+        Id            = "POL_WU_NO_AUTO_UPDATE"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        ValueName     = "NoAutoUpdate"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(2, 3)
+        Description   = "Desactivar busqueda y descarga automatica de Windows Update en segundo plano (Modo Bajo Demanda)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/deployment/update/waas-wu-policies#configure-automatic-updates"
+        UnattendDesc  = "Disable Automatic Background Updates (Manual On-Demand Scan and Download Only)"
+    },
+    @{
+        Id            = "POL_WU_AU_OPTIONS"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        ValueName     = "AUOptions"
+        Type          = "REG_DWORD"
+        ExpectedValue = 2
+        Profiles      = @(2, 3)
+        Description   = "Configurar actualizaciones para notificar antes de descargar y antes de instalar"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update"
+        UnattendDesc  = "Configure AUOptions to 2 (Notify Before Download and Install)"
+    },
+    @{
+        Id            = "POL_WU_NO_AUTO_REBOOT"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        ValueName     = "NoAutoRebootWithLoggedOnUsers"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(2, 3)
+        Description   = "Evitar reinicios automaticos mientras haya usuarios con sesion iniciada"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/deployment/update/waas-wu-policies#no-auto-reboot-with-logged-on-users-for-scheduled-automatic-updates-installations"
+        UnattendDesc  = "Prevent Automatic Reboots While Users Are Logged On"
+    },
+    @{
         Id            = "POL_DRV_SEARCH_LOCAL"
         Module        = "Base - Controladores"
         Category      = "Hardware & Controladores"

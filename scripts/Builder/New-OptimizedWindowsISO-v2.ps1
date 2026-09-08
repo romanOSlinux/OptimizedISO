@@ -5002,8 +5002,23 @@ $($firstLogonCommands -join "`n")
           <Description>Prevent Automatic BitLocker Device Encryption on Clean Install (Profile 2+)</Description>
           <Path>reg add "HKLM\SYSTEM\CurrentControlSet\Control\BitLocker" /v PreventDeviceEncryption /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 6)</Order>
+          <Description>Disable Automatic Background Updates (Manual On-Demand Scan and Download Only)</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 7)</Order>
+          <Description>Configure AUOptions to 2 (Notify Before Download and Install)</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v AUOptions /t REG_DWORD /d 2 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 8)</Order>
+          <Description>Prevent Automatic Reboots While Users Are Logged On</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoRebootWithLoggedOnUsers /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
 "@
-            $nextOrder += 6
+            $nextOrder += 9
         }
     }
 
@@ -6398,10 +6413,37 @@ if ($wimFile) {
                                             Data = "3"
                                         }
                                     )
+                                    # PLAN-0059: Modo Bajo Demanda de Windows Update para Perfiles 2+ (Gaming / Hardcore)
+                                    $optProfileInt = if ($script:OptProfile) { [int]$script:OptProfile } else { 1 }
+                                    if ($optProfileInt -ge 2) {
+                                        $swTweaks += @(
+                                            @{
+                                                Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate\AU"
+                                                Name = "NoAutoUpdate"
+                                                Type = "REG_DWORD"
+                                                Data = "1"
+                                            }
+                                            @{
+                                                Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate\AU"
+                                                Name = "AUOptions"
+                                                Type = "REG_DWORD"
+                                                Data = "2"
+                                            }
+                                            @{
+                                                Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate\AU"
+                                                Name = "NoAutoRebootWithLoggedOnUsers"
+                                                Type = "REG_DWORD"
+                                                Data = "1"
+                                            }
+                                        )
+                                    }
                                     foreach ($st in $swTweaks) {
                                         & reg.exe add $st.Path /v $st.Name /t $st.Type /d $st.Data /f 2>&1 | Out-Null
                                     }
                                     Write-OK "Tema oscuro y MMCSS (NoLazyMode) inyectados en SOFTWARE hive offline."
+                                    if ($optProfileInt -ge 2) {
+                                        Write-OK "Windows Update configurado en Modo Bajo Demanda (On-Demand) en SOFTWARE hive offline."
+                                    }
                                     Add-AuditRecord -Resource "Tema Oscuro / MMCSS (SOFTWARE)" -Target "WIM Idx $wimIndex" `
                                                     -Status "OK" -Details "dark.theme y NoLazyMode configurados en SOFTWARE hive"
                                 } else {

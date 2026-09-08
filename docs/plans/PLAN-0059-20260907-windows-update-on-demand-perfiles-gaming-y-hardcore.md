@@ -2,7 +2,7 @@
 
 - **ID del Plan:** PLAN-0059
 - **Fecha:** 2026-09-07
-- **Estado:** EN PROGRESO
+- **Estado:** COMPLETADO
 - **Autor:** romanOS Engineering / Antigravity Agent
 - **Rama:** `feature/offline-ui-tweaks`
 
@@ -67,3 +67,15 @@ La solución de ingeniería oficial de Microsoft para estaciones de trabajo y en
 3. **Ejecución Completa de Pruebas:**
    - `Test-OptimizedISO-v2.ps1` (410+ PASS).
    - `Invoke-TestSuite.ps1` (100% PASS).
+
+---
+
+## 5. Resultados Empíricos de Verificación
+
+- **Codificación y AST:** 5/5 archivos certificados con UTF-8 con BOM (`0xEF, 0xBB, 0xBF`) y 0 errores de sintaxis AST en Windows PowerShell 5.1.
+- **Aislamiento por Perfiles:**
+  - `Export-RomanOSUnattendCommands -Profile 1`: NoAutoUpdate omitido (actualizaciones automáticas preservadas para usuarios estándar).
+  - `Export-RomanOSUnattendCommands -Profile 2`: NoAutoUpdate = 1, AUOptions = 2, NoAutoRebootWithLoggedOnUsers = 1 inyectados.
+  - `Export-RomanOSUnattendCommands -Profile 3`: NoAutoUpdate = 1, AUOptions = 2, NoAutoRebootWithLoggedOnUsers = 1 inyectados.
+- **Test Harness (`Test-OptimizedISO-v2.ps1`):** **427 PASS / 0 FAIL / 1 SKIP** (428 pruebas ejecutadas).
+- **Master Test Suite (`Invoke-TestSuite.ps1`):** **SUCCESS (42.5s)** con todas las fases aprobadas.

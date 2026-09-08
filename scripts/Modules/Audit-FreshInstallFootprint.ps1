@@ -427,6 +427,27 @@ $policiesToAudit = @(
         Name     = "ChatIcon"
         Expected = 3
         Desc     = "Desactivar Chat consumidor a nivel de directiva (PLAN-0057)"
+    },
+    @{
+        Id       = "NoAutoUpdate (WU AU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        Name     = "NoAutoUpdate"
+        Expected = 1
+        Desc     = "Windows Update bajo demanda (Scan/Download manual únicamente - PLAN-0059)"
+    },
+    @{
+        Id       = "AUOptions (WU AU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        Name     = "AUOptions"
+        Expected = 2
+        Desc     = "Notificar antes de descargar y de instalar (PLAN-0059)"
+    },
+    @{
+        Id       = "NoAutoReboot (WU AU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        Name     = "NoAutoRebootWithLoggedOnUsers"
+        Expected = 1
+        Desc     = "Evitar reinicios automáticos con usuarios conectados (PLAN-0059)"
     }
 )
 

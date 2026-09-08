@@ -373,6 +373,15 @@ try {
         $reportLines.Add("- **Excluir Drivers en Windows Update:** No configurado o conductores automaticos permitidos")
     }
 
+    # Modo de operacion de Windows Update (Manual On-Demand vs Automatico) (PLAN-0059)
+    $noAutoUpdate = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name NoAutoUpdate -ErrorAction SilentlyContinue).NoAutoUpdate
+    if ($noAutoUpdate -eq 1) {
+        $passedChecks.Add("Modo Bajo Demanda (On-Demand) de Windows Update verificado.")
+        $reportLines.Add("- **Modo Windows Update:** Bajo Demanda (Manual On-Demand: NoAutoUpdate=1, AUOptions=2) [OK]")
+    } else {
+        $reportLines.Add("- **Modo Windows Update:** Automatico Estandar (NoAutoUpdate=0 o ausente) [OK]")
+    }
+
     # Busqueda local de drivers (SearchOrderConfig = 0)
     $searchOrder = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name SearchOrderConfig -ErrorAction SilentlyContinue).SearchOrderConfig
     if ($searchOrder -eq 0) {
