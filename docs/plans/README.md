@@ -67,7 +67,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0055 | [PLAN-0055-20260907-neutralizacion-quirurgica-search-highlights-bing-webview2-y-fix-blank-password-policy.md](PLAN-0055-20260907-neutralizacion-quirurgica-search-highlights-bing-webview2-y-fix-blank-password-policy.md) | 2026-09-07 | Neutralización Quirúrgica de Search Highlights, Bing y WebView2 en Segundo Plano y Corrección de Política de Contraseña en Blanco | COMPLETADO |
 | 0056 | [PLAN-0056-20260907-auditoria-forense-huella-procesos-frescos-e-integracion-toolkit-y-iso.md](PLAN-0056-20260907-auditoria-forense-huella-procesos-frescos-e-integracion-toolkit-y-iso.md) | 2026-09-07 | Auditoría Forense Empírica de Huella en Segundo Plano (Footprint Audit), Integración en Toolkit Maestro e Inyección en la ISO | COMPLETADO |
 | 0057 | [PLAN-0057-20260907-neutralizacion-widgets-webexperience-taskbar-zero-webview2.md](PLAN-0057-20260907-neutralizacion-widgets-webexperience-taskbar-zero-webview2.md) | 2026-09-07 | Neutralización de Widgets (Web Experience Pack) y Depuración de Barra de Tareas en la ISO para Lograr Zero-Overhead Total en WebView2 | COMPLETADO |
-| 0058 | [PLAN-0058-20260907-optimizacion-searchhost-webview2-y-working-set-trim.md](PLAN-0058-20260907-optimizacion-searchhost-webview2-y-working-set-trim.md) | 2026-09-07 | Optimización Quirúrgica de SearchHost.exe / WebView2 y Mecanismo Automatizado de Poda de Memoria (Working Set Trim) | EN PROGRESO |
+| 0058 | [PLAN-0058-20260907-optimizacion-searchhost-webview2-y-working-set-trim.md](PLAN-0058-20260907-optimizacion-searchhost-webview2-y-working-set-trim.md) | 2026-09-07 | Optimización Quirúrgica de SearchHost.exe / WebView2 y Mecanismo Automatizado de Poda de Memoria (Working Set Trim) | COMPLETADO |
 
 ---
 

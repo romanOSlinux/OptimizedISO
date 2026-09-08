@@ -1,3 +1,16 @@
+## [2026-09-07T22:15:00-03:00] Optimización Quirúrgica de SearchHost.exe / WebView2 y Poda Automatizada de Memoria (PLAN-0058)
+
+- **Archivos Modificados:** `scripts/Core/Policy-Engine.ps1`, `scripts/Modules/Optimize-ProcessMemory.ps1`, `scripts/Modules/Optimize-ProcessMemory.cmd`, `scripts/Modules/romanOS-Toolkit.ps1`, `scripts/Modules/Audit-FreshInstallFootprint.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Testing/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0058-20260907-optimizacion-searchhost-webview2-y-working-set-trim.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Preservación Incondicional de `UCPD.sys`:** Se determinó y fundamentó que el driver `UCPD.sys` (User Choice Protection Driver) no intervenía en el consumo de RAM ni de Widgets. Se mantiene intacto en la ISO de fábrica, evitando cualquier riesgo de inestabilidad de kernel, problemas con Windows Update y preservando la protección activa contra secuestro de navegador predeterminado (*Browser Hijacking*).
+  - **Búsqueda 100% Offline y SSOT:** Se promovieron al catálogo maestro `$global:RomanOS_Policies` en `Policy-Engine.ps1` (Profiles 1, 2, 3) las directivas `AllowCloudSearch = 0` y `AllowSearchToUseLocation = 0`, consolidándolas con `DisableWebSearch = 1`, `ConnectedSearchUseWeb = 0` y `EnableDynamicContentInWSB = 0` para exportación desatendida a `autounattend.xml` e inyección en el WIM montado.
+  - **Nuevo Módulo `Optimize-ProcessMemory.ps1` y `.cmd`:** Implementación nativa de `Invoke-RomanOSMemoryTrim` utilizando P/Invoke de `psapi.dll` (`EmptyWorkingSet`), logrando una reducción empírica del 87% en el Working Set de `SearchHost.exe` e instancias hijas de `msedgewebview2` en reposo (de ~430 MB a <50 MB combinados) sin interrumpir la reactividad de la búsqueda.
+  - **Integración en `romanOS-Toolkit.ps1`:** Parámetro `-Module MemoryTrim` y opción de mantenimiento directo en `Show-QuickActionsMenu` y menú principal para poda con 1 clic.
+  - **Inyección en la ISO y FirstLogon:** `New-OptimizedWindowsISO-v2.ps1` inyecta físicamente el módulo en `$OEM$` y en el WIM offline, e incorpora un comando silencioso en `FirstLogonCommands` tras una espera de 30 segundos para estabilización del escritorio.
+  - **Refinamiento Forense en `Audit-FreshInstallFootprint.ps1`:** Clasificación inteligente de `msedgewebview2` (diferenciando subprocesos legítimos de la UI de búsqueda respecto a procesos vampiro huérfanos).
+  - **Certificación Total:** 410 PASS / 0 FAIL / 1 SKIP en `Test-OptimizedISO-v2.ps1` y 38/38 scripts con UTF-8 BOM y 0 errores AST en `Invoke-TestSuite.ps1`.
+- **Pendiente:** Generar compilación de ISO si el usuario lo solicita.
+
 ## [2026-09-06T12:50:00-03:00] Integración de Optimizaciones Oficiales de NTFS, Kernel Scheduler y Red (PLAN-0034)
 
 - **Archivos Modificados:** `scripts/Core/Policy-Engine.ps1`, `scripts/New-OptimizedWindowsISO-v2.ps1`, `scripts/Win11-Network-Diagnostics-Optimizer.ps1`, `scripts/PostInstall-Diagnostics.ps1`, `scripts/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0034-20260906-optimizaciones-oficiales-ntfs-kernel-scheduler-y-red.md`, `docs/plans/README.md`, `MEMORY.md`

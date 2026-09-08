@@ -210,7 +210,7 @@ foreach ($t in $targetAudits) {
         $ramStr = "$totalWorkingSetMB MB"
         $pidStr = $pids
 
-        # Evaluación especial para SearchHost (PLM Suspended)
+        # Evaluación especial para SearchHost (PLM Suspended) y WebView2 (Search UI)
         if ($t.Name -eq "SearchHost") {
             if ($totalWorkingSetMB -le 35.0) {
                 $verdictConsole = "[SUSPENDIDO PLM / OK]"
@@ -221,6 +221,33 @@ foreach ($t in $targetAudits) {
                 $verdictConsole = "[ACTIVO - CONSUMO ALTO]"
                 $verdictMd = "⚠️ ACTIVO (>35MB)"
                 Write-Host ("  ⚠️ {0,-28} : {1,-26} | RAM: {2,8} | PIDs: {3}" -f $t.DisplayName, $verdictConsole, $ramStr, $pidStr) -ForegroundColor Yellow
+            }
+        } elseif ($t.Name -eq "msedgewebview2") {
+            # Verificar si las instancias de WebView2 son hijas de SearchHost
+            $searchPids = @(Get-Process -Name "SearchHost" -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
+            $cimProcs = @(Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" -ErrorAction SilentlyContinue)
+            $allSearchChildren = ($cimProcs.Count -gt 0)
+            foreach ($cp in $cimProcs) {
+                if ($cp.ParentProcessId -notin $searchPids -and (-not ($cp.CommandLine -and $cp.CommandLine -like "*SearchHost.exe*"))) {
+                    $allSearchChildren = $false
+                    break
+                }
+            }
+
+            if ($allSearchChildren -and $totalWorkingSetMB -le 50.0) {
+                $verdictConsole = "[SEARCH UI / PODADO OK]"
+                $verdictMd = "🟢 SEARCH UI (Podado / Óptimo)"
+                Write-Host ("  🟢 {0,-28} : {1,-26} | RAM: {2,8} | PIDs: {3}" -f $t.DisplayName, $verdictConsole, $ramStr, $pidStr) -ForegroundColor Cyan
+            } elseif ($allSearchChildren) {
+                $detectedVampires++
+                $verdictConsole = "[SEARCH UI / REQUIERE PODA]"
+                $verdictMd = "⚠️ SEARCH UI (>50MB, Requiere Poda)"
+                Write-Host ("  ⚠️ {0,-28} : {1,-26} | RAM: {2,8} | PIDs: {3}" -f $t.DisplayName, $verdictConsole, $ramStr, $pidStr) -ForegroundColor Yellow
+            } else {
+                $detectedVampires++
+                $verdictConsole = "[VAMPIRO EN SEGUNDO PLANO]"
+                $verdictMd = "❌ VAMPIRO ACTIVO (Externo/Huérfano)"
+                Write-Host ("  ❌ {0,-28} : {1,-26} | RAM: {2,8} | PIDs: {3}" -f $t.DisplayName, $verdictConsole, $ramStr, $pidStr) -ForegroundColor Red
             }
         } else {
             $detectedVampires++

@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration")]
+    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim")]
     [string]$Module,
     [switch]$ShowDashboards
 )
@@ -220,6 +220,17 @@ function Invoke-FootprintAuditModule {
     }
 }
 
+function Invoke-MemoryTrimModule {
+    $scriptFile = Resolve-ToolScript "Optimize-ProcessMemory.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Optimizacion y Poda de Memoria en Reposo (EmptyWorkingSet psapi.dll)"
+        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
+    } else {
+        Write-ErrorMsg "No se encontro Optimize-ProcessMemory.ps1"
+        pause
+    }
+}
+
 function Invoke-SecurityModule {
     $scriptFile = Resolve-ToolScript "Invoke-WindowsSecurityHardening.ps1"
     if ($scriptFile) {
@@ -362,7 +373,8 @@ function Show-QuickActionsMenu {
         "Auditoria e Introspeccion de Hardware (PCIe, GPU, RAM, MSI, SMBIOS)",
         "Gestionar Menus Contextuales (Gamer, Take Ownership, UEFI, Clasico)",
         "Respaldar Controladores del Host para la ISO (Export-WindowsDriver)",
-        "Depuracion Segura del DriverStore (FileRepository)"
+        "Depuracion Segura del DriverStore (FileRepository)",
+        "Poda Quirurgica de Memoria RAM en Reposo (psapi.dll EmptyWorkingSet)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -492,6 +504,9 @@ function Show-QuickActionsMenu {
             $cleanScript = Resolve-ToolScript "Clean-DriverStore.ps1"
             if ($cleanScript) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $cleanScript } else { Write-ErrorMsg "No se encontro Clean-DriverStore.ps1" }
         }
+        14 {
+            Invoke-MemoryTrimModule
+        }
         default { return }
     }
 
@@ -514,6 +529,7 @@ if ($Module) {
         "ContextMenu"   { Invoke-ContextMenuModule; exit }
         "Drivers"       { Invoke-DriversModule; exit }
         "UserMigration" { $ms = Resolve-ToolScript "Migrar-Usuario-W11.ps1"; if ($ms) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ms } else { Write-ErrorMsg "No se encontro Migrar-Usuario-W11.ps1" }; exit }
+        "MemoryTrim"    { Invoke-MemoryTrimModule; exit }
         "QuickActions"  { Show-QuickActionsMenu; exit }
     }
 }
@@ -545,6 +561,7 @@ $mainMenuOpts = @(
     "Gestion Integral de Controladores (Respaldo Host, DriverStore, Intel VMD)",
     "Migrar o Rescatar Perfil de Usuario Local (Respaldos y Recreacion)",
     "Generar y Abrir Dashboards HTML de Salud y Seguridad",
+    "Poda Quirurgica de Memoria RAM en Reposo (SearchHost, WebView2, Shell)",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)"
 )
 
@@ -564,7 +581,8 @@ while ($true) {
         9  { Invoke-DriversModule; pause }
         10 { $ms = Resolve-ToolScript "Migrar-Usuario-W11.ps1"; if ($ms) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ms } else { Write-ErrorMsg "No se encontro Migrar-Usuario-W11.ps1" }; pause }
         11 { Invoke-OpenDashboards; pause }
-        12 { Show-QuickActionsMenu; pause }
+        12 { Invoke-MemoryTrimModule; pause }
+        13 { Show-QuickActionsMenu; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

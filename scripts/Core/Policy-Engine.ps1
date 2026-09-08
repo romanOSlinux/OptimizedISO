@@ -139,6 +139,34 @@ $global:RomanOS_Policies = @(
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
         UnattendDesc  = "Disable Cortana Assistant System-Wide"
     },
+    @{
+        Id            = "POL_SEARCH_ALLOW_CLOUD"
+        Module        = "Modulo F - Bing Web Search"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        ValueName     = "AllowCloudSearch"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar busqueda en la nube (OneDrive, SharePoint) en Windows Search"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
+        UnattendDesc  = "Disable Cloud Search in Windows Search"
+    },
+    @{
+        Id            = "POL_SEARCH_ALLOW_LOCATION"
+        Module        = "Modulo F - Bing Web Search"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+        ValueName     = "AllowSearchToUseLocation"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar uso de geolocalizacion en busqueda de Windows"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
+        UnattendDesc  = "Disable Search from Using Device Location"
+    },
 
     # --- MÓDULO D: IA, COPILOT Y RECALL (W11 24H2+) ---
     @{

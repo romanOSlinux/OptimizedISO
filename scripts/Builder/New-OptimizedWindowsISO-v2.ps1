@@ -4441,6 +4441,21 @@ if (Test-Path $auditFootprintSrc) {
     Add-AuditRecord -Resource "Audit-FreshInstallFootprint" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$memTrimSrc = Join-Path $ScriptsDir "Modules\Optimize-ProcessMemory.ps1"
+$memTrimCmdSrc = Join-Path $ScriptsDir "Modules\Optimize-ProcessMemory.cmd"
+if (Test-Path $memTrimSrc) {
+    Copy-Item -Path $memTrimSrc -Destination (Join-Path $OEMScriptsDir "Optimize-ProcessMemory.ps1") -Force
+    Copy-Item -Path $memTrimSrc -Destination (Join-Path $OEMScriptsDir1 "Optimize-ProcessMemory.ps1") -Force
+    Copy-Item -Path $memTrimSrc -Destination (Join-Path $destModulesDir "Optimize-ProcessMemory.ps1") -Force
+    Copy-Item -Path $memTrimSrc -Destination (Join-Path $destModulesDir1 "Optimize-ProcessMemory.ps1") -Force
+    if (Test-Path $memTrimCmdSrc) {
+        Copy-Item -Path $memTrimCmdSrc -Destination (Join-Path $OEMScriptsDir "Optimize-ProcessMemory.cmd") -Force
+        Copy-Item -Path $memTrimCmdSrc -Destination (Join-Path $destModulesDir "Optimize-ProcessMemory.cmd") -Force
+    }
+    Write-OK "Modulo de poda de memoria (Optimize-ProcessMemory) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Optimize-ProcessMemory" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 # ------------------------------------------------------------------
 # Garantizar Presencia de Submódulos del Toolkit Maestro en $OEM$
 # ------------------------------------------------------------------
@@ -4800,6 +4815,17 @@ if (-not $SkipAutoUnattend) {
         <SynchronousCommand wcm:action="add">
           <CommandLine>reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v EnableTransparency /t REG_DWORD /d 1 /f</CommandLine>
           <Description>Enable Transparency in HKCU</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+    $cmdOrder++
+
+    # PLAN-0058: Poda de Memoria Silenciosa Post-Primer Inicio (Working Set Trim)
+    $firstLogonCommands.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>cmd.exe /c start "" /b powershell.exe -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 30; if (Test-Path 'C:\Windows\Setup\Scripts\Optimize-ProcessMemory.ps1') { . 'C:\Windows\Setup\Scripts\Optimize-ProcessMemory.ps1' -Quiet -Unattended }"</CommandLine>
+          <Description>Trigger Background Working Set Memory Trim after stabilization</Description>
           <Order>$cmdOrder</Order>
           <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
@@ -6534,6 +6560,18 @@ if ($wimFile) {
                           Copy-Item -Path $auditFootprintSrc -Destination (Join-Path $wimScriptsDir "Audit-FreshInstallFootprint.ps1") -Force
                           Copy-Item -Path $auditFootprintSrc -Destination (Join-Path $wimModulesDest "Audit-FreshInstallFootprint.ps1") -Force
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Audit-FreshInstallFootprint.ps1"
+                      }
+
+                      $memTrimSrc = Join-Path $ScriptsDir "Modules\Optimize-ProcessMemory.ps1"
+                      $memTrimCmdSrc = Join-Path $ScriptsDir "Modules\Optimize-ProcessMemory.cmd"
+                      if (Test-Path $memTrimSrc) {
+                          Copy-Item -Path $memTrimSrc -Destination (Join-Path $wimScriptsDir "Optimize-ProcessMemory.ps1") -Force
+                          Copy-Item -Path $memTrimSrc -Destination (Join-Path $wimModulesDest "Optimize-ProcessMemory.ps1") -Force
+                          if (Test-Path $memTrimCmdSrc) {
+                              Copy-Item -Path $memTrimCmdSrc -Destination (Join-Path $wimScriptsDir "Optimize-ProcessMemory.cmd") -Force
+                              Copy-Item -Path $memTrimCmdSrc -Destination (Join-Path $wimModulesDest "Optimize-ProcessMemory.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Optimize-ProcessMemory.ps1 y .cmd"
                       }
 
                       # Inyectar submódulos de la suite para soporte del Toolkit en WIM montado

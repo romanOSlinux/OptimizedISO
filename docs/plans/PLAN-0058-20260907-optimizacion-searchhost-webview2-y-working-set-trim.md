@@ -2,7 +2,7 @@
 
 - **ID del Plan:** PLAN-0058
 - **Fecha:** 2026-09-07
-- **Estado:** EN PROGRESO
+- **Estado:** COMPLETADO
 - **Autor:** romanOS Engineering / Antigravity Agent
 - **Rama:** `feature/offline-ui-tweaks`
 
@@ -53,7 +53,7 @@ Mediante inspección CIM de jerarquía de procesos (`Win32_Process`) se determin
 | `scripts/Modules/Audit-FreshInstallFootprint.ps1` | MODIFICAR | Refinar diagnóstico de `msedgewebview2` cuando es hijo de `SearchHost`. |
 | `scripts/Builder/New-OptimizedWindowsISO-v2.ps1` | MODIFICAR | Inyección física en `$OEM$` y WIM, más llamada retardada en `FirstLogonCommands`. |
 | `scripts/Testing/Test-OptimizedISO-v2.ps1` | MODIFICAR | Agregar bloque de validación para PLAN-0058. |
-| `docs/plans/README.md` | MODIFICAR | Registrar PLAN-0058 como EN PROGRESO. |
+| `docs/plans/README.md` | MODIFICAR | Registrar PLAN-0058 como COMPLETADO. |
 
 ---
 
@@ -68,3 +68,12 @@ Mediante inspección CIM de jerarquía de procesos (`Win32_Process`) se determin
    ```
 3. **Suite Completa de Pruebas:**
    - Ejecución de `Test-OptimizedISO-v2.ps1` y verificación de incremento de pruebas aprobadas sin regresiones.
+
+---
+
+## 5. Resultados de Verificación y Certificación
+
+- **`Test-OptimizedISO-v2.ps1`:** 410 PASS / 0 FAIL / 1 SKIP (100% éxito).
+- **`Invoke-TestSuite.ps1`:** 38/38 scripts evaluados con UTF-8 BOM y 0 errores AST, 20/20 PASS en Hardware Engine, esquema autounattend UEFI GPT válido.
+- **`Optimize-ProcessMemory.ps1`:** Ejecución en frío bajo Windows PowerShell 5.1 validada sin advertencias ni excepciones.
+- **`UCPD.sys`:** Driver de kernel preservado 100% de fábrica en la ISO.

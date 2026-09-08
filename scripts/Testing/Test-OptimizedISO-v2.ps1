@@ -1239,6 +1239,49 @@ Assert-False "PLAN-0057: Audit-FreshInstallFootprint no contiene artefactos roto
 Assert-True "PLAN-0057: Audit-FreshInstallFootprint audita AllowWidgets (GPO)" ([bool]($auditContent57 -match 'AllowWidgets \(GPO\)'))
 Assert-True "PLAN-0057: Audit-FreshInstallFootprint incluye diagnostico CIM de WebView2" ([bool]($auditContent57 -match 'Get-CimInstance Win32_Process -Filter "Name = ''msedgewebview2\.exe''"'))
 
+# =============================================================================
+# PLAN-0058: OPTIMIZACION DE SEARCHHOST, WEBVIEW2 Y WORKING SET TRIM (PSAPI)
+# =============================================================================
+Write-HarnessHeader2 "PLAN-0058: Optimizacion de SearchHost, WebView2 y Working Set Trim"
+
+# 1. Validar existencia y codificacion UTF-8 con BOM de Optimize-ProcessMemory.ps1 y .cmd
+$memTrimScriptCandidate = Join-Path $modulesDir "Optimize-ProcessMemory.ps1"
+$memTrimCmdCandidate    = Join-Path $modulesDir "Optimize-ProcessMemory.cmd"
+Assert-True "PLAN-0058: Optimize-ProcessMemory.ps1 existe en Modules/" (Test-Path $memTrimScriptCandidate)
+Assert-True "PLAN-0058: Optimize-ProcessMemory.cmd existe en Modules/" (Test-Path $memTrimCmdCandidate)
+
+$memTrimBytes = [System.IO.File]::ReadAllBytes($memTrimScriptCandidate)
+$memTrimHasBom = ($memTrimBytes.Length -ge 3 -and $memTrimBytes[0] -eq 0xEF -and $memTrimBytes[1] -eq 0xBB -and $memTrimBytes[2] -eq 0xBF)
+Assert-True "PLAN-0058: Optimize-ProcessMemory.ps1 tiene codificacion UTF-8 con BOM" $memTrimHasBom
+
+$memTrimTokens = $null; $memTrimErrs = $null
+$memTrimAst = [System.Management.Automation.Language.Parser]::ParseFile($memTrimScriptCandidate, [ref]$memTrimTokens, [ref]$memTrimErrs)
+Assert-Equal "PLAN-0058: Optimize-ProcessMemory.ps1 no tiene errores de sintaxis AST" $memTrimErrs.Count 0
+
+# 2. Validar registro de POL_SEARCH_ALLOW_CLOUD y POL_SEARCH_ALLOW_LOCATION en Policy-Engine.ps1
+$policyEnginePath58 = Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"
+$peContent58 = Get-Content $policyEnginePath58 -Raw
+Assert-True "PLAN-0058: Policy-Engine registra directiva POL_SEARCH_ALLOW_CLOUD" ([bool]($peContent58 -match 'Id\s*=\s*"POL_SEARCH_ALLOW_CLOUD"'))
+Assert-True "PLAN-0058: Policy-Engine registra directiva POL_SEARCH_ALLOW_LOCATION" ([bool]($peContent58 -match 'Id\s*=\s*"POL_SEARCH_ALLOW_LOCATION"'))
+
+# 3. Validar integracion en romanOS-Toolkit.ps1
+$toolkitScript58 = Join-Path $modulesDir "romanOS-Toolkit.ps1"
+$toolkitContent58 = Get-Content $toolkitScript58 -Raw
+Assert-True "PLAN-0058: romanOS-Toolkit.ps1 acepta parametro MemoryTrim en ValidateSet" ([bool]($toolkitContent58 -match 'MemoryTrim'))
+Assert-True "PLAN-0058: romanOS-Toolkit.ps1 declara funcion Invoke-MemoryTrimModule" ([bool]($toolkitContent58 -match 'function Invoke-MemoryTrimModule'))
+Assert-True "PLAN-0058: romanOS-Toolkit.ps1 incluye MemoryTrim en el menu de acciones rapidas" ([bool]($toolkitContent58 -match 'Poda Quirurgica de Memoria RAM en Reposo'))
+
+# 4. Validar inyeccion en el Builder New-OptimizedWindowsISO-v2.ps1
+$v2FreshContent58 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0058: Builder inyecta Optimize-ProcessMemory en `$OEM`$" ([bool]($v2FreshContent58 -match 'Optimize-ProcessMemory\.ps1"\) -Force'))
+Assert-True "PLAN-0058: Builder inyecta Optimize-ProcessMemory en WIM offline" ([bool]($v2FreshContent58 -match 'wimModulesDest "Optimize-ProcessMemory\.ps1"\) -Force'))
+Assert-True "PLAN-0058: Builder configura llamada retardada de poda en FirstLogonCommands" ([bool]($v2FreshContent58 -match 'Optimize-ProcessMemory\.ps1.*-Quiet -Unattended'))
+
+# 5. Validar clasificacion de Search UI en Audit-FreshInstallFootprint.ps1
+$auditFootprintPath58 = Join-Path $modulesDir "Audit-FreshInstallFootprint.ps1"
+$auditContent58 = Get-Content $auditFootprintPath58 -Raw
+Assert-True "PLAN-0058: Audit-FreshInstallFootprint diferencia instancias de WebView2 hijas de SearchHost" ([bool]($auditContent58 -match 'SEARCH UI'))
+
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
