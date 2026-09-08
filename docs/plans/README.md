@@ -69,6 +69,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0057 | [PLAN-0057-20260907-neutralizacion-widgets-webexperience-taskbar-zero-webview2.md](PLAN-0057-20260907-neutralizacion-widgets-webexperience-taskbar-zero-webview2.md) | 2026-09-07 | Neutralización de Widgets (Web Experience Pack) y Depuración de Barra de Tareas en la ISO para Lograr Zero-Overhead Total en WebView2 | COMPLETADO |
 | 0058 | [PLAN-0058-20260907-optimizacion-searchhost-webview2-y-working-set-trim.md](PLAN-0058-20260907-optimizacion-searchhost-webview2-y-working-set-trim.md) | 2026-09-07 | Optimización Quirúrgica de SearchHost.exe / WebView2 y Mecanismo Automatizado de Poda de Memoria (Working Set Trim) | COMPLETADO |
 | 0059 | [PLAN-0059-20260907-windows-update-on-demand-perfiles-gaming-y-hardcore.md](PLAN-0059-20260907-windows-update-on-demand-perfiles-gaming-y-hardcore.md) | 2026-09-07 | Windows Update Bajo Demanda (Manual On-Demand) en Perfiles Gaming y Hardcore | COMPLETADO |
+| 0060 | [PLAN-0060-20260907-estabilidad-actualizaciones-acumulativas-cuarentena-y-bloqueo-previews.md](PLAN-0060-20260907-estabilidad-actualizaciones-acumulativas-cuarentena-y-bloqueo-previews.md) | 2026-09-07 | Estabilidad de Actualizaciones Acumulativas: Cuarentena de Calidad (Quality Update Deferral) y Bloqueo de Previews/CFR para Todos los Perfiles de la ISO | PENDIENTE |
 
 ---
 
