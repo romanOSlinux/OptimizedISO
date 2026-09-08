@@ -72,6 +72,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0060 | [PLAN-0060-20260907-estabilidad-actualizaciones-acumulativas-cuarentena-y-bloqueo-previews.md](PLAN-0060-20260907-estabilidad-actualizaciones-acumulativas-cuarentena-y-bloqueo-previews.md) | 2026-09-07 | Estabilidad de Actualizaciones Acumulativas: Cuarentena de Calidad (Quality Update Deferral) y Bloqueo de Previews/CFR para Todos los Perfiles de la ISO | COMPLETADO |
 | 0061 | [PLAN-0061-20260908-paridad-perfil-1-drivers-wpbt-bitlocker.md](PLAN-0061-20260908-paridad-perfil-1-drivers-wpbt-bitlocker.md) | 2026-09-08 | Paridad en Perfil 1: Protección de Drivers GPU, Bloqueo Bloatware BIOS (WPBT), Prevención BitLocker y Matriz de Servicios | COMPLETADO |
 | 0062 | [PLAN-0062-20260908-resolucion-rutas-motores-core-y-red.md](PLAN-0062-20260908-resolucion-rutas-motores-core-y-red.md) | 2026-09-08 | Corrección de Resolución de Rutas de Motores Core (Policy, UI, Hardware) y Restauración de Catálogo de Red en Toda la Suite | COMPLETADO |
+| 0063 | [PLAN-0063-20260908-iso-a-medida-host-amd-ryzen-8600g.md](PLAN-0063-20260908-iso-a-medida-host-amd-ryzen-8600g.md) | 2026-09-08 | Compilación de ISO romanOS Personalizada a Medida del Host (AMD Ryzen 5 8600G / Radeon 760M / NPU XDNA / DDR5) | PENDIENTE |
 
 ---
 
