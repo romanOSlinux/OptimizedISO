@@ -37,10 +37,22 @@ $testSuiteStart = Get-Date
 # -----------------------------------------------------------------------------
 # CARGA DE MOTOR VISUAL UNIFICADO
 # -----------------------------------------------------------------------------
-$uiEnginePath = Join-Path $PSScriptRoot "Core\UI-Engine.ps1"
-if (Test-Path $uiEnginePath) {
-    . $uiEnginePath
-} else {
+$uiEnginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+)
+$uiLoaded = $false
+foreach ($p in $uiEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $uiLoaded = $true
+        break
+    }
+}
+if (-not $uiLoaded) {
     function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
     function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
     function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }

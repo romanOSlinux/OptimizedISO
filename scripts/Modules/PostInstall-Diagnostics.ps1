@@ -19,6 +19,7 @@ $ErrorActionPreference = 'Continue'
 # CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
 # -----------------------------------------------------------------------------
 $uiEnginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
@@ -49,6 +50,7 @@ if (-not $uiLoaded -or -not (Get-Command Show-UnifiedBanner -ErrorAction Silentl
 # CARGA DE MOTOR DE HARDWARE UNIFICADO (Hardware-Engine.ps1)
 # -----------------------------------------------------------------------------
 $hwEnginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Hardware-Engine.ps1"),
     (Join-Path $PSScriptRoot "Core\Hardware-Engine.ps1"),
     (Join-Path $PSScriptRoot "Hardware-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Hardware-Engine.ps1"),
@@ -67,6 +69,7 @@ foreach ($p in $hwEnginePaths) {
 # CARGA DE MOTOR DE POLITICAS UNIFICADO (Core\Policy-Engine.ps1)
 # -----------------------------------------------------------------------------
 $policyEnginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"),
     (Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"),
     (Join-Path $PSScriptRoot "Policy-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"),

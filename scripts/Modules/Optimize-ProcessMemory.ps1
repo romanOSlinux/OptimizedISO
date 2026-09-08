@@ -60,6 +60,7 @@ if (-not ([System.Management.Automation.PSTypeName]'RomanOS.PsApiMemory').Type) 
 
 # Carga de UI-Engine si esta disponible
 $uiEnginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),

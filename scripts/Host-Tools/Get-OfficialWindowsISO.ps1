@@ -68,6 +68,7 @@ $ErrorActionPreference = 'Continue'
 # CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
 # -----------------------------------------------------------------------------
 $uiEnginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),

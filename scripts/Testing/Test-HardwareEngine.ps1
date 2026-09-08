@@ -20,17 +20,25 @@
 param()
 
 $ErrorActionPreference = 'Continue'
-$scriptPath = Join-Path $PSScriptRoot "Core\Hardware-Engine.ps1"
-if (-not (Test-Path $scriptPath)) {
-    $scriptPath = "C:\OptimizedISO\scripts\Core\Hardware-Engine.ps1"
+$hwEnginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Hardware-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Core\Hardware-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Hardware-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Hardware-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\Hardware-Engine.ps1"
+)
+$hwLoaded = $false
+foreach ($p in $hwEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $hwLoaded = $true
+        break
+    }
 }
-
-if (-not (Test-Path $scriptPath)) {
-    Write-Error "No se encontro Hardware-Engine.ps1 en '$scriptPath'"
+if (-not $hwLoaded) {
+    Write-Error "No se encontro Hardware-Engine.ps1 en ninguna ruta conocida."
     exit 1
 }
-
-. $scriptPath
 
 $totalTests = 0
 $passedTests = 0

@@ -4,6 +4,7 @@
     Ejecutar elevado (Admin). Guarda logs en C:\Logs\Network-Diagnostics.log
 #>
 
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [switch]$Unattended,
     [switch]$NagleOnly,
@@ -20,16 +21,23 @@ try {
 # ============================================================
 try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
 
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Warning "Este script requiere privilegios de Administrador. Reiniciando de forma elevada..."
-    $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-    $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
-    $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
-    if ($Unattended) { $argList += '-Unattended' }
-    if ($NagleOnly) { $argList += '-NagleOnly' }
-    if ($FlushDNSOnly) { $argList += '-FlushDNSOnly' }
-    Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
-    Exit
+$isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin) {
+    if ($isSimulated) {
+        Write-Warning "Ejecutando en modo simulado (-WhatIf) sin elevacion UAC."
+    } else {
+        Write-Warning "Este script requiere privilegios de Administrador. Reiniciando de forma elevada..."
+        $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+        $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
+        if ($Unattended) { $argList += '-Unattended' }
+        if ($NagleOnly) { $argList += '-NagleOnly' }
+        if ($FlushDNSOnly) { $argList += '-FlushDNSOnly' }
+        Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
+        Exit
+    }
 }
 
 if ($FlushDNSOnly) {
@@ -49,6 +57,7 @@ $ErrorActionPreference = 'Continue'
 # CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
 # ============================================================
 $uiEnginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
@@ -79,6 +88,7 @@ if (-not $uiLoaded) {
 # CARGA DEL POLICY ENGINE (SSOT)
 # ============================================================
 $enginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"),
     (Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"),
     (Join-Path $PSScriptRoot "Policy-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"),
@@ -381,7 +391,7 @@ try {
                 RegistryKey     = $p.RegistryKey
                 PSPath          = $p.PSPath
                 ValueName       = $p.ValueName
-                Type            = $p.Type
+                Type            = if ($p.PSType) { $p.PSType } elseif ($p.Type -eq 'REG_DWORD') { 'DWord' } elseif ($p.Type -eq 'REG_SZ') { 'String' } elseif ($p.Type -eq 'REG_QWORD') { 'QWord' } else { if ($p.Type) { $p.Type } else { 'DWord' } }
                 ExpectedValue   = $p.ExpectedValue
                 RegistryKeyword = $p.RegistryKeyword
                 RegistryValue   = $p.RegistryValue
@@ -453,7 +463,8 @@ try {
                     }
                     'Registry' {
                         if (-not (Test-Path $tweak.PSPath)) { New-Item -Path $tweak.PSPath -Force | Out-Null }
-                        Set-ItemProperty -Path $tweak.PSPath -Name $tweak.ValueName -Value $tweak.ExpectedValue -Type $tweak.Type -ErrorAction Stop
+                        $regType = if ($tweak.Type -eq 'REG_DWORD' -or $tweak.Type -eq 'DWord') { 'DWord' } elseif ($tweak.Type -eq 'REG_SZ' -or $tweak.Type -eq 'String') { 'String' } elseif ($tweak.Type) { $tweak.Type } else { 'DWord' }
+                        Set-ItemProperty -Path $tweak.PSPath -Name $tweak.ValueName -Value $tweak.ExpectedValue -Type $regType -ErrorAction Stop
                     }
                     'DynamicRegistry_Interfaces' {
                         $ifPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"

@@ -1440,6 +1440,51 @@ Assert-True "PLAN-0061: Audit-FreshInstallFootprint.ps1 incluye PreventDeviceMet
 Assert-True "PLAN-0061: Audit-FreshInstallFootprint.ps1 incluye DisableWPBT en politicas auditadas" ([bool]($auditContent61 -match 'DisableWPBT \(ACPI\)'))
 Assert-True "PLAN-0061: Audit-FreshInstallFootprint.ps1 incluye PreventDeviceEncryption en politicas auditadas" ([bool]($auditContent61 -match 'PreventDeviceEncryption \(BitLocker\)'))
 
+# -----------------------------------------------------------------------------
+# FASE 2.14: VALIDACIÓN DE RESOLUCIÓN DE RUTAS CORE Y CATÁLOGO DE RED (PLAN-0062)
+# -----------------------------------------------------------------------------
+Write-HarnessHeader2 "FASE 2.14: Resolucion Jerarquica de Motores Core y Catalogo de Red (PLAN-0062)"
+
+# 1. Validar catalogo global RomanOS_NetworkPolicies en Policy-Engine
+Assert-NotNull "PLAN-0062: Catalogo global RomanOS_NetworkPolicies disponible" $global:RomanOS_NetworkPolicies
+Assert-True "PLAN-0062: RomanOS_NetworkPolicies contiene al menos 18 directivas de red" ($global:RomanOS_NetworkPolicies.Count -ge 18)
+
+$netIds = $global:RomanOS_NetworkPolicies | ForEach-Object { $_.Id }
+Assert-True "PLAN-0062: RomanOS_NetworkPolicies incluye NET_TCP_AUTOTUNING" ($netIds -contains "NET_TCP_AUTOTUNING")
+Assert-True "PLAN-0062: RomanOS_NetworkPolicies incluye NET_TCP_CONGESTION_CUBIC" ($netIds -contains "NET_TCP_CONGESTION_CUBIC")
+Assert-True "PLAN-0062: RomanOS_NetworkPolicies incluye NET_TCP_ECN_CAPABILITY" ($netIds -contains "NET_TCP_ECN_CAPABILITY")
+Assert-True "PLAN-0062: RomanOS_NetworkPolicies incluye NET_SYS_QOS_UNCAP" ($netIds -contains "NET_SYS_QOS_UNCAP")
+Assert-True "PLAN-0062: RomanOS_NetworkPolicies incluye NET_SYS_NAGLE_ALGORITHM" ($netIds -contains "NET_SYS_NAGLE_ALGORITHM")
+
+# 2. Validar resolucion jerarquica en Win11-Network-Diagnostics-Optimizer.ps1
+$netOptContent62 = Get-Content (Join-Path $modulesDir "Win11-Network-Diagnostics-Optimizer.ps1") -Raw
+Assert-True "PLAN-0062: Network Optimizer incluye resolucion Core jerarquica para UI-Engine" ([bool]($netOptContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\UI-Engine\.ps1"'))
+Assert-True "PLAN-0062: Network Optimizer incluye resolucion Core jerarquica para Policy-Engine" ([bool]($netOptContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\Policy-Engine\.ps1"'))
+Assert-True "PLAN-0062: Network Optimizer soporta ShouldProcess / WhatIf en elevacion" ([bool]($netOptContent62 -match 'CmdletBinding\(SupportsShouldProcess\s*=\s*\$true\)'))
+
+# 3. Validar resolucion jerarquica en romanOS-Toolkit.ps1
+$toolkitContent62 = Get-Content (Join-Path $modulesDir "romanOS-Toolkit.ps1") -Raw
+Assert-True "PLAN-0062: Toolkit incluye resolucion Core jerarquica para UI-Engine" ([bool]($toolkitContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\UI-Engine\.ps1"'))
+Assert-True "PLAN-0062: Toolkit incluye resolucion Core jerarquica para Hardware-Engine" ([bool]($toolkitContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\Hardware-Engine\.ps1"'))
+Assert-True "PLAN-0062: Toolkit incluye resolucion Core jerarquica para Policy-Engine" ([bool]($toolkitContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\Policy-Engine\.ps1"'))
+
+# 4. Validar resolucion jerarquica en Win11-Debloat-v3-Adaptive.ps1 y PostInstall-Diagnostics.ps1
+$debloatContent62 = Get-Content (Join-Path $modulesDir "Win11-Debloat-v3-Adaptive.ps1") -Raw
+Assert-True "PLAN-0062: Debloat incluye resolucion Core jerarquica para UI-Engine" ([bool]($debloatContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\UI-Engine\.ps1"'))
+Assert-True "PLAN-0062: Debloat incluye resolucion Core jerarquica para Policy-Engine" ([bool]($debloatContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\Policy-Engine\.ps1"'))
+
+$postDiagContent62 = Get-Content (Join-Path $modulesDir "PostInstall-Diagnostics.ps1") -Raw
+Assert-True "PLAN-0062: PostInstall-Diagnostics incluye resolucion jerarquica para UI-Engine" ([bool]($postDiagContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\UI-Engine\.ps1"'))
+Assert-True "PLAN-0062: PostInstall-Diagnostics incluye resolucion jerarquica para Hardware-Engine" ([bool]($postDiagContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\Hardware-Engine\.ps1"'))
+Assert-True "PLAN-0062: PostInstall-Diagnostics incluye resolucion jerarquica para Policy-Engine" ([bool]($postDiagContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\Policy-Engine\.ps1"'))
+
+# 5. Validar suites de testing sin hardcodes absolutos fuera de fallback
+$testSuiteContent62 = Get-Content (Join-Path $PSScriptRoot "Invoke-TestSuite.ps1") -Raw
+Assert-True "PLAN-0062: Invoke-TestSuite.ps1 incluye resolucion jerarquica de UI-Engine" ([bool]($testSuiteContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\UI-Engine\.ps1"'))
+
+$testHwContent62 = Get-Content (Join-Path $PSScriptRoot "Test-HardwareEngine.ps1") -Raw
+Assert-True "PLAN-0062: Test-HardwareEngine.ps1 incluye resolucion jerarquica de Hardware-Engine" ([bool]($testHwContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\Hardware-Engine\.ps1"'))
+
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"

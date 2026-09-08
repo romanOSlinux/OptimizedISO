@@ -71,6 +71,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0059 | [PLAN-0059-20260907-windows-update-on-demand-perfiles-gaming-y-hardcore.md](PLAN-0059-20260907-windows-update-on-demand-perfiles-gaming-y-hardcore.md) | 2026-09-07 | Windows Update Bajo Demanda (Manual On-Demand) en Perfiles Gaming y Hardcore | COMPLETADO |
 | 0060 | [PLAN-0060-20260907-estabilidad-actualizaciones-acumulativas-cuarentena-y-bloqueo-previews.md](PLAN-0060-20260907-estabilidad-actualizaciones-acumulativas-cuarentena-y-bloqueo-previews.md) | 2026-09-07 | Estabilidad de Actualizaciones Acumulativas: Cuarentena de Calidad (Quality Update Deferral) y Bloqueo de Previews/CFR para Todos los Perfiles de la ISO | COMPLETADO |
 | 0061 | [PLAN-0061-20260908-paridad-perfil-1-drivers-wpbt-bitlocker.md](PLAN-0061-20260908-paridad-perfil-1-drivers-wpbt-bitlocker.md) | 2026-09-08 | Paridad en Perfil 1: Protección de Drivers GPU, Bloqueo Bloatware BIOS (WPBT), Prevención BitLocker y Matriz de Servicios | COMPLETADO |
+| 0062 | [PLAN-0062-20260908-resolucion-rutas-motores-core-y-red.md](PLAN-0062-20260908-resolucion-rutas-motores-core-y-red.md) | 2026-09-08 | Corrección de Resolución de Rutas de Motores Core (Policy, UI, Hardware) y Restauración de Catálogo de Red en Toda la Suite | COMPLETADO |
 
 ---
 
