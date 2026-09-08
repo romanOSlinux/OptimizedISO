@@ -1,4 +1,4 @@
-﻿# 🚗 Ecosistema Integral de Gestión de Controladores (Drivers) - romanOS
+# 🚗 Ecosistema Integral de Gestión de Controladores (Drivers) - romanOS
 
 Este subsistema administra el ciclo de vida completo de los controladores en Windows: desde la integración dual offline (`boot.wim` + `install.wim`), aprovisionamiento desatendido en `autounattend.xml`, hasta el respaldo del host y la depuración del almacén `DriverStore`.
 
@@ -30,7 +30,7 @@ scripts/Drivers/
 ### A. Dual-Servicing Oficial (`boot.wim` + `install.wim`)
 Al compilar la ISO con `New-OptimizedWindowsISO-v2.ps1`:
 1. **`boot.wim` (Índice 2: Windows Setup / WinPE):** Se inyectan los controladores críticos de almacenamiento e interfaces HID para garantizar que el instalador detecte las unidades NVMe/SSD y el teclado/touchpad inmediatamente.
-2. **`install.wim`:** Se inyectan recursivamente todos los controladores con el flag `/PreventPending` para que ningún controlador deje tareas pendientes antes de la configuración de OOBE.
+2. **`install.wim`:** Se inyectan recursivamente todos los controladores con el flag `/ForceUnsigned` para garantizar la integración completa de los controladores de terceros antes de la configuración de OOBE.
 3. **`autounattend.xml`:** Incorpora `Microsoft-Windows-PnpCustomizationsWinPE` para escanear controladores adicionales en medios extraíbles (`.\Drivers`).
 
 ### B. Respaldo Asistido del Host (`Backup-HardwareDrivers.ps1`)

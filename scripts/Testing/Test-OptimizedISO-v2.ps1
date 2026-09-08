@@ -918,7 +918,7 @@ Assert-True "PLAN-0027: Export-RomanOSDriverCommands genera directivas PreventDe
 
 # Verificacion de Dual-Servicing y PnpCustomizations en New-OptimizedWindowsISO-v2.ps1
 Assert-True "PLAN-0027: v2 script implementa dual-servicing en boot.wim (WinPE/Setup)" ($v2ScriptContent -match 'DUAL-SERVICING.*boot\.wim' -and $v2ScriptContent -match 'boot_mount')
-Assert-True "PLAN-0027: v2 script inyecta flag /PreventPending en DISM /Add-Driver" ($v2ScriptContent -match '/PreventPending')
+Assert-True "PLAN-0027: v2 script inyecta flag oficial /ForceUnsigned en DISM /Add-Driver" ($v2ScriptContent -match '/ForceUnsigned')
 Assert-True "PLAN-0027: autounattend.xml contiene componente Microsoft-Windows-PnpCustomizationsWinPE" ($v2ScriptContent -match 'Microsoft-Windows-PnpCustomizationsWinPE')
 Assert-True "PLAN-0027: v2 script soporta parametro -SkipBootWimDrivers" ($v2ScriptContent -match 'SkipBootWimDrivers')
 
@@ -1216,9 +1216,9 @@ Assert-True "PLAN-0056: Builder inyecta Audit-FreshInstallFootprint.ps1 en WIM o
 # =============================================================================
 Write-HarnessHeader2 "PLAN-0057: Neutralizacion de Widgets, Taskbar y Zero-Overhead WebView2"
 
-# 1. Validar inyeccion de TaskbarDa, TaskbarMn y ShowCopilotButton en NTUSER.DAT del Builder
+# 1. Validar inyeccion de TaskbarMn y ShowCopilotButton en NTUSER.DAT (TaskbarDa suprimido para evitar bloqueo kernel UCPD PLAN-0021)
 $v2FreshContent57 = Get-Content $TargetScript -Raw
-Assert-True "PLAN-0057: Builder inyecta TaskbarDa = 0 en NTUSER.DAT" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"TaskbarDa`""))
+Assert-True "PLAN-0057: Builder suprime TaskbarDa en NTUSER.DAT evitando bloqueo de kernel UCPD" (-not ($v2FreshContent57 -match "Name\s*=\s*`"TaskbarDa`""))
 Assert-True "PLAN-0057: Builder inyecta TaskbarMn = 0 en NTUSER.DAT" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"TaskbarMn`""))
 Assert-True "PLAN-0057: Builder inyecta ShowCopilotButton = 0 en NTUSER.DAT" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"ShowCopilotButton`""))
 

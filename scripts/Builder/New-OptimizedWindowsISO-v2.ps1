@@ -5397,7 +5397,7 @@ if ($wimFile) {
                     if ($mountedBoot) {
                         $dismBootLog = Join-Path $ScratchDir "dism_boot_drv_idx${bIdx}.log"
                         $dismBootRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
-                            -ArgumentList @("/Image:$bootMountDir", "/Add-Driver", "/Driver:$resolvedDriversDir", "/Recurse", "/ForceUnsigned", "/PreventPending", "/ScratchDir:$ScratchDir", "/LogPath:$dismBootLog") `
+                            -ArgumentList @("/Image:$bootMountDir", "/Add-Driver", "/Driver:$resolvedDriversDir", "/Recurse", "/ForceUnsigned", "/ScratchDir:$ScratchDir", "/LogPath:$dismBootLog") `
                             -AllowExitCodes @(0, 3010) `
                             -TaskDescription "Inyección offline drivers boot.wim Idx $bIdx" `
                             -TimeoutSeconds 600 `
@@ -5799,7 +5799,7 @@ if ($wimFile) {
                                 $dismDriverLog = Join-Path $ScratchDir "dism_drivers.log"
 
                                 $dismDrv = Invoke-MonitoredProcess -FilePath "dism.exe" `
-                                    -ArgumentList @("/Image:$WimMountDir", "/Add-Driver", "/Driver:$resolvedDriversDir", "/Recurse", "/ForceUnsigned", "/PreventPending", "/ScratchDir:$ScratchDir", "/LogPath:$dismDriverLog") `
+                                    -ArgumentList @("/Image:$WimMountDir", "/Add-Driver", "/Driver:$resolvedDriversDir", "/Recurse", "/ForceUnsigned", "/ScratchDir:$ScratchDir", "/LogPath:$dismDriverLog") `
                                     -AllowExitCodes @(0, 3010) `
                                     -TaskDescription "Inyección offline de controladores" `
                                     -TimeoutSeconds 900 `
@@ -6311,12 +6311,7 @@ if ($wimFile) {
                                              Data = "0"
                                          }
                                          # Neutralizacion de Widgets, Chat y Copilot en Barra de Tareas (PLAN-0057)
-                                         @{
-                                             Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-                                             Name = "TaskbarDa"
-                                             Type = "REG_DWORD"
-                                             Data = "0"
-                                         }
+
                                          @{
                                              Path = "HKLM\OfflineDefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
                                              Name = "TaskbarMn"
