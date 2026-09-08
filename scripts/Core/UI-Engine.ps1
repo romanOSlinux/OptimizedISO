@@ -680,6 +680,7 @@ function Export-BuildPreset {
         KeyboardOverride    = if ($script:KeyboardOverride) { $script:KeyboardOverride } else { $KeyboardOverride }
         BlockOneDrive       = $blockOneDriveVal
         InjectVisualTweaks  = if ($null -ne $script:InjectVisualTweaks) { [bool]$script:InjectVisualTweaks } else { [bool]$InjectVisualTweaks }
+        EnableHyperV        = if ($null -ne $script:EnableHyperV) { [bool]$script:EnableHyperV } elseif ($null -ne $EnableHyperV) { [bool]$EnableHyperV } else { $false }
     }
 
     if (-not (Test-Path $OutputDirectory)) {

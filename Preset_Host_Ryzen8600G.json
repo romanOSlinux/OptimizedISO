@@ -1,0 +1,18 @@
+{
+    "SourceISO": "Win11_25H2_Spanish_x64_v2.iso",
+    "OptimizationProfile": "3",
+    "LocalUser": "Roman",
+    "LocalPassword": "",
+    "Language": "es-ES",
+    "Locale": "es-AR",
+    "Timezone": "Argentina Standard Time",
+    "KeyboardOverride": "es-419",
+    "BlockOneDrive": true,
+    "InjectVisualTweaks": true,
+    "WimCompression": "Max",
+    "Architecture": "amd64",
+    "DriversPath": "Drivers",
+    "EnableHyperV": true,
+    "InjectWin11Script": true,
+    "ExportedAt": "2026-09-08 16:55:00"
+}

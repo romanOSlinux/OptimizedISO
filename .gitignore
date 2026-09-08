@@ -25,6 +25,7 @@ romanOS_Footprint_Audit.md
 
 # Presets generados localmente por el usuario o builder
 Preset_*.json
+!Preset_Host_Ryzen8600G.json
 
 # VS Code / IDE settings locales
 .vscode/

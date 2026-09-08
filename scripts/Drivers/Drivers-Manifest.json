@@ -1,0 +1,368 @@
+﻿{
+    "Timestamp":  "2026-09-08 16:06:49",
+    "ComputerName":  "USEROPT-8R7UBJR",
+    "ExportMethod":  "Export-WindowsDriver",
+    "TotalDrivers":  45,
+    "Drivers":  [
+                    {
+                        "Driver":  "oem0.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\prnms009.inf_amd64_8cdc889b3f73e3da\\prnms009.inf",
+                        "ProviderName":  "Microsoft",
+                        "ClassName":  "Printer",
+                        "Version":  "10.0.26100.4484",
+                        "Date":  "\/Date(1150858800000)\/"
+                    },
+                    {
+                        "Driver":  "oem10.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\realtekservice.inf_amd64_ac680e5c6c566c10\\realtekservice.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "SoftwareComponent",
+                        "Version":  "1.0.901.0",
+                        "Date":  "\/Date(1757991600000)\/"
+                    },
+                    {
+                        "Driver":  "oem11.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\realtekhsa.inf_amd64_fbc394e64252b04d\\realtekhsa.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "SoftwareComponent",
+                        "Version":  "11.0.6000.377",
+                        "Date":  "\/Date(1757559600000)\/"
+                    },
+                    {
+                        "Driver":  "oem12.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\realtekasio.inf_amd64_03c8a3842bd3222b\\realtekasio.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "SoftwareComponent",
+                        "Version":  "1.0.13.1",
+                        "Date":  "\/Date(1724814000000)\/"
+                    },
+                    {
+                        "Driver":  "oem13.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\dtsapo4x64.inf_amd64_24037cbeffd38c45\\dtsapo4x64.inf",
+                        "ProviderName":  "DTS",
+                        "ClassName":  "AudioProcessingObject",
+                        "Version":  "1.15.14.0",
+                        "Date":  "\/Date(1757386800000)\/"
+                    },
+                    {
+                        "Driver":  "oem14.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\dtsapo4xservice.inf_amd64_01d8fa4ab0b67a7f\\dtsapo4xservice.inf",
+                        "ProviderName":  "DTS",
+                        "ClassName":  "SoftwareComponent",
+                        "Version":  "1.15.16.0",
+                        "Date":  "\/Date(1757386800000)\/"
+                    },
+                    {
+                        "Driver":  "oem15.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\dtsaudioprocessinghsa.inf_amd64_9b38b528798bff61\\dtsaudioprocessinghsa.inf",
+                        "ProviderName":  "DTS",
+                        "ClassName":  "SoftwareComponent",
+                        "Version":  "1.10.7.0",
+                        "Date":  "\/Date(1758510000000)\/"
+                    },
+                    {
+                        "Driver":  "oem16.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\rt25cx21x64.inf_amd64_75e3c608eb97ffe7\\rt25cx21x64.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "Net",
+                        "Version":  "1125.27.50.919",
+                        "Date":  "\/Date(1758250800000)\/"
+                    },
+                    {
+                        "Driver":  "oem17.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\rt25dcx21x64.inf_amd64_098eeb6328b25f8a\\rt25dcx21x64.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "Net",
+                        "Version":  "1124.27.50.919",
+                        "Date":  "\/Date(1758250800000)\/"
+                    },
+                    {
+                        "Driver":  "oem18.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\rt26cx21x64.inf_amd64_3535f1fb3993ff16\\rt26cx21x64.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "Net",
+                        "Version":  "1126.27.50.919",
+                        "Date":  "\/Date(1758250800000)\/"
+                    },
+                    {
+                        "Driver":  "oem19.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\rt27cx21x64.inf_amd64_38ecd8805340f64d\\rt27cx21x64.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "Net",
+                        "Version":  "1127.27.50.919",
+                        "Date":  "\/Date(1758250800000)\/"
+                    },
+                    {
+                        "Driver":  "oem20.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\rt27dcx21x64.inf_amd64_d6b8ef59b89ceabe\\rt27dcx21x64.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "Net",
+                        "Version":  "1110.27.50.919",
+                        "Date":  "\/Date(1758250800000)\/"
+                    },
+                    {
+                        "Driver":  "oem21.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\rt68cx21x64.inf_amd64_52296ae27e2c1372\\rt68cx21x64.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "Net",
+                        "Version":  "1168.27.50.919",
+                        "Date":  "\/Date(1758250800000)\/"
+                    },
+                    {
+                        "Driver":  "oem22.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\rt68dcx21x64.inf_amd64_4db4e8097c775459\\rt68dcx21x64.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "Net",
+                        "Version":  "1166.27.50.919",
+                        "Date":  "\/Date(1758250800000)\/"
+                    },
+                    {
+                        "Driver":  "oem23.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\rtots640x64.inf_amd64_30b1c378e8b34f85\\rtots640x64.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "Net",
+                        "Version":  "10.78.50.822",
+                        "Date":  "\/Date(1755831600000)\/"
+                    },
+                    {
+                        "Driver":  "oem24.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\mtkwl6ex.inf_amd64_b25b3398348de696\\mtkwl6ex.inf",
+                        "ProviderName":  "MediaTek, Inc.",
+                        "ClassName":  "Net",
+                        "Version":  "3.6.0.1425",
+                        "Date":  "\/Date(1780887600000)\/"
+                    },
+                    {
+                        "Driver":  "oem25.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\iteucmcxclient.inf_amd64_99e63b5ecfbd0048\\iteucmcxclient.inf",
+                        "ProviderName":  "ITE",
+                        "ClassName":  "USB",
+                        "Version":  "1.3.8.17",
+                        "Date":  "\/Date(1717124400000)\/"
+                    },
+                    {
+                        "Driver":  "oem26.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\mtkbtfilter.inf_amd64_2f01d4df5fa8b197\\mtkbtfilter.inf",
+                        "ProviderName":  "Mediatek Inc.",
+                        "ClassName":  "Bluetooth",
+                        "Version":  "1.1147.0.610",
+                        "Date":  "\/Date(1780887600000)\/"
+                    },
+                    {
+                        "Driver":  "oem28.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdgpio2.inf_amd64_487ee5525dcee517\\amdgpio2.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc",
+                        "ClassName":  "System",
+                        "Version":  "2.2.0.137",
+                        "Date":  "\/Date(1774148400000)\/"
+                    },
+                    {
+                        "Driver":  "oem29.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdpsp.inf_amd64_4f95ff0e846db652\\amdpsp.inf",
+                        "ProviderName":  "Advanced Micro Devices Inc.",
+                        "ClassName":  "SecurityDevices",
+                        "Version":  "5.46.0.0",
+                        "Date":  "\/Date(1780542000000)\/"
+                    },
+                    {
+                        "Driver":  "oem3.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdgpio3.inf_amd64_893f7355b0a16289\\amdgpio3.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc.",
+                        "ClassName":  "System",
+                        "Version":  "3.0.5.0",
+                        "Date":  "\/Date(1762743600000)\/"
+                    },
+                    {
+                        "Driver":  "oem30.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdppkg.inf_amd64_560eeb9a923ac8eb\\amdppkg.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc.",
+                        "ClassName":  "System",
+                        "Version":  "8.0.0.65",
+                        "Date":  "\/Date(1784775600000)\/"
+                    },
+                    {
+                        "Driver":  "oem31.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdinterface.inf_amd64_0c6eb2a67bdf3d20\\amdinterface.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc",
+                        "ClassName":  "System",
+                        "Version":  "2.0.0.29",
+                        "Date":  "\/Date(1783479600000)\/"
+                    },
+                    {
+                        "Driver":  "oem32.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\u0203731.inf_amd64_05ec0aa74f68ef13\\u0203731.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc.",
+                        "ClassName":  "Display",
+                        "Version":  "32.0.31041.3013",
+                        "Date":  "\/Date(1788318000000)\/"
+                    },
+                    {
+                        "Driver":  "oem33.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdxe.inf_amd64_eb965e576c6254f5\\amdxe.inf",
+                        "ProviderName":  "AMD",
+                        "ClassName":  "System",
+                        "Version":  "26.10.0.1",
+                        "Date":  "\/Date(1773370800000)\/"
+                    },
+                    {
+                        "Driver":  "oem34.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdfdans.inf_amd64_ed467e604b9aac93\\amdfdans.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc.",
+                        "ClassName":  "SoftwareComponent",
+                        "Version":  "1.4.40.0",
+                        "Date":  "\/Date(1772593200000)\/"
+                    },
+                    {
+                        "Driver":  "oem35.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdfendr.inf_amd64_b08edd5e3fe7eded\\amdfendr.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc.",
+                        "ClassName":  "System",
+                        "Version":  "26.10.0.2",
+                        "Date":  "\/Date(1771902000000)\/"
+                    },
+                    {
+                        "Driver":  "oem36.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdafd.inf_amd64_d6709807244bfcf6\\amdafd.inf",
+                        "ProviderName":  "AMD",
+                        "ClassName":  "System",
+                        "Version":  "25.30.0.1",
+                        "Date":  "\/Date(1755745200000)\/"
+                    },
+                    {
+                        "Driver":  "oem37.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdocl.inf_amd64_235be6419ea86cde\\amdocl.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc.",
+                        "ClassName":  "SoftwareComponent",
+                        "Version":  "32.0.31041.3013",
+                        "Date":  "\/Date(1788318000000)\/"
+                    },
+                    {
+                        "Driver":  "oem38.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdogl.inf_amd64_a596f52b2a919134\\amdogl.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc.",
+                        "ClassName":  "SoftwareComponent",
+                        "Version":  "32.0.31041.3013",
+                        "Date":  "\/Date(1788318000000)\/"
+                    },
+                    {
+                        "Driver":  "oem39.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdvlk.inf_amd64_66bec696d04ac441\\amdvlk.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc.",
+                        "ClassName":  "SoftwareComponent",
+                        "Version":  "32.0.31041.3013",
+                        "Date":  "\/Date(1788318000000)\/"
+                    },
+                    {
+                        "Driver":  "oem40.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdwin-u0203731.inf_amd64_8e1656678755aee8\\amdwin-u0203731.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc.",
+                        "ClassName":  "SoftwareComponent",
+                        "Version":  "32.0.31041.3013",
+                        "Date":  "\/Date(1788318000000)\/"
+                    },
+                    {
+                        "Driver":  "oem41.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdpcibridgeextension.inf_amd64_0b177fcbac05a796\\amdpcibridgeextension.inf",
+                        "ProviderName":  "AMD",
+                        "ClassName":  "Extension",
+                        "Version":  "25.20.0.0",
+                        "Date":  "\/Date(1757473200000)\/"
+                    },
+                    {
+                        "Driver":  "oem42.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdcamera.inf_amd64_5af8f5bf0e263d7a\\amdcamera.inf",
+                        "ProviderName":  "Advanced Micro Devices, Inc",
+                        "ClassName":  "Camera",
+                        "Version":  "11.4.2.1566",
+                        "Date":  "\/Date(1784084400000)\/"
+                    },
+                    {
+                        "Driver":  "oem43.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\kipudrv.inf_amd64_7b0051e064968f34\\kipudrv.inf",
+                        "ProviderName":  "AMD",
+                        "ClassName":  "ComputeAccelerator",
+                        "Version":  "32.0.20102.3930",
+                        "Date":  "\/Date(1778122800000)\/"
+                    },
+                    {
+                        "Driver":  "oem44.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\atihdwt6.inf_amd64_7a7031d15c801b8c\\atihdwt6.inf",
+                        "ProviderName":  "Advanced Micro Devices",
+                        "ClassName":  "MEDIA",
+                        "Version":  "10.0.1.41",
+                        "Date":  "\/Date(1748228400000)\/"
+                    },
+                    {
+                        "Driver":  "oem45.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdsafd.inf_amd64_d4de13a10f2586d0\\amdsafd.inf",
+                        "ProviderName":  "AMD",
+                        "ClassName":  "MEDIA",
+                        "Version":  "1.0.0.14",
+                        "Date":  "\/Date(1717556400000)\/"
+                    },
+                    {
+                        "Driver":  "oem46.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdsdwc.inf_amd64_9aebb4aa485b599f\\amdsdwc.inf",
+                        "ProviderName":  "AMD",
+                        "ClassName":  "System",
+                        "Version":  "7.2610.1.1",
+                        "Date":  "\/Date(1783479600000)\/"
+                    },
+                    {
+                        "Driver":  "oem47.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdsdws.inf_amd64_39f785bfa3a6385f\\amdsdws.inf",
+                        "ProviderName":  "AMD",
+                        "ClassName":  "MEDIA",
+                        "Version":  "7.2610.1.2",
+                        "Date":  "\/Date(1784084400000)\/"
+                    },
+                    {
+                        "Driver":  "oem48.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\amdsdwsext.inf_amd64_a08d54490efb1ebd\\amdsdwsext.inf",
+                        "ProviderName":  "AMD",
+                        "ClassName":  "Extension",
+                        "Version":  "7.2610.1.0",
+                        "Date":  "\/Date(1782702000000)\/"
+                    },
+                    {
+                        "Driver":  "oem49.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\viper380.inf_amd64_55f64922f501f3de\\viper380.inf",
+                        "ProviderName":  "C-MEDIA Inc.",
+                        "ClassName":  "Media",
+                        "Version":  "10.0.1.1",
+                        "Date":  "\/Date(1563159600000)\/"
+                    },
+                    {
+                        "Driver":  "oem6.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\hdx_asusext_xperi4_rtk.inf_amd64_7512428a5122eec3\\hdx_asusext_xperi4_rtk.inf",
+                        "ProviderName":  "Realtek Semiconductor Corp.",
+                        "ClassName":  "Extension",
+                        "Version":  "6.0.9888.1",
+                        "Date":  "\/Date(1757991600000)\/"
+                    },
+                    {
+                        "Driver":  "oem7.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\dtsapo4ultraasusextensionpkg.inf_amd64_ec2664a934d6e4fc\\dtsapo4ultraasusextensionpkg.inf",
+                        "ProviderName":  "DTS",
+                        "ClassName":  "Extension",
+                        "Version":  "1.15.3.0",
+                        "Date":  "\/Date(1760238000000)\/"
+                    },
+                    {
+                        "Driver":  "oem8.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\hdxasus.inf_amd64_4a701b927f33bcf8\\hdxasus.inf",
+                        "ProviderName":  "Realtek Semiconductor Corp.",
+                        "ClassName":  "MEDIA",
+                        "Version":  "6.0.9888.1",
+                        "Date":  "\/Date(1757991600000)\/"
+                    },
+                    {
+                        "Driver":  "oem9.inf",
+                        "OriginalFileName":  "C:\\Windows\\System32\\DriverStore\\FileRepository\\realtekapo.inf_amd64_17098f132c929189\\realtekapo.inf",
+                        "ProviderName":  "Realtek",
+                        "ClassName":  "AudioProcessingObject",
+                        "Version":  "13.0.6000.1905",
+                        "Date":  "\/Date(1752116400000)\/"
+                    }
+                ]
+}

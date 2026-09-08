@@ -1485,6 +1485,53 @@ Assert-True "PLAN-0062: Invoke-TestSuite.ps1 incluye resolucion jerarquica de UI
 $testHwContent62 = Get-Content (Join-Path $PSScriptRoot "Test-HardwareEngine.ps1") -Raw
 Assert-True "PLAN-0062: Test-HardwareEngine.ps1 incluye resolucion jerarquica de Hardware-Engine" ([bool]($testHwContent62 -match 'Split-Path \$PSScriptRoot -Parent\)\s*"Core\\Hardware-Engine\.ps1"'))
 
+# -----------------------------------------------------------------------------
+# FASE 2.15: CERTIFICACIÓN DE ARQUITECTURA HOST (PLAN-0063)
+# -----------------------------------------------------------------------------
+Write-HarnessHeader2 "FASE 2.15: Certificacion de Arquitectura Host (Ryzen 8600G) (PLAN-0063)"
+
+$projectRootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+
+# 1. Validar existencia y codificación de Desplegar-Setup-Host.ps1
+$desplegarPs1Path = Join-Path $projectRootDir "scripts\Host-Tools\Desplegar-Setup-Host.ps1"
+Assert-True "PLAN-0063: Desplegar-Setup-Host.ps1 existe en Host-Tools" (Test-Path $desplegarPs1Path)
+
+if (Test-Path $desplegarPs1Path) {
+    $bytes = [System.IO.File]::ReadAllBytes($desplegarPs1Path)
+    $hasBOM = ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)
+    Assert-True "PLAN-0063: Desplegar-Setup-Host.ps1 tiene codificacion UTF-8 con BOM" $hasBOM
+
+    $tokens = $null; $errs = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($desplegarPs1Path, [ref]$tokens, [ref]$errs)
+    Assert-Equal "PLAN-0063: Desplegar-Setup-Host.ps1 tiene 0 errores AST de sintaxis" $errs.Count 0
+}
+
+# 2. Validar existencia del lanzador Desplegar-Setup-Host.cmd
+$desplegarCmdPath = Join-Path $projectRootDir "scripts\Host-Tools\Desplegar-Setup-Host.cmd"
+Assert-True "PLAN-0063: Desplegar-Setup-Host.cmd existe en Host-Tools" (Test-Path $desplegarCmdPath)
+
+# 3. Validar Preset_Host_Ryzen8600G.json
+$presetHostPath = Join-Path $projectRootDir "Preset_Host_Ryzen8600G.json"
+Assert-True "PLAN-0063: Preset_Host_Ryzen8600G.json existe en la raiz" (Test-Path $presetHostPath)
+
+if (Test-Path $presetHostPath) {
+    $presetJson = Get-Content $presetHostPath -Raw | ConvertFrom-Json
+    Assert-Equal "PLAN-0063: Preset OptimizationProfile es 3 (Hardcore)" $presetJson.OptimizationProfile "3"
+    Assert-Equal "PLAN-0063: Preset LocalUser es Roman" $presetJson.LocalUser "Roman"
+    Assert-Equal "PLAN-0063: Preset DriversPath apunta a Drivers" $presetJson.DriversPath "Drivers"
+    Assert-True "PLAN-0063: Preset EnableHyperV esta activado" ([bool]$presetJson.EnableHyperV)
+}
+
+# 4. Validar lanzador 1-clic Compilar-ISO-Host-Ryzen8600G.cmd
+$compilarCmdPath = Join-Path $projectRootDir "Compilar-ISO-Host-Ryzen8600G.cmd"
+Assert-True "PLAN-0063: Compilar-ISO-Host-Ryzen8600G.cmd existe en la raiz" (Test-Path $compilarCmdPath)
+
+# 5. Validar soporte de EnableHyperV e inyección de Host-Tools en Builder
+$builderContent63 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0063: Builder AST incluye parametro EnableHyperV" ([bool]($builderContent63 -match '\[switch\]\$EnableHyperV'))
+Assert-True "PLAN-0063: Builder inyecta Desplegar-Setup-Host en OEM y Desktop" ([bool]($builderContent63 -match 'Desplegar-Setup-Host\.cmd'))
+Assert-True "PLAN-0063: Builder incluye habilitacion offline de Hyper-V con DISM" ([bool]($builderContent63 -match 'Microsoft-Hyper-V-All'))
+
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"

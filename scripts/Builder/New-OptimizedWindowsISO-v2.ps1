@@ -258,6 +258,9 @@ param(
     [switch]$SavePreset,
 
     [Parameter()]
+    [switch]$EnableHyperV,
+
+    [Parameter()]
     [switch]$DisableDefenderExclusion
 )
 
@@ -4475,6 +4478,29 @@ foreach ($subm in $suiteSubmodules) {
     }
 }
 
+# ------------------------------------------------------------------
+# Copiar Host-Tools y Suite de Despliegue en $OEM$ y Public Desktop (PLAN-0063)
+# ------------------------------------------------------------------
+$hostSetupSrc   = Join-Path $ScriptsDir "Host-Tools\Desplegar-Setup-Host.ps1"
+$hostSetupCmd   = Join-Path $ScriptsDir "Host-Tools\Desplegar-Setup-Host.cmd"
+$antigravitySrc = Join-Path $ScriptsDir "Host-Tools\Setup-AntigravityWindows.ps1"
+
+if (Test-Path $hostSetupSrc) {
+    Copy-Item -Path $hostSetupSrc -Destination (Join-Path $OEMScriptsDir "Desplegar-Setup-Host.ps1") -Force
+    Copy-Item -Path $hostSetupSrc -Destination (Join-Path $OEMScriptsDir1 "Desplegar-Setup-Host.ps1") -Force
+}
+if (Test-Path $antigravitySrc) {
+    Copy-Item -Path $antigravitySrc -Destination (Join-Path $OEMScriptsDir "Setup-AntigravityWindows.ps1") -Force
+    Copy-Item -Path $antigravitySrc -Destination (Join-Path $OEMScriptsDir1 "Setup-AntigravityWindows.ps1") -Force
+}
+if (Test-Path $hostSetupCmd) {
+    Copy-Item -Path $hostSetupCmd -Destination (Join-Path $OEMScriptsDir "Desplegar-Setup-Host.cmd") -Force
+    Copy-Item -Path $hostSetupCmd -Destination (Join-Path $OEMScriptsDir1 "Desplegar-Setup-Host.cmd") -Force
+    Copy-Item -Path $hostSetupCmd -Destination (Join-Path $OEMDesktopDir "Desplegar-Setup-Host.cmd") -Force
+    Write-OK "Lanzador modular (Desplegar-Setup-Host) inyectado en `$OEMScriptsDir y Public Desktop."
+    Add-AuditRecord -Resource "Desplegar-Setup-Host" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Public Desktop"
+}
+
 #------------------------------------------------------------------------------
 # 3/6 - CREAR SetupComplete.cmd Y TAREAS PROGRAMADAS A DEMANDA
 #------------------------------------------------------------------------------
@@ -4593,6 +4619,14 @@ echo [%DATE% %TIME%] Configurando tarea a demanda permanente para $($sc.DestName
 # Acceso directo para Auditoria Post-Instalacion en Menu Inicio
 $tasksBlock += @"
 "%PS%" -NoProfile -ExecutionPolicy Bypass -Command "`$ws = New-Object -ComObject WScript.Shell; `$sm = if (`$env:ProgramData) { \"`$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema\" } else { 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema' }; if (-not (Test-Path `$sm)) { New-Item -ItemType Directory -Path `$sm -Force | Out-Null }; `$sc = `$ws.CreateShortcut(\"`$sm\Auditar Instalacion.lnk\"); `$sc.TargetPath = '%WINDIR%\Setup\Scripts\Auditar-Instalacion.cmd'; `$sc.WorkingDirectory = '%WINDIR%\Setup\Scripts'; `$sc.Description = 'Auditar y Diagnosticar Instalacion de Windows'; `$sc.IconLocation = '%SystemRoot%\System32\imageres.dll,104'; `$sc.Save()" >> "%LOG%" 2>&1
+"@ + "`r`n"
+
+# Acceso directo para Desplegar Setup Dev y Gaming en el Escritorio Publico (PLAN-0063)
+$tasksBlock += @"
+if exist "%WINDIR%\Setup\Scripts\Desplegar-Setup-Host.cmd" (
+    echo [%DATE% %TIME%] Creando acceso directo de Setup Dev y Gaming en Escritorio... >> "%LOG%"
+    "%PS%" -NoProfile -ExecutionPolicy Bypass -Command "`$ws = New-Object -ComObject WScript.Shell; `$dt = [System.Environment]::GetFolderPath('CommonDesktopDirectory'); if (Test-Path `$dt) { `$sc = `$ws.CreateShortcut(\"`$dt\Desplegar Setup Dev y Gaming.lnk\"); `$sc.TargetPath = '%WINDIR%\Setup\Scripts\Desplegar-Setup-Host.cmd'; `$sc.WorkingDirectory = '%WINDIR%\Setup\Scripts'; `$sc.Description = 'Suite Modular de Despliegue (Dev-IA y Gaming)'; `$sc.IconLocation = '%SystemRoot%\System32\shell32.dll,277'; `$sc.Save() }" >> "%LOG%" 2>&1
+)
 "@ + "`r`n"
 
 $optimizationsBlock = @"
@@ -5468,6 +5502,36 @@ if ($wimFile) {
                         }
                     } else {
                         Write-Host "    Carpeta 'sources\sxs' no encontrada en la ISO. NetFx3 omitido." -ForegroundColor DarkYellow
+                    }
+
+                    #==================================================================
+                    # HABILITACIÓN OFFLINE DE HYPER-V Y VIRTUALIZACIÓN (PLAN-0063)
+                    #==================================================================
+                    $shouldEnableHyperV = if ($null -ne $script:EnableHyperV) { [bool]$script:EnableHyperV } elseif ($null -ne $EnableHyperV) { [bool]$EnableHyperV } else { $false }
+                    if ($shouldEnableHyperV) {
+                        Write-Host ""
+                        Write-Host "    ══ Habilitación Offline de Hyper-V y Virtualización (PLAN-0063) ══" -ForegroundColor Cyan
+                        try {
+                            $hvFeatures = @("Microsoft-Hyper-V-All", "VirtualMachinePlatform", "Microsoft-Windows-Subsystem-Linux")
+                            foreach ($feat in $hvFeatures) {
+                                Write-Host "    Habilitando '$feat' offline con DISM..." -ForegroundColor Gray
+                                $dismHv = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                                    -ArgumentList @("/Image:$WimMountDir", "/Enable-Feature", "/FeatureName:$feat", "/All", "/NoRestart", "/ScratchDir:$ScratchDir") `
+                                    -AllowExitCodes @(0, 3010) `
+                                    -TaskDescription "Habilitación offline de $feat" `
+                                    -TimeoutSeconds 600 `
+                                    -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+
+                                if ($dismHv.Success) {
+                                    Write-OK "Característica '$feat' habilitada offline en WIM."
+                                    Add-AuditRecord -Resource "Virtualizacion ($feat)" -Target 'WIM' -Status "OK" -Details "Habilitado offline"
+                                } else {
+                                    Write-Warn "DISM $feat exit code: $($dismHv.ExitCode). Podrá activarse en el primer arranque."
+                                }
+                            }
+                        } catch {
+                            Write-Warn "No se pudo habilitar Hyper-V offline: $($_.Exception.Message)"
+                        }
                     }
 
                     #==================================================================
