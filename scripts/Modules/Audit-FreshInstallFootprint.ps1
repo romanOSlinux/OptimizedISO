@@ -448,6 +448,34 @@ $policiesToAudit = @(
         Name     = "NoAutoRebootWithLoggedOnUsers"
         Expected = 1
         Desc     = "Evitar reinicios automáticos con usuarios conectados (PLAN-0059)"
+    },
+    @{
+        Id       = "AllowOptionalContent (WU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        Name     = "AllowOptionalContent"
+        Expected = 0
+        Desc     = "Bloqueo de previews acumulativas y contenido CFR beta (PLAN-0060)"
+    },
+    @{
+        Id       = "ContinuousInnovation (WU)"
+        Path     = "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings"
+        Name     = "IsContinuousInnovationOptedIn"
+        Expected = 0
+        Desc     = "Desactivar novedades aceleradas sin probar (PLAN-0060)"
+    },
+    @{
+        Id       = "DeferQualityUpdates (WU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        Name     = "DeferQualityUpdates"
+        Expected = 1
+        Desc     = "Cuarentena de actualizaciones acumulativas activa (PLAN-0060)"
+    },
+    @{
+        Id       = "DeferQualityDays (WU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        Name     = "DeferQualityUpdatesPeriodInDays"
+        Expected = 7
+        Desc     = "Ventana de maduracion de 7 dias para KIR (PLAN-0060)"
     }
 )
 

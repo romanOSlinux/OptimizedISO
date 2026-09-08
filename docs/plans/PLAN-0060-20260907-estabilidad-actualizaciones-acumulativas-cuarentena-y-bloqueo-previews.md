@@ -2,7 +2,7 @@
 
 - **ID del Plan:** PLAN-0060
 - **Fecha:** 2026-09-07
-- **Estado:** PENDIENTE
+- **Estado:** COMPLETADO
 - **Autor:** romanOS Engineering / Antigravity Agent
 - **Rama:** `feature/offline-ui-tweaks`
 
@@ -67,3 +67,15 @@ Para solucionar esto de manera oficial y robusta en **todos los perfiles de la I
 3. **Ejecución Completa de Pruebas:**
    - Ejecución de `Test-OptimizedISO-v2.ps1` (objetivo: 435+ PASS, 0 FAIL).
    - Ejecución de `Invoke-TestSuite.ps1` (100% PASS).
+
+---
+
+## 5. Resultados Empíricos de Verificación
+
+- **Codificación y AST:** 5/5 archivos certificados con UTF-8 con BOM (`0xEF, 0xBB, 0xBF`) y 0 errores de sintaxis AST en Windows PowerShell 5.1.
+- **Exportación Universal por Perfiles:**
+  - `Export-RomanOSUnattendCommands -Profile 1`: Incluye `AllowOptionalContent = 0`, `DeferQualityUpdates = 1`, `DeferQualityUpdatesPeriodInDays = 7` e `IsContinuousInnovationOptedIn = 0`.
+  - `Export-RomanOSUnattendCommands -Profile 2`: Incluye `AllowOptionalContent = 0`, `DeferQualityUpdatesPeriodInDays = 7` (además de `NoAutoUpdate = 1` del PLAN-0059).
+  - `Export-RomanOSUnattendCommands -Profile 3`: Incluye las mismas directivas que el Perfil 2.
+- **Test Harness (`Test-OptimizedISO-v2.ps1`):** **457 PASS / 0 FAIL / 1 SKIP** (458 pruebas ejecutadas).
+- **Master Test Suite (`Invoke-TestSuite.ps1`):** **SUCCESS (47.4s)** con 6/6 fases aprobadas.

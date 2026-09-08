@@ -382,6 +382,22 @@ try {
         $reportLines.Add("- **Modo Windows Update:** Automatico Estandar (NoAutoUpdate=0 o ausente) [OK]")
     }
 
+    # Estabilidad de Actualizaciones Acumulativas y Bloqueo de Previews (PLAN-0060)
+    $allowOpt = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name AllowOptionalContent -ErrorAction SilentlyContinue).AllowOptionalContent
+    $deferDays = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name DeferQualityUpdatesPeriodInDays -ErrorAction SilentlyContinue).DeferQualityUpdatesPeriodInDays
+    if ($allowOpt -eq 0) {
+        $passedChecks.Add("Bloqueo de previews acumulativas y contenido CFR verificado (AllowOptionalContent=0).")
+        $reportLines.Add("- **Bloqueo Previews / CFR Beta:** Activo (AllowOptionalContent=0) [OK]")
+    } else {
+        $reportLines.Add("- **Bloqueo Previews / CFR Beta:** No configurado (Previews permitidas)")
+    }
+    if ($deferDays -gt 0) {
+        $passedChecks.Add("Cuarentena de actualizaciones acumulativas activa ($deferDays dias).")
+        $reportLines.Add("- **Cuarentena de Calidad (KIR Window):** Activa ($deferDays dias de maduracion) [OK]")
+    } else {
+        $reportLines.Add("- **Cuarentena de Calidad (KIR Window):** Sin diferimiento (0 dias)")
+    }
+
     # Busqueda local de drivers (SearchOrderConfig = 0)
     $searchOrder = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DriverSearching" -Name SearchOrderConfig -ErrorAction SilentlyContinue).SearchOrderConfig
     if ($searchOrder -eq 0) {

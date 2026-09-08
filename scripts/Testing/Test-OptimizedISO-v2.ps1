@@ -1324,6 +1324,64 @@ Assert-True "PLAN-0059: PostInstall-Diagnostics.ps1 audita modo On-Demand de Win
 $auditContent59 = Get-Content (Join-Path $modulesDir "Audit-FreshInstallFootprint.ps1") -Raw
 Assert-True "PLAN-0059: Audit-FreshInstallFootprint.ps1 incluye NoAutoUpdate en politicas auditadas" ([bool]($auditContent59 -match 'NoAutoUpdate \(WU AU\)'))
 
+# =============================================================================
+# PLAN-0060: ESTABILIDAD DE ACTUALIZACIONES ACUMULATIVAS Y BLOQUEO DE PREVIEWS
+# =============================================================================
+Write-HarnessHeader2 "PLAN-0060: Estabilidad de Actualizaciones Acumulativas y Bloqueo de Previews"
+
+# 1. Validar registro de politicas en Policy-Engine.ps1
+$policyEnginePath60 = Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"
+$peContent60 = Get-Content $policyEnginePath60 -Raw
+Assert-True "PLAN-0060: Policy-Engine registra directiva POL_WU_ALLOW_OPTIONAL_CONTENT" ([bool]($peContent60 -match 'Id\s*=\s*"POL_WU_ALLOW_OPTIONAL_CONTENT"'))
+Assert-True "PLAN-0060: Policy-Engine registra directiva POL_WU_CONTINUOUS_INNOVATION" ([bool]($peContent60 -match 'Id\s*=\s*"POL_WU_CONTINUOUS_INNOVATION"'))
+Assert-True "PLAN-0060: Policy-Engine registra directiva POL_WU_DEFER_QUALITY" ([bool]($peContent60 -match 'Id\s*=\s*"POL_WU_DEFER_QUALITY"'))
+Assert-True "PLAN-0060: Policy-Engine registra directiva POL_WU_DEFER_QUALITY_DAYS" ([bool]($peContent60 -match 'Id\s*=\s*"POL_WU_DEFER_QUALITY_DAYS"'))
+
+# 2. Validar perfiles asignados en Policy-Engine (Universal: Perfiles 1, 2 y 3)
+$pols60 = Get-RomanOSPolicies
+$polAllowOpt = $pols60 | Where-Object { $_.Id -eq "POL_WU_ALLOW_OPTIONAL_CONTENT" }
+Assert-NotNull "PLAN-0060: Objeto POL_WU_ALLOW_OPTIONAL_CONTENT obtenido de Policy-Engine" $polAllowOpt
+Assert-Equal "PLAN-0060: POL_WU_ALLOW_OPTIONAL_CONTENT ExpectedValue es 0" $polAllowOpt.ExpectedValue 0
+Assert-True "PLAN-0060: POL_WU_ALLOW_OPTIONAL_CONTENT activo en Perfil 1" ($polAllowOpt.Profiles -contains 1)
+Assert-True "PLAN-0060: POL_WU_ALLOW_OPTIONAL_CONTENT activo en Perfil 2" ($polAllowOpt.Profiles -contains 2)
+Assert-True "PLAN-0060: POL_WU_ALLOW_OPTIONAL_CONTENT activo en Perfil 3" ($polAllowOpt.Profiles -contains 3)
+
+$polDeferDays = $pols60 | Where-Object { $_.Id -eq "POL_WU_DEFER_QUALITY_DAYS" }
+Assert-NotNull "PLAN-0060: Objeto POL_WU_DEFER_QUALITY_DAYS obtenido de Policy-Engine" $polDeferDays
+Assert-Equal "PLAN-0060: POL_WU_DEFER_QUALITY_DAYS ExpectedValue es 7" $polDeferDays.ExpectedValue 7
+Assert-True "PLAN-0060: POL_WU_DEFER_QUALITY_DAYS activo en Perfil 1" ($polDeferDays.Profiles -contains 1)
+Assert-True "PLAN-0060: POL_WU_DEFER_QUALITY_DAYS activo en Perfil 2" ($polDeferDays.Profiles -contains 2)
+Assert-True "PLAN-0060: POL_WU_DEFER_QUALITY_DAYS activo en Perfil 3" ($polDeferDays.Profiles -contains 3)
+
+# 3. Validar exportacion semantica de unattend para Perfiles 1 y 2
+$unattendP1_60 = Export-RomanOSUnattendCommands -Profile '1' -StartOrder 2
+$unattendP2_60 = Export-RomanOSUnattendCommands -Profile '2' -StartOrder 2
+Assert-True "PLAN-0060: Perfil 1 Unattend incluye AllowOptionalContent = 0" ([bool]($unattendP1_60.XmlContent -match 'AllowOptionalContent'))
+Assert-True "PLAN-0060: Perfil 1 Unattend incluye DeferQualityUpdates = 1" ([bool]($unattendP1_60.XmlContent -match 'DeferQualityUpdates'))
+Assert-True "PLAN-0060: Perfil 1 Unattend incluye DeferQualityUpdatesPeriodInDays = 7" ([bool]($unattendP1_60.XmlContent -match 'DeferQualityUpdatesPeriodInDays'))
+Assert-True "PLAN-0060: Perfil 1 Unattend incluye IsContinuousInnovationOptedIn = 0" ([bool]($unattendP1_60.XmlContent -match 'IsContinuousInnovationOptedIn'))
+
+Assert-True "PLAN-0060: Perfil 2 Unattend incluye AllowOptionalContent = 0" ([bool]($unattendP2_60.XmlContent -match 'AllowOptionalContent'))
+Assert-True "PLAN-0060: Perfil 2 Unattend incluye DeferQualityUpdatesPeriodInDays = 7" ([bool]($unattendP2_60.XmlContent -match 'DeferQualityUpdatesPeriodInDays'))
+
+# 4. Validar inyeccion en Builder New-OptimizedWindowsISO-v2.ps1
+$v2FreshContent60 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0060: Builder inyecta AllowOptionalContent en SOFTWARE hive offline" ([bool]($v2FreshContent60 -match 'Name\s*=\s*"AllowOptionalContent"'))
+Assert-True "PLAN-0060: Builder inyecta DeferQualityUpdates en SOFTWARE hive offline" ([bool]($v2FreshContent60 -match 'Name\s*=\s*"DeferQualityUpdates"'))
+Assert-True "PLAN-0060: Builder inyecta DeferQualityUpdatesPeriodInDays en SOFTWARE hive offline" ([bool]($v2FreshContent60 -match 'Name\s*=\s*"DeferQualityUpdatesPeriodInDays"'))
+Assert-True "PLAN-0060: Builder inyecta IsContinuousInnovationOptedIn en SOFTWARE hive offline" ([bool]($v2FreshContent60 -match 'Name\s*=\s*"IsContinuousInnovationOptedIn"'))
+Assert-True "PLAN-0060: Builder autounattend fallback incluye AllowOptionalContent = 0" ([bool]($v2FreshContent60 -match 'Disable Optional Preview Updates and CFR Beta Content'))
+Assert-True "PLAN-0060: Builder autounattend fallback incluye DeferQualityUpdatesPeriodInDays = 7" ([bool]($v2FreshContent60 -match 'Defer Quality Updates by 7 Days'))
+
+# 5. Validar integracion en herramientas de diagnostico y auditoria
+$diagContent60 = Get-Content (Join-Path $modulesDir "PostInstall-Diagnostics.ps1") -Raw
+Assert-True "PLAN-0060: PostInstall-Diagnostics.ps1 audita bloqueo de previews y CFR" ([bool]($diagContent60 -match 'Bloqueo Previews / CFR Beta'))
+Assert-True "PLAN-0060: PostInstall-Diagnostics.ps1 audita cuarentena de calidad (KIR Window)" ([bool]($diagContent60 -match 'Cuarentena de Calidad \(KIR Window\)'))
+
+$auditContent60 = Get-Content (Join-Path $modulesDir "Audit-FreshInstallFootprint.ps1") -Raw
+Assert-True "PLAN-0060: Audit-FreshInstallFootprint.ps1 incluye AllowOptionalContent en politicas auditadas" ([bool]($auditContent60 -match 'AllowOptionalContent \(WU\)'))
+Assert-True "PLAN-0060: Audit-FreshInstallFootprint.ps1 incluye DeferQualityDays en politicas auditadas" ([bool]($auditContent60 -match 'DeferQualityDays \(WU\)'))
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

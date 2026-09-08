@@ -530,6 +530,62 @@ $global:RomanOS_Policies = @(
         UnattendDesc  = "Prevent Automatic Reboots While Users Are Logged On"
     },
     @{
+        Id            = "POL_WU_ALLOW_OPTIONAL_CONTENT"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "AllowOptionalContent"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar entrega de actualizaciones acumulativas opcionales de vista previa (Previews C/D) y CFR beta"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update#allowoptionalcontent"
+        UnattendDesc  = "Disable Optional Preview Updates and CFR Beta Content (AllowOptionalContent=0)"
+    },
+    @{
+        Id            = "POL_WU_CONTINUOUS_INNOVATION"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings"
+        PSPath        = "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings"
+        ValueName     = "IsContinuousInnovationOptedIn"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar adopcion acelerada de novedades sin probar (Get latest updates as soon as available = Off)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/deployment/update/waas-wu-policies"
+        UnattendDesc  = "Disable Continuous Innovation Opt-In (Off)"
+    },
+    @{
+        Id            = "POL_WU_DEFER_QUALITY"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "DeferQualityUpdates"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Habilitar periodo de diferimiento y cuarentena para actualizaciones de calidad acumulativas"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update#deferqualityupdatesperiodindays"
+        UnattendDesc  = "Enable Quality Updates Deferral and Quarantine Period"
+    },
+    @{
+        Id            = "POL_WU_DEFER_QUALITY_DAYS"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "DeferQualityUpdatesPeriodInDays"
+        Type          = "REG_DWORD"
+        ExpectedValue = 7
+        Profiles      = @(1, 2, 3)
+        Description   = "Periodo de cuarentena de 7 dias para actualizaciones acumulativas (ventana de maduracion y aplicacion de KIR)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update#deferqualityupdatesperiodindays"
+        UnattendDesc  = "Defer Quality Updates by 7 Days (KIR Maturation Window)"
+    },
+    @{
         Id            = "POL_DRV_SEARCH_LOCAL"
         Module        = "Base - Controladores"
         Category      = "Hardware & Controladores"

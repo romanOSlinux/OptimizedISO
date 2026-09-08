@@ -4964,9 +4964,29 @@ $($firstLogonCommands -join "`n")
           <Description>Block Pre-Installed Apps System-Wide (CDM)</Description>
           <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager /v PreInstalledAppsEnabled /t REG_DWORD /d 0 /f</Path>
         </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 13)</Order>
+          <Description>Disable Optional Preview Updates and CFR Beta Content (AllowOptionalContent=0)</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /v AllowOptionalContent /t REG_DWORD /d 0 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 14)</Order>
+          <Description>Disable Continuous Innovation Opt-In (Off)</Description>
+          <Path>reg add HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings /v IsContinuousInnovationOptedIn /t REG_DWORD /d 0 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 15)</Order>
+          <Description>Enable Quality Updates Deferral and Quarantine Period</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /v DeferQualityUpdates /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 16)</Order>
+          <Description>Defer Quality Updates by 7 Days (KIR Maturation Window)</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /v DeferQualityUpdatesPeriodInDays /t REG_DWORD /d 7 /f</Path>
+        </RunSynchronousCommand>
 "@
 
-        $nextOrder += 13
+        $nextOrder += 17
 
         if ($optProfile -ge 2) {
             # Perfil 2+ (Gaming / Hardcore): Políticas de telemetría HKLM, Bloqueo de Drivers y Prevención BitLocker
@@ -6412,6 +6432,31 @@ if ($wimFile) {
                                             Type = "REG_DWORD"
                                             Data = "3"
                                         }
+                                        # Estabilidad de Actualizaciones Acumulativas y Bloqueo de Previews (PLAN-0060)
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate"
+                                            Name = "AllowOptionalContent"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate"
+                                            Name = "DeferQualityUpdates"
+                                            Type = "REG_DWORD"
+                                            Data = "1"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate"
+                                            Name = "DeferQualityUpdatesPeriodInDays"
+                                            Type = "REG_DWORD"
+                                            Data = "7"
+                                        }
+                                        @{
+                                            Path = "HKLM\OfflineSoftware\Microsoft\WindowsUpdate\UX\Settings"
+                                            Name = "IsContinuousInnovationOptedIn"
+                                            Type = "REG_DWORD"
+                                            Data = "0"
+                                        }
                                     )
                                     # PLAN-0059: Modo Bajo Demanda de Windows Update para Perfiles 2+ (Gaming / Hardcore)
                                     $optProfileInt = if ($script:OptProfile) { [int]$script:OptProfile } else { 1 }
@@ -6441,6 +6486,7 @@ if ($wimFile) {
                                         & reg.exe add $st.Path /v $st.Name /t $st.Type /d $st.Data /f 2>&1 | Out-Null
                                     }
                                     Write-OK "Tema oscuro y MMCSS (NoLazyMode) inyectados en SOFTWARE hive offline."
+                                    Write-OK "Cuarentena de actualizaciones acumulativas (7 días) y bloqueo de previews inyectados en SOFTWARE hive offline."
                                     if ($optProfileInt -ge 2) {
                                         Write-OK "Windows Update configurado en Modo Bajo Demanda (On-Demand) en SOFTWARE hive offline."
                                     }

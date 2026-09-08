@@ -1,3 +1,21 @@
+## [2026-09-07T23:50:00-03:00] Estabilidad de Actualizaciones Acumulativas: Cuarentena de Calidad (7 días) y Bloqueo de Previews/CFR para Todos los Perfiles (PLAN-0060)
+
+- **Archivos Modificados:** `scripts/Core/Policy-Engine.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Modules/PostInstall-Diagnostics.ps1`, `scripts/Modules/Audit-FreshInstallFootprint.ps1`, `scripts/Testing/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0060-20260907-estabilidad-actualizaciones-acumulativas-cuarentena-y-bloqueo-previews.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Gobernanza Canónica y SSOT Universal:** Se registraron en `Policy-Engine.ps1` bajo `$global:RomanOS_Policies` con alcance para **todos los perfiles** (`Profiles = @(1, 2, 3)`):
+    1. `POL_WU_ALLOW_OPTIONAL_CONTENT` (`AllowOptionalContent = 0`): Deshabilita la oferta e instalación de actualizaciones de vista previa acumulativas (Semanas C/D) y código CFR/Moments experimental.
+    2. `POL_WU_CONTINUOUS_INNOVATION` (`IsContinuousInnovationOptedIn = 0`): Desactiva el interruptor *"Obtener las últimas actualizaciones tan pronto como estén disponibles"*.
+    3. `POL_WU_DEFER_QUALITY` (`DeferQualityUpdates = 1`): Activa la política de diferimiento y cuarentena de actualizaciones de calidad.
+    4. `POL_WU_DEFER_QUALITY_DAYS` (`DeferQualityUpdatesPeriodInDays = 7`): Establece un período de cuarentena de 7 días naturales desde la fecha de publicación del parche, cubriendo la ventana estadística crítica donde Microsoft detecta anomalías globales y despliega Known Issue Rollback (KIR) o revisiones Out-Of-Band.
+  - **Inyección en Despliegue e ISO:**
+    - `Export-RomanOSUnattendCommands` exporta automáticamente las directivas a `autounattend.xml` en Perfiles 1, 2 y 3.
+    - `New-OptimizedWindowsISO-v2.ps1` inyecta las directivas en el bloque base de `specialize` en el fallback de `autounattend.xml` y en la colmena `SOFTWARE` offline del WIM montado (`$swTweaks`) para paridad offline total.
+  - **Auditoría Forense y Diagnósticos:**
+    - `PostInstall-Diagnostics.ps1`: Sección 5 audita el bloqueo de previews y la cuarentena de 7 días.
+    - `Audit-FreshInstallFootprint.ps1`: Añade `AllowOptionalContent`, `DeferQualityUpdates`, `DeferQualityUpdatesPeriodInDays` e `IsContinuousInnovationOptedIn` a la matriz forense.
+  - **Certificación Total:** **457 PASS / 0 FAIL / 1 SKIP** (458 pruebas en `Test-OptimizedISO-v2.ps1`) y **SUCCESS (47.4s)** en `Invoke-TestSuite.ps1`.
+- **Pendiente:** Ninguno.
+
 ## [2026-09-07T22:40:00-03:00] Windows Update Bajo Demanda (Manual On-Demand) en Perfiles Gaming y Hardcore (PLAN-0059)
 
 - **Archivos Modificados:** `scripts/Core/Policy-Engine.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Modules/PostInstall-Diagnostics.ps1`, `scripts/Modules/Audit-FreshInstallFootprint.ps1`, `scripts/Testing/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0059-20260907-windows-update-on-demand-perfiles-gaming-y-hardcore.md`, `docs/plans/README.md`, `MEMORY.md`
