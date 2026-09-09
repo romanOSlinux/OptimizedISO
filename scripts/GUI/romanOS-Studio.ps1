@@ -84,7 +84,48 @@ $window = [Windows.Markup.XamlReader]::Load($reader)
 
 $btnBuild = $window.FindName('btnBuild')
 $btnBuild.Add_Click({
-    [System.Windows.MessageBox]::Show('romanOS Studio Sandbox: En el proximo hito, este boton invocara a New-OptimizedWindowsISO-v2.ps1 de forma asincrona.', 'Desarrollo Frontend', [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+    $sourceIso = $window.FindName('txtSourceISO').Text
+    if ([string]::IsNullOrWhiteSpace($sourceIso) -or $sourceIso -eq 'Ruta de la ISO...') {
+        [System.Windows.MessageBox]::Show('Debe seleccionar una imagen ISO base para compilar.', 'Error', [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+        return
+    }
+
+    # Generar JSON temporal
+    $cmbProfile = $window.FindName('cmbProfile')
+    $optProfile = [string]($cmbProfile.SelectedIndex + 1)
+    $chkHyperV = $window.FindName('chkHyperV')
+    $chkVisualTweaks = $window.FindName('chkVisualTweaks')
+    $chkBlockOneDrive = $window.FindName('chkBlockOneDrive')
+    
+    $config = [ordered]@{
+        SourceISO           = $sourceIso
+        DriversPath         = 'Drivers'
+        EnableHyperV        = [bool]$chkHyperV.IsChecked
+        InjectWin11Script   = $false
+        Language            = 'es-ES'
+        Locale              = 'es-AR'
+        Timezone            = 'Argentina Standard Time'
+        KeyboardOverride    = 'es-419'
+        LocalUser           = 'Roman'
+        LocalPassword       = ''
+        OptimizationProfile = $optProfile
+        BlockOneDrive       = [bool]$chkBlockOneDrive.IsChecked
+        InjectVisualTweaks  = [bool]$chkVisualTweaks.IsChecked
+        WimCompression      = 'Max'
+        Architecture        = 'amd64'
+        ExportedAt          = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+    }
+    
+    $tempJsonPath = Join-Path $env:TEMP 'romanOS_BuildPreset.json'
+    $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $tempJsonPath -Encoding UTF8 -Force
+    
+    # Lanzar el Builder de forma asincrona en nueva ventana
+    $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-v2.ps1"
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$builderPath' -BuildPreset '$tempJsonPath' }`""
+    
+    Start-Process -FilePath "powershell.exe" -ArgumentList $arguments
+    
+    [System.Windows.MessageBox]::Show('El proceso de compilación ha iniciado en una nueva ventana de PowerShell. Puede minimizar esta interfaz.', 'Compilación Iniciada', [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
 })
 
 $btnBrowseISO = $window.FindName('btnBrowseISO')
