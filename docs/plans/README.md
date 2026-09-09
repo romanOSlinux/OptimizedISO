@@ -73,6 +73,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0061 | [PLAN-0061-20260908-paridad-perfil-1-drivers-wpbt-bitlocker.md](PLAN-0061-20260908-paridad-perfil-1-drivers-wpbt-bitlocker.md) | 2026-09-08 | Paridad en Perfil 1: Protección de Drivers GPU, Bloqueo Bloatware BIOS (WPBT), Prevención BitLocker y Matriz de Servicios | COMPLETADO |
 | 0062 | [PLAN-0062-20260908-resolucion-rutas-motores-core-y-red.md](PLAN-0062-20260908-resolucion-rutas-motores-core-y-red.md) | 2026-09-08 | Corrección de Resolución de Rutas de Motores Core (Policy, UI, Hardware) y Restauración de Catálogo de Red en Toda la Suite | COMPLETADO |
 | 0063 | [PLAN-0063-20260908-iso-a-medida-host-amd-ryzen-8600g.md](PLAN-0063-20260908-iso-a-medida-host-amd-ryzen-8600g.md) | 2026-09-08 | Compilación de ISO romanOS a Medida del Host (AMD Ryzen 5 8600G) con Suite Modular de Despliegue Post-Instalación (Dev-IA & Gaming) | EN PROGRESO |
+| 0064 | [PLAN-0064-20260909-arquitectura-unificada-gui-engine-romanos-suite.md](PLAN-0064-20260909-arquitectura-unificada-gui-engine-romanos-suite.md) | 2026-09-09 | Arquitectura Unificada GUI-Engine y Desacoplamiento de romanOS Suite (Erradicación de Read-Host y Contrato Headless) | COMPLETADO |
 
 ---
 

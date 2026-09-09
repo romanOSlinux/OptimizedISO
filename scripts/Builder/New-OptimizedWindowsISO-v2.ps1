@@ -272,6 +272,7 @@ param(
 #------------------------------------------------------------------------------
 
 $ErrorActionPreference = 'Continue'
+$script:Headless = [bool]$Headless -or [bool]$PresetFile
 
 # TLS 1.2 para posibles descargas HTTPS en PowerShell 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -310,6 +311,9 @@ foreach ($p in $uiEnginePaths) {
 $script:ResolvedParameters = [Hashtable]::new()
 foreach ($k in $PSBoundParameters.Keys) {
     $script:ResolvedParameters[$k] = $PSBoundParameters[$k]
+}
+if ($script:Headless) {
+    $script:ResolvedParameters['Headless'] = $true
 }
 
 # Cargar Preset JSON si se especifico
@@ -1515,6 +1519,8 @@ function Import-BuildPreset {
             }
         }
 
+        $script:Headless = $true
+        $ScriptBoundParameters['Headless'] = $true
         Write-OK "Preset importado desde: $PresetPath"
     } catch {
         Write-Warn "Import-BuildPreset: error leyendo preset: $($_.Exception.Message)"
@@ -1868,6 +1874,10 @@ function Detect-WindowsVersion {
 
     # 6. Fallback interactivo
     Write-Warn "No se pudo detectar la versión de Windows automáticamente."
+    if ($script:Headless -or $PresetFile) {
+        Write-Info "Modo Headless/Preset activo: Asumiendo Windows 11 por defecto."
+        return "11"
+    }
     Write-Host "`n  Seleccione la versión de Windows que contiene esta ISO:" -ForegroundColor Yellow
     Write-Host "  [1] Windows 11" -ForegroundColor Cyan
     Write-Host "  [2] Windows 10" -ForegroundColor Cyan
@@ -2467,32 +2477,37 @@ function Invoke-WizardConfig {
         Write-Host ""
 
         if (-not $ScriptBoundParameters.ContainsKey('LocalUser')) {
-            do {
-                $userInput = Read-Host "  Nombre de usuario (Enter = '$($script:LocalUser)')"
+            if ($script:Headless -or $PresetFile) {
+                $userInput = if ($script:LocalUser) { $script:LocalUser } else { 'Usuario' }
+                Write-Info "Modo Headless/Preset activo: Auto-configurando usuario local '$userInput'."
+            } else {
+                do {
+                    $userInput = Read-Host "  Nombre de usuario (Enter = '$($script:LocalUser)')"
 
-                if ([string]::IsNullOrWhiteSpace($userInput)) {
-                    $userInput = $script:LocalUser
-                }
+                    if ([string]::IsNullOrWhiteSpace($userInput)) {
+                        $userInput = $script:LocalUser
+                    }
 
-                $validUser = $userInput -match '^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9 _\-\.]{1,20}$'
+                    $validUser = $userInput -match '^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9 _\-\.]{1,20}$'
 
-                $reservedUsers = @(
-                    'administrator'
-                    'guest'
-                    'defaultaccount'
-                    'system'
-                    'wdagutilityaccount'
-                )
+                    $reservedUsers = @(
+                        'administrator'
+                        'guest'
+                        'defaultaccount'
+                        'system'
+                        'wdagutilityaccount'
+                    )
 
-                if ($validUser -and ($reservedUsers -contains $userInput.ToLower())) {
-                    $validUser = $false
-                    Write-Host "  ✘ Ese nombre está reservado por Windows." -ForegroundColor Red
-                }
+                    if ($validUser -and ($reservedUsers -contains $userInput.ToLower())) {
+                        $validUser = $false
+                        Write-Host "  ✘ Ese nombre está reservado por Windows." -ForegroundColor Red
+                    }
 
-                if (-not $validUser) {
-                    Write-Host "  ✘ Nombre inválido. Usa letras, números, espacio, guion o punto (máx. 20)." -ForegroundColor Red
-                }
-            } while (-not $validUser)
+                    if (-not $validUser) {
+                        Write-Host "  ✘ Nombre inválido. Usa letras, números, espacio, guion o punto (máx. 20)." -ForegroundColor Red
+                    }
+                } while (-not $validUser)
+            }
 
             $script:LocalUser = $userInput
 
@@ -2501,32 +2516,37 @@ function Invoke-WizardConfig {
         }
 
         if (-not $ScriptBoundParameters.ContainsKey('LocalPassword')) {
-            Write-Host "  Contraseña de la cuenta (Enter sin escribir nada = sin contraseña):" -ForegroundColor Gray
+            if ($script:Headless -or $PresetFile) {
+                $script:LocalPassword = ''
+                Write-Info "Modo Headless/Preset activo: Auto-configurando cuenta sin contraseña."
+            } else {
+                Write-Host "  Contraseña de la cuenta (Enter sin escribir nada = sin contraseña):" -ForegroundColor Gray
 
-            do {
-                $pass1 = Read-Host "  Contraseña" -AsSecureString
-                $pass2 = Read-Host "  Confirmar" -AsSecureString
+                do {
+                    $pass1 = Read-Host "  Contraseña" -AsSecureString
+                    $pass2 = Read-Host "  Confirmar" -AsSecureString
 
-                $bstr1 = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass1)
-                $bstr2 = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass2)
+                    $bstr1 = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass1)
+                    $bstr2 = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass2)
 
-                $plain1 = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr1)
-                $plain2 = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr2)
+                    $plain1 = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr1)
+                    $plain2 = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr2)
 
-                $passMatch = ($plain1 -eq $plain2)
+                    $passMatch = ($plain1 -eq $plain2)
 
-                if (-not $passMatch) {
-                    Write-Host "  ✘ Las contraseñas no coinciden. Intenta de nuevo." -ForegroundColor Red
-                    Write-Host ""
-                }
+                    if (-not $passMatch) {
+                        Write-Host "  ✘ Las contraseñas no coinciden. Intenta de nuevo." -ForegroundColor Red
+                        Write-Host ""
+                    }
 
-                [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr1)
-                [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr2)
-            } while (-not $passMatch)
+                    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr1)
+                    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr2)
+                } while (-not $passMatch)
 
-            $script:LocalPassword = $plain1
+                $script:LocalPassword = $plain1
 
-            Remove-Variable plain1, plain2 -ErrorAction SilentlyContinue
+                Remove-Variable plain1, plain2 -ErrorAction SilentlyContinue
+            }
 
             if ([string]::IsNullOrEmpty($script:LocalPassword)) {
                 Write-Host "  ✔ Sin contraseña (cuenta abierta)" -ForegroundColor Yellow
@@ -4095,8 +4115,13 @@ if ($scriptsToInject.Count -eq 0) {
     Write-Host "  [0] Omitir inyección de scripts (Solo autounattend.xml y tweaks offline)" -ForegroundColor Gray
     Write-Host ""
 
-    $choice = Read-Host "  Seleccione una opción (Default: 1)"
-    if ($choice -eq '') { $choice = "1" }
+    $choice = if ($script:Headless -or $PresetFile) {
+        Write-Info "Modo Headless/Preset activo: Auto-seleccionando Suite Completa romanOS (Opción 1)."
+        "1"
+    } else {
+        $r = Read-Host "  Seleccione una opción (Default: 1)"
+        if ($r -eq '') { "1" } else { $r }
+    }
 
     switch ($choice) {
         "1" {
@@ -5333,29 +5358,34 @@ if ($wimFile) {
             $indexesToProcess = @($allWimImages[0].Index)
             Write-Host "    Solo se detectó 1 edición. Procesando índice $($allWimImages[0].Index)." -ForegroundColor Gray
         } else {
-            Write-Host ""
-            Write-Host "    Seleccione qué edición(es) desea modificar offline:" -ForegroundColor Yellow
-            Write-Host "    [A] Procesar TODAS las ediciones" -ForegroundColor Cyan
-
-            for ($i = 0; $i -lt $allWimImages.Count; $i++) {
-                Write-Host "    [$($i + 1)] Solo Índice $($allWimImages[$i].Index): $($allWimImages[$i].Name)" -ForegroundColor White
-            }
-
-            Write-Host ""
-            $choice = Read-Host "    Seleccione una opción (ENTER = TODAS)"
-
-            if ([string]::IsNullOrWhiteSpace($choice) -or $choice -match '(?i)^a$') {
+            if ($script:Headless -or $PresetFile) {
+                Write-Info "Modo Headless/Preset activo: Procesando automáticamente TODAS las ediciones del WIM."
                 $indexesToProcess = $allWimImages | ForEach-Object { $_.Index }
             } else {
-                $pickNum = 0
+                Write-Host ""
+                Write-Host "    Seleccione qué edición(es) desea modificar offline:" -ForegroundColor Yellow
+                Write-Host "    [A] Procesar TODAS las ediciones" -ForegroundColor Cyan
 
-                if ([int]::TryParse($choice, [ref]$pickNum) -and
-                    $pickNum -ge 1 -and
-                    $pickNum -le $allWimImages.Count) {
-                    $indexesToProcess = @($allWimImages[$pickNum - 1].Index)
-                } else {
-                    Write-Warn "Opción no válida. Se procesarán TODAS las ediciones."
+                for ($i = 0; $i -lt $allWimImages.Count; $i++) {
+                    Write-Host "    [$($i + 1)] Solo Índice $($allWimImages[$i].Index): $($allWimImages[$i].Name)" -ForegroundColor White
+                }
+
+                Write-Host ""
+                $choice = Read-Host "    Seleccione una opción (ENTER = TODAS)"
+
+                if ([string]::IsNullOrWhiteSpace($choice) -or $choice -match '(?i)^a$') {
                     $indexesToProcess = $allWimImages | ForEach-Object { $_.Index }
+                } else {
+                    $pickNum = 0
+
+                    if ([int]::TryParse($choice, [ref]$pickNum) -and
+                        $pickNum -ge 1 -and
+                        $pickNum -le $allWimImages.Count) {
+                        $indexesToProcess = @($allWimImages[$pickNum - 1].Index)
+                    } else {
+                        Write-Warn "Opción no válida. Se procesarán TODAS las ediciones."
+                        $indexesToProcess = $allWimImages | ForEach-Object { $_.Index }
+                    }
                 }
             }
         }
@@ -6014,7 +6044,10 @@ if ($wimFile) {
                             $selectedToRemove = $null
 
                             if ($optProfileInt -eq 1) {
-                                if (-not $SkipAutoUnattend) {
+                                if ($script:Headless -or $PresetFile) {
+                                    Write-Info "Modo Headless/Preset activo (Perfil 1 Conservador): Conservando paquetes AppX seleccionables sin diálogos interactivos."
+                                    $selectedToRemove = $null
+                                } elseif (-not $SkipAutoUnattend) {
                                     $hasGridView = Get-Command -Name Out-GridView -ErrorAction SilentlyContinue
 
                                     if ($hasGridView) {

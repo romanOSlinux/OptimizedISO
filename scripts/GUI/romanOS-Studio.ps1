@@ -4,6 +4,29 @@
 .DESCRIPTION
     Actua estrictamente como Frontend. Genera un JSON y delega el trabajo pesado a New-OptimizedWindowsISO-v2.ps1
 #>
+# Auto-elevación obligatoria para operaciones DISM y permisos de administrador
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = "powershell.exe"
+    $targetPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Definition }
+    $psi.Arguments = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$targetPath`""
+    $psi.Verb = "runas"
+    try {
+        [System.Diagnostics.Process]::Start($psi) | Out-Null
+        exit 0
+    } catch {
+        Add-Type -AssemblyName PresentationFramework
+        [System.Windows.MessageBox]::Show(
+            "romanOS Studio requiere privilegios de Administrador para manipular imágenes WIM y ejecutar DISM.`n`nPor favor ejecute la aplicación como Administrador.",
+            "romanOS Studio - Elevación Requerida",
+            [System.Windows.MessageBoxButton]::OK,
+            [System.Windows.MessageBoxImage]::Warning
+        )
+        exit 1
+    }
+}
+
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
@@ -214,6 +237,7 @@ $btnBuild.Add_Click({
     $pinfo.Arguments = $arguments
     $pinfo.UseShellExecute = $false
     $pinfo.CreateNoWindow = $true
+    $pinfo.RedirectStandardInput = $true
     $pinfo.RedirectStandardOutput = $true
     $pinfo.RedirectStandardError = $true
     
