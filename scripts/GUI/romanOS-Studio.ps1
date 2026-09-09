@@ -121,10 +121,16 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                         <ComboBoxItem Content="Perfil 2 (Avanzado / Gaming)" />
                         <ComboBoxItem Content="Perfil 3 (Hardcore / Extremo)" IsSelected="True" />
                     </ComboBox>
+                    <!-- Ediciones WIM detectadas -->
+                    <TextBlock Text="Ediciones del WIM a incluir:" Foreground="#E3E3E3" Margin="0,115,0,0" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="lblEditionsStatus" Text="Selecciona una ISO para ver las ediciones disponibles" Foreground="#606060" FontSize="11" Margin="0,140,0,0"/>
+                    <ListBox x:Name="lbxWimEditions" Margin="0,160,0,0" Height="90" Background="#1A1A1A" BorderBrush="#454545" BorderThickness="1"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" VerticalAlignment="Top"/>
                 </Grid>
             </TabItem>
             
             <!-- Pestaña 2 -->
+
             <TabItem Header="Ajustes de Imagen">
                 <Grid Margin="15">
                     <TextBlock Text="Nivel de Compresión (WIM):" Foreground="#E3E3E3" Margin="0,15,0,0" FontWeight="SemiBold"/>
@@ -180,8 +186,105 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
 $reader = (New-Object System.Xml.XmlNodeReader $xaml)
 $window = [Windows.Markup.XamlReader]::Load($reader)
 
+
+# =============================================================================
+# WIM DISCOVERY ASYNC
+# Detecta ediciones disponibles al seleccionar la ISO.
+# Usa Mount-DiskImage + Get-WindowsImage en runspace background + DispatcherTimer
+# para actualizar la UI sin bloquear el hilo principal WPF.
+# =============================================================================
+function Invoke-WimDiscoveryAsync {
+    param([string]$IsoPath, $Window)
+
+    $lbxEditions = $Window.FindName('lbxWimEditions')
+    $lblStatus   = $Window.FindName('lblEditionsStatus')
+
+    $Window.Dispatcher.Invoke([action]{
+        $lbxEditions.Items.Clear()
+        $lblStatus.Text = "Analizando ISO... Por favor espera."
+    })
+
+    $rs = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace()
+    $rs.Open()
+    $ps = [System.Management.Automation.PowerShell]::Create()
+    $ps.Runspace = $rs
+
+    [void]$ps.AddScript({
+        param($IsoPath)
+        $images  = @()
+        $mounted = $null
+        try {
+            $mounted = Mount-DiskImage -ImagePath $IsoPath -PassThru -ErrorAction Stop
+            Start-Sleep -Milliseconds 800
+            $vol   = $mounted | Get-Volume -ErrorAction Stop
+            $drive = $vol.DriveLetter
+            $wim   = "${drive}:\sources\install.wim"
+            $esd   = "${drive}:\sources\install.esd"
+            if (Test-Path $wim) {
+                $images = Get-WindowsImage -ImagePath $wim -ErrorAction Stop |
+                          Select-Object ImageIndex, ImageName
+            } elseif (Test-Path $esd) {
+                $images = @([PSCustomObject]@{
+                    ImageIndex = 0
+                    ImageName  = 'install.esd (seleccion de indices no disponible)'
+                })
+            }
+        } catch { }
+        finally {
+            if ($null -ne $mounted) {
+                Dismount-DiskImage -ImagePath $IsoPath -ErrorAction SilentlyContinue | Out-Null
+            }
+        }
+        return $images
+    })
+    [void]$ps.AddArgument($IsoPath)
+    $handle  = $ps.BeginInvoke()
+    $msgData = @{ PS = $ps; RS = $rs; Win = $Window; Lbx = $lbxEditions; Lbl = $lblStatus; Handle = $handle }
+
+    $timer          = New-Object System.Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(500)
+    $timer.Tag      = $msgData
+    $timer.Add_Tick({
+        $d = $This.Tag
+        if ($d.Handle.IsCompleted) {
+            $This.Stop()
+            try {
+                $imgs = $d.PS.EndInvoke($d.Handle)
+                $d.RS.Close()
+                $d.Win.Dispatcher.Invoke([action]{
+                    $d.Lbx.Items.Clear()
+                    $isEsd = $false
+                    foreach ($img in $imgs) {
+                        if ($img.ImageIndex -eq 0) { $isEsd = $true; continue }
+                        $cb           = New-Object System.Windows.Controls.CheckBox
+                        $cb.Content   = "[$($img.ImageIndex)] $($img.ImageName)"
+                        $cb.Tag       = "$($img.ImageIndex)"
+                        $cb.IsChecked = $true
+                        $cb.Foreground = '#E0E0E0'
+                        $d.Lbx.Items.Add($cb)
+                    }
+                    if ($isEsd) {
+                        $d.Lbl.Text = "Archivo install.esd detectado. Seleccion de indices no disponible."
+                    } elseif ($d.Lbx.Items.Count -gt 0) {
+                        $count = $d.Lbx.Items.Count
+                        $d.Lbl.Text = "$count edicion(es) encontrada(s). Desmarca las que no quieras incluir."
+                    } else {
+                        $d.Lbl.Text = "No se pudieron leer ediciones. Se procesaran todos los indices."
+                    }
+                })
+            } catch {
+                $d.Win.Dispatcher.Invoke([action]{
+                    $d.Lbl.Text = "Error al analizar WIM. Se usaran todos los indices."
+                })
+            }
+        }
+    })
+    $timer.Start()
+}
+
 $btnBuild = $window.FindName('btnBuild')
 $btnBuild.Add_Click({
+
     Write-StudioLog "El usuario hizo clic en 'Compilar ISO'."
     $sourceIso = $window.FindName('txtSourceISO').Text
     if ([string]::IsNullOrWhiteSpace($sourceIso) -or $sourceIso -eq 'Ruta de la ISO...') {
@@ -205,9 +308,29 @@ $btnBuild.Add_Click({
     $chkVisualTweaks = $window.FindName('chkVisualTweaks')
     $chkBlockOneDrive = $window.FindName('chkBlockOneDrive')
     
+    # Resolver indices WIM seleccionados en el ListBox
+    $lbxEditions = $window.FindName('lbxWimEditions')
+    $selectedIndexes = @()
+    $totalItems = 0
+    foreach ($item in $lbxEditions.Items) {
+        $totalItems++
+        if ($item.IsChecked -eq $true) { $selectedIndexes += $item.Tag }
+    }
+    $targetWimIndex = if ($totalItems -eq 0 -or $selectedIndexes.Count -eq $totalItems) {
+        'all'
+    } elseif ($selectedIndexes.Count -gt 0) {
+        $selectedIndexes -join ','
+    } else {
+        'all'
+    }
+    Write-StudioLog "Indices WIM seleccionados: $targetWimIndex"
+
     $config = [ordered]@{
         SourceISO           = $sourceIso
-        DriversPath         = 'Drivers'
+        OutputDir           = (Join-Path $HOME 'Desktop\WinISO_Optimizado')
+        DriversPath         = (Join-Path $PSScriptRoot '..\..\Drivers')
+        UpdatesPath         = (Join-Path $PSScriptRoot '..\..\Updates')
+        RuntimesPath        = (Join-Path $PSScriptRoot '..\..\Runtimes')
         EnableHyperV        = [bool]$chkHyperV.IsChecked
         InjectWin11Script   = $false
         Language            = $optLang
@@ -216,11 +339,15 @@ $btnBuild.Add_Click({
         KeyboardOverride    = 'es-419'
         LocalUser           = 'Roman'
         LocalPassword       = ''
+        AutoLogonCount      = 1
         OptimizationProfile = $optProfile
         BlockOneDrive       = [bool]$chkBlockOneDrive.IsChecked
         InjectVisualTweaks  = [bool]$chkVisualTweaks.IsChecked
         WimCompression      = $optComp
         Architecture        = 'amd64'
+        TargetWimIndex      = $targetWimIndex
+        SkipComponentCleanup = $false
+        ZeroTouch           = $false
         ExportedAt          = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
     }
     
@@ -228,8 +355,9 @@ $btnBuild.Add_Click({
     $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $tempJsonPath -Encoding UTF8 -Force
     Write-StudioLog "Archivo JSON temporal inyectado en: $tempJsonPath"
     
-    $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-v2.ps1"
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$builderPath' -PresetFile '$tempJsonPath' -Headless *>&1 }`""
+    $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-GUI-Engine.ps1"
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$builderPath`" -PresetFile `"$tempJsonPath`""
+
     Write-StudioLog "Preparando proceso de compilacion en segundo plano (Oculto)."
     
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -344,8 +472,11 @@ $btnBrowseISO.Add_Click({
     if ($dlg.ShowDialog() -eq $true) {
         $window.FindName('txtSourceISO').Text = $dlg.FileName
         Write-StudioLog "ISO seleccionada mediante dialogo: $($dlg.FileName)"
+        # Lanzar WIM Discovery en background para poblar el ListBox de ediciones
+        Invoke-WimDiscoveryAsync -IsoPath $dlg.FileName -Window $window
     }
 })
+
 
 $btnExportPreset = $window.FindName('btnExportPreset')
 $btnExportPreset.Add_Click({
