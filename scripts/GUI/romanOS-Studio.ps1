@@ -8,6 +8,20 @@ Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 
+# Inicializacion de Telemetria (Local Offline)
+$logDir = Join-Path $PSScriptRoot "..\..\Log"
+if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
+$script:StudioLogPath = Join-Path $logDir "romanOS-Studio_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+
+function Write-StudioLog {
+    param([string]$Message, [string]$Level = "INFO")
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $line = "[$timestamp] [$Level] $Message"
+    Out-File -FilePath $script:StudioLogPath -InputObject $line -Append -Encoding UTF8
+}
+
+Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
+
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -121,11 +135,15 @@ $window = [Windows.Markup.XamlReader]::Load($reader)
 
 $btnBuild = $window.FindName('btnBuild')
 $btnBuild.Add_Click({
+    Write-StudioLog "El usuario hizo clic en 'Compilar ISO'."
     $sourceIso = $window.FindName('txtSourceISO').Text
     if ([string]::IsNullOrWhiteSpace($sourceIso) -or $sourceIso -eq 'Ruta de la ISO...') {
+        Write-StudioLog "Error de validacion: No se especifico la ruta de la ISO base." -Level "WARN"
         [System.Windows.MessageBox]::Show('Debe seleccionar una imagen ISO base para compilar.', 'Error', [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
         return
     }
+    
+    Write-StudioLog "ISO seleccionada: $sourceIso"
 
     # Generar JSON temporal
     $cmbProfile = $window.FindName('cmbProfile')
@@ -161,9 +179,11 @@ $btnBuild.Add_Click({
     
     $tempJsonPath = Join-Path $env:TEMP 'romanOS_BuildPreset.json'
     $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $tempJsonPath -Encoding UTF8 -Force
+    Write-StudioLog "Archivo JSON temporal inyectado en: $tempJsonPath"
     
     $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-v2.ps1"
     $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$builderPath' -BuildPreset '$tempJsonPath' }`""
+    Write-StudioLog "Preparando proceso de compilacion en segundo plano (Oculto)."
     
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     $pinfo.FileName = "powershell.exe"
@@ -216,6 +236,8 @@ $btnBuild.Add_Click({
         $stat = $Event.MessageData.Status
         $prog = $Event.MessageData.Prog
         
+        Write-StudioLog "El proceso de compilacion en segundo plano (PID: $($script:workerProcess.Id)) ha finalizado."
+        
         $win.Dispatcher.Invoke([action]{
             $txt.AppendText("`r`n[SISTEMA] Proceso finalizado.`r`n")
             $txt.ScrollToEnd()
@@ -235,37 +257,51 @@ $btnBuild.Add_Click({
     Register-ObjectEvent -InputObject $script:workerProcess -EventName ErrorDataReceived -SourceIdentifier "StdErr_romanOS" -MessageData $msgData -Action $outputAction | Out-Null
     Register-ObjectEvent -InputObject $script:workerProcess -EventName Exited -SourceIdentifier "Exit_romanOS" -MessageData $msgData -Action $exitAction | Out-Null
     
-    $script:workerProcess.Start() | Out-Null
-    $script:workerProcess.BeginOutputReadLine()
-    $script:workerProcess.BeginErrorReadLine()
+    try {
+        $script:workerProcess.Start() | Out-Null
+        $script:workerProcess.BeginOutputReadLine()
+        $script:workerProcess.BeginErrorReadLine()
+        Write-StudioLog "Proceso iniciado exitosamente con PID: $($script:workerProcess.Id)"
+    } catch {
+        Write-StudioLog "Error critico al iniciar el proceso: $($_.Exception.Message)" -Level "FATAL"
+    }
 })
 
 $btnCancel = $window.FindName('btnCancel')
 $btnCancel.Add_Click({
+    Write-StudioLog "El usuario hizo clic en 'Cancelar'."
     if ($null -ne $script:workerProcess -and -not $script:workerProcess.HasExited) {
         $res = [System.Windows.MessageBox]::Show("¿Esta seguro que desea abortar la compilacion? DISM podria dejar la imagen temporal montada.", "Advertencia", [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Warning)
         if ($res -eq 'Yes') {
             try {
+                Write-StudioLog "Intentando detener el proceso con PID $($script:workerProcess.Id)..." -Level "WARN"
                 $script:workerProcess.Kill()
                 $window.FindName('txtConsole').AppendText("`r`n[!] PROCESO CANCELADO POR EL USUARIO.`r`n")
+                Write-StudioLog "Proceso detenido con exito por intervencion del usuario." -Level "WARN"
             } catch {
                 $window.FindName('txtConsole').AppendText("`r`n[!] No se pudo cancelar el proceso.`r`n")
+                Write-StudioLog "Excepcion al intentar cancelar el proceso: $($_.Exception.Message)" -Level "ERROR"
             }
+        } else {
+            Write-StudioLog "Cancelacion abortada por el usuario (Boton No)."
         }
     }
 })
 
 $btnBrowseISO = $window.FindName('btnBrowseISO')
 $btnBrowseISO.Add_Click({
+    Write-StudioLog "Boton 'Examinar ISO' presionado."
     $dlg = New-Object Microsoft.Win32.OpenFileDialog
     $dlg.Filter = 'Windows ISO (*.iso)|*.iso'
     if ($dlg.ShowDialog() -eq $true) {
         $window.FindName('txtSourceISO').Text = $dlg.FileName
+        Write-StudioLog "ISO seleccionada mediante dialogo: $($dlg.FileName)"
     }
 })
 
 $btnExportPreset = $window.FindName('btnExportPreset')
 $btnExportPreset.Add_Click({
+    Write-StudioLog "Boton 'Solo JSON' presionado."
     $dlg = New-Object Microsoft.Win32.SaveFileDialog
     $dlg.Filter = 'Archivo JSON (*.json)|*.json'
     $dlg.FileName = 'Preset_romanOS_Studio.json'
@@ -302,8 +338,14 @@ $btnExportPreset.Add_Click({
             ExportedAt          = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
         }
         
-        $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $dlg.FileName -Encoding UTF8 -Force
-        [System.Windows.MessageBox]::Show("Preset JSON exportado con éxito en:`n$($dlg.FileName)", "romanOS Studio", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+        try {
+            $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $dlg.FileName -Encoding UTF8 -Force
+            Write-StudioLog "Preset exportado satisfactoriamente en: $($dlg.FileName)"
+            [System.Windows.MessageBox]::Show("Preset JSON exportado con éxito en:`n$($dlg.FileName)", "romanOS Studio", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+        } catch {
+            Write-StudioLog "Error fatal al exportar JSON: $($_.Exception.Message)" -Level "FATAL"
+            [System.Windows.MessageBox]::Show("Hubo un error al guardar el archivo JSON.", "Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+        }
     }
 })
 
