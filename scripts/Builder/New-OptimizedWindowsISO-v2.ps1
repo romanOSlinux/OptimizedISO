@@ -1424,6 +1424,10 @@ function Export-BuildPreset {
 
     # Recopilar configuracion del scope actual ($script: variables)
     $config = [ordered]@{
+        SourceISO           = if ($script:SourceISO)          { $script:SourceISO }          else { '' }
+        DriversPath         = if ($script:DriversPath)        { $script:DriversPath }        else { '' }
+        EnableHyperV        = if ($null -ne $script:EnableHyperV)       { [bool]$script:EnableHyperV }       else { $false }
+        InjectWin11Script   = if ($null -ne $script:InjectWin11Script)  { [bool]$script:InjectWin11Script }  else { $false }
         Language            = if ($script:Language)           { $script:Language }           else { '' }
         Locale              = if ($script:Locale)             { $script:Locale }             else { '' }
         Timezone            = if ($script:Timezone)           { $script:Timezone }           else { 'Romance Standard Time' }
@@ -1474,6 +1478,10 @@ function Import-BuildPreset {
         # Aplicar solo los valores del preset que NO hayan sido especificados en CLI
         # Los ScriptBoundParameters tienen prioridad sobre el preset (CLI > Preset)
         $mappings = @{
+            SourceISO           = 'SourceISO'
+            DriversPath         = 'DriversPath'
+            EnableHyperV        = 'EnableHyperV'
+            InjectWin11Script   = 'InjectWin11Script'
             Language            = 'Language'
             Locale              = 'Locale'
             Timezone            = 'Timezone'
