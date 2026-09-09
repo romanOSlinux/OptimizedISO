@@ -96,4 +96,41 @@ $btnBrowseISO.Add_Click({
     }
 })
 
+$btnExportPreset = $window.FindName('btnExportPreset')
+$btnExportPreset.Add_Click({
+    $dlg = New-Object Microsoft.Win32.SaveFileDialog
+    $dlg.Filter = 'Archivo JSON (*.json)|*.json'
+    $dlg.FileName = 'Preset_romanOS_Studio.json'
+    if ($dlg.ShowDialog() -eq $true) {
+        $sourceIso = $window.FindName('txtSourceISO').Text
+        $cmbProfile = $window.FindName('cmbProfile')
+        $optProfile = [string]($cmbProfile.SelectedIndex + 1)
+        $chkHyperV = $window.FindName('chkHyperV')
+        $chkVisualTweaks = $window.FindName('chkVisualTweaks')
+        $chkBlockOneDrive = $window.FindName('chkBlockOneDrive')
+        
+        $config = [ordered]@{
+            SourceISO           = $sourceIso
+            DriversPath         = 'Drivers'
+            EnableHyperV        = [bool]$chkHyperV.IsChecked
+            InjectWin11Script   = $false
+            Language            = 'es-ES'
+            Locale              = 'es-AR'
+            Timezone            = 'Argentina Standard Time'
+            KeyboardOverride    = 'es-419'
+            LocalUser           = 'Roman'
+            LocalPassword       = ''
+            OptimizationProfile = $optProfile
+            BlockOneDrive       = [bool]$chkBlockOneDrive.IsChecked
+            InjectVisualTweaks  = [bool]$chkVisualTweaks.IsChecked
+            WimCompression      = 'Max'
+            Architecture        = 'amd64'
+            ExportedAt          = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        }
+        
+        $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $dlg.FileName -Encoding UTF8 -Force
+        [System.Windows.MessageBox]::Show("Preset JSON exportado con éxito en:`n$($dlg.FileName)", "romanOS Studio", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+    }
+})
+
 $window.ShowDialog() | Out-Null
