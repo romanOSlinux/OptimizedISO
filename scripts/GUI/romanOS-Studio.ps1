@@ -20,7 +20,7 @@ Add-Type -AssemblyName WindowsBase
         </Border>
         
         <!-- Main Content -->
-        <TabControl Margin="10,70,10,60" Background="#1E1E1E" BorderBrush="#3F3F46" Foreground="White">
+        <TabControl x:Name="tabControlMain" Margin="10,70,10,60" Background="#1E1E1E" BorderBrush="#3F3F46" Foreground="White">
             <TabControl.Resources>
                 <Style TargetType="TabItem">
                     <Setter Property="Template">
@@ -64,6 +64,12 @@ Add-Type -AssemblyName WindowsBase
                     <CheckBox x:Name="chkHyperV" Content="Habilitar subsistema Hyper-V" Foreground="White" IsChecked="True" Margin="10,15,0,0" />
                     <CheckBox x:Name="chkVisualTweaks" Content="Inyectar Menu Contextual Moderno" Foreground="White" IsChecked="True" Margin="10,45,0,0" />
                     <CheckBox x:Name="chkBlockOneDrive" Content="Bloquear telemetria de OneDrive" Foreground="White" IsChecked="True" Margin="10,75,0,0" />
+                </Grid>
+            </TabItem>
+            
+            <TabItem Header="Consola">
+                <Grid Margin="0">
+                    <TextBox x:Name="txtConsole" Background="#0C0C0C" Foreground="#CCCCCC" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True" BorderThickness="0" Padding="5" />
                 </Grid>
             </TabItem>
         </TabControl>
@@ -119,13 +125,55 @@ $btnBuild.Add_Click({
     $tempJsonPath = Join-Path $env:TEMP 'romanOS_BuildPreset.json'
     $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $tempJsonPath -Encoding UTF8 -Force
     
-    # Lanzar el Builder de forma asincrona en nueva ventana
+    # Lanzar el Builder de forma oculta capturando salida
     $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-v2.ps1"
     $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$builderPath' -BuildPreset '$tempJsonPath' }`""
     
-    Start-Process -FilePath "powershell.exe" -ArgumentList $arguments
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    $pinfo.FileName = "powershell.exe"
+    $pinfo.Arguments = $arguments
+    $pinfo.UseShellExecute = $false
+    $pinfo.CreateNoWindow = $true
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.RedirectStandardError = $true
     
-    [System.Windows.MessageBox]::Show('El proceso de compilación ha iniciado en una nueva ventana de PowerShell. Puede minimizar esta interfaz.', 'Compilación Iniciada', [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $pinfo
+    $process.EnableRaisingEvents = $true
+    
+    # Cambiar a pestaña de consola
+    $tabControl = $window.FindName('tabControlMain')
+    $tabControl.SelectedIndex = 2
+    
+    $txtConsole = $window.FindName('txtConsole')
+    $txtConsole.Text = "Iniciando compilacion de romanOS...`r`n"
+    
+    # Deshabilitar boton para prevenir multi-click
+    $btnBuild.IsEnabled = $false
+    
+    $msgData = @{ Window = $window; TextBox = $txtConsole }
+    $action = {
+        $line = $Event.SourceEventArgs.Data
+        if ($line -ne $null) {
+            $win = $Event.MessageData.Window
+            $txt = $Event.MessageData.TextBox
+            $win.Dispatcher.Invoke([action]{
+                $txt.AppendText("$line`r`n")
+                $txt.ScrollToEnd()
+            })
+        }
+    }
+    
+    # Prevenir duplicacion de subscripciones
+    Get-EventSubscriber -SourceIdentifier "StdOut_romanOS" -ErrorAction SilentlyContinue | Unregister-Event
+    Get-EventSubscriber -SourceIdentifier "StdErr_romanOS" -ErrorAction SilentlyContinue | Unregister-Event
+    
+    Register-ObjectEvent -InputObject $process -EventName OutputDataReceived -SourceIdentifier "StdOut_romanOS" -MessageData $msgData -Action $action | Out-Null
+    Register-ObjectEvent -InputObject $process -EventName ErrorDataReceived -SourceIdentifier "StdErr_romanOS" -MessageData $msgData -Action $action | Out-Null
+    
+    $process.Start() | Out-Null
+    $process.BeginOutputReadLine()
+    $process.BeginErrorReadLine()
 })
 
 $btnBrowseISO = $window.FindName('btnBrowseISO')
