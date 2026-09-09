@@ -11,74 +11,105 @@ Add-Type -AssemblyName WindowsBase
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="romanOS Studio (Sandbox)" Height="550" Width="800" 
-        Background="#1E1E1E" WindowStartupLocation="CenterScreen">
+        Title="romanOS Studio" Height="600" Width="850" 
+        Background="#202020" WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI">
     <Grid>
         <!-- Header -->
-        <Border Background="#2D2D30" Height="60" VerticalAlignment="Top">
-            <TextBlock Text="romanOS Studio" Foreground="White" FontSize="24" FontWeight="Bold" Margin="20,15,0,0" />
+        <Border Background="#2D2D2D" Height="60" VerticalAlignment="Top" BorderBrush="#1C1C1C" BorderThickness="0,0,0,1">
+            <TextBlock Text="romanOS Studio" Foreground="#E3E3E3" FontSize="24" FontWeight="SemiBold" Margin="20,15,0,0" />
         </Border>
         
         <!-- Main Content -->
-        <TabControl x:Name="tabControlMain" Margin="10,70,10,60" Background="#1E1E1E" BorderBrush="#3F3F46" Foreground="White">
+        <TabControl x:Name="tabControlMain" Margin="10,70,10,70" Background="#202020" BorderBrush="#333333" Foreground="#E3E3E3">
             <TabControl.Resources>
                 <Style TargetType="TabItem">
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="TabItem">
-                                <Border Name="Border" BorderThickness="1,1,1,0" BorderBrush="#3F3F46" Margin="2,0">
-                                    <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="10,5"/>
+                                <Border Name="Border" BorderThickness="1,1,1,0" BorderBrush="#333333" Margin="2,0" Background="#2D2D2D">
+                                    <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="15,8"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Border" Property="Background" Value="#3F3F46" />
+                                        <Setter TargetName="Border" Property="Background" Value="#333333" />
+                                        <Setter Property="Foreground" Value="#0078D4"/>
                                     </Trigger>
                                     <Trigger Property="IsSelected" Value="False">
-                                        <Setter TargetName="Border" Property="Background" Value="#1E1E1E" />
+                                        <Setter TargetName="Border" Property="Background" Value="#252525" />
+                                        <Setter Property="Foreground" Value="#A0A0A0"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontSize" Value="14"/>
                 </Style>
             </TabControl.Resources>
             
-            <TabItem Header="Construccion ISO">
-                <Grid Margin="10">
-                    <TextBlock Text="Ruta ISO Origen:" Foreground="White" Margin="0,20,0,0"/>
-                    <TextBox x:Name="txtSourceISO" Margin="120,15,100,0" Height="25" VerticalAlignment="Top" Background="#3F3F46" Foreground="White" BorderThickness="0" Padding="3"/>
-                    <Button x:Name="btnBrowseISO" Content="Examinar" Margin="0,15,10,0" Height="25" Width="80" HorizontalAlignment="Right" VerticalAlignment="Top" Background="#007ACC" Foreground="White" BorderThickness="0"/>
+            <!-- Pestaña 1 -->
+            <TabItem Header="Construcción Base">
+                <Grid Margin="15">
+                    <TextBlock Text="Imagen de Origen (Windows 10/11 ISO):" Foreground="#E3E3E3" Margin="0,15,0,0" FontWeight="SemiBold"/>
+                    <TextBox x:Name="txtSourceISO" Margin="260,10,110,0" Height="28" VerticalAlignment="Top" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" BorderThickness="1" Padding="4"/>
+                    <Button x:Name="btnBrowseISO" Content="Examinar" Margin="0,10,10,0" Height="28" Width="90" HorizontalAlignment="Right" VerticalAlignment="Top" Background="#333333" Foreground="#E3E3E3" BorderThickness="1" BorderBrush="#454545"/>
                     
-                    <TextBlock Text="Perfil de Optimizacion:" Foreground="White" Margin="0,65,0,0"/>
-                    <ComboBox x:Name="cmbProfile" Margin="150,60,0,0" Height="25" Width="200" HorizontalAlignment="Left" VerticalAlignment="Top">
-                        <ComboBoxItem Content="Perfil 1 (Moderado)" />
-                        <ComboBoxItem Content="Perfil 2 (Avanzado)" />
-                        <ComboBoxItem Content="Perfil 3 (Hardcore)" IsSelected="True" />
+                    <TextBlock Text="Perfil de Optimización (Hardware-Engine):" Foreground="#E3E3E3" Margin="0,65,0,0" FontWeight="SemiBold"/>
+                    <ComboBox x:Name="cmbProfile" Margin="260,60,0,0" Height="28" Width="220" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#333333" Foreground="Black">
+                        <ComboBoxItem Content="Perfil 1 (Moderado / Ofimática)" />
+                        <ComboBoxItem Content="Perfil 2 (Avanzado / Gaming)" />
+                        <ComboBoxItem Content="Perfil 3 (Hardcore / Extremo)" IsSelected="True" />
                     </ComboBox>
                 </Grid>
             </TabItem>
             
-            <TabItem Header="Modulos Avanzados">
-                <Grid Margin="10">
-                    <CheckBox x:Name="chkHyperV" Content="Habilitar subsistema Hyper-V" Foreground="White" IsChecked="True" Margin="10,15,0,0" />
-                    <CheckBox x:Name="chkVisualTweaks" Content="Inyectar Menu Contextual Moderno" Foreground="White" IsChecked="True" Margin="10,45,0,0" />
-                    <CheckBox x:Name="chkBlockOneDrive" Content="Bloquear telemetria de OneDrive" Foreground="White" IsChecked="True" Margin="10,75,0,0" />
+            <!-- Pestaña 2 -->
+            <TabItem Header="Ajustes de Imagen">
+                <Grid Margin="15">
+                    <TextBlock Text="Nivel de Compresión (WIM):" Foreground="#E3E3E3" Margin="0,15,0,0" FontWeight="SemiBold"/>
+                    <ComboBox x:Name="cmbCompression" Margin="200,10,0,0" Height="28" Width="150" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#333333" Foreground="Black">
+                        <ComboBoxItem Content="Max" IsSelected="True" />
+                        <ComboBoxItem Content="Fast" />
+                        <ComboBoxItem Content="None" />
+                    </ComboBox>
+                    
+                    <TextBlock Text="Idioma (Language Pack):" Foreground="#E3E3E3" Margin="0,65,0,0" FontWeight="SemiBold"/>
+                    <ComboBox x:Name="cmbLanguage" Margin="200,60,0,0" Height="28" Width="150" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#333333" Foreground="Black">
+                        <ComboBoxItem Content="es-ES (España)" IsSelected="True" />
+                        <ComboBoxItem Content="es-MX (México)" />
+                        <ComboBoxItem Content="en-US (Inglés)" />
+                    </ComboBox>
                 </Grid>
             </TabItem>
             
-            <TabItem Header="Consola">
+            <!-- Pestaña 3 -->
+            <TabItem Header="Módulos Avanzados">
+                <Grid Margin="15">
+                    <CheckBox x:Name="chkHyperV" Content="Habilitar subsistema Hyper-V (Virtualización)" Foreground="#E3E3E3" IsChecked="True" Margin="10,15,0,0" FontSize="14" />
+                    <CheckBox x:Name="chkVisualTweaks" Content="Inyectar Menú Contextual Moderno (Shift+F10)" Foreground="#E3E3E3" IsChecked="True" Margin="10,45,0,0" FontSize="14" />
+                    <CheckBox x:Name="chkBlockOneDrive" Content="Bloquear telemetría de OneDrive a nivel host" Foreground="#E3E3E3" IsChecked="True" Margin="10,75,0,0" FontSize="14" />
+                </Grid>
+            </TabItem>
+            
+            <!-- Pestaña 4 -->
+            <TabItem Header="Consola de Logs">
                 <Grid Margin="0">
-                    <TextBox x:Name="txtConsole" Background="#0C0C0C" Foreground="#CCCCCC" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True" BorderThickness="0" Padding="5" />
+                    <TextBox x:Name="txtConsole" Background="#121212" Foreground="#CCCCCC" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True" BorderThickness="0" Padding="8" />
                 </Grid>
             </TabItem>
         </TabControl>
         
-        <!-- Footer -->
-        <Border Background="#2D2D30" Height="50" VerticalAlignment="Bottom">
+        <!-- Footer / StatusBar -->
+        <Border Background="#2D2D2D" Height="50" VerticalAlignment="Bottom" BorderBrush="#1C1C1C" BorderThickness="0,1,0,0">
             <Grid>
-                <Button x:Name="btnExportPreset" Content="Exportar JSON" Margin="0,0,130,0" Height="30" Width="120" HorizontalAlignment="Right" Background="#3F3F46" Foreground="White" BorderThickness="0" />
-                <Button x:Name="btnBuild" Content="Compilar" Margin="0,0,20,0" Height="30" Width="100" HorizontalAlignment="Right" Background="#007ACC" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
+                <!-- StatusBar Info -->
+                <TextBlock x:Name="txtStatus" Text="Estado: Listo para compilar" Foreground="#A0A0A0" Margin="15,16,0,0" FontSize="13" HorizontalAlignment="Left" />
+                <ProgressBar x:Name="progBar" IsIndeterminate="True" Visibility="Hidden" HorizontalAlignment="Left" Height="10" Margin="200,20,0,0" Width="100" Foreground="#0078D4" Background="#333333" BorderThickness="0" />
+                
+                <!-- Buttons -->
+                <Button x:Name="btnExportPreset" Content="Solo JSON" Margin="0,0,230,0" Height="30" Width="100" HorizontalAlignment="Right" Background="#333333" Foreground="#E3E3E3" BorderThickness="1" BorderBrush="#454545" ToolTip="Exporta el archivo de configuración sin ejecutar el proceso" />
+                <Button x:Name="btnCancel" Content="Cancelar" Margin="0,0,120,0" Height="30" Width="100" HorizontalAlignment="Right" Background="#C50F1F" Foreground="White" BorderThickness="0" IsEnabled="False" />
+                <Button x:Name="btnBuild" Content="Compilar ISO" Margin="0,0,15,0" Height="30" Width="95" HorizontalAlignment="Right" Background="#0078D4" Foreground="White" BorderThickness="0" FontWeight="SemiBold" ToolTip="Inicia el motor de optimización" />
             </Grid>
         </Border>
     </Grid>
@@ -99,6 +130,12 @@ $btnBuild.Add_Click({
     # Generar JSON temporal
     $cmbProfile = $window.FindName('cmbProfile')
     $optProfile = [string]($cmbProfile.SelectedIndex + 1)
+    
+    $cmbComp = $window.FindName('cmbCompression')
+    $optComp = $cmbComp.Text
+    $cmbLang = $window.FindName('cmbLanguage')
+    $optLang = $cmbLang.Text.Split(' ')[0]
+    
     $chkHyperV = $window.FindName('chkHyperV')
     $chkVisualTweaks = $window.FindName('chkVisualTweaks')
     $chkBlockOneDrive = $window.FindName('chkBlockOneDrive')
@@ -108,7 +145,7 @@ $btnBuild.Add_Click({
         DriversPath         = 'Drivers'
         EnableHyperV        = [bool]$chkHyperV.IsChecked
         InjectWin11Script   = $false
-        Language            = 'es-ES'
+        Language            = $optLang
         Locale              = 'es-AR'
         Timezone            = 'Argentina Standard Time'
         KeyboardOverride    = 'es-419'
@@ -117,7 +154,7 @@ $btnBuild.Add_Click({
         OptimizationProfile = $optProfile
         BlockOneDrive       = [bool]$chkBlockOneDrive.IsChecked
         InjectVisualTweaks  = [bool]$chkVisualTweaks.IsChecked
-        WimCompression      = 'Max'
+        WimCompression      = $optComp
         Architecture        = 'amd64'
         ExportedAt          = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
     }
@@ -125,7 +162,6 @@ $btnBuild.Add_Click({
     $tempJsonPath = Join-Path $env:TEMP 'romanOS_BuildPreset.json'
     $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $tempJsonPath -Encoding UTF8 -Force
     
-    # Lanzar el Builder de forma oculta capturando salida
     $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-v2.ps1"
     $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$builderPath' -BuildPreset '$tempJsonPath' }`""
     
@@ -137,22 +173,30 @@ $btnBuild.Add_Click({
     $pinfo.RedirectStandardOutput = $true
     $pinfo.RedirectStandardError = $true
     
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $pinfo
-    $process.EnableRaisingEvents = $true
+    $script:workerProcess = New-Object System.Diagnostics.Process
+    $script:workerProcess.StartInfo = $pinfo
+    $script:workerProcess.EnableRaisingEvents = $true
     
-    # Cambiar a pestaña de consola
+    # Update UI to running state
     $tabControl = $window.FindName('tabControlMain')
-    $tabControl.SelectedIndex = 2
+    $tabControl.SelectedIndex = 3
     
     $txtConsole = $window.FindName('txtConsole')
     $txtConsole.Text = "Iniciando compilacion de romanOS...`r`n"
     
-    # Deshabilitar boton para prevenir multi-click
     $btnBuild.IsEnabled = $false
+    $btnCancel = $window.FindName('btnCancel')
+    $btnCancel.IsEnabled = $true
     
-    $msgData = @{ Window = $window; TextBox = $txtConsole }
-    $action = {
+    $txtStatus = $window.FindName('txtStatus')
+    $txtStatus.Text = "Estado: Ejecutando DISM y políticas..."
+    $txtStatus.Foreground = "#0078D4"
+    $progBar = $window.FindName('progBar')
+    $progBar.Visibility = "Visible"
+    
+    $msgData = @{ Window = $window; TextBox = $txtConsole; BtnBuild = $btnBuild; BtnCancel = $btnCancel; Status = $txtStatus; Prog = $progBar }
+    
+    $outputAction = {
         $line = $Event.SourceEventArgs.Data
         if ($line -ne $null) {
             $win = $Event.MessageData.Window
@@ -164,16 +208,51 @@ $btnBuild.Add_Click({
         }
     }
     
-    # Prevenir duplicacion de subscripciones
+    $exitAction = {
+        $win = $Event.MessageData.Window
+        $txt = $Event.MessageData.TextBox
+        $btnB = $Event.MessageData.BtnBuild
+        $btnC = $Event.MessageData.BtnCancel
+        $stat = $Event.MessageData.Status
+        $prog = $Event.MessageData.Prog
+        
+        $win.Dispatcher.Invoke([action]{
+            $txt.AppendText("`r`n[SISTEMA] Proceso finalizado.`r`n")
+            $txt.ScrollToEnd()
+            $btnB.IsEnabled = $true
+            $btnC.IsEnabled = $false
+            $stat.Text = "Estado: Tarea completada"
+            $stat.Foreground = "#A0A0A0"
+            $prog.Visibility = "Hidden"
+        })
+    }
+    
     Get-EventSubscriber -SourceIdentifier "StdOut_romanOS" -ErrorAction SilentlyContinue | Unregister-Event
     Get-EventSubscriber -SourceIdentifier "StdErr_romanOS" -ErrorAction SilentlyContinue | Unregister-Event
+    Get-EventSubscriber -SourceIdentifier "Exit_romanOS" -ErrorAction SilentlyContinue | Unregister-Event
     
-    Register-ObjectEvent -InputObject $process -EventName OutputDataReceived -SourceIdentifier "StdOut_romanOS" -MessageData $msgData -Action $action | Out-Null
-    Register-ObjectEvent -InputObject $process -EventName ErrorDataReceived -SourceIdentifier "StdErr_romanOS" -MessageData $msgData -Action $action | Out-Null
+    Register-ObjectEvent -InputObject $script:workerProcess -EventName OutputDataReceived -SourceIdentifier "StdOut_romanOS" -MessageData $msgData -Action $outputAction | Out-Null
+    Register-ObjectEvent -InputObject $script:workerProcess -EventName ErrorDataReceived -SourceIdentifier "StdErr_romanOS" -MessageData $msgData -Action $outputAction | Out-Null
+    Register-ObjectEvent -InputObject $script:workerProcess -EventName Exited -SourceIdentifier "Exit_romanOS" -MessageData $msgData -Action $exitAction | Out-Null
     
-    $process.Start() | Out-Null
-    $process.BeginOutputReadLine()
-    $process.BeginErrorReadLine()
+    $script:workerProcess.Start() | Out-Null
+    $script:workerProcess.BeginOutputReadLine()
+    $script:workerProcess.BeginErrorReadLine()
+})
+
+$btnCancel = $window.FindName('btnCancel')
+$btnCancel.Add_Click({
+    if ($null -ne $script:workerProcess -and -not $script:workerProcess.HasExited) {
+        $res = [System.Windows.MessageBox]::Show("¿Esta seguro que desea abortar la compilacion? DISM podria dejar la imagen temporal montada.", "Advertencia", [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Warning)
+        if ($res -eq 'Yes') {
+            try {
+                $script:workerProcess.Kill()
+                $window.FindName('txtConsole').AppendText("`r`n[!] PROCESO CANCELADO POR EL USUARIO.`r`n")
+            } catch {
+                $window.FindName('txtConsole').AppendText("`r`n[!] No se pudo cancelar el proceso.`r`n")
+            }
+        }
+    }
 })
 
 $btnBrowseISO = $window.FindName('btnBrowseISO')
@@ -194,6 +273,12 @@ $btnExportPreset.Add_Click({
         $sourceIso = $window.FindName('txtSourceISO').Text
         $cmbProfile = $window.FindName('cmbProfile')
         $optProfile = [string]($cmbProfile.SelectedIndex + 1)
+        
+        $cmbComp = $window.FindName('cmbCompression')
+        $optComp = $cmbComp.Text
+        $cmbLang = $window.FindName('cmbLanguage')
+        $optLang = $cmbLang.Text.Split(' ')[0]
+        
         $chkHyperV = $window.FindName('chkHyperV')
         $chkVisualTweaks = $window.FindName('chkVisualTweaks')
         $chkBlockOneDrive = $window.FindName('chkBlockOneDrive')
@@ -203,7 +288,7 @@ $btnExportPreset.Add_Click({
             DriversPath         = 'Drivers'
             EnableHyperV        = [bool]$chkHyperV.IsChecked
             InjectWin11Script   = $false
-            Language            = 'es-ES'
+            Language            = $optLang
             Locale              = 'es-AR'
             Timezone            = 'Argentina Standard Time'
             KeyboardOverride    = 'es-419'
@@ -212,7 +297,7 @@ $btnExportPreset.Add_Click({
             OptimizationProfile = $optProfile
             BlockOneDrive       = [bool]$chkBlockOneDrive.IsChecked
             InjectVisualTweaks  = [bool]$chkVisualTweaks.IsChecked
-            WimCompression      = 'Max'
+            WimCompression      = $optComp
             Architecture        = 'amd64'
             ExportedAt          = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
         }
