@@ -206,7 +206,7 @@ $btnBuild.Add_Click({
     Write-StudioLog "Archivo JSON temporal inyectado en: $tempJsonPath"
     
     $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-v2.ps1"
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$builderPath' -BuildPreset '$tempJsonPath' }`""
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$builderPath' -BuildPreset '$tempJsonPath' *>&1 }`""
     Write-StudioLog "Preparando proceso de compilacion en segundo plano (Oculto)."
     
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
