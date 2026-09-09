@@ -1894,6 +1894,10 @@ function Invoke-FallbackSelectionMenu {
         [int]$DefaultIndex = 0
     )
 
+    if ($script:Headless) {
+        return $DefaultIndex
+    }
+
     if ($Options.Count -eq 0) {
         return -1
     }
@@ -1946,6 +1950,10 @@ function Invoke-SelectionMenu {
         [string[]]$Descriptions,
         [int]$DefaultIndex = 0
     )
+
+    if ($script:Headless) {
+        return $DefaultIndex
+    }
 
     if ($Options.Count -eq 0) {
         return -1
@@ -6987,8 +6995,8 @@ if ($wimFile) {
                 if ($finalImageInstallIndex -and (-not $SkipAutoUnattend) -and $autounattendPath -and (Test-Path $autounattendPath)) {
                     $enableZT = $false
 
-                    if ($PSBoundParameters.ContainsKey('ZeroTouch')) {
-                        $enableZT = $ZeroTouch.IsPresent
+                    if ($script:ResolvedParameters.ContainsKey('ZeroTouch')) {
+                        $enableZT = $script:ResolvedParameters['ZeroTouch']
                         Write-Host "    Modo Zero-Touch definido por parámetro: $(if ($enableZT) { 'Sí' } else { 'No' })" -ForegroundColor DarkGray
                     } else {
                         Write-Host ""
