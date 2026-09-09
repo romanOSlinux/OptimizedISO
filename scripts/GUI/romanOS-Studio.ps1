@@ -356,7 +356,12 @@ $btnBuild.Add_Click({
     Write-StudioLog "Archivo JSON temporal inyectado en: $tempJsonPath"
     
     $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-GUI-Engine.ps1"
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$builderPath`" -PresetFile `"$tempJsonPath`""
+    # CRITICO: usar -Command con *>&1 para que Write-Host (Stream 6) llegue al stdout redirigido.
+    # Con -File, Write-Host va al InformationStream y BeginOutputReadLine() nunca lo captura.
+    $escapedBuilder = $builderPath -replace "'", "''"
+    $escapedJson    = $tempJsonPath -replace "'", "''"
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedBuilder' -PresetFile '$escapedJson' *>&1 }`""
+
 
     Write-StudioLog "Preparando proceso de compilacion en segundo plano (Oculto)."
     
