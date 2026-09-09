@@ -5393,7 +5393,8 @@ if ($wimFile) {
             foreach ($bIdx in $bootIndices) {
                 Write-Host "    Inyectando drivers en boot.wim Índice $bIdx..." -ForegroundColor Gray
                 try {
-                    $mountedBoot = Invoke-SafeWimMount -ImagePath $bootWimCandidate -Index $bIdx -MountDir $bootMountDir -ScratchDirectory $ScratchDir
+                    Mount-WindowsImage -ImagePath $bootWimCandidate -Index $bIdx -Path $bootMountDir -ScratchDirectory $ScratchDir -ErrorAction Stop
+                    $mountedBoot = $true
                     if ($mountedBoot) {
                         $dismBootLog = Join-Path $ScratchDir "dism_boot_drv_idx${bIdx}.log"
                         $dismBootRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
@@ -5413,11 +5414,11 @@ if ($wimFile) {
                                             -Status "WARN" -Details "DISM devolvió exit code $($dismBootRes.ExitCode)"
                         }
 
-                        Invoke-SafeWimDismount -MountDir $bootMountDir -Action Save -ScratchDirectory $ScratchDir | Out-Null
+                        Dismount-WindowsImage -Path $bootMountDir -Save -ScratchDirectory $ScratchDir | Out-Null
                     }
                 } catch {
                     Write-Warn "Error inyectando en boot.wim Índice $($bIdx): $($_.Exception.Message)"
-                    Invoke-SafeWimDismount -MountDir $bootMountDir -Action Discard -ScratchDirectory $ScratchDir | Out-Null
+                    Dismount-WindowsImage -Path $bootMountDir -Discard -ScratchDirectory $ScratchDir | Out-Null
                 }
             }
 
@@ -5810,7 +5811,7 @@ if ($wimFile) {
                                     $driversInjected = @(Get-WindowsDriver -Path $WimMountDir -ErrorAction SilentlyContinue)
                                     $unsignedDrivers  = @($driversInjected | Where-Object { -not $_.Signed })
                                     Add-AuditRecord -Resource "Drivers INF offline" -Target "WIM Idx $wimIndex" `
-                                                    -Status (if ($unsignedDrivers.Count -gt 0) { "WARN" } else { "OK" }) `
+                                                    -Status $(if ($unsignedDrivers.Count -gt 0) { "WARN" } else { "OK" }) `
                                                     -Details "$($driversInjected.Count) driver(s) | $($unsignedDrivers.Count) sin firma WHQL (riesgo BSOD 0xc0000428)"
                                 } else {
                                     Write-Warn "DISM Add-Driver devolvió exit code: $($dismDrv.ExitCode). Revise $dismDriverLog."
