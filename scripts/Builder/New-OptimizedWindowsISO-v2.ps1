@@ -261,7 +261,10 @@ param(
     [switch]$EnableHyperV,
 
     [Parameter()]
-    [switch]$DisableDefenderExclusion
+    [switch]$DisableDefenderExclusion,
+
+    [Parameter()]
+    [switch]$Headless
 )
 
 #------------------------------------------------------------------------------
@@ -303,10 +306,16 @@ foreach ($p in $uiEnginePaths) {
     }
 }
 
+# Iniciar diccionario unificado de resolucion
+$script:ResolvedParameters = [Hashtable]::new()
+foreach ($k in $PSBoundParameters.Keys) {
+    $script:ResolvedParameters[$k] = $PSBoundParameters[$k]
+}
+
 # Cargar Preset JSON si se especifico
 if ($PresetFile) {
     if (Test-Path $PresetFile) {
-        Import-BuildPreset -PresetPath $PresetFile -ScriptBoundParameters $PSBoundParameters
+        Import-BuildPreset -PresetPath $PresetFile -ScriptBoundParameters $script:ResolvedParameters
     } else {
         Write-Warn "Archivo Preset '$PresetFile' no encontrado."
     }
@@ -1463,7 +1472,7 @@ function Import-BuildPreset {
         [string]$PresetPath,
 
         [Parameter(Mandatory = $false)]
-        [hashtable]$ScriptBoundParameters = @{}
+        [System.Collections.IDictionary]$ScriptBoundParameters = @{}
     )
 
     if (-not (Test-Path $PresetPath -ErrorAction SilentlyContinue)) {
@@ -1502,6 +1511,7 @@ function Import-BuildPreset {
             $val = $preset.$key
             if ($null -ne $val) {
                 Set-Variable -Name $scriptVar -Value $val -Scope Script -ErrorAction SilentlyContinue
+                $ScriptBoundParameters[$key] = $val
             }
         }
 
@@ -2625,8 +2635,13 @@ function Invoke-WizardConfig {
     Write-Host "  ╚$border╝" -ForegroundColor DarkCyan
     Write-Host ""
 
-    Write-Host "  ¿Continuar con esta configuración? [S/N]: " -ForegroundColor Yellow -NoNewline
-    $confirm = Read-Host
+    if ($script:Headless) {
+        Write-Host "  ¿Continuar con esta configuración? [S/N]: S (Auto-confirmado por Headless)" -ForegroundColor Yellow
+        $confirm = 'S'
+    } else {
+        Write-Host "  ¿Continuar con esta configuración? [S/N]: " -ForegroundColor Yellow -NoNewline
+        $confirm = Read-Host
+    }
 
     if ($confirm -notmatch '^[Ss]$') {
         Write-Host "`n  Operación cancelada por el usuario." -ForegroundColor Red
@@ -3791,11 +3806,11 @@ Write-Host "  ISO origen seleccionada: $SourceISO" -ForegroundColor Green
 
 # Wizard regional / usuario / contraseña / tweaks visuales.
 # Solo se mostrará si faltan parámetros clave.
-Invoke-WizardConfig -ScriptBoundParameters $PSBoundParameters
+Invoke-WizardConfig -ScriptBoundParameters $script:ResolvedParameters
 
 # Perfil de optimización y bloqueo de OneDrive.
 # Si se pasaron por parámetro, se respetan; si no, se preguntan.
-Invoke-DeploymentChoices -ScriptBoundParameters $PSBoundParameters -SkipAutoUnattend:$SkipAutoUnattend
+Invoke-DeploymentChoices -ScriptBoundParameters $script:ResolvedParameters -SkipAutoUnattend:$SkipAutoUnattend
 
 # Guardar configuracion en Preset JSON si se solicito
 if ($SavePreset) {
