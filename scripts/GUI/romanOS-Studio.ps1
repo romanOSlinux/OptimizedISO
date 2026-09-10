@@ -192,6 +192,19 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                 <Grid Margin="0">
                     <TextBox x:Name="txtConsole" Background="#121212" Foreground="#CCCCCC" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True" BorderThickness="0" Padding="8" />
                 </Grid>
+            <!-- Pestaña 5 -->
+            <TabItem Header="Herramientas del Host">
+                <Grid Margin="15">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="Despliegue Rápido (Hyper-V)" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,10,0,5" />
+                        <TextBlock Text="Levanta una máquina virtual Gen2 con la ISO seleccionada para probar el sistema sin instalarlo en hardware real." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
+                        <Button x:Name="btnTestVM" Content="Levantar Máquina Virtual de Prueba" Height="32" Width="280" HorizontalAlignment="Left" Background="#0078D4" Foreground="White" BorderThickness="0" Style="{StaticResource RoundedButton}" Margin="0,0,0,25" />
+
+                        <TextBlock Text="Higiene y Mantenimiento" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,10,0,5" />
+                        <TextBlock Text="Limpia carpetas temporales y desmonta imágenes WIM huérfanas que hayan quedado tras compilaciones abortadas." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
+                        <Button x:Name="btnCleanHost" Content="Limpiar Residuos (Carpetas, Montajes)" Height="32" Width="280" HorizontalAlignment="Left" Background="#D13438" Foreground="White" BorderThickness="0" Style="{StaticResource RoundedButton}" />
+                    </StackPanel>
+                </Grid>
             </TabItem>
         </TabControl>
         
@@ -553,7 +566,105 @@ $btnExportPreset.Add_Click({
     }
 })
 
+$btnTestVM = $window.FindName('btnTestVM')
+$btnTestVM.Add_Click({
+    $isoPath = $window.FindName('txtSourceISO').Text
+    if (-not (Test-Path $isoPath)) {
+        Write-StudioLog "ERROR: Seleccione una ISO válida para probar en Hyper-V."
+        [System.Windows.MessageBox]::Show("Seleccione una ISO válida primero.", "romanOS Studio", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+        return
+    }
+    
+    Write-StudioLog "Iniciando Máquina Virtual de Prueba con Hyper-V..."
+    Set-UIState -IsRunning $true
+    
+    $scriptEngine = Join-Path $PSScriptRoot "..\Testing\New-TestVM-HyperV.ps1"
+    
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = "powershell.exe"
+    $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& '$scriptEngine' -ISOPath '$isoPath'`""
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.CreateNoWindow = $true
+
+    $script:workerProcess = New-Object System.Diagnostics.Process
+    $script:workerProcess.StartInfo = $psi
+    $script:workerProcess.EnableRaisingEvents = $true
+
+    $script:workerProcess.add_OutputDataReceived({
+        param($sender, $e)
+        if (![string]::IsNullOrEmpty($e.Data)) {
+            $window.Dispatcher.Invoke({ Write-StudioLog $e.Data })
+        }
+    })
+
+    $script:workerProcess.add_ErrorDataReceived({
+        param($sender, $e)
+        if (![string]::IsNullOrEmpty($e.Data)) {
+            $window.Dispatcher.Invoke({ Write-StudioLog "[ERROR] $($e.Data)" })
+        }
+    })
+
+    $script:workerProcess.add_Exited({
+        $window.Dispatcher.Invoke({
+            Write-StudioLog "Máquina virtual creada y lanzada correctamente."
+            Set-UIState -IsRunning $false
+        })
+    })
+
+    $script:workerProcess.Start() | Out-Null
+    $script:workerProcess.BeginOutputReadLine()
+    $script:workerProcess.BeginErrorReadLine()
+})
+
+$btnCleanHost = $window.FindName('btnCleanHost')
+$btnCleanHost.Add_Click({
+    Write-StudioLog "Iniciando motor de limpieza de residuos..."
+    Set-UIState -IsRunning $true
+    
+    $scriptEngine = Join-Path $PSScriptRoot "..\Host-Tools\Limpiar-ResiduosWinISO-GUI-Engine.ps1"
+    
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = "powershell.exe"
+    $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptEngine`""
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.CreateNoWindow = $true
+
+    $script:workerProcess = New-Object System.Diagnostics.Process
+    $script:workerProcess.StartInfo = $psi
+    $script:workerProcess.EnableRaisingEvents = $true
+
+    $script:workerProcess.add_OutputDataReceived({
+        param($sender, $e)
+        if (![string]::IsNullOrEmpty($e.Data)) {
+            $window.Dispatcher.Invoke({ Write-StudioLog $e.Data })
+        }
+    })
+
+    $script:workerProcess.add_ErrorDataReceived({
+        param($sender, $e)
+        if (![string]::IsNullOrEmpty($e.Data)) {
+            $window.Dispatcher.Invoke({ Write-StudioLog "[ERROR] $($e.Data)" })
+        }
+    })
+
+    $script:workerProcess.add_Exited({
+        $window.Dispatcher.Invoke({
+            Write-StudioLog "Limpieza de residuos completada."
+            Set-UIState -IsRunning $false
+        })
+    })
+
+    $script:workerProcess.Start() | Out-Null
+    $script:workerProcess.BeginOutputReadLine()
+    $script:workerProcess.BeginErrorReadLine()
+})
+
 $window.ShowDialog() | Out-Null
+
 
 
 

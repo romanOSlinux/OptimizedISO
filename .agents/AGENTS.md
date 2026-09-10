@@ -1,4 +1,4 @@
-﻿# Reglas Estrictas del Agente (.agents/AGENTS.md)
+# Reglas Estrictas del Agente (.agents/AGENTS.md)
 
 Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualquier agente que trabaje en este proyecto.
 
@@ -75,3 +75,9 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **Prohibido Delegar Responsabilidad Técnica:** El agente tiene estrictamente prohibido devolver la pregunta al usuario (ej. *"¿Qué prefieres hacer?"*) frente a decisiones técnicas estructurales (como asignación de memoria, offsets, HAGS vs UMA, interrupciones MSI, etc.).
 - **Datos Empíricos y Resolución:** El agente debe investigar en documentación oficial (Microsoft, AMD, Intel, WDDM), presentar al usuario los datos objetivos (Pros, Contras, Fundamento Técnico) y **tomar o proponer la decisión técnica base fundamentada**.
 - **Excepciones Estéticas:** La delegación de decisiones e interacción con el usuario queda reservada única y exclusivamente para preferencias estéticas, diseño (colores, formas), experiencia de usuario (UI/UX) o selección de paquetes de software opcionales.
+
+## 12. Protocolo Anti-Sesgo y Análisis Forense de Logs
+- **Prohibición de Sesgo de Confirmación:** Al analizar logs para diagnosticar regresiones, cambios de tamaño o errores, está ESTRICTAMENTE PROHIBIDO saltar a la primera conclusión plausible basada en las líneas más llamativas (ej. copias de archivos o inyecciones).
+- **Lectura Estructural y Comparativa:** El agente DEBE buscar deliberadamente variables de entorno, banderas de compilación, parámetros de configuración (ej. Compress:fast, TargetVersion) y comparar mentalmente la métrica actual contra los logs históricos.
+- **Cerrojo Anti-Truncamiento (Grep Físico Obligatorio):** Está estrictamente prohibido auditar resultados de comandos largos (como `Invoke-TestSuite.ps1`) leyendo la salida de consola, ya que el sistema trunca la salida ocultando errores previos. El agente está OBLIGADO a usar la herramienta `grep_search` apuntando al archivo físico `.log` buscando las palabras `FAIL`, `ERROR` o `Exception`. Emitir un veredicto de éxito sin ejecutar `grep_search` en el log físico constituye una violación directa de las reglas.
+- **Activación de Skill:** Para cualquier tarea que implique leer logs extensos, el agente DEBE activar y adherirse a la skill `log-forensics` antes de emitir un diagnóstico al usuario.
