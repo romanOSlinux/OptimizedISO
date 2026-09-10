@@ -192,17 +192,19 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                 <Grid Margin="0">
                     <TextBox x:Name="txtConsole" Background="#121212" Foreground="#CCCCCC" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True" BorderThickness="0" Padding="8" />
                 </Grid>
+            </TabItem>
+            
             <!-- Pestaña 5 -->
             <TabItem Header="Herramientas del Host">
                 <Grid Margin="15">
                     <StackPanel Orientation="Vertical">
                         <TextBlock Text="Despliegue Rápido (Hyper-V)" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,10,0,5" />
                         <TextBlock Text="Levanta una máquina virtual Gen2 con la ISO seleccionada para probar el sistema sin instalarlo en hardware real." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
-                        <Button x:Name="btnTestVM" Content="Levantar Máquina Virtual de Prueba" Height="32" Width="280" HorizontalAlignment="Left" Background="#0078D4" Foreground="White" BorderThickness="0" Style="{StaticResource RoundedButton}" Margin="0,0,0,25" />
+                        <Button x:Name="btnTestVM" Content="Levantar Máquina Virtual de Prueba" Height="32" Width="280" HorizontalAlignment="Left" Background="#0078D4" Foreground="White" BorderThickness="0" Margin="0,0,0,25" />
 
                         <TextBlock Text="Higiene y Mantenimiento" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,10,0,5" />
                         <TextBlock Text="Limpia carpetas temporales y desmonta imágenes WIM huérfanas que hayan quedado tras compilaciones abortadas." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
-                        <Button x:Name="btnCleanHost" Content="Limpiar Residuos (Carpetas, Montajes)" Height="32" Width="280" HorizontalAlignment="Left" Background="#D13438" Foreground="White" BorderThickness="0" Style="{StaticResource RoundedButton}" />
+                        <Button x:Name="btnCleanHost" Content="Limpiar Residuos (Carpetas, Montajes)" Height="32" Width="280" HorizontalAlignment="Left" Background="#D13438" Foreground="White" BorderThickness="0" />
                     </StackPanel>
                 </Grid>
             </TabItem>
@@ -324,6 +326,127 @@ function Invoke-WimDiscoveryAsync {
     $timer.Start()
 }
 
+function Set-StudioUIState {
+    param(
+        [bool]$IsRunning,
+        [string]$TaskName = "Listo para compilar"
+    )
+    $window.Dispatcher.Invoke([action]{
+        $btnBuild            = $window.FindName('btnBuild')
+        $btnCancel           = $window.FindName('btnCancel')
+        $progBar             = $window.FindName('progBar')
+        $txtStatus           = $window.FindName('txtStatus')
+        $btnTestVM           = $window.FindName('btnTestVM')
+        $btnCleanHost        = $window.FindName('btnCleanHost')
+        $btnDownloadUpdates  = $window.FindName('btnDownloadUpdates')
+        $btnBackupDrivers    = $window.FindName('btnBackupDrivers')
+        $btnDownloadCritical = $window.FindName('btnDownloadCritical')
+        $btnDownloadRuntimes = $window.FindName('btnDownloadRuntimes')
+
+        if ($btnBuild)            { $btnBuild.IsEnabled = -not $IsRunning }
+        if ($btnCancel)           { $btnCancel.IsEnabled = $IsRunning }
+        if ($btnTestVM)           { $btnTestVM.IsEnabled = -not $IsRunning }
+        if ($btnCleanHost)        { $btnCleanHost.IsEnabled = -not $IsRunning }
+        if ($btnDownloadUpdates)  { $btnDownloadUpdates.IsEnabled = -not $IsRunning }
+        if ($btnBackupDrivers)    { $btnBackupDrivers.IsEnabled = -not $IsRunning }
+        if ($btnDownloadCritical) { $btnDownloadCritical.IsEnabled = -not $IsRunning }
+        if ($btnDownloadRuntimes) { $btnDownloadRuntimes.IsEnabled = -not $IsRunning }
+
+        if ($IsRunning) {
+            if ($progBar) { $progBar.Visibility = "Visible" }
+            if ($txtStatus) {
+                $txtStatus.Text = "Estado: $TaskName..."
+                $txtStatus.Foreground = "#0078D4"
+            }
+        } else {
+            if ($progBar) { $progBar.Visibility = "Hidden" }
+            if ($txtStatus) {
+                $txtStatus.Text = "Estado: $TaskName"
+                $txtStatus.Foreground = "#A0A0A0"
+            }
+        }
+    })
+}
+
+function Start-StudioSubProcess {
+    param(
+        [string]$CommandLine,
+        [string]$TaskTitle
+    )
+    Write-StudioLog "Iniciando tarea: $TaskTitle"
+    Set-StudioUIState -IsRunning $true -TaskName $TaskTitle
+
+    $tabControl = $window.FindName('tabControlMain')
+    $tabControl.SelectedIndex = 3
+
+    $txtConsole = $window.FindName('txtConsole')
+    $txtConsole.AppendText("`r`n════════════════════════════════════════════════════════════════`r`n")
+    $txtConsole.AppendText("[INICIO] $TaskTitle`r`n")
+    $txtConsole.AppendText("════════════════════════════════════════════════════════════════`r`n")
+    $txtConsole.ScrollToEnd()
+
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    $pinfo.FileName = "powershell.exe"
+    $pinfo.Arguments = $CommandLine
+    $pinfo.UseShellExecute = $false
+    $pinfo.CreateNoWindow = $true
+    $pinfo.RedirectStandardInput = $true
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.RedirectStandardError = $true
+
+    $script:workerProcess = New-Object System.Diagnostics.Process
+    $script:workerProcess.StartInfo = $pinfo
+    $script:workerProcess.EnableRaisingEvents = $true
+
+    $script:workerProcess.add_OutputDataReceived({
+        param($sender, $e)
+        if ($e.Data) {
+            $window.Dispatcher.Invoke([action]{
+                $txtConsole.AppendText("$($e.Data)`r`n")
+                $txtConsole.ScrollToEnd()
+            })
+            Write-StudioLog $e.Data
+        }
+    })
+
+    $script:workerProcess.add_ErrorDataReceived({
+        param($sender, $e)
+        if ($e.Data) {
+            $window.Dispatcher.Invoke([action]{
+                $txtConsole.AppendText("[ERROR] $($e.Data)`r`n")
+                $txtConsole.ScrollToEnd()
+            })
+            Write-StudioLog $e.Data -Level "ERROR"
+        }
+    })
+
+    $script:workerProcess.add_Exited({
+        param($sender, $e)
+        Write-StudioLog "Tarea finalizada: $TaskTitle (PID: $($script:workerProcess.Id))"
+        $window.Dispatcher.Invoke([action]{
+            $exitCode = $script:workerProcess.ExitCode
+            if ($exitCode -eq 0) {
+                $txtConsole.AppendText("`r`n[EXITO] $TaskTitle finalizado satisfactoriamente.`r`n")
+                Set-StudioUIState -IsRunning $false -TaskName "$TaskTitle completado con éxito"
+            } else {
+                $txtConsole.AppendText("`r`n[FALLO] $TaskTitle finalizo con codigo de error $exitCode.`r`n")
+                Set-StudioUIState -IsRunning $false -TaskName "Error en $TaskTitle (Codigo $exitCode)"
+            }
+            $txtConsole.ScrollToEnd()
+        })
+    })
+
+    try {
+        $script:workerProcess.Start() | Out-Null
+        $script:workerProcess.BeginOutputReadLine()
+        $script:workerProcess.BeginErrorReadLine()
+        Write-StudioLog "Proceso iniciado exitosamente con PID: $($script:workerProcess.Id)"
+    } catch {
+        Write-StudioLog "Error critico al iniciar proceso: $($_.Exception.Message)" -Level "FATAL"
+        Set-StudioUIState -IsRunning $false -TaskName "Fallo al iniciar proceso"
+    }
+}
+
 $btnBuild = $window.FindName('btnBuild')
 $btnBuild.Add_Click({
 
@@ -398,87 +521,11 @@ $btnBuild.Add_Click({
     Write-StudioLog "Archivo JSON temporal inyectado en: $tempJsonPath"
     
     $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-GUI-Engine.ps1"
-    # CRITICO: usar -Command con *>&1 para que Write-Host (Stream 6) llegue al stdout redirigido.
-    # Con -File, Write-Host va al InformationStream y BeginOutputReadLine() nunca lo captura.
     $escapedBuilder = $builderPath -replace "'", "''"
     $escapedJson    = $tempJsonPath -replace "'", "''"
     $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedBuilder' -PresetFile '$escapedJson' *>&1 }`""
 
-
-    Write-StudioLog "Preparando proceso de compilacion en segundo plano (Oculto)."
-    
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = "powershell.exe"
-    $pinfo.Arguments = $arguments
-    $pinfo.UseShellExecute = $false
-    $pinfo.CreateNoWindow = $true
-    $pinfo.RedirectStandardInput = $true
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.RedirectStandardError = $true
-    
-    $script:workerProcess = New-Object System.Diagnostics.Process
-    $script:workerProcess.StartInfo = $pinfo
-    $script:workerProcess.EnableRaisingEvents = $true
-    
-    # Update UI to running state
-    $tabControl = $window.FindName('tabControlMain')
-    $tabControl.SelectedIndex = 3
-    
-    $txtConsole = $window.FindName('txtConsole')
-    $txtConsole.Text = "Iniciando compilacion de romanOS...`r`n"
-    
-    $btnBuild.IsEnabled = $false
-    $btnCancel = $window.FindName('btnCancel')
-    $btnCancel.IsEnabled = $true
-    
-    $txtStatus = $window.FindName('txtStatus')
-    $txtStatus.Text = "Estado: Ejecutando DISM y políticas..."
-    $txtStatus.Foreground = "#0078D4"
-    $progBar = $window.FindName('progBar')
-    $progBar.Visibility = "Visible"
-    
-    $script:workerProcess.add_OutputDataReceived({
-        param($sender, $e)
-        if ($e.Data) {
-            $window.Dispatcher.Invoke([action]{
-                $txtConsole.AppendText("$($e.Data)`r`n")
-                $txtConsole.ScrollToEnd()
-            })
-        }
-    })
-    
-    $script:workerProcess.add_ErrorDataReceived({
-        param($sender, $e)
-        if ($e.Data) {
-            $window.Dispatcher.Invoke([action]{
-                $txtConsole.AppendText("$($e.Data)`r`n")
-                $txtConsole.ScrollToEnd()
-            })
-        }
-    })
-    
-    $script:workerProcess.add_Exited({
-        param($sender, $e)
-        Write-StudioLog "El proceso de compilacion en segundo plano (PID: $($script:workerProcess.Id)) ha finalizado."
-        $window.Dispatcher.Invoke([action]{
-            $txtConsole.AppendText("`r`n[SISTEMA] Proceso finalizado.`r`n")
-            $txtConsole.ScrollToEnd()
-            $btnBuild.IsEnabled = $true
-            $btnCancel.IsEnabled = $false
-            $txtStatus.Text = "Estado: Tarea completada"
-            $txtStatus.Foreground = "#A0A0A0"
-            $progBar.Visibility = "Hidden"
-        })
-    })
-    
-    try {
-        $script:workerProcess.Start() | Out-Null
-        $script:workerProcess.BeginOutputReadLine()
-        $script:workerProcess.BeginErrorReadLine()
-        Write-StudioLog "Proceso iniciado exitosamente con PID: $($script:workerProcess.Id)"
-    } catch {
-        Write-StudioLog "Error critico al iniciar el proceso: $($_.Exception.Message)" -Level "FATAL"
-    }
+    Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Compilación de romanOS ISO"
 })
 
 $btnCancel = $window.FindName('btnCancel')
@@ -571,96 +618,65 @@ $btnTestVM.Add_Click({
     $isoPath = $window.FindName('txtSourceISO').Text
     if (-not (Test-Path $isoPath)) {
         Write-StudioLog "ERROR: Seleccione una ISO válida para probar en Hyper-V."
-        [System.Windows.MessageBox]::Show("Seleccione una ISO válida primero.", "romanOS Studio", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+        [System.Windows.MessageBox]::Show("Seleccione una ISO válida primero en la pestaña 'Construcción Base'.", "romanOS Studio", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
         return
     }
     
-    Write-StudioLog "Iniciando Máquina Virtual de Prueba con Hyper-V..."
-    Set-UIState -IsRunning $true
-    
     $scriptEngine = Join-Path $PSScriptRoot "..\Testing\New-TestVM-HyperV.ps1"
-    
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = "powershell.exe"
-    $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& '$scriptEngine' -ISOPath '$isoPath'`""
-    $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-    $psi.CreateNoWindow = $true
-
-    $script:workerProcess = New-Object System.Diagnostics.Process
-    $script:workerProcess.StartInfo = $psi
-    $script:workerProcess.EnableRaisingEvents = $true
-
-    $script:workerProcess.add_OutputDataReceived({
-        param($sender, $e)
-        if (![string]::IsNullOrEmpty($e.Data)) {
-            $window.Dispatcher.Invoke({ Write-StudioLog $e.Data })
-        }
-    })
-
-    $script:workerProcess.add_ErrorDataReceived({
-        param($sender, $e)
-        if (![string]::IsNullOrEmpty($e.Data)) {
-            $window.Dispatcher.Invoke({ Write-StudioLog "[ERROR] $($e.Data)" })
-        }
-    })
-
-    $script:workerProcess.add_Exited({
-        $window.Dispatcher.Invoke({
-            Write-StudioLog "Máquina virtual creada y lanzada correctamente."
-            Set-UIState -IsRunning $false
-        })
-    })
-
-    $script:workerProcess.Start() | Out-Null
-    $script:workerProcess.BeginOutputReadLine()
-    $script:workerProcess.BeginErrorReadLine()
+    $escapedEngine = $scriptEngine -replace "'", "''"
+    $escapedIso    = $isoPath -replace "'", "''"
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -ISOPath '$escapedIso' *>&1 }`""
+    Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Despliegue VM Hyper-V"
 })
 
 $btnCleanHost = $window.FindName('btnCleanHost')
 $btnCleanHost.Add_Click({
-    Write-StudioLog "Iniciando motor de limpieza de residuos..."
-    Set-UIState -IsRunning $true
-    
     $scriptEngine = Join-Path $PSScriptRoot "..\Host-Tools\Limpiar-ResiduosWinISO-GUI-Engine.ps1"
-    
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = "powershell.exe"
-    $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptEngine`""
-    $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-    $psi.CreateNoWindow = $true
+    $escapedEngine = $scriptEngine -replace "'", "''"
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' *>&1 }`""
+    Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Limpieza de Residuos del Host"
+})
 
-    $script:workerProcess = New-Object System.Diagnostics.Process
-    $script:workerProcess.StartInfo = $psi
-    $script:workerProcess.EnableRaisingEvents = $true
+$btnDownloadUpdates = $window.FindName('btnDownloadUpdates')
+$btnDownloadUpdates.Add_Click({
+    $cmbVer = $window.FindName('cmbUpdateVersion')
+    $ver = if ($cmbVer -and $cmbVer.Text) { $cmbVer.Text } else { "11_24H2" }
+    $updatesDir = Join-Path $PSScriptRoot "..\..\Updates"
+    $scriptEngine = Join-Path $PSScriptRoot "..\Builder\Get-WindowsUpdates-GUI-Engine.ps1"
+    $escapedEngine  = $scriptEngine -replace "'", "''"
+    $escapedUpdates = $updatesDir -replace "'", "''"
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -Version '$ver' -OutputDir '$escapedUpdates' -Unattended *>&1 }`""
+    Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Descarga de Windows Updates ($ver)"
+})
 
-    $script:workerProcess.add_OutputDataReceived({
-        param($sender, $e)
-        if (![string]::IsNullOrEmpty($e.Data)) {
-            $window.Dispatcher.Invoke({ Write-StudioLog $e.Data })
-        }
-    })
+$btnBackupDrivers = $window.FindName('btnBackupDrivers')
+$btnBackupDrivers.Add_Click({
+    $driversDir = Join-Path $PSScriptRoot "..\..\Drivers"
+    $scriptEngine = Join-Path $PSScriptRoot "..\Drivers\Backup-HardwareDrivers-GUI-Engine.ps1"
+    $escapedEngine  = $scriptEngine -replace "'", "''"
+    $escapedDrivers = $driversDir -replace "'", "''"
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -DestinationPath '$escapedDrivers' *>&1 }`""
+    Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Respaldo de Controladores del Host"
+})
 
-    $script:workerProcess.add_ErrorDataReceived({
-        param($sender, $e)
-        if (![string]::IsNullOrEmpty($e.Data)) {
-            $window.Dispatcher.Invoke({ Write-StudioLog "[ERROR] $($e.Data)" })
-        }
-    })
+$btnDownloadCritical = $window.FindName('btnDownloadCritical')
+$btnDownloadCritical.Add_Click({
+    $driversDir = Join-Path $PSScriptRoot "..\..\Drivers"
+    $scriptEngine = Join-Path $PSScriptRoot "..\Drivers\Get-CriticalDrivers-GUI-Engine.ps1"
+    $escapedEngine  = $scriptEngine -replace "'", "''"
+    $escapedDrivers = $driversDir -replace "'", "''"
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -Package All -DestinationPath '$escapedDrivers' *>&1 }`""
+    Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Descarga de Controladores Críticos (VMD/VirtIO)"
+})
 
-    $script:workerProcess.add_Exited({
-        $window.Dispatcher.Invoke({
-            Write-StudioLog "Limpieza de residuos completada."
-            Set-UIState -IsRunning $false
-        })
-    })
-
-    $script:workerProcess.Start() | Out-Null
-    $script:workerProcess.BeginOutputReadLine()
-    $script:workerProcess.BeginErrorReadLine()
+$btnDownloadRuntimes = $window.FindName('btnDownloadRuntimes')
+$btnDownloadRuntimes.Add_Click({
+    $runtimesDir = Join-Path $PSScriptRoot "..\..\Runtimes"
+    $scriptEngine = Join-Path $PSScriptRoot "..\Builder\Get-EssentialRuntimes-GUI-Engine.ps1"
+    $escapedEngine   = $scriptEngine -replace "'", "''"
+    $escapedRuntimes = $runtimesDir -replace "'", "''"
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -DestinationPath '$escapedRuntimes' *>&1 }`""
+    Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Descarga de Runtimes C++/DirectX"
 })
 
 $window.ShowDialog() | Out-Null

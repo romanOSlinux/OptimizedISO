@@ -150,21 +150,9 @@ if (-not (Test-Path (Split-Path $PSScriptRoot -Parent))) {
 }
 
 if ([string]::IsNullOrWhiteSpace($OutputDir)) {
-    if (-not $Unattended) {
-        Show-UnifiedBanner -Title "DESCARGADOR DE WINDOWS UPDATES" -Subtitle "Microsoft Update Catalog Engine" -ShowSystemInfo
-        Write-Host "  Configuracion de Destino para Paquetes (.msu / .cab):" -ForegroundColor Cyan
-        Write-Host "  Carpeta por defecto sugerida: $defaultBaseDir" -ForegroundColor DarkGray
-        Write-Host ""
-        $userPath = Read-Host "  [?] Ingrese carpeta de destino (Enter para usar la predeterminada)"
-        if ([string]::IsNullOrWhiteSpace($userPath)) {
-            $OutputDir = $defaultBaseDir
-        } else {
-            $OutputDir = $userPath.Trim('"', "'")
-        }
-    } else {
-        $OutputDir = $defaultBaseDir
-    }
+    $OutputDir = $defaultBaseDir
 }
+
 
 # Crear carpeta de destino si no existe
 if (-not (Test-Path $OutputDir)) {
