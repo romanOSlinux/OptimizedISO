@@ -87,3 +87,4 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 ---
 
 *Carpeta creada el 2026-08-23. Todos los planes futuros se registran aquí para trazabilidad.*
+| 0071 | [PLAN-0071-20260909-integracion-gui-para-actualizaciones-y-drivers.md](PLAN-0071-20260909-integracion-gui-para-actualizaciones-y-drivers.md) | 2026-09-09 | Integración de Módulos Satélite a la GUI | PENDIENTE |
