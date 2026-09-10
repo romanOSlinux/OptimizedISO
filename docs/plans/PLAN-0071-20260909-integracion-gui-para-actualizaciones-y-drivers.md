@@ -21,33 +21,36 @@ Poseen menús (`Show-UnifiedMenu`), prompts de confirmación (`Prompt-UnifiedYes
 
 ---
 
-## 2. Decisión Técnica de Arquitectura (Ingeniería de Software)
+## 2. Decisión Técnica de Arquitectura (Motores Dedicados GUI)
 
-Para mantener el principio DRY (Don't Repeat Yourself) y evitar clonar 4 scripts adicionales (lo cual generaría deuda técnica de mantenimiento), se adoptará la **Estrategia de Parámetros Inteligentes (Headless Bypass)**.
-
-A diferencia del constructor de ISO, que justificaba un Engine separado por su inmensa complejidad y el peso de su refactorización, estos scripts de descarga son lineales. 
+De acuerdo al lineamiento estricto, **NO se modificarán los scripts interactivos existentes** (para no romper su funcionalidad CLI actual). En su lugar, se creará una nueva familia de motores esclavos dedicados exclusivamente a la GUI.
 
 ### Arquitectura de Solución:
-1. **Parámetro Mandatorio:** Añadir `[switch]$Headless` a todos los scripts satélite.
-2. **Bypass de Lógica Interactiva:** Cuando `$Headless` sea verdadero, los scripts no mostrarán menús. En su lugar, requerirán que parámetros como `$TargetVersion`, `$Package` o `$DestinationPath` se pasen explícitamente desde la línea de comandos de la GUI.
-3. **Flujo de Ejecución:** La GUI (`romanOS-Studio.ps1`) usará el mismo motor asíncrono `.NET` (`add_OutputDataReceived`) que recién validamos para el proceso principal, garantizando que el usuario vea la descarga de paquetes (MB/s) en tiempo real en una consola WPF sin congelar la ventana.
+1. **Clonación y Limpieza (GUI-Engines):**
+   - `Get-WindowsUpdates.ps1` → `Get-WindowsUpdates-GUI-Engine.ps1`
+   - `Get-CriticalDrivers.ps1` → `Get-CriticalDrivers-GUI-Engine.ps1`
+   - `Backup-HardwareDrivers.ps1` → `Backup-HardwareDrivers-GUI-Engine.ps1`
+   - Se erradicará completamente cualquier uso de `Read-Host`, `Show-UnifiedMenu` o pausas de estos nuevos archivos.
+2. **Entrada de Datos Estricta:** Estos motores requerirán parámetros fijos de entrada pasados directamente por la GUI (ej. `-TargetVersion`, `-DestinationPath`).
+3. **Flujo de Ejecución:** La GUI (`romanOS-Studio.ps1`) usará el motor asíncrono `.NET` (`add_OutputDataReceived`) para ejecutar los nuevos `-GUI-Engine.ps1` en segundo plano, canalizando su output a la consola visual sin congelar la ventana.
 
 ---
 
 ## 3. Plan de Implementación por Fases
 
-### Fase 1: Adaptación Headless de `Get-WindowsUpdates.ps1`
-- Agregar `[switch]$Headless` y `[string]$TargetVersion` (ej: `24H2-x64`).
-- Modificar el bloque de selección de menú para que tome `$TargetVersion` directamente si `$Headless` está activo.
+### Fase 1: Creación de `Get-WindowsUpdates-GUI-Engine.ps1`
+- Clonar código fuente.
+- Reemplazar menú interactivo por un parámetro obligatorio `[string]$TargetVersion`.
+- Limpiar prompts de confirmación.
 
-### Fase 2: Adaptación Headless de Controladores y Runtimes
-- `Get-CriticalDrivers.ps1`: Asegurar que descargue el paquete `$Package` en el `$DestinationPath` sin preguntar si existe `$Headless`.
-- `Backup-HardwareDrivers.ps1`: Forzar la extracción silenciosa.
-- `Get-EssentialRuntimes.ps1`: Automatizar la descarga silenciosa.
+### Fase 2: Creación de Motores de Controladores
+- Generar `Get-CriticalDrivers-GUI-Engine.ps1` parametrizado.
+- Generar `Backup-HardwareDrivers-GUI-Engine.ps1` automatizado.
 
 ### Fase 3: Ampliación de la GUI (`romanOS-Studio.ps1`)
-- Diseñar la distribución visual (XAML). Se proponen nuevas pestañas o integración en las existentes.
-- Conectar botones a nuevas funciones `Start-DownloadProcess` reutilizando la arquitectura de hilos `.NET` del `workerProcess`.
+- Agregar nueva Pestaña o Botones de Acción para invocar estos sub-procesos.
+- Conectar cada botón a `Start-BackgroundProcess` (o lógica similar a la de ISO) apuntando a los nuevos motores `*-GUI-Engine.ps1`.
+
 
 ### Fase 4: Auditoría y Pruebas Unitarias
 - Validar BOM UTF-8 y sintaxis en PS 5.1 (Regla 4).
