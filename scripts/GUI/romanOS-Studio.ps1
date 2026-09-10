@@ -150,6 +150,35 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
             </TabItem>
             
             <!-- Pestaña 3 -->
+                        <TabItem Header="Descargas y Preparación">
+                <Grid Margin="15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Text="Actualizaciones de Windows (Offline)" Foreground="#00E5FF" FontWeight="Bold" FontSize="15" Margin="0,0,0,10" />
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,20">
+                        <ComboBox x:Name="cmbUpdateVersion" Width="150" Margin="0,0,10,0">
+                            <ComboBoxItem Content="11_24H2" IsSelected="True" />
+                            <ComboBoxItem Content="11_23H2" />
+                            <ComboBoxItem Content="10_22H2" />
+                            <ComboBoxItem Content="11_LTSC_2024" />
+                            <ComboBoxItem Content="10_LTSC_2021" />
+                        </ComboBox>
+                        <Button x:Name="btnDownloadUpdates" Content="📥 Descargar Updates" Width="180" Background="#2C2C2C" Foreground="#00E5FF" BorderBrush="#00E5FF" BorderThickness="1" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="2" Text="Controladores y Entorno" Foreground="#00E5FF" FontWeight="Bold" FontSize="15" Margin="0,0,0,10" />
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button x:Name="btnBackupDrivers" Content="💾 Respaldar Drivers Host" Width="180" Margin="0,0,10,0" Background="#2C2C2C" Foreground="White" BorderBrush="#555" />
+                        <Button x:Name="btnDownloadCritical" Content="📦 Drivers Críticos (VMD/VirtIO)" Width="200" Margin="0,0,10,0" Background="#2C2C2C" Foreground="White" BorderBrush="#555" />
+                        <Button x:Name="btnDownloadRuntimes" Content="⚙️ Runtimes C++/DirectX" Width="180" Background="#2C2C2C" Foreground="White" BorderBrush="#555" />
+                    </StackPanel>
+                </Grid>
+            </TabItem>
             <TabItem Header="Módulos Avanzados">
                 <Grid Margin="15">
                     <CheckBox x:Name="chkHyperV" Content="Habilitar subsistema Hyper-V (Virtualización)" Foreground="#E3E3E3" IsChecked="True" Margin="10,15,0,0" FontSize="14" />
@@ -525,3 +554,7 @@ $btnExportPreset.Add_Click({
 })
 
 $window.ShowDialog() | Out-Null
+
+
+
+
