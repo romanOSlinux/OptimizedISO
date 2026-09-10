@@ -395,48 +395,39 @@ $btnBuild.Add_Click({
     $progBar = $window.FindName('progBar')
     $progBar.Visibility = "Visible"
     
-    $msgData = @{ Window = $window; TextBox = $txtConsole; BtnBuild = $btnBuild; BtnCancel = $btnCancel; Status = $txtStatus; Prog = $progBar }
-    
-    $outputAction = {
-        $line = $Event.SourceEventArgs.Data
-        if ($line -ne $null) {
-            $win = $Event.MessageData.Window
-            $txt = $Event.MessageData.TextBox
-            $win.Dispatcher.Invoke([action]{
-                $txt.AppendText("$line`r`n")
-                $txt.ScrollToEnd()
+    $script:workerProcess.add_OutputDataReceived({
+        param($sender, $e)
+        if ($e.Data) {
+            $window.Dispatcher.Invoke([action]{
+                $txtConsole.AppendText("$($e.Data)`r`n")
+                $txtConsole.ScrollToEnd()
             })
         }
-    }
+    })
     
-    $exitAction = {
-        $win = $Event.MessageData.Window
-        $txt = $Event.MessageData.TextBox
-        $btnB = $Event.MessageData.BtnBuild
-        $btnC = $Event.MessageData.BtnCancel
-        $stat = $Event.MessageData.Status
-        $prog = $Event.MessageData.Prog
-        
+    $script:workerProcess.add_ErrorDataReceived({
+        param($sender, $e)
+        if ($e.Data) {
+            $window.Dispatcher.Invoke([action]{
+                $txtConsole.AppendText("$($e.Data)`r`n")
+                $txtConsole.ScrollToEnd()
+            })
+        }
+    })
+    
+    $script:workerProcess.add_Exited({
+        param($sender, $e)
         Write-StudioLog "El proceso de compilacion en segundo plano (PID: $($script:workerProcess.Id)) ha finalizado."
-        
-        $win.Dispatcher.Invoke([action]{
-            $txt.AppendText("`r`n[SISTEMA] Proceso finalizado.`r`n")
-            $txt.ScrollToEnd()
-            $btnB.IsEnabled = $true
-            $btnC.IsEnabled = $false
-            $stat.Text = "Estado: Tarea completada"
-            $stat.Foreground = "#A0A0A0"
-            $prog.Visibility = "Hidden"
+        $window.Dispatcher.Invoke([action]{
+            $txtConsole.AppendText("`r`n[SISTEMA] Proceso finalizado.`r`n")
+            $txtConsole.ScrollToEnd()
+            $btnBuild.IsEnabled = $true
+            $btnCancel.IsEnabled = $false
+            $txtStatus.Text = "Estado: Tarea completada"
+            $txtStatus.Foreground = "#A0A0A0"
+            $progBar.Visibility = "Hidden"
         })
-    }
-    
-    Get-EventSubscriber -SourceIdentifier "StdOut_romanOS" -ErrorAction SilentlyContinue | Unregister-Event
-    Get-EventSubscriber -SourceIdentifier "StdErr_romanOS" -ErrorAction SilentlyContinue | Unregister-Event
-    Get-EventSubscriber -SourceIdentifier "Exit_romanOS" -ErrorAction SilentlyContinue | Unregister-Event
-    
-    Register-ObjectEvent -InputObject $script:workerProcess -EventName OutputDataReceived -SourceIdentifier "StdOut_romanOS" -MessageData $msgData -Action $outputAction | Out-Null
-    Register-ObjectEvent -InputObject $script:workerProcess -EventName ErrorDataReceived -SourceIdentifier "StdErr_romanOS" -MessageData $msgData -Action $outputAction | Out-Null
-    Register-ObjectEvent -InputObject $script:workerProcess -EventName Exited -SourceIdentifier "Exit_romanOS" -MessageData $msgData -Action $exitAction | Out-Null
+    })
     
     try {
         $script:workerProcess.Start() | Out-Null
