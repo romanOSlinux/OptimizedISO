@@ -192,6 +192,9 @@ $RuntimesPath          = ""
 $DriversPath           = ""
 $SkipBootWimDrivers    = $false
 $UpdatesPath           = ""
+$SkipUpdates           = $false
+$SkipDrivers           = $false
+$SkipRuntimes          = $false
 $ZeroTouch             = $false
 $ZeroTouchDisk         = 0
 $SavePreset            = $false
@@ -266,6 +269,10 @@ function Import-GUIPreset {
         exit 1
     }
 
+    if (-not $script:ResolvedParameters) {
+        $script:ResolvedParameters = [Hashtable]::new()
+    }
+
     # -------------------------------------------------------------------------
     # Mapeo completo: campo JSON -> variable $script:* + $script:ResolvedParameters
     # Nota: OptimizationProfile se mapea TANTO a $script:OptimizationProfile
@@ -296,6 +303,10 @@ function Import-GUIPreset {
         InjectWin10Script     = 'InjectWin10Script'
         InjectVisualTweaks    = 'InjectVisualTweaks'
         SkipComponentCleanup  = 'SkipComponentCleanup'
+        SkipBootWimDrivers    = 'SkipBootWimDrivers'
+        SkipUpdates           = 'SkipUpdates'
+        SkipDrivers           = 'SkipDrivers'
+        SkipRuntimes          = 'SkipRuntimes'
         ZeroTouch             = 'ZeroTouch'
         ZeroTouchDisk         = 'ZeroTouchDisk'
         WindowsVersion        = 'WindowsVersion'
@@ -310,6 +321,54 @@ function Import-GUIPreset {
             $script:ResolvedParameters[$jsonKey] = $val
             $script:ResolvedParameters[$scriptVar] = $val
         }
+    }
+
+    # Mapeo de banderas inversas de integracion/omision
+    if ($null -ne $preset.IntegrateUpdates) {
+        $skipUpd = -not [bool]$preset.IntegrateUpdates
+        $script:SkipUpdates = $skipUpd
+        $script:ResolvedParameters['SkipUpdates'] = $skipUpd
+    } elseif ($null -ne $preset.SkipUpdates) {
+        $script:SkipUpdates = [bool]$preset.SkipUpdates
+        $script:ResolvedParameters['SkipUpdates'] = [bool]$preset.SkipUpdates
+    }
+
+    if ($null -ne $preset.IntegrateDrivers) {
+        $skipDrv = -not [bool]$preset.IntegrateDrivers
+        $script:SkipDrivers = $skipDrv
+        $script:ResolvedParameters['SkipDrivers'] = $skipDrv
+    } elseif ($null -ne $preset.SkipDrivers) {
+        $script:SkipDrivers = [bool]$preset.SkipDrivers
+        $script:ResolvedParameters['SkipDrivers'] = [bool]$preset.SkipDrivers
+    }
+
+    if ($null -ne $preset.SkipBootWimDrivers) {
+        $script:SkipBootWimDrivers = [bool]$preset.SkipBootWimDrivers
+        $script:ResolvedParameters['SkipBootWimDrivers'] = [bool]$preset.SkipBootWimDrivers
+    }
+
+    if ($null -ne $preset.IntegrateRuntimes) {
+        $skipRun = -not [bool]$preset.IntegrateRuntimes
+        $script:SkipRuntimes = $skipRun
+        $script:ResolvedParameters['SkipRuntimes'] = $skipRun
+    } elseif ($null -ne $preset.SkipRuntimes) {
+        $script:SkipRuntimes = [bool]$preset.SkipRuntimes
+        $script:ResolvedParameters['SkipRuntimes'] = [bool]$preset.SkipRuntimes
+    }
+
+    if ($null -ne $preset.ZeroTouch) {
+        $script:ZeroTouch = [bool]$preset.ZeroTouch
+        $script:ResolvedParameters['ZeroTouch'] = [bool]$preset.ZeroTouch
+    }
+
+    if ($null -ne $preset.ZeroTouchDisk) {
+        $script:ZeroTouchDisk = [int]$preset.ZeroTouchDisk
+        $script:ResolvedParameters['ZeroTouchDisk'] = [int]$preset.ZeroTouchDisk
+    }
+
+    if ($null -ne $preset.SkipComponentCleanup) {
+        $script:SkipComponentCleanup = [bool]$preset.SkipComponentCleanup
+        $script:ResolvedParameters['SkipComponentCleanup'] = [bool]$preset.SkipComponentCleanup
     }
 
     # Mapeo especial: OptimizationProfile -> $script:OptProfile (nombre interno del motor)
@@ -3882,92 +3941,119 @@ Write-Host ""
 Write-Host "  ══ Diagnóstico Pre-vuelo de Recursos Opcionales ══" -ForegroundColor Cyan
 
 # 1. Runtimes esenciales (VC++ / DirectX)
-$runtimesInfo = Resolve-RuntimesDirectory -ExplicitPath $RuntimesPath
-if ($runtimesInfo.Found) {
-    $detailList = [System.Collections.Generic.List[string]]::new()
-    if ($runtimesInfo.HasVcRedist) { $detailList.Add("Visual C++") }
-    if ($runtimesInfo.HasDirectX)  { $detailList.Add("DirectX") }
-    $detailStr = if ($detailList.Count -gt 0) { " ($($detailList -join ' + '))" } else { "" }
-    Write-OK "Runtimes Esenciales : Encontrados en '$($runtimesInfo.Path)' [$($runtimesInfo.FileCount) archivos$detailStr]"
-    Write-LogEntry -Level "INFO" -Message "Runtimes resueltos: $($runtimesInfo.Path) ($($runtimesInfo.FileCount) archivos)"
+if ($script:SkipRuntimes -or $SkipRuntimes) {
+    Write-Info "Runtimes Esenciales : Omitidos por configuración (-SkipRuntimes / preset activo)"
+    Write-LogEntry -Level "INFO" -Message "Runtimes omitidos por configuración del usuario."
+    $runtimesInfo = [PSCustomObject]@{
+        Path        = $null
+        Found       = $false
+        FileCount   = 0
+        HasVcRedist = $false
+        HasDirectX  = $false
+        Files       = @()
+    }
 } else {
-    Write-Info "Runtimes Esenciales : No detectados (Opcional - ejecute scripts\Builder\Get-EssentialRuntimes.ps1 si los requiere)"
-    Write-LogEntry -Level "INFO" -Message "Runtimes no detectados. Se omitirá pre-carga."
+    $runtimesInfo = Resolve-RuntimesDirectory -ExplicitPath $RuntimesPath
+    if ($runtimesInfo.Found) {
+        $detailList = [System.Collections.Generic.List[string]]::new()
+        if ($runtimesInfo.HasVcRedist) { $detailList.Add("Visual C++") }
+        if ($runtimesInfo.HasDirectX)  { $detailList.Add("DirectX") }
+        $detailStr = if ($detailList.Count -gt 0) { " ($($detailList -join ' + '))" } else { "" }
+        Write-OK "Runtimes Esenciales : Encontrados en '$($runtimesInfo.Path)' [$($runtimesInfo.FileCount) archivos$detailStr]"
+        Write-LogEntry -Level "INFO" -Message "Runtimes resueltos: $($runtimesInfo.Path) ($($runtimesInfo.FileCount) archivos)"
+    } else {
+        Write-Info "Runtimes Esenciales : No detectados (Opcional - ejecute scripts\Builder\Get-EssentialRuntimes.ps1 si los requiere)"
+        Write-LogEntry -Level "INFO" -Message "Runtimes no detectados. Se omitirá pre-carga."
+    }
 }
 
 # 2. Actualizaciones acumulativas (Updates/)
-$candidateUpdates = [System.Collections.Generic.List[string]]::new()
-if (-not [string]::IsNullOrWhiteSpace($UpdatesPath)) {
-    $candidateUpdates.Add($UpdatesPath)
+if ($script:SkipUpdates -or $SkipUpdates) {
+    Write-Info "Actualizaciones (MSU): Omitidas por configuración (-SkipUpdates / preset activo)"
+    Write-LogEntry -Level "INFO" -Message "Updates omitidos por configuración del usuario."
+    $resolvedUpdatesDir = $null
+    $script:PreflightUpdatesDetected = $false
 } else {
-    $candidateUpdates.Add((Join-Path (Get-Location) "Updates"))
-    $candidateUpdates.Add((Join-Path (Get-Location) "scripts\Updates"))
-    if ($ScriptsDir) {
-        $candidateUpdates.Add((Join-Path $ScriptsDir "Updates"))
-        $candidateUpdates.Add((Join-Path (Split-Path -Parent $ScriptsDir) "Updates"))
+    $candidateUpdates = [System.Collections.Generic.List[string]]::new()
+    if (-not [string]::IsNullOrWhiteSpace($UpdatesPath)) {
+        $candidateUpdates.Add($UpdatesPath)
+    } else {
+        $candidateUpdates.Add((Join-Path (Get-Location) "Updates"))
+        $candidateUpdates.Add((Join-Path (Get-Location) "scripts\Updates"))
+        if ($ScriptsDir) {
+            $candidateUpdates.Add((Join-Path $ScriptsDir "Updates"))
+            $candidateUpdates.Add((Join-Path (Split-Path -Parent $ScriptsDir) "Updates"))
+        }
+        if ($PSScriptRoot) {
+            $candidateUpdates.Add((Join-Path $PSScriptRoot "Updates"))
+            $candidateUpdates.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Updates"))
+        }
+        $candidateUpdates.Add("C:\OptimizedISO\scripts\Updates")
+        $candidateUpdates.Add("C:\OptimizedISO\Updates")
+        $candidateUpdates.Add("C:\scripts\Updates")
     }
-    if ($PSScriptRoot) {
-        $candidateUpdates.Add((Join-Path $PSScriptRoot "Updates"))
-        $candidateUpdates.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Updates"))
-    }
-    $candidateUpdates.Add("C:\OptimizedISO\scripts\Updates")
-    $candidateUpdates.Add("C:\OptimizedISO\Updates")
-    $candidateUpdates.Add("C:\scripts\Updates")
-}
 
-$resolvedUpdatesDir = $null
-foreach ($candUpd in $candidateUpdates) {
-    if ($candUpd -and (Test-Path $candUpd)) {
-        $updCount = (Get-ChildItem -Path $candUpd -Include *.msu, *.cab -Recurse -File -ErrorAction SilentlyContinue).Count
-        if ($updCount -gt 0) {
-            $resolvedUpdatesDir = (Resolve-Path $candUpd).Path
-            Write-OK "Actualizaciones (MSU): Encontradas en '$resolvedUpdatesDir' [$updCount paquetes listos para inyección]"
-            Write-LogEntry -Level "INFO" -Message "Updates resueltos: $resolvedUpdatesDir ($updCount paquetes)"
-            break
+    $resolvedUpdatesDir = $null
+    foreach ($candUpd in $candidateUpdates) {
+        if ($candUpd -and (Test-Path $candUpd)) {
+            $updCount = (Get-ChildItem -Path $candUpd -Include *.msu, *.cab -Recurse -File -ErrorAction SilentlyContinue).Count
+            if ($updCount -gt 0) {
+                $resolvedUpdatesDir = (Resolve-Path $candUpd).Path
+                Write-OK "Actualizaciones (MSU): Encontradas en '$resolvedUpdatesDir' [$updCount paquetes listos para inyección]"
+                Write-LogEntry -Level "INFO" -Message "Updates resueltos: $resolvedUpdatesDir ($updCount paquetes)"
+                break
+            }
         }
     }
-}
-$script:PreflightUpdatesDetected = [bool]$resolvedUpdatesDir
-if (-not $resolvedUpdatesDir) {
-    Write-Info "Actualizaciones (MSU): No detectadas (Opcional - ejecute scripts\Builder\Get-WindowsUpdates.ps1 si requiere parches offline)"
-    Write-LogEntry -Level "INFO" -Message "Updates no detectados. Se omitirá slipstreaming offline."
+    $script:PreflightUpdatesDetected = [bool]$resolvedUpdatesDir
+    if (-not $resolvedUpdatesDir) {
+        Write-Info "Actualizaciones (MSU): No detectadas (Opcional - ejecute scripts\Builder\Get-WindowsUpdates.ps1 si requiere parches offline)"
+        Write-LogEntry -Level "INFO" -Message "Updates no detectados. Se omitirá slipstreaming offline."
+    }
 }
 
 # 3. Controladores adicionales (Drivers/)
-$candidateDrivers = [System.Collections.Generic.List[string]]::new()
-if (-not [string]::IsNullOrWhiteSpace($DriversPath)) {
-    $candidateDrivers.Add($DriversPath)
+if ($script:SkipDrivers -or $SkipDrivers) {
+    Write-Info "Controladores (INF) : Omitidos por configuración (-SkipDrivers / preset activo)"
+    Write-LogEntry -Level "INFO" -Message "Drivers omitidos por configuración del usuario."
+    $resolvedDriversDir = $null
+    $script:PreflightDriversDetected = $false
 } else {
-    $candidateDrivers.Add((Join-Path (Get-Location) "Drivers"))
-    $candidateDrivers.Add((Join-Path (Get-Location) "scripts\Drivers"))
-    if ($ScriptsDir) {
-        $candidateDrivers.Add((Join-Path $ScriptsDir "Drivers"))
-        $candidateDrivers.Add((Join-Path (Split-Path -Parent $ScriptsDir) "Drivers"))
+    $candidateDrivers = [System.Collections.Generic.List[string]]::new()
+    if (-not [string]::IsNullOrWhiteSpace($DriversPath)) {
+        $candidateDrivers.Add($DriversPath)
+    } else {
+        $candidateDrivers.Add((Join-Path (Get-Location) "Drivers"))
+        $candidateDrivers.Add((Join-Path (Get-Location) "scripts\Drivers"))
+        if ($ScriptsDir) {
+            $candidateDrivers.Add((Join-Path $ScriptsDir "Drivers"))
+            $candidateDrivers.Add((Join-Path (Split-Path -Parent $ScriptsDir) "Drivers"))
+        }
+        if ($PSScriptRoot) {
+            $candidateDrivers.Add((Join-Path $PSScriptRoot "Drivers"))
+            $candidateDrivers.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Drivers"))
+        }
+        $candidateDrivers.Add("C:\OptimizedISO\scripts\Drivers")
+        $candidateDrivers.Add("C:\OptimizedISO\Drivers")
+        $candidateDrivers.Add("C:\scripts\Drivers")
     }
-    if ($PSScriptRoot) {
-        $candidateDrivers.Add((Join-Path $PSScriptRoot "Drivers"))
-        $candidateDrivers.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Drivers"))
-    }
-    $candidateDrivers.Add("C:\OptimizedISO\scripts\Drivers")
-    $candidateDrivers.Add("C:\OptimizedISO\Drivers")
-    $candidateDrivers.Add("C:\scripts\Drivers")
-}
-$resolvedDriversDir = $null
-foreach ($candDrv in $candidateDrivers) {
-    if ($candDrv -and (Test-Path $candDrv)) {
-        $drvCount = (Get-ChildItem -Path $candDrv -Include *.inf -Recurse -File -ErrorAction SilentlyContinue).Count
-        if ($drvCount -gt 0) {
-            $resolvedDriversDir = (Resolve-Path $candDrv).Path
-            Write-OK "Controladores (INF) : Encontrados en '$resolvedDriversDir' [$drvCount drivers .inf]"
-            Write-LogEntry -Level "INFO" -Message "Drivers resueltos: $resolvedDriversDir ($drvCount drivers)"
-            break
+    $resolvedDriversDir = $null
+    foreach ($candDrv in $candidateDrivers) {
+        if ($candDrv -and (Test-Path $candDrv)) {
+            $drvCount = (Get-ChildItem -Path $candDrv -Include *.inf -Recurse -File -ErrorAction SilentlyContinue).Count
+            if ($drvCount -gt 0) {
+                $resolvedDriversDir = (Resolve-Path $candDrv).Path
+                Write-OK "Controladores (INF) : Encontrados en '$resolvedDriversDir' [$drvCount drivers .inf]"
+                Write-LogEntry -Level "INFO" -Message "Drivers resueltos: $resolvedDriversDir ($drvCount drivers)"
+                break
+            }
         }
     }
-}
-$script:PreflightDriversDetected = [bool]$resolvedDriversDir
-if (-not $resolvedDriversDir) {
-    Write-Info "Controladores (INF) : No detectados (Opcional - coloque drivers .inf en Drivers/ si los requiere)"
-    Write-LogEntry -Level "INFO" -Message "Drivers no detectados. Se omitirá inyección de drivers."
+    $script:PreflightDriversDetected = [bool]$resolvedDriversDir
+    if (-not $resolvedDriversDir) {
+        Write-Info "Controladores (INF) : No detectados (Opcional - use scripts\Drivers\Backup-HardwareDrivers.ps1 para respaldo del host)"
+        Write-LogEntry -Level "INFO" -Message "Drivers no detectados. Se omitirá inyección de drivers."
+    }
 }
 Write-Host ""
 
@@ -4386,24 +4472,30 @@ pause >nul
 # ------------------------------------------------------------------
 # Copiar Runtimes esenciales a sources\$OEM$\$$\Setup\Scripts\Runtimes si existen
 # ------------------------------------------------------------------
-if (-not $runtimesInfo) {
-    $runtimesInfo = Resolve-RuntimesDirectory -ExplicitPath $RuntimesPath
-}
-
-if ($runtimesInfo.Found -and (Test-Path $runtimesInfo.Path)) {
-    $destRuntimesDir  = Join-Path $OEMScriptsDir "Runtimes"
-    $destRuntimesDir1 = Join-Path $OEMScriptsDir1 "Runtimes"
-    if (-not (Test-Path $destRuntimesDir))  { New-Item -ItemType Directory -Path $destRuntimesDir -Force | Out-Null }
-    if (-not (Test-Path $destRuntimesDir1)) { New-Item -ItemType Directory -Path $destRuntimesDir1 -Force | Out-Null }
-    Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $destRuntimesDir -Recurse -Force
-    Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $destRuntimesDir1 -Recurse -Force
-    Write-OK "Runtimes esenciales inyectados en `$OEM$ ($($runtimesInfo.FileCount) archivos copiados)."
-    Add-AuditRecord -Resource "Runtimes (VC++ / DirectX)" -Target '$OEM$' -Status "OK" `
-                    -Details "$($runtimesInfo.FileCount) archivos desde '$($runtimesInfo.Path)'"
-} else {
-    Write-Host "    Carpeta 'Runtimes' no detectada. Se omite pre-carga en `$OEM$." -ForegroundColor Gray
+if ($script:SkipRuntimes -or $SkipRuntimes) {
+    Write-Host "    Runtimes esenciales omitidos por configuración (-SkipRuntimes activo)." -ForegroundColor Gray
     Add-AuditRecord -Resource "Runtimes (VC++ / DirectX)" -Target '$OEM$' -Status "SKIP" `
-                    -Details "Carpeta Runtimes/ no detectada. Ejecute scripts\Builder\Get-EssentialRuntimes.ps1"
+                    -Details "Omitido por configuración (-SkipRuntimes)"
+} else {
+    if (-not $runtimesInfo) {
+        $runtimesInfo = Resolve-RuntimesDirectory -ExplicitPath $RuntimesPath
+    }
+
+    if ($runtimesInfo.Found -and (Test-Path $runtimesInfo.Path)) {
+        $destRuntimesDir  = Join-Path $OEMScriptsDir "Runtimes"
+        $destRuntimesDir1 = Join-Path $OEMScriptsDir1 "Runtimes"
+        if (-not (Test-Path $destRuntimesDir))  { New-Item -ItemType Directory -Path $destRuntimesDir -Force | Out-Null }
+        if (-not (Test-Path $destRuntimesDir1)) { New-Item -ItemType Directory -Path $destRuntimesDir1 -Force | Out-Null }
+        Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $destRuntimesDir -Recurse -Force
+        Copy-Item -Path "$($runtimesInfo.Path)\*" -Destination $destRuntimesDir1 -Recurse -Force
+        Write-OK "Runtimes esenciales inyectados en `$OEM$ ($($runtimesInfo.FileCount) archivos copiados)."
+        Add-AuditRecord -Resource "Runtimes (VC++ / DirectX)" -Target '$OEM$' -Status "OK" `
+                        -Details "$($runtimesInfo.FileCount) archivos desde '$($runtimesInfo.Path)'"
+    } else {
+        Write-Host "    Carpeta 'Runtimes' no detectada. Se omite pre-carga en `$OEM$." -ForegroundColor Gray
+        Add-AuditRecord -Resource "Runtimes (VC++ / DirectX)" -Target '$OEM$' -Status "SKIP" `
+                        -Details "Carpeta Runtimes/ no detectada. Ejecute scripts\Builder\Get-EssentialRuntimes.ps1"
+    }
 }
 
 # ------------------------------------------------------------------
@@ -5521,7 +5613,7 @@ if ($wimFile) {
             if ($bootWimFound) { $bootWimCandidate = $bootWimFound.FullName }
         }
 
-        if ($bootWimCandidate -and (Test-Path $bootWimCandidate) -and $resolvedDriversDir -and (-not $SkipBootWimDrivers)) {
+        if ($bootWimCandidate -and (Test-Path $bootWimCandidate) -and $resolvedDriversDir -and (-not $SkipBootWimDrivers -and -not $script:SkipBootWimDrivers)) {
             Write-Host ""
             Write-Host "    ══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
             Write-Host "    DUAL-SERVICING: Inyección de Drivers en boot.wim (WinPE / Setup)" -ForegroundColor Cyan
@@ -5701,9 +5793,15 @@ if ($wimFile) {
                     #==================================================================
                     # SLIPSTREAMING DE ACTUALIZACIONES (WINDOWS UPDATES)
                     #==================================================================
-
-                    # Reutilizar resolución canónica de Paso 0 o resolver validando presencia de paquetes .msu/.cab
-                    if ($resolvedUpdatesDir -and (Test-Path $resolvedUpdatesDir)) {
+                    if ($script:SkipUpdates -or $SkipUpdates) {
+                        Write-Host ""
+                        Write-Host "    ══ Slipstreaming de actualizaciones ══" -ForegroundColor Cyan
+                        Write-Host "    Slipstreaming de actualizaciones omitido por configuración (-SkipUpdates activo)." -ForegroundColor Gray
+                        Add-AuditRecord -Resource "Windows Updates (MSU/CAB)" -Target "WIM Idx $wimIndex" -Status "SKIP" `
+                                        -Details "Omitido por configuración (-SkipUpdates)"
+                    } else {
+                        # Reutilizar resolución canónica de Paso 0 o resolver validando presencia de paquetes .msu/.cab
+                        if ($resolvedUpdatesDir -and (Test-Path $resolvedUpdatesDir)) {
                         $updTestCount = (Get-ChildItem -Path $resolvedUpdatesDir -Include *.msu, *.cab -Recurse -File -ErrorAction SilentlyContinue).Count
                         if ($updTestCount -eq 0) {
                             $resolvedUpdatesDir = $null
@@ -5916,13 +6014,20 @@ if ($wimFile) {
                                 -FailureReason "Fallaron $failCount paquete(s) de actualizacion de un total de $total"
                         }
                     }
+                } # fin del else if ($script:SkipUpdates -or $SkipUpdates)
 
                     #==================================================================
                     # INYECCIÓN OFFLINE DE CONTROLADORES (DRIVERS)
                     #==================================================================
-
-                    # Reutilizar resolución canónica de Paso 0 o resolver validando presencia de drivers .inf reales
-                    if ($resolvedDriversDir -and (Test-Path $resolvedDriversDir)) {
+                    if ($script:SkipDrivers -or $SkipDrivers) {
+                        Write-Host ""
+                        Write-Host "    ══ Inyección offline de Drivers ══" -ForegroundColor Cyan
+                        Write-Host "    Inyección offline de controladores omitida por configuración (-SkipDrivers activo)." -ForegroundColor Gray
+                        Add-AuditRecord -Resource "Controladores Offline" -Target "WIM Idx $wimIndex" -Status "SKIP" `
+                                        -Details "Omitido por configuración (-SkipDrivers)"
+                    } else {
+                        # Reutilizar resolución canónica de Paso 0 o resolver validando presencia de drivers .inf reales
+                        if ($resolvedDriversDir -and (Test-Path $resolvedDriversDir)) {
                         $drvTestCount = (Get-ChildItem -Path $resolvedDriversDir -Include *.inf -Recurse -File -ErrorAction SilentlyContinue).Count
                         if ($drvTestCount -eq 0) {
                             $resolvedDriversDir = $null
@@ -6003,6 +6108,7 @@ if ($wimFile) {
                             -ExpectedPath "" `
                             -FailureReason "La carpeta de controladores detectada en Preflight ya no esta accesible"
                     }
+                    } # fin del else if ($script:SkipDrivers -or $SkipDrivers)
 
                     #==================================================================
                     # FEATURES ON DEMAND

@@ -92,6 +92,8 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0074 | [PLAN-0074-20260910-fix-gui-crash-exit-5-streaming.md](PLAN-0074-20260910-fix-gui-crash-exit-5-streaming.md) | 2026-09-10 | Corrección de Cierre Inesperado de romanOS Studio (Código de Error 5) y Streaming Asíncrono Robusto | COMPLETADO |
 | 0075 | [PLAN-0075-20260910-alineacion-deteccion-iso-hyperv-gui-y-cli.md](PLAN-0075-20260910-alineacion-deteccion-iso-hyperv-gui-y-cli.md) | 2026-09-10 | Alineación de Detección Automática de ISO Optimizada en Hyper-V (romanOS Studio & CLI) | COMPLETADO |
 | 0076 | [PLAN-0076-20260911-optimizacion-tiempo-instalacion-iso-zero-touch.md](PLAN-0076-20260911-optimizacion-tiempo-instalacion-iso-zero-touch.md) | 2026-09-11 | Optimización Integral del Tiempo de Instalación de la ISO (Zero-Touch a Escritorio) | COMPLETADO |
+| 0077 | [PLAN-0077-20260911-integracion-opciones-creacion-iso-gui.md](PLAN-0077-20260911-integracion-opciones-creacion-iso-gui.md) | 2026-09-11 | Integración de Opciones Seleccionables en la Interfaz de Creación de ISO (romanOS Studio) | COMPLETADO |
+
 
 
 

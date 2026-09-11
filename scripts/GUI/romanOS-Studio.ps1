@@ -48,9 +48,9 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="romanOS Studio" Height="600" Width="850" 
+        Title="romanOS Studio" Height="680" Width="880" 
         Background="#202020" WindowStartupLocation="CenterScreen"
-        FontFamily="Segoe UI">
+        FontFamily="Segoe UI" MinHeight="620" MinWidth="800">
     <Window.Resources>
         <Style TargetType="Button">
             <Setter Property="Template">
@@ -89,7 +89,7 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                         <Setter.Value>
                             <ControlTemplate TargetType="TabItem">
                                 <Border Name="Border" BorderThickness="1,1,1,0" BorderBrush="#333333" Margin="2,0" Background="#2D2D2D">
-                                    <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="15,8"/>
+                                    <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="12,8"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
@@ -104,7 +104,7 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
-                    <Setter Property="FontSize" Value="14"/>
+                    <Setter Property="FontSize" Value="13"/>
                 </Style>
             </TabControl.Resources>
             
@@ -112,45 +112,173 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
             <TabItem Header="Construcción Base">
                 <Grid Margin="15">
                     <TextBlock Text="Imagen de Origen (Windows 10/11 ISO):" Foreground="#E3E3E3" Margin="0,15,0,0" FontWeight="SemiBold"/>
-                    <TextBox x:Name="txtSourceISO" Margin="260,10,110,0" Height="28" VerticalAlignment="Top" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" BorderThickness="1" Padding="4"/>
+                    <TextBox x:Name="txtSourceISO" Margin="270,10,110,0" Height="28" VerticalAlignment="Top" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" BorderThickness="1" Padding="4"/>
                     <Button x:Name="btnBrowseISO" Content="Examinar" Margin="0,10,10,0" Height="28" Width="90" HorizontalAlignment="Right" VerticalAlignment="Top" Background="#333333" Foreground="#E3E3E3" BorderThickness="1" BorderBrush="#454545"/>
                     
                     <TextBlock Text="Perfil de Optimización (Hardware-Engine):" Foreground="#E3E3E3" Margin="0,65,0,0" FontWeight="SemiBold"/>
-                    <ComboBox x:Name="cmbProfile" Margin="260,60,0,0" Height="28" Width="220" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#333333" Foreground="Black">
+                    <ComboBox x:Name="cmbProfile" Margin="270,60,0,0" Height="28" Width="260" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#333333" Foreground="Black">
                         <ComboBoxItem Content="Perfil 1 (Moderado / Ofimática)" />
-                        <ComboBoxItem Content="Perfil 2 (Avanzado / Gaming)" />
-                        <ComboBoxItem Content="Perfil 3 (Hardcore / Extremo)" IsSelected="True" />
+                        <ComboBoxItem Content="Perfil 2 (Avanzado / Gaming - Recomendado)" IsSelected="True" />
+                        <ComboBoxItem Content="Perfil 3 (Hardcore / Extremo)" />
                     </ComboBox>
+                    
                     <!-- Ediciones WIM detectadas -->
-                    <TextBlock Text="Ediciones del WIM a incluir:" Foreground="#E3E3E3" Margin="0,115,0,0" FontWeight="SemiBold"/>
-                    <TextBlock x:Name="lblEditionsStatus" Text="Selecciona una ISO para ver las ediciones disponibles" Foreground="#606060" FontSize="11" Margin="0,140,0,0"/>
-                    <ListBox x:Name="lbxWimEditions" Margin="0,160,0,0" Height="90" Background="#1A1A1A" BorderBrush="#454545" BorderThickness="1"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto" VerticalAlignment="Top"/>
+                    <TextBlock Text="Ediciones del WIM a incluir en la ISO:" Foreground="#E3E3E3" Margin="0,115,0,0" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="lblEditionsStatus" Text="Selecciona una ISO para ver las ediciones disponibles" Foreground="#A0A0A0" FontSize="11" Margin="0,140,0,0"/>
+                    <ListBox x:Name="lbxWimEditions" Margin="0,165,0,10" Background="#1A1A1A" BorderBrush="#454545" BorderThickness="1"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"/>
                 </Grid>
             </TabItem>
             
             <!-- Pestaña 2 -->
+            <TabItem Header="Instalación y Despliegue">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
+                    <StackPanel Margin="10">
+                        <!-- Sección Zero-Touch -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="Modo de Instalación Desatendida (Unattend)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                                <CheckBox x:Name="chkZeroTouch" Content="Habilitar Instalación 100% Zero-Touch (Automatización Total sin Intervención)" Foreground="#E3E3E3" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <TextBlock Text="Particiona y formatea el disco automáticamente en UEFI/GPT (con WinRE de 500 MB), acepta el EULA y omite todas las pantallas de configuración." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="22,0,0,10"/>
+                                
+                                <StackPanel Orientation="Horizontal" Margin="22,0,0,8">
+                                    <TextBlock Text="Disco físico de destino:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <ComboBox x:Name="cmbZeroTouchDisk" Width="180" Height="26" Background="#333333" Foreground="Black" IsEnabled="False">
+                                        <ComboBoxItem Content="Disco 0 (Predeterminado)" IsSelected="True"/>
+                                        <ComboBoxItem Content="Disco 1"/>
+                                        <ComboBoxItem Content="Disco 2"/>
+                                        <ComboBoxItem Content="Disco 3"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                <TextBlock x:Name="txtZeroTouchWarning" Text="⚠️ ADVERTENCIA: Zero-Touch borrará y formateará por completo el disco físico seleccionado. Si no estás seguro, mantén esta opción desmarcada para elegir la partición manualmente en el instalador." Foreground="#FFA500" FontSize="11" TextWrapping="Wrap" Margin="22,0,0,4" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </Border>
 
-            <TabItem Header="Ajustes de Imagen">
-                <Grid Margin="15">
-                    <TextBlock Text="Nivel de Compresión (WIM):" Foreground="#E3E3E3" Margin="0,15,0,0" FontWeight="SemiBold"/>
-                    <ComboBox x:Name="cmbCompression" Margin="200,10,0,0" Height="28" Width="150" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#333333" Foreground="Black">
-                        <ComboBoxItem Content="Max" IsSelected="True" />
-                        <ComboBoxItem Content="Fast" />
-                        <ComboBoxItem Content="None" />
-                    </ComboBox>
-                    
-                    <TextBlock Text="Idioma (Language Pack):" Foreground="#E3E3E3" Margin="0,65,0,0" FontWeight="SemiBold"/>
-                    <ComboBox x:Name="cmbLanguage" Margin="200,60,0,0" Height="28" Width="150" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#333333" Foreground="Black">
-                        <ComboBoxItem Content="es-ES (España)" IsSelected="True" />
-                        <ComboBoxItem Content="es-MX (México)" />
-                        <ComboBoxItem Content="en-US (Inglés)" />
-                    </ComboBox>
-                </Grid>
+                        <!-- Sección Cuenta Local -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="Cuenta de Usuario Local y Sesión" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170"/>
+                                        <ColumnDefinition Width="200"/>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="200"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Nombre de Usuario:" Foreground="#E3E3E3" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Column="1" x:Name="txtLocalUser" Text="Roman" Height="26" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" Padding="3"/>
+                                    <TextBlock Grid.Column="2" Text="Contraseña (opcional):" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                                    <TextBox Grid.Column="3" x:Name="txtLocalPassword" Text="" Height="26" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" Padding="3" ToolTip="Dejar en blanco para instalación sin contraseña"/>
+                                </Grid>
+                                <CheckBox x:Name="chkAutoLogon" Content="AutoLogon (Iniciar sesión automáticamente tras finalizar la instalación)" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Sección Regional y Teclado -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="12">
+                            <StackPanel>
+                                <TextBlock Text="Localización, Idioma y Teclado" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170"/>
+                                        <ColumnDefinition Width="200"/>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="200"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="10"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Idioma UI:" Foreground="#E3E3E3" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbLanguage" Height="26" Background="#333333" Foreground="Black">
+                                        <ComboBoxItem Content="es-ES (España)" IsSelected="True"/>
+                                        <ComboBoxItem Content="es-MX (México)"/>
+                                        <ComboBoxItem Content="en-US (Inglés)"/>
+                                    </ComboBox>
+                                    
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Configuración Regional:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                                    <ComboBox Grid.Row="0" Grid.Column="3" x:Name="cmbLocale" Height="26" Background="#333333" Foreground="Black">
+                                        <ComboBoxItem Content="es-AR (Argentina)" IsSelected="True"/>
+                                        <ComboBoxItem Content="es-MX (México)"/>
+                                        <ComboBoxItem Content="es-ES (España)"/>
+                                        <ComboBoxItem Content="en-US (Estados Unidos)"/>
+                                    </ComboBox>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Distribución Teclado:" Foreground="#E3E3E3" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cmbKeyboard" Height="26" Background="#333333" Foreground="Black">
+                                        <ComboBoxItem Content="es-419 (Latinoamérica)" IsSelected="True"/>
+                                        <ComboBoxItem Content="es-ES (España)"/>
+                                        <ComboBoxItem Content="us (Estados Unidos)"/>
+                                    </ComboBox>
+                                    
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="Zona Horaria:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                                    <ComboBox Grid.Row="2" Grid.Column="3" x:Name="cmbTimezone" Height="26" Background="#333333" Foreground="Black">
+                                        <ComboBoxItem Content="Argentina Standard Time" IsSelected="True"/>
+                                        <ComboBoxItem Content="Romance Standard Time"/>
+                                        <ComboBoxItem Content="Pacific Standard Time"/>
+                                        <ComboBoxItem Content="Central Standard Time (Mexico)"/>
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
             
             <!-- Pestaña 3 -->
-                        <TabItem Header="Descargas y Preparación">
+            <TabItem Header="Componentes e Integraciones">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
+                    <StackPanel Margin="10">
+                        <!-- Sección Integración Offline -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="Integración Offline de Paquetes (Slipstreaming)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
+                                
+                                <CheckBox x:Name="chkIntegrateUpdates" Content="Integrar Actualizaciones Acumulativas (Updates/ - .msu / .cab)" Foreground="#E3E3E3" IsChecked="True" FontSize="13" Margin="0,0,0,8"/>
+                                
+                                <CheckBox x:Name="chkIntegrateDrivers" Content="Integrar Controladores de Hardware (Drivers/ - .inf)" Foreground="#E3E3E3" IsChecked="True" FontSize="13" Margin="0,0,0,4"/>
+                                <CheckBox x:Name="chkBootWimDrivers" Content="Inyectar controladores críticos de almacenamiento en Boot.wim (WinPE)" Foreground="#A0A0A0" IsChecked="True" FontSize="12" Margin="25,0,0,8"/>
+                                
+                                <CheckBox x:Name="chkIntegrateRuntimes" Content="Integrar Runtimes Esenciales (Runtimes/ - Visual C++ 2005-2022 y DirectX 9.0c)" Foreground="#E3E3E3" IsChecked="True" FontSize="13" Margin="0,0,0,4"/>
+                                <TextBlock Text="Copia los instaladores en la carpeta OEM para su ejecución silenciosa al primer inicio vía SetupComplete.cmd." Foreground="#888888" FontSize="11" Margin="25,0,0,4"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Sección Tweaks y Políticas SSOT -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="Optimizaciones y Políticas del Sistema (SSOT Policy-Engine)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
+                                
+                                <CheckBox x:Name="chkVisualTweaks" Content="Inyectar Menú Contextual Clásico / Moderno (Shift+F10 / Menú Completo)" Foreground="#E3E3E3" IsChecked="True" FontSize="13" Margin="0,0,0,8"/>
+                                <CheckBox x:Name="chkBlockOneDrive" Content="Bloquear telemetría e integración profunda de OneDrive" Foreground="#E3E3E3" IsChecked="True" FontSize="13" Margin="0,0,0,8"/>
+                                <CheckBox x:Name="chkHyperV" Content="Habilitar subsistema Hyper-V (Virtualización nativa offline)" Foreground="#E3E3E3" IsChecked="False" FontSize="13" Margin="0,0,0,4"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Sección Compresión y Rendimiento -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="12">
+                            <StackPanel>
+                                <TextBlock Text="Compresión y Rendimiento de Compilación" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Nivel de Compresión WIM:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                    <ComboBox x:Name="cmbCompression" Width="200" Height="26" Background="#333333" Foreground="Black">
+                                        <ComboBoxItem Content="Max (Mayor ahorro de espacio)" IsSelected="True"/>
+                                        <ComboBoxItem Content="Fast (Compilación más rápida)"/>
+                                        <ComboBoxItem Content="None (Sin recompresión)"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                <CheckBox x:Name="chkSkipCleanup" Content="Omitir Limpieza de Componentes WinSxS (-SkipComponentCleanup)" Foreground="#E3E3E3" IsChecked="False" FontSize="13" Margin="0,4,0,4"/>
+                                <TextBlock Text="Acelera considerablemente la creación de la ISO al omitir StartComponentCleanup / ResetBase en DISM." Foreground="#888888" FontSize="11" Margin="22,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
+            <!-- Pestaña 4 -->
+            <TabItem Header="Descargas Satélite">
                 <Grid Margin="15">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -179,20 +307,6 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                     </StackPanel>
                 </Grid>
             </TabItem>
-            <TabItem Header="Módulos Avanzados">
-                <Grid Margin="15">
-                    <CheckBox x:Name="chkHyperV" Content="Habilitar subsistema Hyper-V (Virtualización)" Foreground="#E3E3E3" IsChecked="True" Margin="10,15,0,0" FontSize="14" />
-                    <CheckBox x:Name="chkVisualTweaks" Content="Inyectar Menú Contextual Moderno (Shift+F10)" Foreground="#E3E3E3" IsChecked="True" Margin="10,45,0,0" FontSize="14" />
-                    <CheckBox x:Name="chkBlockOneDrive" Content="Bloquear telemetría de OneDrive a nivel host" Foreground="#E3E3E3" IsChecked="True" Margin="10,75,0,0" FontSize="14" />
-                </Grid>
-            </TabItem>
-            
-            <!-- Pestaña 4 -->
-            <TabItem Header="Consola de Logs">
-                <Grid Margin="0">
-                    <TextBox x:Name="txtConsole" Background="#121212" Foreground="#CCCCCC" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True" BorderThickness="0" Padding="8" />
-                </Grid>
-            </TabItem>
             
             <!-- Pestaña 5 -->
             <TabItem Header="Herramientas del Host">
@@ -206,6 +320,13 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                         <TextBlock Text="Limpia carpetas temporales y desmonta imágenes WIM huérfanas que hayan quedado tras compilaciones abortadas." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
                         <Button x:Name="btnCleanHost" Content="Limpiar Residuos (Carpetas, Montajes)" Height="32" Width="280" HorizontalAlignment="Left" Background="#D13438" Foreground="White" BorderThickness="0" />
                     </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- Pestaña 6 -->
+            <TabItem x:Name="tabItemLogs" Header="Consola de Logs">
+                <Grid Margin="0">
+                    <TextBox x:Name="txtConsole" Background="#121212" Foreground="#CCCCCC" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True" BorderThickness="0" Padding="8" />
                 </Grid>
             </TabItem>
         </TabControl>
@@ -377,7 +498,12 @@ function Start-StudioSubProcess {
     Set-StudioUIState -IsRunning $true -TaskName $TaskTitle
 
     $tabControl = $window.FindName('tabControlMain')
-    $tabControl.SelectedIndex = 4
+    $tabLogs = $window.FindName('tabItemLogs')
+    if ($tabLogs -and $tabControl) {
+        $tabControl.SelectedItem = $tabLogs
+    } elseif ($tabControl) {
+        $tabControl.SelectedIndex = $tabControl.Items.Count - 1
+    }
 
     $txtConsole = $window.FindName('txtConsole')
     $txtConsole.AppendText("`r`n════════════════════════════════════════════════════════════════`r`n")
@@ -483,39 +609,113 @@ function Start-StudioSubProcess {
     $timer.Start()
 }
 
-$btnBuild = $window.FindName('btnBuild')
-$btnBuild.Add_Click({
+# =============================================================================
+# VINCULACIÓN DINÁMICA DE EVENTOS EN CONTROLES DE LA INTERFAZ
+# =============================================================================
+$chkZeroTouch = $window.FindName('chkZeroTouch')
+$cmbZeroTouchDisk = $window.FindName('cmbZeroTouchDisk')
+$txtZeroTouchWarning = $window.FindName('txtZeroTouchWarning')
 
-    Write-StudioLog "El usuario hizo clic en 'Compilar ISO'."
+if ($chkZeroTouch) {
+    $chkZeroTouch.Add_Checked({
+        if ($cmbZeroTouchDisk) { $cmbZeroTouchDisk.IsEnabled = $true }
+        if ($txtZeroTouchWarning) { $txtZeroTouchWarning.Visibility = [System.Windows.Visibility]::Visible }
+    })
+    $chkZeroTouch.Add_Unchecked({
+        if ($cmbZeroTouchDisk) { $cmbZeroTouchDisk.IsEnabled = $false }
+        if ($txtZeroTouchWarning) { $txtZeroTouchWarning.Visibility = [System.Windows.Visibility]::Collapsed }
+    })
+}
+
+$chkIntegrateDrivers = $window.FindName('chkIntegrateDrivers')
+$chkBootWimDrivers = $window.FindName('chkBootWimDrivers')
+
+if ($chkIntegrateDrivers) {
+    $chkIntegrateDrivers.Add_Checked({
+        if ($chkBootWimDrivers) {
+            $chkBootWimDrivers.IsEnabled = $true
+            $chkBootWimDrivers.IsChecked = $true
+        }
+    })
+    $chkIntegrateDrivers.Add_Unchecked({
+        if ($chkBootWimDrivers) {
+            $chkBootWimDrivers.IsEnabled = $false
+            $chkBootWimDrivers.IsChecked = $false
+        }
+    })
+}
+
+# =============================================================================
+# GENERADOR CANÓNICO DE CONFIGURACIÓN DEL PRESET (SSOT)
+# =============================================================================
+function Get-StudioBuildConfig {
     $sourceIso = $window.FindName('txtSourceISO').Text
-    if ([string]::IsNullOrWhiteSpace($sourceIso) -or $sourceIso -eq 'Ruta de la ISO...') {
-        Write-StudioLog "Error de validacion: No se especifico la ruta de la ISO base." -Level "WARN"
-        [System.Windows.MessageBox]::Show('Debe seleccionar una imagen ISO base para compilar.', 'Error', [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
-        return
-    }
-    
-    Write-StudioLog "ISO seleccionada: $sourceIso"
-
-    # Generar JSON temporal
     $cmbProfile = $window.FindName('cmbProfile')
     $optProfile = [string]($cmbProfile.SelectedIndex + 1)
     
     $cmbComp = $window.FindName('cmbCompression')
-    $optComp = $cmbComp.Text
+    $optComp = if ($cmbComp -and $cmbComp.Text) { ($cmbComp.Text -split ' ')[0] } else { 'Max' }
+    
     $cmbLang = $window.FindName('cmbLanguage')
-    $optLang = $cmbLang.Text.Split(' ')[0]
+    $optLang = if ($cmbLang -and $cmbLang.Text) { ($cmbLang.Text -split ' ')[0] } else { 'es-ES' }
+    
+    $cmbLoc = $window.FindName('cmbLocale')
+    $optLoc = if ($cmbLoc -and $cmbLoc.Text) { ($cmbLoc.Text -split ' ')[0] } else { 'es-AR' }
+    
+    $cmbKb = $window.FindName('cmbKeyboard')
+    $optKb = if ($cmbKb -and $cmbKb.Text) { ($cmbKb.Text -split ' ')[0] } else { 'es-419' }
+    
+    $cmbTz = $window.FindName('cmbTimezone')
+    $optTz = if ($cmbTz -and $cmbTz.Text) { $cmbTz.Text.Trim() } else { 'Argentina Standard Time' }
+    
+    $txtUser = $window.FindName('txtLocalUser')
+    $localUser = if ($txtUser -and -not [string]::IsNullOrWhiteSpace($txtUser.Text)) { $txtUser.Text.Trim() } else { 'Roman' }
+    
+    $txtPass = $window.FindName('txtLocalPassword')
+    $localPass = if ($txtPass) { $txtPass.Text } else { '' }
+    
+    $chkAutoLogon = $window.FindName('chkAutoLogon')
+    $autoLogonCount = if ($chkAutoLogon -and $chkAutoLogon.IsChecked) { 1 } else { 0 }
+    
+    $chkZeroTouch = $window.FindName('chkZeroTouch')
+    $zeroTouch = [bool]($chkZeroTouch -and $chkZeroTouch.IsChecked)
+    
+    $cmbDisk = $window.FindName('cmbZeroTouchDisk')
+    $zeroTouchDisk = if ($cmbDisk -and $cmbDisk.SelectedIndex -ge 0) { $cmbDisk.SelectedIndex } else { 0 }
+    
+    $chkUpdates = $window.FindName('chkIntegrateUpdates')
+    $integrateUpdates = [bool]($chkUpdates -and $chkUpdates.IsChecked)
+    
+    $chkDrivers = $window.FindName('chkIntegrateDrivers')
+    $integrateDrivers = [bool]($chkDrivers -and $chkDrivers.IsChecked)
+    
+    $chkBootWim = $window.FindName('chkBootWimDrivers')
+    $skipBootWimDrivers = -not [bool]($chkBootWim -and $chkBootWim.IsChecked)
+    
+    $chkRuntimes = $window.FindName('chkIntegrateRuntimes')
+    $integrateRuntimes = [bool]($chkRuntimes -and $chkRuntimes.IsChecked)
+    
+    $chkVisualTweaks = $window.FindName('chkVisualTweaks')
+    $injectVisualTweaks = [bool]($chkVisualTweaks -and $chkVisualTweaks.IsChecked)
+    
+    $chkBlockOneDrive = $window.FindName('chkBlockOneDrive')
+    $blockOneDrive = [bool]($chkBlockOneDrive -and $chkBlockOneDrive.IsChecked)
     
     $chkHyperV = $window.FindName('chkHyperV')
-    $chkVisualTweaks = $window.FindName('chkVisualTweaks')
-    $chkBlockOneDrive = $window.FindName('chkBlockOneDrive')
+    $enableHyperV = [bool]($chkHyperV -and $chkHyperV.IsChecked)
+    
+    $chkSkipCleanup = $window.FindName('chkSkipCleanup')
+    $skipCleanup = [bool]($chkSkipCleanup -and $chkSkipCleanup.IsChecked)
     
     # Resolver indices WIM seleccionados en el ListBox
     $lbxEditions = $window.FindName('lbxWimEditions')
     $selectedIndexes = @()
     $totalItems = 0
-    foreach ($item in $lbxEditions.Items) {
-        $totalItems++
-        if ($item.IsChecked -eq $true) { $selectedIndexes += $item.Tag }
+    if ($lbxEditions) {
+        foreach ($item in $lbxEditions.Items) {
+            $totalItems++
+            if ($item.IsChecked -eq $true) { $selectedIndexes += $item.Tag }
+        }
     }
     $targetWimIndex = if ($totalItems -eq 0 -or $selectedIndexes.Count -eq $totalItems) {
         'all'
@@ -524,38 +724,57 @@ $btnBuild.Add_Click({
     } else {
         'all'
     }
-    Write-StudioLog "Indices WIM seleccionados: $targetWimIndex"
 
     $desktopPath = [Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
     if (-not $desktopPath) { $desktopPath = Join-Path $HOME 'Desktop' }
     $outputIsoDir = Join-Path $desktopPath 'WinISO_Optimizado'
 
-    $config = [ordered]@{
-        SourceISO           = $sourceIso
-        OutputDir           = $outputIsoDir
-        DriversPath         = (Join-Path $PSScriptRoot '..\..\Drivers')
-        UpdatesPath         = (Join-Path $PSScriptRoot '..\..\Updates')
-        RuntimesPath        = (Join-Path $PSScriptRoot '..\..\Runtimes')
-        EnableHyperV        = [bool]$chkHyperV.IsChecked
-        InjectWin11Script   = $false
-        Language            = $optLang
-        Locale              = 'es-AR'
-        Timezone            = 'Argentina Standard Time'
-        KeyboardOverride    = 'es-419'
-        LocalUser           = 'Roman'
-        LocalPassword       = ''
-        AutoLogonCount      = 1
-        OptimizationProfile = $optProfile
-        BlockOneDrive       = [bool]$chkBlockOneDrive.IsChecked
-        InjectVisualTweaks  = [bool]$chkVisualTweaks.IsChecked
-        WimCompression      = $optComp
-        Architecture        = 'amd64'
-        TargetWimIndex      = $targetWimIndex
-        SkipComponentCleanup = $false
-        ZeroTouch           = $false
-        ExportedAt          = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+    return [ordered]@{
+        SourceISO             = $sourceIso
+        OutputDir             = $outputIsoDir
+        DriversPath           = (Join-Path $PSScriptRoot '..\..\Drivers')
+        UpdatesPath           = (Join-Path $PSScriptRoot '..\..\Updates')
+        RuntimesPath          = (Join-Path $PSScriptRoot '..\..\Runtimes')
+        IntegrateUpdates      = $integrateUpdates
+        IntegrateDrivers      = $integrateDrivers
+        SkipBootWimDrivers    = $skipBootWimDrivers
+        IntegrateRuntimes     = $integrateRuntimes
+        ZeroTouch             = $zeroTouch
+        ZeroTouchDisk         = $zeroTouchDisk
+        LocalUser             = $localUser
+        LocalPassword         = $localPass
+        AutoLogonCount        = $autoLogonCount
+        Language              = $optLang
+        Locale                = $optLoc
+        KeyboardOverride      = $optKb
+        Timezone              = $optTz
+        OptimizationProfile   = $optProfile
+        InjectVisualTweaks    = $injectVisualTweaks
+        BlockOneDrive         = $blockOneDrive
+        EnableHyperV          = $enableHyperV
+        WimCompression        = $optComp
+        SkipComponentCleanup  = $skipCleanup
+        Architecture          = 'amd64'
+        TargetWimIndex        = $targetWimIndex
+        ExportedAt            = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+    }
+}
+
+$btnBuild = $window.FindName('btnBuild')
+$btnBuild.Add_Click({
+    Write-StudioLog "El usuario hizo clic en 'Compilar ISO'."
+    $config = Get-StudioBuildConfig
+
+    if ([string]::IsNullOrWhiteSpace($config.SourceISO) -or $config.SourceISO -eq 'Ruta de la ISO...') {
+        Write-StudioLog "Error de validacion: No se especifico la ruta de la ISO base." -Level "WARN"
+        [System.Windows.MessageBox]::Show('Debe seleccionar una imagen ISO base para compilar.', 'Error', [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+        return
     }
     
+    Write-StudioLog "ISO seleccionada: $($config.SourceISO)"
+    Write-StudioLog "Indices WIM seleccionados: $($config.TargetWimIndex)"
+    Write-StudioLog "Zero-Touch: $($config.ZeroTouch) (Disco: $($config.ZeroTouchDisk)) | Updates: $($config.IntegrateUpdates) | Drivers: $($config.IntegrateDrivers) | Runtimes: $($config.IntegrateRuntimes)"
+
     $tempJsonPath = Join-Path $env:TEMP 'romanOS_BuildPreset.json'
     $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $tempJsonPath -Encoding UTF8 -Force
     Write-StudioLog "Archivo JSON temporal inyectado en: $tempJsonPath"
@@ -607,7 +826,6 @@ $btnBrowseISO.Add_Click({
     }
 })
 
-
 $btnExportPreset = $window.FindName('btnExportPreset')
 $btnExportPreset.Add_Click({
     Write-StudioLog "Boton 'Solo JSON' presionado."
@@ -615,38 +833,7 @@ $btnExportPreset.Add_Click({
     $dlg.Filter = 'Archivo JSON (*.json)|*.json'
     $dlg.FileName = 'Preset_romanOS_Studio.json'
     if ($dlg.ShowDialog() -eq $true) {
-        $sourceIso = $window.FindName('txtSourceISO').Text
-        $cmbProfile = $window.FindName('cmbProfile')
-        $optProfile = [string]($cmbProfile.SelectedIndex + 1)
-        
-        $cmbComp = $window.FindName('cmbCompression')
-        $optComp = $cmbComp.Text
-        $cmbLang = $window.FindName('cmbLanguage')
-        $optLang = $cmbLang.Text.Split(' ')[0]
-        
-        $chkHyperV = $window.FindName('chkHyperV')
-        $chkVisualTweaks = $window.FindName('chkVisualTweaks')
-        $chkBlockOneDrive = $window.FindName('chkBlockOneDrive')
-        
-        $config = [ordered]@{
-            SourceISO           = $sourceIso
-            DriversPath         = 'Drivers'
-            EnableHyperV        = [bool]$chkHyperV.IsChecked
-            InjectWin11Script   = $false
-            Language            = $optLang
-            Locale              = 'es-AR'
-            Timezone            = 'Argentina Standard Time'
-            KeyboardOverride    = 'es-419'
-            LocalUser           = 'Roman'
-            LocalPassword       = ''
-            OptimizationProfile = $optProfile
-            BlockOneDrive       = [bool]$chkBlockOneDrive.IsChecked
-            InjectVisualTweaks  = [bool]$chkVisualTweaks.IsChecked
-            WimCompression      = $optComp
-            Architecture        = 'amd64'
-            ExportedAt          = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
-        }
-        
+        $config = Get-StudioBuildConfig
         try {
             $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $dlg.FileName -Encoding UTF8 -Force
             Write-StudioLog "Preset exportado satisfactoriamente en: $($dlg.FileName)"
