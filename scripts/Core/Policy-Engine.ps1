@@ -304,6 +304,34 @@ $global:RomanOS_Policies = @(
         UnattendDesc  = "Block Privacy Experience screens (Scoobe)"
     },
     @{
+        Id            = "POL_FIRST_LOGON_ANIMATION"
+        Module        = "Base - OOBE Performance"
+        Category      = "Rendimiento & OOBE"
+        RegistryKey   = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
+        PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
+        ValueName     = "EnableFirstLogonAnimation"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar animacion de primer inicio de sesion (Hola... Preparando todo para ti)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-experience"
+        UnattendDesc  = "Disable First Logon Animation (OOBE Speedup)"
+    },
+    @{
+        Id            = "POL_FIRST_LOGON_ANIM_WINLOGON"
+        Module        = "Base - OOBE Performance"
+        Category      = "Rendimiento & OOBE"
+        RegistryKey   = "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+        PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+        ValueName     = "EnableFirstLogonAnimation"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar animacion de primer inicio de sesion en Winlogon"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-experience"
+        UnattendDesc  = "Disable First Logon Animation in Winlogon (OOBE Speedup)"
+    },
+    @{
         Id            = "POL_CLOUD_CONSUMER_FEAT"
         Module        = "Base - Anti-Bloatware"
         Category      = "Privacidad & Shell"

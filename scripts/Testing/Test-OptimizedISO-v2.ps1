@@ -1532,6 +1532,26 @@ Assert-True "PLAN-0063: Builder AST incluye parametro EnableHyperV" ([bool]($bui
 Assert-True "PLAN-0063: Builder inyecta Desplegar-Setup-Host en OEM y Desktop" ([bool]($builderContent63 -match 'Desplegar-Setup-Host\.cmd'))
 Assert-True "PLAN-0063: Builder incluye habilitacion offline de Hyper-V con DISM" ([bool]($builderContent63 -match 'Microsoft-Hyper-V-All'))
 
+# -----------------------------------------------------------------------------
+# FASE 2.15: VALIDACIÓN DE OPTIMIZACIÓN DE INSTALACIÓN ZERO-TOUCH (PLAN-0076)
+# -----------------------------------------------------------------------------
+Write-HarnessHeader2 "FASE 2.15: Optimizacion del Tiempo de Instalacion Zero-Touch (PLAN-0076)"
+
+# 1. Validar directivas de supresion de animacion de primer inicio en Policy-Engine
+Assert-NotNull "PLAN-0076: Directiva POL_FIRST_LOGON_ANIMATION en Policy-Engine" ($global:RomanOS_Policies | Where-Object { $_.Id -eq 'POL_FIRST_LOGON_ANIMATION' })
+Assert-NotNull "PLAN-0076: Directiva POL_FIRST_LOGON_ANIM_WINLOGON en Policy-Engine" ($global:RomanOS_Policies | Where-Object { $_.Id -eq 'POL_FIRST_LOGON_ANIM_WINLOGON' })
+
+$unattendExp76 = Export-RomanOSUnattendCommands -Profile "1"
+Assert-True "PLAN-0076: Export-RomanOSUnattendCommands exporta EnableFirstLogonAnimation" ([bool]($unattendExp76.XmlContent -match 'EnableFirstLogonAnimation'))
+
+# 2. Validar aceleracion en fase windowsPE de autounattend.xml
+$v2FreshContent76 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0076: Builder autounattend incluye powercfg High Performance en windowsPE" ([bool]($v2FreshContent76 -match 'powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'))
+Assert-True "PLAN-0076: Builder autounattend incluye DynamicUpdate deshabilitado" ([bool]($v2FreshContent76 -match '<DynamicUpdate>\s*<Enable>false</Enable>'))
+
+# 3. Validar consolidacion de tareas en SetupComplete.cmd
+Assert-True "PLAN-0076: Builder genera Initialize-SuiteTasks.ps1 para ejecucion consolidada" ([bool]($v2FreshContent76 -match 'Initialize-SuiteTasks\.ps1'))
+Assert-True "PLAN-0076: SetupComplete lanza diagnosticos en background de forma desacoplada" ([bool]($v2FreshContent76 -match 'start "" /b.*PostInstall-Diagnostics\.ps1'))
 
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"

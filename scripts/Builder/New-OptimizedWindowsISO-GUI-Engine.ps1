@@ -4650,17 +4650,22 @@ __BROWSER_POLICIES_BLOCK__
 
 __OPTIMIZATIONS_BLOCK__
 REM ===========================================================
-REM Registrar Tareas a Demanda y Accesos Directos en Escritorio
+REM Registrar Tareas a Demanda y Accesos Directos en Escritorio (PLAN-0076)
 REM ===========================================================
+if exist "%SCRIPTS_DIR%\Initialize-SuiteTasks.ps1" (
+    echo [%DATE% %TIME%] Registrando tareas y accesos de forma consolidada (PLAN-0076)... >> "%LOG%"
+    "%PS%" -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\Initialize-SuiteTasks.ps1" >> "%LOG%" 2>&1
+) else (
 __SCHEDULED_TASKS_BLOCK__
+)
 
 REM ===========================================================
-REM Auditoria y Diagnostico Integral Post-Instalacion
+REM Auditoria y Diagnostico Integral Post-Instalacion (PLAN-0076)
 REM ===========================================================
 echo [%DATE% %TIME%] SetupComplete.cmd finalizado exitosamente. >> "%LOG%"
 if exist "%SCRIPTS_DIR%\PostInstall-Diagnostics.ps1" (
-    echo [%DATE% %TIME%] Ejecutando auditoria post-instalacion... >> "%LOG%"
-    "%PS%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\PostInstall-Diagnostics.ps1" -DesktopOutput -ExpectedProfile __OPT_PROFILE__ -ExpectedBlockOneDrive:__BLOCK_ONEDRIVE__ >> "%LOG%" 2>&1
+    echo [%DATE% %TIME%] Lanzando auditoria post-instalacion en segundo plano... >> "%LOG%"
+    start "" /b "%PS%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\PostInstall-Diagnostics.ps1" -DesktopOutput -ExpectedProfile __OPT_PROFILE__ -ExpectedBlockOneDrive:__BLOCK_ONEDRIVE__ >> "%LOG%" 2>&1
 )
 exit /b 0
 '@
@@ -4812,9 +4817,80 @@ $setupCompletePath1 = Join-Path $OEMScriptsDir1 "SetupComplete.cmd"
 $setupCompleteContent | Out-File -FilePath $setupCompletePath -Encoding ASCII -Force
 $setupCompleteContent | Out-File -FilePath $setupCompletePath1 -Encoding ASCII -Force
 
-Write-OK "SetupComplete.cmd generado con menus contextuales canonicos y directivas SSOT de navegadores."
+# Generar Initialize-SuiteTasks.ps1 consolidado para ejecucion ultra-rapida en un solo proceso (PLAN-0076)
+$suiteTasksScriptLines = [System.Collections.Generic.List[string]]::new()
+$suiteTasksScriptLines.Add('# ==============================================================================')
+$suiteTasksScriptLines.Add('# Initialize-SuiteTasks.ps1 - romanOS Suite Consolidated Tasks & Shortcuts')
+$suiteTasksScriptLines.Add('# Codificacion UTF-8 con BOM requerida para Windows PowerShell 5.1 (PLAN-0076)')
+$suiteTasksScriptLines.Add('# ==============================================================================')
+$suiteTasksScriptLines.Add('$ErrorActionPreference = "SilentlyContinue"')
+$suiteTasksScriptLines.Add('$ws = New-Object -ComObject WScript.Shell')
+$suiteTasksScriptLines.Add('$sm = if ($env:ProgramData) { "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema" } else { "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema" }')
+$suiteTasksScriptLines.Add('if (-not (Test-Path $sm)) { New-Item -ItemType Directory -Path $sm -Force | Out-Null }')
+$suiteTasksScriptLines.Add('$scriptsDir = if ($env:WINDIR) { "$env:WINDIR\Setup\Scripts" } else { "C:\Windows\Setup\Scripts" }')
+$suiteTasksScriptLines.Add('')
+
+if ($scriptsToInject.Count -gt 0) {
+    foreach ($sc in $scriptsToInject) {
+        $taskName = "Ejecutar_" + ($sc.DestName -replace '[^a-zA-Z0-9_]', '')
+        $iconNumber = if ($sc.DestName -match 'Maintenance') { "54" } elseif ($sc.DestName -match 'Network') { "23" } elseif ($sc.DestName -match 'Security') { "105" } elseif ($sc.DestName -match 'Toolkit') { "109" } else { "109" }
+        $suiteTasksScriptLines.Add(@"
+try {
+    `$act = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-STA -NoProfile -ExecutionPolicy Bypass -File "$scriptsDir\$($sc.DestName)"'
+    `$pri = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+    `$set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+    Register-ScheduledTask -TaskName '$taskName' -Action `$act -Principal `$pri -Settings `$set -Force | Out-Null
+} catch {
+    schtasks /create /tn '$taskName' /tr "powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File \"$scriptsDir\$($sc.DestName)\"" /sc ONCE /st 00:00 /sd 2099/12/31 /ru 'SYSTEM' /rl HIGHEST /f | Out-Null
+}
+
+try {
+    `$scItem = `$ws.CreateShortcut("`$sm\$($sc.ShortcutName)")
+    `$scItem.TargetPath = "$scriptsDir\$($sc.LauncherName)"
+    `$scItem.WorkingDirectory = "$scriptsDir"
+    `$scItem.Description = '$($sc.Title)'
+    `$scItem.IconLocation = '%SystemRoot%\System32\imageres.dll,$iconNumber'
+    `$scItem.Save()
+} catch {}
+"@)
+    }
+}
+
+$suiteTasksScriptLines.Add(@"
+try {
+    `$scAudit = `$ws.CreateShortcut("`$sm\Auditar Instalacion.lnk")
+    `$scAudit.TargetPath = "$scriptsDir\Auditar-Instalacion.cmd"
+    `$scAudit.WorkingDirectory = "$scriptsDir"
+    `$scAudit.Description = 'Auditar y Diagnosticar Instalacion de Windows'
+    `$scAudit.IconLocation = '%SystemRoot%\System32\imageres.dll,104'
+    `$scAudit.Save()
+} catch {}
+
+if (Test-Path "$scriptsDir\Desplegar-Setup-Host.cmd") {
+    `$dt = [System.Environment]::GetFolderPath('CommonDesktopDirectory')
+    if (-not `$dt -or -not (Test-Path `$dt)) { `$dt = if (`$env:PUBLIC) { "`$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" } }
+    if (Test-Path `$dt) {
+        try {
+            `$scHost = `$ws.CreateShortcut("`$dt\Desplegar Setup Dev y Gaming.lnk")
+            `$scHost.TargetPath = "$scriptsDir\Desplegar-Setup-Host.cmd"
+            `$scHost.WorkingDirectory = "$scriptsDir"
+            `$scHost.Description = 'Suite Modular de Despliegue (Dev-IA y Gaming)'
+            `$scHost.IconLocation = '%SystemRoot%\System32\shell32.dll,277'
+            `$scHost.Save()
+        } catch {}
+    }
+}
+"@)
+
+$suiteTasksContent = $suiteTasksScriptLines -join "`r`n"
+$suiteTasksPath  = Join-Path $OEMScriptsDir "Initialize-SuiteTasks.ps1"
+$suiteTasksPath1 = Join-Path $OEMScriptsDir1 "Initialize-SuiteTasks.ps1"
+[System.IO.File]::WriteAllText($suiteTasksPath, $suiteTasksContent, [System.Text.Encoding]::UTF8)
+[System.IO.File]::WriteAllText($suiteTasksPath1, $suiteTasksContent, [System.Text.Encoding]::UTF8)
+
+Write-OK "SetupComplete.cmd e Initialize-SuiteTasks.ps1 generados con integracion consolidada de Suite."
 Add-AuditRecord -Resource "SetupComplete.cmd" -Target '$OEM$' -Status "OK" `
-                -Details "Menus contextuales sincronizados y directivas GPO de navegadores inyectadas"
+                -Details "SetupComplete optimizado con Initialize-SuiteTasks.ps1 consolidado y diagnosticos en background"
 
 #------------------------------------------------------------------------------
 # 4/6 - REGISTRAR LANZADOR DE AUDITORIA POST-INSTALACION (Auditar-Instalacion.cmd)
@@ -5180,39 +5256,48 @@ $($firstLogonCommands -join "`n")
     </component>
     <component name="Microsoft-Windows-Setup" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <EnableFirewall>true</EnableFirewall>
+      <DynamicUpdate>
+        <Enable>false</Enable>
+        <WillShowUI>Never</WillShowUI>
+      </DynamicUpdate>
       <RunSynchronous>
         <RunSynchronousCommand wcm:action="add">
           <Order>1</Order>
+          <Description>Set WinPE High Performance Power Scheme (PLAN-0076)</Description>
+          <Path>powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>2</Order>
           <Description>Bypass TPM Check</Description>
           <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>2</Order>
+          <Order>3</Order>
           <Description>Bypass SecureBoot Check</Description>
           <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>3</Order>
+          <Order>4</Order>
           <Description>Bypass RAM Check</Description>
           <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>4</Order>
+          <Order>5</Order>
           <Description>Bypass CPU Check</Description>
           <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassCPUCheck /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>5</Order>
+          <Order>6</Order>
           <Description>Bypass Storage Check</Description>
           <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassStorageCheck /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>6</Order>
+          <Order>7</Order>
           <Description>Bypass Disk Check</Description>
           <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassDiskCheck /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
         <RunSynchronousCommand wcm:action="add">
-          <Order>7</Order>
+          <Order>8</Order>
           <Description>Allow upgrades with unsupported TPM/CPU</Description>
           <Path>reg add HKLM\SYSTEM\Setup\MoSetup /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
