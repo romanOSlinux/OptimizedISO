@@ -4883,6 +4883,28 @@ bcdedit /set hypervisorlaunchtype off >> "%LOG%" 2>&1
 '@
 }
 
+if ($script:BlockOneDrive) {
+    $optimizationsBlock += @'
+REM ===========================================================
+REM Purga y Bloqueo Definitivo de OneDrive (PLAN-0078)
+REM ===========================================================
+echo [%DATE% %TIME%] Purgando instalador y tareas residuales de OneDrive... >> "%LOG%"
+taskkill /f /im OneDrive.exe >> "%LOG%" 2>&1
+taskkill /f /im OneDrive.Sync.Service.exe >> "%LOG%" 2>&1
+taskkill /f /im FileCoAuth.exe >> "%LOG%" 2>&1
+if exist "%SystemRoot%\System32\OneDriveSetup.exe" (
+    "%SystemRoot%\System32\OneDriveSetup.exe" /uninstall /silent >> "%LOG%" 2>&1
+)
+if exist "%SystemRoot%\SysWOW64\OneDriveSetup.exe" (
+    "%SystemRoot%\SysWOW64\OneDriveSetup.exe" /uninstall /silent >> "%LOG%" 2>&1
+)
+reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f >> "%LOG%" 2>&1
+reg delete "HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f >> "%LOG%" 2>&1
+"%PS%" -NoProfile -ExecutionPolicy Bypass -Command "Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -match 'OneDrive' } | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue" >> "%LOG%" 2>&1
+
+'@
+}
+
 
 $browserPoliciesBlock = ""
 if (Get-Command "Export-RomanOSBrowserCommands" -ErrorAction SilentlyContinue) {
@@ -5166,18 +5188,38 @@ $($firstLogonCommands -join "`n")
         $oneDriveXml = @"
         <RunSynchronousCommand wcm:action="add">
           <Order>2</Order>
-          <Description>Prevent OneDrive auto-install</Description>
+          <Description>Prevent OneDrive auto-install (DisableFileSyncNGSC)</Description>
           <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive /v DisableFileSyncNGSC /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>3</Order>
+          <Description>Disable OneDrive File Sync</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive /v DisableFileSync /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>4</Order>
+          <Description>Disable OneDrive Metered Network Sync</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive /v DisableMeteredNetworkFileSync /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>5</Order>
+          <Description>Disable OneDrive Libraries Style Pin</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive /v DisableLibrariesStylePin /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>6</Order>
+          <Description>Remove OneDrive from Default User Run key</Description>
+          <Path>cmd.exe /c "reg delete HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Run /v OneDriveSetup /f >nul 2>&1 || exit 0"</Path>
         </RunSynchronousCommand>
 "@
     }
 
     # Optimizaciones de sistema inyectadas en fase specialize (políticas HKLM 100% seguras)
-    $nextOrder = if ($script:BlockOneDrive) { 3 } else { 2 }
+    $nextOrder = if ($script:BlockOneDrive) { 7 } else { 2 }
 
     $optimizeXml = ""
     if (Get-Command "Export-RomanOSUnattendCommands" -ErrorAction SilentlyContinue) {
-        $unattendResult = Export-RomanOSUnattendCommands -Profile "$optProfile" -StartOrder $nextOrder
+        $unattendResult = Export-RomanOSUnattendCommands -Profile "$optProfile" -StartOrder $nextOrder -SkipOneDrive:(-not $script:BlockOneDrive)
         $optimizeXml = $unattendResult.XmlContent
         $nextOrder = $unattendResult.NextOrder
     } else {

@@ -93,6 +93,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0075 | [PLAN-0075-20260910-alineacion-deteccion-iso-hyperv-gui-y-cli.md](PLAN-0075-20260910-alineacion-deteccion-iso-hyperv-gui-y-cli.md) | 2026-09-10 | Alineación de Detección Automática de ISO Optimizada en Hyper-V (romanOS Studio & CLI) | COMPLETADO |
 | 0076 | [PLAN-0076-20260911-optimizacion-tiempo-instalacion-iso-zero-touch.md](PLAN-0076-20260911-optimizacion-tiempo-instalacion-iso-zero-touch.md) | 2026-09-11 | Optimización Integral del Tiempo de Instalación de la ISO (Zero-Touch a Escritorio) | COMPLETADO |
 | 0077 | [PLAN-0077-20260911-integracion-opciones-creacion-iso-gui.md](PLAN-0077-20260911-integracion-opciones-creacion-iso-gui.md) | 2026-09-11 | Integración de Opciones Seleccionables en la Interfaz de Creación de ISO (romanOS Studio) | COMPLETADO |
+| 0078 | [PLAN-0078-20260911-purga-profunda-onedrive-iso-y-debloat.md](PLAN-0078-20260911-purga-profunda-onedrive-iso-y-debloat.md) | 2026-09-11 | Purga Profunda y Bloqueo Definitivo de OneDrive en Creación de ISO y Debloat | COMPLETADO |
 
 
 

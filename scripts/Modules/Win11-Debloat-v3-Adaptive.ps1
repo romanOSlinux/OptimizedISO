@@ -1372,20 +1372,110 @@ if ($presentWin32.Count -eq 0) {
         $selectedWin32 = $presentWin32
     }
 
+    function Invoke-OneDriveDeepPurge {
+        <#
+        .SYNOPSIS
+            Purga completa y profunda de Microsoft OneDrive del sistema (PLAN-0078).
+        #>
+        [CmdletBinding()]
+        param()
+
+        Write-Host "    [1/5] Deteniendo procesos activos de OneDrive..." -ForegroundColor Gray
+        Get-Process | Where-Object { $_.ProcessName -match "onedrive|filecoauth" } | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+
+        Write-Host "    [2/5] Ejecutando desinstaladores nativos oficiales..." -ForegroundColor Gray
+
+        # Desinstalador de usuario en AppData
+        $userSetup = "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe"
+        if (Test-Path $userSetup) {
+            try {
+                Start-Process -FilePath $userSetup -ArgumentList "/uninstall /silent" -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue
+            } catch {}
+        }
+
+        # Desinstalador nativo en System32 / SysWOW64
+        $sys32Setup = "$env:SystemRoot\System32\OneDriveSetup.exe"
+        $sysWowSetup = "$env:SystemRoot\SysWOW64\OneDriveSetup.exe"
+        if (Test-Path $sys32Setup) {
+            try {
+                Start-Process -FilePath $sys32Setup -ArgumentList "/uninstall /silent" -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue
+            } catch {}
+        }
+        if (Test-Path $sysWowSetup) {
+            try {
+                Start-Process -FilePath $sysWowSetup -ArgumentList "/uninstall /silent" -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue
+            } catch {}
+        }
+
+        # Desinstalador vía winget si está disponible
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            try {
+                winget uninstall --id Microsoft.OneDrive --silent --accept-source-agreements --disable-interactivity 2>&1 | Out-Null
+            } catch {}
+        }
+
+        Write-Host "    [3/5] Eliminando tareas programadas de OneDrive..." -ForegroundColor Gray
+        $tasks = Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -match "OneDrive" }
+        foreach ($t in $tasks) {
+            Unregister-ScheduledTask -TaskName $t.TaskName -Confirm:$false -ErrorAction SilentlyContinue
+        }
+
+        Write-Host "    [4/5] Limpiando claves de inicio automatico (Run / RunOnce)..." -ForegroundColor Gray
+        $runKeys = @(
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run",
+            "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
+            "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run"
+        )
+        foreach ($rk in $runKeys) {
+            if (Test-Path $rk) {
+                Remove-ItemProperty -Path $rk -Name "OneDrive" -Force -ErrorAction SilentlyContinue
+                Remove-ItemProperty -Path $rk -Name "OneDriveSetup" -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        # Limpiar en perfil Default User para que futuros usuarios no lo autoinstalen
+        try {
+            $defaultRunKey = "Registry::HKEY_USERS\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Run"
+            if (Test-Path $defaultRunKey) {
+                Remove-ItemProperty -Path $defaultRunKey -Name "OneDriveSetup" -Force -ErrorAction SilentlyContinue
+            }
+        } catch {}
+
+        Write-Host "    [5/5] Aplicando directivas GPO y ocultando del Explorador..." -ForegroundColor Gray
+        $policyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive"
+        if (-not (Test-Path $policyPath)) { New-Item -Path $policyPath -Force | Out-Null }
+        Set-ItemProperty -Path $policyPath -Name "DisableFileSyncNGSC" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $policyPath -Name "DisableFileSync" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $policyPath -Name "DisableMeteredNetworkFileSync" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $policyPath -Name "DisableLibrariesStylePin" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+
+        # Desanclar del panel de navegacion del Explorador de Windows
+        $clsidPaths = @(
+            "HKCU:\Software\Classes\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}",
+            "HKCU:\Software\Classes\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}"
+        )
+        foreach ($cp in $clsidPaths) {
+            if (-not (Test-Path $cp)) { New-Item -Path $cp -Force | Out-Null }
+            Set-ItemProperty -Path $cp -Name "System.IsPinnedToNameSpaceTree" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        }
+
+        Write-Host "    [✓] Microsoft OneDrive purgado y deshabilitado por completo." -ForegroundColor Green
+    }
+
     if ($selectedWin32) {
-        if (-not $script:HasWinget) {
-            Write-Host "  [!] Winget no disponible. No se pueden desinstalar apps Win32 via winget." -ForegroundColor Red
-            Write-Host "      Desinstalalas manualmente desde Configuracion > Aplicaciones." -ForegroundColor Yellow
-        } else {
-            foreach ($app in $selectedWin32) {
-                Write-Host "  - Intentando desinstalar $($app.Name)..." -ForegroundColor Gray
-                if ($app.Id -eq 'Microsoft.OneDrive') {
-                    Stop-Process -Name "OneDrive" -Force -ErrorAction SilentlyContinue
-                    Start-Sleep -Seconds 2
+        foreach ($app in $selectedWin32) {
+            Write-Host "  - Procesando desinstalacion de $($app.Name)..." -ForegroundColor Gray
+            if ($app.Id -eq 'Microsoft.OneDrive') {
+                Invoke-OneDriveDeepPurge
+            } else {
+                if (-not $script:HasWinget) {
+                    Write-Host "  [!] Winget no disponible para $($app.Name). Desinstalelo manualmente." -ForegroundColor Yellow
+                } else {
+                    winget uninstall --id $($app.Id) --silent --accept-source-agreements --disable-interactivity | Out-Null
+                    if ($LASTEXITCODE -eq 0) { Write-Host "    Desinstalado: $($app.Name)" -ForegroundColor Green }
+                    else { Write-Host "    ! Exit $LASTEXITCODE para $($app.Name) (puede ya estar desinstalado)" -ForegroundColor Yellow }
                 }
-                winget uninstall --id $($app.Id) --silent --accept-source-agreements --disable-interactivity | Out-Null
-                if ($LASTEXITCODE -eq 0) { Write-Host "    Desinstalado: $($app.Name)" -ForegroundColor Green }
-                else { Write-Host "    ! Exit $LASTEXITCODE para $($app.Name) (puede ya estar desinstalado)" -ForegroundColor Yellow }
             }
         }
     } else {

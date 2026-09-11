@@ -168,6 +168,64 @@ $global:RomanOS_Policies = @(
         UnattendDesc  = "Disable Search from Using Device Location"
     },
 
+    # --- MÓDULO ONEDRIVE: BLOQUEO INTEGRAL (PLAN-0078) ---
+    @{
+        Id            = "POL_ONEDRIVE_BLOCK"
+        Module        = "Modulo OneDrive - Bloqueo de Sincronizacion"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive"
+        ValueName     = "DisableFileSyncNGSC"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Bloquear sincronizacion del cliente OneDrive (NextGen Sync Client)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/sharepoint/use-group-policy#prevent-users-from-syncing-personal-onedrive-accounts"
+        UnattendDesc  = "Prevent OneDrive File Sync System-Wide"
+    },
+    @{
+        Id            = "POL_ONEDRIVE_DISABLE_FILE_SYNC"
+        Module        = "Modulo OneDrive - Bloqueo de Sincronizacion"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive"
+        ValueName     = "DisableFileSync"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar completamente la sincronizacion de archivos de OneDrive"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/sharepoint/use-group-policy#prevent-users-from-syncing-personal-onedrive-accounts"
+        UnattendDesc  = "Disable OneDrive File Sync"
+    },
+    @{
+        Id            = "POL_ONEDRIVE_METERED_SYNC"
+        Module        = "Modulo OneDrive - Redes Medidas"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive"
+        ValueName     = "DisableMeteredNetworkFileSync"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Bloquear sincronizacion de OneDrive en redes de uso medido"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/sharepoint/use-group-policy"
+        UnattendDesc  = "Disable OneDrive Metered Network Sync"
+    },
+    @{
+        Id            = "POL_ONEDRIVE_LIBRARIES_PIN"
+        Module        = "Modulo OneDrive - Bibliotecas"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive"
+        ValueName     = "DisableLibrariesStylePin"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Desvincular OneDrive del anclaje de carpetas y bibliotecas del sistema"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/sharepoint/use-group-policy"
+        UnattendDesc  = "Disable OneDrive Libraries Style Pin"
+    },
+
     # --- MÓDULO D: IA, COPILOT Y RECALL (W11 24H2+) ---
     @{
         Id            = "POL_COPILOT_TURNOFF"
@@ -2486,7 +2544,8 @@ function Export-RomanOSUnattendCommands {
     param(
         [ValidateSet("1", "2", "3")]
         [string]$Profile = "1",
-        [int]$StartOrder = 2
+        [int]$StartOrder = 2,
+        [switch]$SkipOneDrive
     )
 
     $policies = Get-RomanOSPolicies -Profile $Profile
@@ -2496,6 +2555,9 @@ function Export-RomanOSUnattendCommands {
     foreach ($p in $policies) {
         # Omitir BypassNRO ya que suele ser el comando Order 1 en la fase specialize
         if ($p.Id -eq "POL_OOBE_BYPASS_NRO") { continue }
+
+        # Omitir politicas de bloqueo de OneDrive si se especifico conservarlo (-SkipOneDrive)
+        if ($SkipOneDrive -and $p.Id -like "POL_ONEDRIVE_*") { continue }
 
         $desc = if ($p.UnattendDesc) { $p.UnattendDesc } else { $p.Description }
         $cmdPath = "reg add `"$($p.RegistryKey)`" /v $($p.ValueName) /t $($p.Type) /d $($p.ExpectedValue) /f"
