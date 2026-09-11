@@ -89,3 +89,8 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0071 | [PLAN-0071-20260909-integracion-gui-para-actualizaciones-y-drivers.md](PLAN-0071-20260909-integracion-gui-para-actualizaciones-y-drivers.md) | 2026-09-09 | Integración de Módulos Satélite a la GUI | COMPLETADO |
 | 0072 | [PLAN-0072-20260909-host-tools-gui.md](PLAN-0072-20260909-host-tools-gui.md) | 2026-09-09 | Integración de Pilares 2 y 3 a romanOS Studio (Hyper-V & Higiene Host) | COMPLETADO |
 | 0073 | [PLAN-0073-20260909-reparacion-integral-lanzador-y-gui.md](PLAN-0073-20260909-reparacion-integral-lanzador-y-gui.md) | 2026-09-09 | Reparación Integral de romanOS Studio: Lanzador CMD, Parser XAML, Eventos de Satélites y Streaming de Logs | COMPLETADO |
+| 0074 | [PLAN-0074-20260910-fix-gui-crash-exit-5-streaming.md](PLAN-0074-20260910-fix-gui-crash-exit-5-streaming.md) | 2026-09-10 | Corrección de Cierre Inesperado de romanOS Studio (Código de Error 5) y Streaming Asíncrono Robusto | COMPLETADO |
+| 0075 | [PLAN-0075-20260910-alineacion-deteccion-iso-hyperv-gui-y-cli.md](PLAN-0075-20260910-alineacion-deteccion-iso-hyperv-gui-y-cli.md) | 2026-09-10 | Alineación de Detección Automática de ISO Optimizada en Hyper-V (romanOS Studio & CLI) | COMPLETADO |
+
+
+

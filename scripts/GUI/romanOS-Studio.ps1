@@ -199,7 +199,7 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                 <Grid Margin="15">
                     <StackPanel Orientation="Vertical">
                         <TextBlock Text="Despliegue Rápido (Hyper-V)" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,10,0,5" />
-                        <TextBlock Text="Levanta una máquina virtual Gen2 con la ISO seleccionada para probar el sistema sin instalarlo en hardware real." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
+                        <TextBlock Text="Levanta una máquina virtual Gen2 con la última ISO optimizada creada en WinISO_Optimizado para probar el sistema sin instalarlo en hardware real." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
                         <Button x:Name="btnTestVM" Content="Levantar Máquina Virtual de Prueba" Height="32" Width="280" HorizontalAlignment="Left" Background="#0078D4" Foreground="White" BorderThickness="0" Margin="0,0,0,25" />
 
                         <TextBlock Text="Higiene y Mantenimiento" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,10,0,5" />
@@ -377,7 +377,7 @@ function Start-StudioSubProcess {
     Set-StudioUIState -IsRunning $true -TaskName $TaskTitle
 
     $tabControl = $window.FindName('tabControlMain')
-    $tabControl.SelectedIndex = 3
+    $tabControl.SelectedIndex = 4
 
     $txtConsole = $window.FindName('txtConsole')
     $txtConsole.AppendText("`r`n════════════════════════════════════════════════════════════════`r`n")
@@ -385,66 +385,102 @@ function Start-StudioSubProcess {
     $txtConsole.AppendText("════════════════════════════════════════════════════════════════`r`n")
     $txtConsole.ScrollToEnd()
 
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = "powershell.exe"
-    $pinfo.Arguments = $CommandLine
-    $pinfo.UseShellExecute = $false
-    $pinfo.CreateNoWindow = $true
-    $pinfo.RedirectStandardInput = $true
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.RedirectStandardError = $true
-
-    $script:workerProcess = New-Object System.Diagnostics.Process
-    $script:workerProcess.StartInfo = $pinfo
-    $script:workerProcess.EnableRaisingEvents = $true
-
-    $script:workerProcess.add_OutputDataReceived({
-        param($sender, $e)
-        if ($e.Data) {
-            $window.Dispatcher.Invoke([action]{
-                $txtConsole.AppendText("$($e.Data)`r`n")
-                $txtConsole.ScrollToEnd()
-            })
-            Write-StudioLog $e.Data
-        }
+    $queue = [System.Collections.Concurrent.ConcurrentQueue[string]]::new()
+    $state = [hashtable]::Synchronized(@{
+        Process   = $null
+        ExitCode  = -1
+        IsRunning = $true
+        TaskTitle = $TaskTitle
     })
 
-    $script:workerProcess.add_ErrorDataReceived({
-        param($sender, $e)
-        if ($e.Data) {
-            $window.Dispatcher.Invoke([action]{
-                $txtConsole.AppendText("[ERROR] $($e.Data)`r`n")
-                $txtConsole.ScrollToEnd()
-            })
-            Write-StudioLog $e.Data -Level "ERROR"
-        }
-    })
+    $rs = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace()
+    $rs.Open()
+    $ps = [System.Management.Automation.PowerShell]::Create()
+    $ps.Runspace = $rs
 
-    $script:workerProcess.add_Exited({
-        param($sender, $e)
-        Write-StudioLog "Tarea finalizada: $TaskTitle (PID: $($script:workerProcess.Id))"
-        $window.Dispatcher.Invoke([action]{
-            $exitCode = $script:workerProcess.ExitCode
-            if ($exitCode -eq 0) {
-                $txtConsole.AppendText("`r`n[EXITO] $TaskTitle finalizado satisfactoriamente.`r`n")
-                Set-StudioUIState -IsRunning $false -TaskName "$TaskTitle completado con éxito"
-            } else {
-                $txtConsole.AppendText("`r`n[FALLO] $TaskTitle finalizo con codigo de error $exitCode.`r`n")
-                Set-StudioUIState -IsRunning $false -TaskName "Error en $TaskTitle (Codigo $exitCode)"
+    [void]$ps.AddScript({
+        param($cmdArgs, $outQueue, $procState)
+        try {
+            $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+            $pinfo.FileName = "cmd.exe"
+            $pinfo.Arguments = "/c powershell.exe $cmdArgs 2>&1"
+            $pinfo.UseShellExecute = $false
+            $pinfo.CreateNoWindow = $true
+            $pinfo.RedirectStandardOutput = $true
+
+            $proc = New-Object System.Diagnostics.Process
+            $proc.StartInfo = $pinfo
+            $proc.Start() | Out-Null
+            $procState.Process = $proc
+
+            while (-not $proc.StandardOutput.EndOfStream) {
+                $line = $proc.StandardOutput.ReadLine()
+                if ($null -ne $line) {
+                    $outQueue.Enqueue($line)
+                }
             }
-            $txtConsole.ScrollToEnd()
-        })
+            $proc.WaitForExit()
+            $procState.ExitCode = $proc.ExitCode
+        } catch {
+            $outQueue.Enqueue("[ERROR CRITICO] $($_.Exception.Message)")
+            $procState.ExitCode = -1
+        } finally {
+            $procState.IsRunning = $false
+        }
     })
 
-    try {
-        $script:workerProcess.Start() | Out-Null
-        $script:workerProcess.BeginOutputReadLine()
-        $script:workerProcess.BeginErrorReadLine()
-        Write-StudioLog "Proceso iniciado exitosamente con PID: $($script:workerProcess.Id)"
-    } catch {
-        Write-StudioLog "Error critico al iniciar proceso: $($_.Exception.Message)" -Level "FATAL"
-        Set-StudioUIState -IsRunning $false -TaskName "Fallo al iniciar proceso"
+    [void]$ps.AddArgument($CommandLine)
+    [void]$ps.AddArgument($queue)
+    [void]$ps.AddArgument($state)
+
+    $handle = $ps.BeginInvoke()
+    $script:activeSubProcessState = $state
+
+    $timer = New-Object System.Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(100)
+    $timer.Tag = @{
+        Queue     = $queue
+        State     = $state
+        Txt       = $txtConsole
+        PS        = $ps
+        RS        = $rs
+        Handle    = $handle
+        TaskTitle = $TaskTitle
     }
+
+    $timer.Add_Tick({
+        $t = $This.Tag
+        $line = ""
+        while ($t.Queue.TryDequeue([ref]$line)) {
+            $t.Txt.AppendText("$line`r`n")
+            $t.Txt.ScrollToEnd()
+            Write-StudioLog $line
+        }
+
+        if (-not $t.State.IsRunning) {
+            $This.Stop()
+            try {
+                $t.PS.EndInvoke($t.Handle)
+                $t.RS.Close()
+                $t.PS.Dispose()
+                $t.RS.Dispose()
+            } catch {}
+
+            $exitCode = $t.State.ExitCode
+            Write-StudioLog "Tarea finalizada: $($t.TaskTitle) con codigo de salida $exitCode"
+            if ($exitCode -eq 0) {
+                $t.Txt.AppendText("`r`n[EXITO] $($t.TaskTitle) finalizado satisfactoriamente.`r`n")
+                Set-StudioUIState -IsRunning $false -TaskName "$($t.TaskTitle) completado con éxito"
+            } else {
+                $t.Txt.AppendText("`r`n[FALLO] $($t.TaskTitle) finalizo con codigo de error $exitCode.`r`n")
+                Set-StudioUIState -IsRunning $false -TaskName "Error en $($t.TaskTitle) (Codigo $exitCode)"
+            }
+            $t.Txt.ScrollToEnd()
+            $script:activeSubProcessState = $null
+        }
+    })
+
+    $timer.Start()
 }
 
 $btnBuild = $window.FindName('btnBuild')
@@ -490,9 +526,13 @@ $btnBuild.Add_Click({
     }
     Write-StudioLog "Indices WIM seleccionados: $targetWimIndex"
 
+    $desktopPath = [Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+    if (-not $desktopPath) { $desktopPath = Join-Path $HOME 'Desktop' }
+    $outputIsoDir = Join-Path $desktopPath 'WinISO_Optimizado'
+
     $config = [ordered]@{
         SourceISO           = $sourceIso
-        OutputDir           = (Join-Path $HOME 'Desktop\WinISO_Optimizado')
+        OutputDir           = $outputIsoDir
         DriversPath         = (Join-Path $PSScriptRoot '..\..\Drivers')
         UpdatesPath         = (Join-Path $PSScriptRoot '..\..\Updates')
         RuntimesPath        = (Join-Path $PSScriptRoot '..\..\Runtimes')
@@ -531,20 +571,25 @@ $btnBuild.Add_Click({
 $btnCancel = $window.FindName('btnCancel')
 $btnCancel.Add_Click({
     Write-StudioLog "El usuario hizo clic en 'Cancelar'."
-    if ($null -ne $script:workerProcess -and -not $script:workerProcess.HasExited) {
-        $res = [System.Windows.MessageBox]::Show("¿Esta seguro que desea abortar la compilacion? DISM podria dejar la imagen temporal montada.", "Advertencia", [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Warning)
+    if ($null -ne $script:activeSubProcessState -and $script:activeSubProcessState.IsRunning) {
+        $res = [System.Windows.MessageBox]::Show("¿Está seguro que desea abortar la tarea en curso? Si hay una operación de montaje WIM/DISM activa, podría requerir limpieza posterior.", "Advertencia de Cancelación", [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Warning)
         if ($res -eq 'Yes') {
             try {
-                Write-StudioLog "Intentando detener el proceso con PID $($script:workerProcess.Id)..." -Level "WARN"
-                $script:workerProcess.Kill()
-                $window.FindName('txtConsole').AppendText("`r`n[!] PROCESO CANCELADO POR EL USUARIO.`r`n")
-                Write-StudioLog "Proceso detenido con exito por intervencion del usuario." -Level "WARN"
+                $targetProc = $script:activeSubProcessState.Process
+                if ($null -ne $targetProc -and -not $targetProc.HasExited) {
+                    $pidToKill = $targetProc.Id
+                    Write-StudioLog "Intentando detener el árbol de procesos con PID $pidToKill..." -Level "WARN"
+                    & taskkill.exe /F /T /PID $pidToKill | Out-Null
+                    try { $targetProc.Kill() } catch {}
+                    $window.FindName('txtConsole').AppendText("`r`n[!] PROCESO CANCELADO POR EL USUARIO.`r`n")
+                    Write-StudioLog "Proceso PID $pidToKill terminado por intervención del usuario." -Level "WARN"
+                }
             } catch {
-                $window.FindName('txtConsole').AppendText("`r`n[!] No se pudo cancelar el proceso.`r`n")
-                Write-StudioLog "Excepcion al intentar cancelar el proceso: $($_.Exception.Message)" -Level "ERROR"
+                $window.FindName('txtConsole').AppendText("`r`n[!] Error al cancelar el proceso: $($_.Exception.Message)`r`n")
+                Write-StudioLog "Excepción al intentar cancelar el proceso: $($_.Exception.Message)" -Level "ERROR"
             }
         } else {
-            Write-StudioLog "Cancelacion abortada por el usuario (Boton No)."
+            Write-StudioLog "Cancelación abortada por el usuario (Botón No)."
         }
     }
 })
@@ -615,17 +660,10 @@ $btnExportPreset.Add_Click({
 
 $btnTestVM = $window.FindName('btnTestVM')
 $btnTestVM.Add_Click({
-    $isoPath = $window.FindName('txtSourceISO').Text
-    if (-not (Test-Path $isoPath)) {
-        Write-StudioLog "ERROR: Seleccione una ISO válida para probar en Hyper-V."
-        [System.Windows.MessageBox]::Show("Seleccione una ISO válida primero en la pestaña 'Construcción Base'.", "romanOS Studio", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
-        return
-    }
-    
+    Write-StudioLog "El usuario hizo clic en 'Levantar Máquina Virtual de Prueba'."
     $scriptEngine = Join-Path $PSScriptRoot "..\Testing\New-TestVM-HyperV.ps1"
     $escapedEngine = $scriptEngine -replace "'", "''"
-    $escapedIso    = $isoPath -replace "'", "''"
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -ISOPath '$escapedIso' *>&1 }`""
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' *>&1 }`""
     Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Despliegue VM Hyper-V"
 })
 

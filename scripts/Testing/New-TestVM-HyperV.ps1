@@ -123,24 +123,34 @@ if (-not $vmmsService -or $vmmsService.Status -ne 'Running') {
 }
 
 # 3. Resolver Ruta de la ISO
-if (-not $ISOPath) {
+if ([string]::IsNullOrWhiteSpace($ISOPath)) {
     Write-VMInfo "Buscando la imagen ISO más reciente en ubicaciones habituales..."
-    $searchDirs = @(
-        "$HOME\Desktop\WinISO_Optimizado",
+    $desktopPath = [Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+    $optWinIso   = if ($desktopPath) { Join-Path $desktopPath "WinISO_Optimizado" } else { $null }
+    $searchDirs  = @(
+        $optWinIso,
+        (Join-Path $HOME "Desktop\WinISO_Optimizado"),
+        (Join-Path $env:USERPROFILE "Desktop\WinISO_Optimizado"),
         "C:\OptimizedISO\Output",
         "C:\OptimizedISO",
         "$HOME\Downloads\Windows_ISOs",
         "$HOME\Downloads",
+        $desktopPath,
         "$HOME\Desktop"
-    )
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
 
-    $foundIsos = foreach ($d in $searchDirs) {
+    $latestIso = $null
+    foreach ($d in $searchDirs) {
         if (Test-Path $d) {
-            Get-ChildItem -Path $d -Filter "*.iso" -File -ErrorAction SilentlyContinue
+            $isoInDir = Get-ChildItem -Path $d -Filter "*.iso" -File -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime -Descending |
+                Select-Object -First 1
+            if ($isoInDir) {
+                $latestIso = $isoInDir
+                break
+            }
         }
     }
-
-    $latestIso = $foundIsos | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 
     if ($latestIso) {
         $ISOPath = $latestIso.FullName
