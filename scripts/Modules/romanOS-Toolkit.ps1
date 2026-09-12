@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim")]
+    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "DevSwitch")]
     [string]$Module,
     [switch]$ShowDashboards
 )
@@ -245,6 +245,18 @@ function Invoke-UniversalAuditModule {
     }
 }
 
+function Invoke-GameDevSwitchModule {
+    param([string]$TargetMode = "Status")
+    $scriptFile = Resolve-ToolScript "Switch-GameDevMode.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Conmutador Modo Juego / Modo Dev (romanOS GameDev Switch)"
+        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -Mode $TargetMode
+    } else {
+        Write-ErrorMsg "No se encontro Switch-GameDevMode.ps1"
+        pause
+    }
+}
+
 function Invoke-SecurityModule {
     $scriptFile = Resolve-ToolScript "Invoke-WindowsSecurityHardening.ps1"
     if ($scriptFile) {
@@ -388,7 +400,9 @@ function Show-QuickActionsMenu {
         "Gestionar Menus Contextuales (Gamer, Take Ownership, UEFI, Clasico)",
         "Respaldar Controladores del Host para la ISO (Export-WindowsDriver)",
         "Depuracion Segura del DriverStore (FileRepository)",
-        "Poda Quirurgica de Memoria RAM en Reposo (psapi.dll EmptyWorkingSet)"
+        "Poda Quirurgica de Memoria RAM en Reposo (psapi.dll EmptyWorkingSet)",
+        "Auditor Universal de Optimizacion del Sistema (Multi-Hardware)",
+        "Conmutador Modo Juego / Modo Dev (Cortar Devoradores de Recursos / Hyper-V)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -524,6 +538,9 @@ function Show-QuickActionsMenu {
         15 {
             Invoke-UniversalAuditModule
         }
+        16 {
+            Invoke-GameDevSwitchModule -TargetMode "Status"
+        }
         default { return }
     }
 
@@ -549,6 +566,9 @@ if ($Module) {
         "MemoryTrim"    { Invoke-MemoryTrimModule; exit }
         "UniversalAudit"{ Invoke-UniversalAuditModule; exit }
         "SystemAudit"   { Invoke-UniversalAuditModule; exit }
+        "GameDevSwitch" { Invoke-GameDevSwitchModule -TargetMode "Game"; exit }
+        "GameSwitch"    { Invoke-GameDevSwitchModule -TargetMode "Game"; exit }
+        "DevSwitch"     { Invoke-GameDevSwitchModule -TargetMode "Dev"; exit }
         "QuickActions"  { Show-QuickActionsMenu; exit }
     }
 }
@@ -582,6 +602,7 @@ $mainMenuOpts = @(
     "Generar y Abrir Dashboards HTML de Salud y Seguridad",
     "Poda Quirurgica de Memoria RAM en Reposo (SearchHost, WebView2, Shell)",
     "Auditor Universal de Optimizacion (Multi-Hardware, Latencia, Scoring y Remediacion)",
+    "Conmutador Modo Juego / Modo Dev (Liberar RAM para APU y Cortar Devoradores)",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)"
 )
 
@@ -603,7 +624,8 @@ while ($true) {
         11 { Invoke-OpenDashboards; pause }
         12 { Invoke-MemoryTrimModule; pause }
         13 { Invoke-UniversalAuditModule; pause }
-        14 { Show-QuickActionsMenu; pause }
+        14 { Invoke-GameDevSwitchModule -TargetMode "Status"; pause }
+        15 { Show-QuickActionsMenu; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit
