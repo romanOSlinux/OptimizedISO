@@ -95,7 +95,5 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0077 | [PLAN-0077-20260911-integracion-opciones-creacion-iso-gui.md](PLAN-0077-20260911-integracion-opciones-creacion-iso-gui.md) | 2026-09-11 | Integración de Opciones Seleccionables en la Interfaz de Creación de ISO (romanOS Studio) | COMPLETADO |
 | 0078 | [PLAN-0078-20260911-purga-profunda-onedrive-iso-y-debloat.md](PLAN-0078-20260911-purga-profunda-onedrive-iso-y-debloat.md) | 2026-09-11 | Purga Profunda y Bloqueo Definitivo de OneDrive en Creación de ISO y Debloat | COMPLETADO |
 | 0079 | [PLAN-0079-20260911-auditor-universal-optimizacion-sistema.md](PLAN-0079-20260911-auditor-universal-optimizacion-sistema.md) | 2026-09-11 | Auditor Universal de Optimización del Sistema (Multi-Hardware, Heurística Oficial y Observabilidad) | COMPLETADO |
-
-
-
+| 0080 | [PLAN-0080-20260911-conmutador-modo-juego-y-desarrollo-recursos.md](PLAN-0080-20260911-conmutador-modo-juego-y-desarrollo-recursos.md) | 2026-09-11 | Conmutador Bimodal de Recursos para Gaming y Entorno de Desarrollo (romanOS Game & Dev Switch) | PENDIENTE |
 
