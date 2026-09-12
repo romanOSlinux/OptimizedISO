@@ -234,6 +234,17 @@ function Invoke-MemoryTrimModule {
     }
 }
 
+function Invoke-UniversalAuditModule {
+    $scriptFile = Resolve-ToolScript "Audit-SystemOptimization.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Auditor Universal de Optimizacion del Sistema (Multi-Hardware)"
+        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
+    } else {
+        Write-ErrorMsg "No se encontro Audit-SystemOptimization.ps1"
+        pause
+    }
+}
+
 function Invoke-SecurityModule {
     $scriptFile = Resolve-ToolScript "Invoke-WindowsSecurityHardening.ps1"
     if ($scriptFile) {
@@ -510,6 +521,9 @@ function Show-QuickActionsMenu {
         14 {
             Invoke-MemoryTrimModule
         }
+        15 {
+            Invoke-UniversalAuditModule
+        }
         default { return }
     }
 
@@ -533,6 +547,8 @@ if ($Module) {
         "Drivers"       { Invoke-DriversModule; exit }
         "UserMigration" { $ms = Resolve-ToolScript "Migrar-Usuario-W11.ps1"; if ($ms) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ms } else { Write-ErrorMsg "No se encontro Migrar-Usuario-W11.ps1" }; exit }
         "MemoryTrim"    { Invoke-MemoryTrimModule; exit }
+        "UniversalAudit"{ Invoke-UniversalAuditModule; exit }
+        "SystemAudit"   { Invoke-UniversalAuditModule; exit }
         "QuickActions"  { Show-QuickActionsMenu; exit }
     }
 }
@@ -547,7 +563,7 @@ try {
     if ([System.Console]::IsInputRedirected) {
         Show-UnifiedBanner -Title "romanOS TOOLKIT MAESTRO" -Subtitle "Hub de Optimizacion, Gaming, Mantenimiento y Seguridad" -ShowSystemInfo
         Write-Info "Ejecucion no interactiva detectada."
-        Write-Info "Uso desatendido: .\romanOS-Toolkit.ps1 -Module <Gaming|Network|Maintenance|Diagnostics|Security|Browsers|Updates|Drivers|UserMigration|Dashboards|QuickActions>"
+        Write-Info "Uso desatendido: .\romanOS-Toolkit.ps1 -Module <Gaming|Network|Maintenance|Diagnostics|Security|Browsers|Updates|Drivers|UserMigration|UniversalAudit|Dashboards|QuickActions>"
         exit 0
     }
 } catch {}
@@ -565,6 +581,7 @@ $mainMenuOpts = @(
     "Migrar o Rescatar Perfil de Usuario Local (Respaldos y Recreacion)",
     "Generar y Abrir Dashboards HTML de Salud y Seguridad",
     "Poda Quirurgica de Memoria RAM en Reposo (SearchHost, WebView2, Shell)",
+    "Auditor Universal de Optimizacion (Multi-Hardware, Latencia, Scoring y Remediacion)",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)"
 )
 
@@ -585,7 +602,8 @@ while ($true) {
         10 { $ms = Resolve-ToolScript "Migrar-Usuario-W11.ps1"; if ($ms) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ms } else { Write-ErrorMsg "No se encontro Migrar-Usuario-W11.ps1" }; pause }
         11 { Invoke-OpenDashboards; pause }
         12 { Invoke-MemoryTrimModule; pause }
-        13 { Show-QuickActionsMenu; pause }
+        13 { Invoke-UniversalAuditModule; pause }
+        14 { Show-QuickActionsMenu; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit
@@ -595,6 +613,5 @@ while ($true) {
             Start-Sleep -Seconds 1
         }
     }
-    
-    
 }
+
