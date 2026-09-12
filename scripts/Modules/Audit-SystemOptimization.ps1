@@ -503,13 +503,23 @@ foreach ($s in $servicesToAudit) {
 Write-StepHeader -StepNumber 9 -TotalSteps 10 -Message "Debloat de Aplicaciones UWP y Programas de Inicio"
 try {
     $appx = @(Get-AppxPackage -ErrorAction SilentlyContinue)
-    $bloatNames = @('WebExperience', 'ZuneVideo', 'ZuneMusic', 'BingNews', 'BingWeather', 'GetHelp', 'Getstarted', 'Solitaire', 'People', 'Todos', 'FeedbackHub', 'Clipchamp', 'Cortana')
-    $foundBloat = @($appx | Where-Object { $n = $_.Name; foreach ($b in $bloatNames) { if ($n -match $b) { return $true } } $false } | Select-Object -ExpandProperty Name -Unique)
+    $bloatNames = @('WebExperience', 'ZuneVideo', 'ZuneMusic', 'BingNews', 'BingWeather', 'GetHelp', 'Getstarted', 'Solitaire', 'Microsoft\.People$', 'Todos', 'FeedbackHub', 'Clipchamp', 'Cortana')
+    $foundBloat = [System.Collections.Generic.List[string]]::new()
+    foreach ($pkg in $appx) {
+        if (-not $pkg.NonRemovable -and $pkg.InstallLocation -notlike "*SystemApps*") {
+            foreach ($b in $bloatNames) {
+                if ($pkg.Name -match $b) {
+                    if (-not $foundBloat.Contains($pkg.Name)) { $foundBloat.Add($pkg.Name) }
+                    break
+                }
+            }
+        }
+    }
 
     if ($foundBloat.Count -eq 0) {
-        Register-AuditResult -Category "Debloat/Apps" -Item "Paquetes UWP Promocionales" -Status "OK" -ActualValue "Limpio (0 paquetes residuales detectados)" -ExpectedValue "0 paquetes" -Impact "Cero aplicaciones publicitarias ejecutandose en segundo plano" -Source "Microsoft AppX Management"
+        Register-AuditResult -Category "Debloat/Apps" -Item "Paquetes UWP Promocionales" -Status "OK" -ActualValue "Limpio (0 paquetes residuales desinstalables)" -ExpectedValue "0 paquetes" -Impact "Cero aplicaciones publicitarias ejecutandose en segundo plano" -Source "Microsoft AppX Management"
     } else {
-        Register-AuditResult -Category "Debloat/Apps" -Item "Paquetes UWP Promocionales" -Status "WARN" -ActualValue "Detectados $($foundBloat.Count) paquetes ($($foundBloat -join ', '))" -ExpectedValue "0 paquetes" -Impact "Consumo de RAM y tareas programadas de actualizacion en segundo plano" -Source "Microsoft AppX Management" -RemediationCmd "Get-AppxPackage | Where-Object { `$_.Name -match '$($bloatNames -join '|')' } | Remove-AppxPackage"
+        Register-AuditResult -Category "Debloat/Apps" -Item "Paquetes UWP Promocionales" -Status "WARN" -ActualValue "Detectados $($foundBloat.Count) paquetes ($($foundBloat -join ', '))" -ExpectedValue "0 paquetes" -Impact "Consumo de RAM y tareas programadas de actualizacion en segundo plano" -Source "Microsoft AppX Management" -RemediationCmd "Get-AppxPackage | Where-Object { -not `$_.NonRemovable -and `$_.InstallLocation -notlike '*SystemApps*' -and (`$_.Name -match '$($bloatNames -join '|')') } | Remove-AppxPackage"
     }
 
     # Retardo de Menu (MenuShowDelay)
