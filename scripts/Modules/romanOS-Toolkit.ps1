@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "DevSwitch")]
+    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch")]
     [string]$Module,
     [switch]$ShowDashboards
 )
@@ -246,11 +246,21 @@ function Invoke-UniversalAuditModule {
 }
 
 function Invoke-GameDevSwitchModule {
-    param([string]$TargetMode = "Status")
+    param(
+        [string]$TargetMode = "Status",
+        [string]$TargetProfile = "Light"
+    )
+    $cmdLauncher = Resolve-ToolScript "Switch-GameDevMode.cmd"
+    if ($TargetMode -eq "Status" -and $cmdLauncher) {
+        # Si se invoca interactivamente desde el menu, abrir el lanzador bimodal .cmd con todas las opciones
+        & cmd.exe /c "`"$cmdLauncher`""
+        return
+    }
+    
     $scriptFile = Resolve-ToolScript "Switch-GameDevMode.ps1"
     if ($scriptFile) {
         Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Conmutador Modo Juego / Modo Dev (romanOS GameDev Switch)"
-        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -Mode $TargetMode
+        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -Mode $TargetMode -Profile $TargetProfile
     } else {
         Write-ErrorMsg "No se encontro Switch-GameDevMode.ps1"
         pause
@@ -566,8 +576,9 @@ if ($Module) {
         "MemoryTrim"    { Invoke-MemoryTrimModule; exit }
         "UniversalAudit"{ Invoke-UniversalAuditModule; exit }
         "SystemAudit"   { Invoke-UniversalAuditModule; exit }
-        "GameDevSwitch" { Invoke-GameDevSwitchModule -TargetMode "Game"; exit }
-        "GameSwitch"    { Invoke-GameDevSwitchModule -TargetMode "Game"; exit }
+        "GameDevSwitch" { Invoke-GameDevSwitchModule -TargetMode "Game" -TargetProfile "Light"; exit }
+        "GameSwitch"    { Invoke-GameDevSwitchModule -TargetMode "Game" -TargetProfile "Light"; exit }
+        "GameAggressive"{ Invoke-GameDevSwitchModule -TargetMode "Game" -TargetProfile "Aggressive"; exit }
         "DevSwitch"     { Invoke-GameDevSwitchModule -TargetMode "Dev"; exit }
         "QuickActions"  { Show-QuickActionsMenu; exit }
     }

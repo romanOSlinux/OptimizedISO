@@ -28,12 +28,16 @@ if not exist "%SCRIPT_PS1%" (
 )
 
 :: Si se pasaron argumentos por linea de comandos, procesar directamente
-if /i "%~1"=="-Game" goto :run_game
-if /i "%~1"=="Game"  goto :run_game
-if /i "%~1"=="-Dev"  goto :run_dev
-if /i "%~1"=="Dev"   goto :run_dev
-if /i "%~1"=="-Status" goto :run_status_cli
-if /i "%~1"=="Status"  goto :run_status_cli
+if /i "%~1"=="-Aggressive" goto :run_game_aggressive_cli
+if /i "%~1"=="Aggressive"  goto :run_game_aggressive_cli
+if /i "%~1"=="-Light"      goto :run_game_light_cli
+if /i "%~1"=="Light"       goto :run_game_light_cli
+if /i "%~1"=="-Game"       goto :run_game_light_cli
+if /i "%~1"=="Game"        goto :run_game_light_cli
+if /i "%~1"=="-Dev"        goto :run_dev
+if /i "%~1"=="Dev"         goto :run_dev
+if /i "%~1"=="-Status"     goto :run_status_cli
+if /i "%~1"=="Status"      goto :run_status_cli
 if not "%~1"=="" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" %*
     goto :end
@@ -47,35 +51,64 @@ echo    romanOS - CONMUTADOR MODO JUEGO Y DESARROLLO (GAME ^& DEV SWITCH)
 echo    Optimizador Bimodal de Recursos para Gaming y Pruebas de ISOs
 echo  ======================================================================
 echo.
-echo    [1] Activar MODO JUEGO
-echo        - Detener Hyper-V, vEthernet y conmutador virtual (baja latencia)
-echo        - Liquidar instancias huerfanas de Edge en reposo (+1.5 a 2.5 GB RAM)
-echo        - Pausar telemetria y compatibilidad (PcaSvc, DPS, DusmSvc)
-echo        - Poda de Working Set (EmptyWorkingSet) sobre procesos UI y Dev
+echo    [1] Activar MODO JUEGO LIVIANO
+echo        - Desmonta conmutador virtual de Hyper-V (elimina latencia DPC)
+echo        - Pausa telemetria y compatibilidad (PcaSvc, DPS, DusmSvc)
+echo        - Plan de energia Maximo Rendimiento y SystemResponsiveness = 0
+echo        - CONSERVA tus navegadores y aplicaciones abiertas
 echo.
-echo    [2] Activar MODO DEV / PRUEBAS ISO
-echo        - Restaurar pila completa de Hyper-V (vmms, vmcompute, HNS, HvHost)
-echo        - Reactivar adaptador vEthernet (Default Switch) para pruebas
-echo        - Restaurar servicios de diagnostico y mantenimiento
+echo    [2] Activar MODO JUEGO AGRESIVO (Gaming Puro / APU Max)
+echo        - Todo lo del Modo Liviano + prioridades de kernel para GPU/CPU
+echo        - Cierra forzosamente instancias de Microsoft Edge (+1.4 GB RAM)
+echo        - Opcion de cerrar Antigravity IDE (+2.4 GB RAM)
+echo        - Maxima memoria DDR5 disponible para la iGPU Radeon 760M
 echo.
-echo    [3] Ver Estado Actual y Metricas de Memoria RAM
+echo    [3] Activar MODO DEV / PRUEBAS ISO
+echo        - Restaura pila completa de Hyper-V (vmms, vmcompute, HNS, HvHost)
+echo        - Reactiva adaptador vEthernet (Default Switch) para pruebas
+echo        - Restaura servicios de diagnostico, mantenimiento y registro
 echo.
-echo    [4] Salir
+echo    [4] Ver Estado Actual y Metricas de Memoria RAM
+echo.
+echo    [5] Salir
 echo.
 echo  ======================================================================
-set /p "choice= Seleccione una opcion [1-4]: "
+set /p "choice= Seleccione una opcion [1-5]: "
 
-if "%choice%"=="1" goto :run_game
-if "%choice%"=="2" goto :run_dev
-if "%choice%"=="3" goto :run_status
-if "%choice%"=="4" exit /b 0
+if "%choice%"=="1" goto :run_game_light
+if "%choice%"=="2" goto :run_game_aggressive
+if "%choice%"=="3" goto :run_dev
+if "%choice%"=="4" goto :run_status
+if "%choice%"=="5" exit /b 0
 
 echo [!] Opcion invalida.
 timeout /t 2 >nul
 goto :menu
 
-:run_game
-powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" -Mode Game
+:run_game_light
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" -Mode Game -Profile Light
+goto :end
+
+:run_game_light_cli
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" -Mode Game -Profile Light -Unattended
+goto :end
+
+:run_game_aggressive
+echo.
+echo  [!] MODO JUEGO AGRESIVO PARA GAMING PURO Y APU RADEON
+echo      - Se cerrara forzosamente Microsoft Edge (+1.4 GB RAM)
+echo      - Se ajustaran prioridades multimedia del kernel (100%% CPU a juegos)
+echo.
+set /p "close_ide= Desea cerrar tambien el entorno de desarrollo Antigravity IDE para liberar +2.4 GB? [S/N] (Por defecto: N): "
+if /i "%close_ide%"=="s" (
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" -Mode Game -Profile Aggressive -CloseIDE
+) else (
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" -Mode Game -Profile Aggressive
+)
+goto :end
+
+:run_game_aggressive_cli
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" -Mode Game -Profile Aggressive -Unattended
 goto :end
 
 :run_dev
