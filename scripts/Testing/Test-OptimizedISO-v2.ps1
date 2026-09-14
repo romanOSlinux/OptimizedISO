@@ -520,6 +520,48 @@ Assert-NoThrow "Add-ImageInstallToAutounattend: XML valido procesado correctamen
     Add-ImageInstallToAutounattend -AutounattendPath $validXmlPath -ImageIndex 1
 }
 
+# PLAN-0082: Verificación de modo Zero-Touch y escape de entidades XML
+$ztXmlPath = Join-Path $TEMP_ROOT "zt_autounattend.xml"
+$ztBaseXml = @"
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+  <settings pass="windowsPE">
+    <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <EnableFirewall>true</EnableFirewall>
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Description>Bypass TPM Check</Description>
+          <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+      </RunSynchronous>
+    </component>
+  </settings>
+  <settings pass="specialize">
+    <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>6</Order>
+          <Description>Remove OneDrive from Default User Run key</Description>
+          <Path>cmd.exe /c &quot;reg delete HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Run /v OneDriveSetup /f &gt;nul 2&gt;&amp;1 || exit 0&quot;</Path>
+        </RunSynchronousCommand>
+      </RunSynchronous>
+    </component>
+  </settings>
+</unattend>
+"@
+[System.IO.File]::WriteAllText($ztXmlPath, $ztBaseXml, [System.Text.Encoding]::UTF8)
+
+$ztResult = Add-ImageInstallToAutounattend -AutounattendPath $ztXmlPath -ImageIndex 1 -EnableZeroTouch $true -ZeroTouchDisk 0
+Assert-True "Add-ImageInstallToAutounattend (Zero-Touch): Inyeccion exitosa => True (PLAN-0082)" ($ztResult -eq $true)
+
+$ztContent = [System.IO.File]::ReadAllText($ztXmlPath, [System.Text.Encoding]::UTF8)
+Assert-True "autounattend.xml Zero-Touch: Contiene DiskConfiguration" ($ztContent -match '<DiskConfiguration>')
+Assert-True "autounattend.xml Zero-Touch: Contiene AcceptEula true" ($ztContent -match '<AcceptEula>true</AcceptEula>')
+Assert-True "autounattend.xml Zero-Touch: Contiene InstallTo DiskID 0 PartitionID 4" ($ztContent -match '<DiskID>0</DiskID>\s*<PartitionID>4</PartitionID>')
+Assert-False "autounattend.xml Zero-Touch: Cero entidades unescaped 2>&1" ($ztContent -match '2>&1')
+
+
 # --- FASE 2G: DESMONTAJE DE REGISTRO ---
 Write-HarnessHeader2 "FASE 2G: Descarga de Colmenas (Invoke-RegUnloadHive)"
 Assert-NoThrow "Invoke-RegUnloadHive: Colmena HKLM simulada sin error" {

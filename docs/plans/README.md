@@ -96,4 +96,6 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0078 | [PLAN-0078-20260911-purga-profunda-onedrive-iso-y-debloat.md](PLAN-0078-20260911-purga-profunda-onedrive-iso-y-debloat.md) | 2026-09-11 | Purga Profunda y Bloqueo Definitivo de OneDrive en Creación de ISO y Debloat | COMPLETADO |
 | 0079 | [PLAN-0079-20260911-auditor-universal-optimizacion-sistema.md](PLAN-0079-20260911-auditor-universal-optimizacion-sistema.md) | 2026-09-11 | Auditor Universal de Optimización del Sistema (Multi-Hardware, Heurística Oficial y Observabilidad) | COMPLETADO |
 | 0080 | [PLAN-0080-20260911-conmutador-modo-juego-y-desarrollo-recursos.md](PLAN-0080-20260911-conmutador-modo-juego-y-desarrollo-recursos.md) | 2026-09-11 | Conmutador Bimodal de Recursos para Gaming y Entorno de Desarrollo (romanOS Game & Dev Switch) | COMPLETADO |
+| 0081 | [PLAN-0081-20260912-modo-juego-agresivo-bimodal-apu-ram.md](PLAN-0081-20260912-modo-juego-agresivo-bimodal-apu-ram.md) | 2026-09-12 | Modo Juego Agresivo Bimodal para APU Radeon y Transparencia de Memoria | COMPLETADO |
+| 0082 | [PLAN-0082-20260914-reparacion-zero-touch-xml-entity-y-paridad-gui-studio.md](PLAN-0082-20260914-reparacion-zero-touch-xml-entity-y-paridad-gui-studio.md) | 2026-09-14 | Reparación de Instalación Zero-Touch en romanOS Studio (Escape de Entidades XML y Paridad Multi-Edición) | COMPLETADO |
 

@@ -10,7 +10,8 @@ if (-not $isAdmin) {
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = "powershell.exe"
     $targetPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Definition }
-    $psi.Arguments = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$targetPath`""
+    $psi.Arguments = "-WindowStyle Hidden -STA -NoProfile -ExecutionPolicy Bypass -File `"$targetPath`""
+    $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
     $psi.Verb = "runas"
     try {
         [System.Diagnostics.Process]::Start($psi) | Out-Null
@@ -619,7 +620,21 @@ $txtZeroTouchWarning = $window.FindName('txtZeroTouchWarning')
 if ($chkZeroTouch) {
     $chkZeroTouch.Add_Checked({
         if ($cmbZeroTouchDisk) { $cmbZeroTouchDisk.IsEnabled = $true }
-        if ($txtZeroTouchWarning) { $txtZeroTouchWarning.Visibility = [System.Windows.Visibility]::Visible }
+        if ($txtZeroTouchWarning) {
+            $txtZeroTouchWarning.Visibility = [System.Windows.Visibility]::Visible
+            $lbxEditions = $window.FindName('lbxWimEditions')
+            $checkedCount = 0
+            if ($lbxEditions) {
+                foreach ($item in $lbxEditions.Items) {
+                    if ($item.IsChecked -eq $true) { $checkedCount++ }
+                }
+            }
+            if ($checkedCount -gt 1) {
+                $txtZeroTouchWarning.Text = "⚠️ ATENCIÓN: Zero-Touch formateará el disco seleccionado y completará la instalación entera sin intervención. Requiere que selecciones una única edición en 'Construcción Base'."
+            } else {
+                $txtZeroTouchWarning.Text = "⚠️ ADVERTENCIA: Zero-Touch borrará y formateará por completo el disco físico seleccionado (UEFI/GPT con WinRE de 500 MB). Si no estás seguro, desmarca esta opción para elegir la partición manualmente."
+            }
+        }
     })
     $chkZeroTouch.Add_Unchecked({
         if ($cmbZeroTouchDisk) { $cmbZeroTouchDisk.IsEnabled = $false }
@@ -774,6 +789,17 @@ $btnBuild.Add_Click({
     Write-StudioLog "ISO seleccionada: $($config.SourceISO)"
     Write-StudioLog "Indices WIM seleccionados: $($config.TargetWimIndex)"
     Write-StudioLog "Zero-Touch: $($config.ZeroTouch) (Disco: $($config.ZeroTouchDisk)) | Updates: $($config.IntegrateUpdates) | Drivers: $($config.IntegrateDrivers) | Runtimes: $($config.IntegrateRuntimes)"
+
+    if ($config.ZeroTouch -and ($config.TargetWimIndex -eq 'all' -or $config.TargetWimIndex -match ',')) {
+        Write-StudioLog "Validacion Zero-Touch: Se selecciono Zero-Touch pero hay multiples ediciones seleccionadas ($($config.TargetWimIndex))." -Level "WARN"
+        $ztMsg = "Has activado la instalación 100% Zero-Touch, pero tienes seleccionadas múltiples ediciones (o todas) en la pestaña 'Construcción Base'.`n`nPara una instalación completamente automatizada (cero intervención humana de principio a fin), el instalador de Windows requiere una única edición a instalar.`n`n¿Deseas volver a la pestaña 'Construcción Base' para seleccionar una única edición?`n`n(Si eliges 'No', la compilación continuará en modo semi-desatendido donde el instalador solicitará elegir la edición y el disco manualmente)."
+        $ztResult = [System.Windows.MessageBox]::Show($ztMsg, 'romanOS Studio — Selección de Edición Zero-Touch', [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Warning)
+        if ($ztResult -eq [System.Windows.MessageBoxResult]::Yes) {
+            $tabControl = $window.FindName('tabControlMain')
+            if ($tabControl) { $tabControl.SelectedIndex = 0 }
+            return
+        }
+    }
 
     $tempJsonPath = Join-Path $env:TEMP 'romanOS_BuildPreset.json'
     $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $tempJsonPath -Encoding UTF8 -Force

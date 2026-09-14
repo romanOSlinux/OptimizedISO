@@ -5183,7 +5183,7 @@ $($firstLogonCommands -join "`n")
         <RunSynchronousCommand wcm:action="add">
           <Order>6</Order>
           <Description>Remove OneDrive from Default User Run key</Description>
-          <Path>cmd.exe /c "reg delete HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Run /v OneDriveSetup /f >nul 2>&1 || exit 0"</Path>
+          <Path>cmd.exe /c &quot;reg delete HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Run /v OneDriveSetup /f &gt;nul 2&gt;&amp;1 || exit 0&quot;</Path>
         </RunSynchronousCommand>
 "@
     }
@@ -7239,16 +7239,15 @@ if ($wimFile) {
             # DECIDIR ÍNDICE FINAL PARA ImageInstall
             #==================================================================
 
-            if ($selectedSingleIndex -and $wimInjected) {
-                if ($WimCompression -eq "None") {
-                    # Sin exportación: el índice final sigue siendo el original.
+            if ($selectedSingleIndex) {
+                if ($WimCompression -eq "None" -or -not $wimInjected) {
+                    # Sin exportación / sin servicing offline: el índice final sigue siendo el original.
                     $finalImageInstallIndex = [int]$selectedSingleIndex
                 } elseif ($exportSucceeded) {
                     # Exportación exitosa: el WIM resultante normalmente reindexa desde 1.
                     $finalImageInstallIndex = 1
                 } else {
-                    # Exportación intentada pero fallida: no inyectar ImageInstall.
-                    $finalImageInstallIndex = $null
+                    $finalImageInstallIndex = [int]$selectedSingleIndex
                 }
 
                 if ($finalImageInstallIndex -and (-not $SkipAutoUnattend) -and $autounattendPath -and (Test-Path $autounattendPath)) {
@@ -7309,6 +7308,8 @@ if ($wimFile) {
                         Write-Warn "No se pudo inyectar configuración en autounattend.xml."
                     }
                 }
+            } elseif ($script:ResolvedParameters['ZeroTouch'] -or $ZeroTouch) {
+                Write-Warn "Modo Zero-Touch fue solicitado pero hay múltiples ediciones procesadas ($($indexesToProcess.Count)). Zero-Touch requiere un único índice WIM para automatizar la instalación por completo. Se mantendrá la selección manual de disco y edición."
             }
         } finally {
             # Garantizar desmontaje y limpieza si el punto de montaje sigue activo
