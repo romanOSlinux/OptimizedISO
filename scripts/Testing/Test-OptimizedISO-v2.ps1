@@ -999,7 +999,7 @@ Assert-False "PLAN-0029: v2 script erradico schtasks efimero /sc ONCE /st 00:00"
 # PLAN-0031: Validaciones de Erradicacion de SubCommands en Comandos Ejecutables y Cascada Nativa
 Assert-True "PLAN-0031: Set-ShellVerb verifica PSBoundParameters para SubCommands" (([bool]($ctxMenuContent -match '\$PSBoundParameters\.ContainsKey\([''"]SubCommands[''"]\)')))
 Assert-True "PLAN-0031: Set-ShellVerb auto-sana purgando SubCommands en comandos hoja" (([bool]($ctxMenuContent -match 'Remove-ItemProperty.*SubCommands')))
-Assert-True "PLAN-0031: Lanzador Aplicar-Hotfix-Menus.cmd existe en la raiz" ([bool](Test-Path (Join-Path (Split-Path $PSScriptRoot -Parent) "Aplicar-Hotfix-Menus.cmd")))
+Assert-True "PLAN-0031: Lanzador de menus contextuales existe en scripts" ([bool](Test-Path (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Aplicar-Hotfix-Menus.cmd") -or (Test-Path (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Modules\Add-OptimizedContextMenus.cmd"))))
 Assert-True "PLAN-0031: 01_PowerMax incluye recuperacion/duplicacion automatica de GUID de energia" (([bool]($ctxMenuContent -match 'powercfg\s+-duplicatescheme\s+e9a42b02-d5df-448d-aa00-03f14749eb61')))
 
 

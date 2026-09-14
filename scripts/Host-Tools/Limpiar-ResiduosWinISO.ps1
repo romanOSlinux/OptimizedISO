@@ -33,6 +33,15 @@ No ejecutar mientras New-OptimizedWindowsISO-v2.ps1 esté corriendo en otra vent
 podría estar usando esas mismas carpetas o esa misma imagen montada.
 #>
 
+[CmdletBinding()]
+param(
+    [Parameter()]
+    [switch]$Unattended,
+
+    [Parameter()]
+    [switch]$Quiet
+)
+
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -321,6 +330,27 @@ function Show-GestionDependencias {
 
 function Invoke-CleanupMountpoints {
     & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null
+}
+
+#------------------------------------------------------------------------------
+# EJECUCIÓN HEADLESS / UNATTENDED (romanOS Studio y Automatizaciones)
+#------------------------------------------------------------------------------
+if ($Unattended) {
+    Write-Host "Iniciando motor de limpieza profunda del sistema..." -ForegroundColor Cyan
+    Write-Host "Buscando residuos de compilaciones fallidas..." -ForegroundColor Gray
+    $hallazgos = Find-Residuos
+    if ($hallazgos.Count -eq 0) {
+        Write-OK "No se detectaron residuos de New-OptimizedWindowsISO en el sistema."
+    } else {
+        Write-Host "Se encontraron $($hallazgos.Count) elementos residuales. Procediendo a limpiarlos..." -ForegroundColor Yellow
+        foreach ($item in $hallazgos) {
+            Remove-Residuo -Item $item | Out-Null
+        }
+    }
+    Write-Host "Limpiando puntos de montaje huérfanos de DISM..." -ForegroundColor Gray
+    Invoke-CleanupMountpoints
+    Write-OK "Mantenimiento del host completado con éxito."
+    return
 }
 
 #------------------------------------------------------------------------------

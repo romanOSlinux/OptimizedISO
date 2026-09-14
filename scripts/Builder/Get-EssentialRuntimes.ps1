@@ -45,7 +45,10 @@ param(
     [switch]$IncludeLegacy,
 
     [Parameter()]
-    [switch]$SkipDirectX
+    [switch]$SkipDirectX,
+
+    [Parameter()]
+    [switch]$Unattended
 )
 
 $ErrorActionPreference = 'Stop'

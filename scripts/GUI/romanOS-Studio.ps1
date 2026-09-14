@@ -805,7 +805,7 @@ $btnBuild.Add_Click({
     $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $tempJsonPath -Encoding UTF8 -Force
     Write-StudioLog "Archivo JSON temporal inyectado en: $tempJsonPath"
     
-    $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-GUI-Engine.ps1"
+    $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-v2.ps1"
     $escapedBuilder = $builderPath -replace "'", "''"
     $escapedJson    = $tempJsonPath -replace "'", "''"
     $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedBuilder' -PresetFile '$escapedJson' *>&1 }`""
@@ -882,9 +882,9 @@ $btnTestVM.Add_Click({
 
 $btnCleanHost = $window.FindName('btnCleanHost')
 $btnCleanHost.Add_Click({
-    $scriptEngine = Join-Path $PSScriptRoot "..\Host-Tools\Limpiar-ResiduosWinISO-GUI-Engine.ps1"
+    $scriptEngine = Join-Path $PSScriptRoot "..\Host-Tools\Limpiar-ResiduosWinISO.ps1"
     $escapedEngine = $scriptEngine -replace "'", "''"
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' *>&1 }`""
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -Unattended *>&1 }`""
     Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Limpieza de Residuos del Host"
 })
 
@@ -893,7 +893,7 @@ $btnDownloadUpdates.Add_Click({
     $cmbVer = $window.FindName('cmbUpdateVersion')
     $ver = if ($cmbVer -and $cmbVer.Text) { $cmbVer.Text } else { "11_24H2" }
     $updatesDir = Join-Path $PSScriptRoot "..\..\Updates"
-    $scriptEngine = Join-Path $PSScriptRoot "..\Builder\Get-WindowsUpdates-GUI-Engine.ps1"
+    $scriptEngine = Join-Path $PSScriptRoot "..\Builder\Get-WindowsUpdates.ps1"
     $escapedEngine  = $scriptEngine -replace "'", "''"
     $escapedUpdates = $updatesDir -replace "'", "''"
     $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -Version '$ver' -OutputDir '$escapedUpdates' -Unattended *>&1 }`""
@@ -903,7 +903,7 @@ $btnDownloadUpdates.Add_Click({
 $btnBackupDrivers = $window.FindName('btnBackupDrivers')
 $btnBackupDrivers.Add_Click({
     $driversDir = Join-Path $PSScriptRoot "..\..\Drivers"
-    $scriptEngine = Join-Path $PSScriptRoot "..\Drivers\Backup-HardwareDrivers-GUI-Engine.ps1"
+    $scriptEngine = Join-Path $PSScriptRoot "..\Drivers\Backup-HardwareDrivers.ps1"
     $escapedEngine  = $scriptEngine -replace "'", "''"
     $escapedDrivers = $driversDir -replace "'", "''"
     $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -DestinationPath '$escapedDrivers' *>&1 }`""
@@ -913,7 +913,7 @@ $btnBackupDrivers.Add_Click({
 $btnDownloadCritical = $window.FindName('btnDownloadCritical')
 $btnDownloadCritical.Add_Click({
     $driversDir = Join-Path $PSScriptRoot "..\..\Drivers"
-    $scriptEngine = Join-Path $PSScriptRoot "..\Drivers\Get-CriticalDrivers-GUI-Engine.ps1"
+    $scriptEngine = Join-Path $PSScriptRoot "..\Drivers\Get-CriticalDrivers.ps1"
     $escapedEngine  = $scriptEngine -replace "'", "''"
     $escapedDrivers = $driversDir -replace "'", "''"
     $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -Package All -DestinationPath '$escapedDrivers' *>&1 }`""
@@ -923,10 +923,10 @@ $btnDownloadCritical.Add_Click({
 $btnDownloadRuntimes = $window.FindName('btnDownloadRuntimes')
 $btnDownloadRuntimes.Add_Click({
     $runtimesDir = Join-Path $PSScriptRoot "..\..\Runtimes"
-    $scriptEngine = Join-Path $PSScriptRoot "..\Builder\Get-EssentialRuntimes-GUI-Engine.ps1"
+    $scriptEngine = Join-Path $PSScriptRoot "..\Builder\Get-EssentialRuntimes.ps1"
     $escapedEngine   = $scriptEngine -replace "'", "''"
     $escapedRuntimes = $runtimesDir -replace "'", "''"
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -DestinationPath '$escapedRuntimes' *>&1 }`""
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -DestinationPath '$escapedRuntimes' -Unattended *>&1 }`""
     Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Descarga de Runtimes C++/DirectX"
 })
 

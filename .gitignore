@@ -39,7 +39,9 @@ Log/
 log_prueba_ISO/
 pruebadeblot/
 
-# Exclusiones de descargas pesadas de módulos (Ancladas a la raíz)
+# Exclusiones de descargas pesadas de módulos
 /Updates/
 /Drivers/
 /Runtimes/
+Runtimes/
+**/Runtimes/
