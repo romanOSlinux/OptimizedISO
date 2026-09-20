@@ -28,7 +28,8 @@ try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAc
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    if ($PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC")) {
+    $shouldElevate = if ($PSCmdlet) { $PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC") } else { $true }
+    if ($shouldElevate) {
         $targetScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Definition }
         $psi = New-Object System.Diagnostics.ProcessStartInfo
         $psi.FileName = "powershell.exe"
@@ -55,8 +56,14 @@ Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 
+# Resolucion robusta de rutas base
+$scriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Definition }
+if (-not $scriptRoot -or -not (Test-Path $scriptRoot)) {
+    $scriptRoot = "C:\OptimizedISO\scripts\GUI"
+}
+
 # Inicializacion de logs locales
-$logDir = Join-Path $PSScriptRoot "..\..\Log"
+$logDir = Join-Path $scriptRoot "..\..\Log"
 if (-not (Test-Path $logDir)) {
     try { New-Item -ItemType Directory -Path $logDir -Force | Out-Null } catch {}
 }
@@ -78,48 +85,92 @@ Write-CCLog "Iniciando sesion de romanOS Control Center GUI"
 # -----------------------------------------------------------------------------
 # 1. CARGA DE MOTORES CORE (SSOT)
 # -----------------------------------------------------------------------------
-$repoScriptsRoot = Split-Path $PSScriptRoot -Parent
-$coreEngineDirs = @(
-    (Join-Path $repoScriptsRoot "Core"),
-    (Join-Path $PSScriptRoot "Core"),
-    (Join-Path (Split-Path $repoScriptsRoot -Parent) "scripts\Core"),
+$repoScriptsRoot = if ($scriptRoot) { Split-Path $scriptRoot -Parent } else { "C:\OptimizedISO\scripts" }
+
+$script:coreEngineDirs = @()
+if ($repoScriptsRoot -and (Test-Path $repoScriptsRoot)) {
+    $script:coreEngineDirs += (Join-Path $repoScriptsRoot "Core")
+    $parentOfScripts = Split-Path $repoScriptsRoot -Parent
+    if ($parentOfScripts -and (Test-Path $parentOfScripts)) {
+        $script:coreEngineDirs += (Join-Path $parentOfScripts "scripts\Core")
+    }
+}
+if ($scriptRoot -and (Test-Path $scriptRoot)) {
+    $script:coreEngineDirs += (Join-Path $scriptRoot "Core")
+    $script:coreEngineDirs += (Join-Path $scriptRoot "..\Core")
+}
+$script:coreEngineDirs += @(
     "C:\Windows\Setup\Scripts\Core",
+    "$env:WINDIR\Setup\Scripts\Core",
     "C:\OptimizedISO\scripts\Core"
 )
 
-function Import-CoreModule {
+function Resolve-CoreModule {
     param([string]$ModuleName)
     foreach ($d in $script:coreEngineDirs) {
         if ($d -and (Test-Path $d)) {
             $candidate = Join-Path $d $ModuleName
             if (Test-Path $candidate) {
-                try {
-                    . $candidate
-                    Write-CCLog "Cargado modulo Core: $candidate"
-                    return $true
-                } catch {
-                    Write-CCLog "Error al cargar modulo Core $($candidate): $($_.Exception.Message)" -Level "WARN"
-                }
+                return (Resolve-Path $candidate).Path
             }
         }
     }
-    return $false
+    return $null
 }
 
-[void](Import-CoreModule "UI-Engine.ps1")
-[void](Import-CoreModule "Hardware-Engine.ps1")
-[void](Import-CoreModule "Policy-Engine.ps1")
+# Carga de Motores Core en el scope del script (dot-sourcing directo)
+$uiEnginePath = Resolve-CoreModule "UI-Engine.ps1"
+if ($uiEnginePath) {
+    try {
+        . $uiEnginePath
+        Write-CCLog "Cargado modulo Core: $uiEnginePath"
+    } catch {
+        Write-CCLog "Error al cargar UI-Engine ($uiEnginePath): $($_.Exception.Message)" -Level "WARN"
+    }
+}
+
+$hwEnginePath = Resolve-CoreModule "Hardware-Engine.ps1"
+if ($hwEnginePath) {
+    try {
+        . $hwEnginePath
+        Write-CCLog "Cargado modulo Core: $hwEnginePath"
+    } catch {
+        Write-CCLog "Error al cargar Hardware-Engine ($hwEnginePath): $($_.Exception.Message)" -Level "WARN"
+    }
+}
+
+$policyEnginePath = Resolve-CoreModule "Policy-Engine.ps1"
+if ($policyEnginePath) {
+    try {
+        . $policyEnginePath
+        Write-CCLog "Cargado modulo Core: $policyEnginePath"
+    } catch {
+        Write-CCLog "Error al cargar Policy-Engine ($policyEnginePath): $($_.Exception.Message)" -Level "WARN"
+    }
+}
 
 # Resolutor de scripts dependientes
-$searchDirs = @(
-    (Join-Path $repoScriptsRoot "Modules"),
-    (Join-Path $repoScriptsRoot "Drivers"),
-    (Join-Path $repoScriptsRoot "Builder"),
-    (Join-Path $repoScriptsRoot "Host-Tools"),
-    $PSScriptRoot,
-    (Join-Path (Split-Path $repoScriptsRoot -Parent) "scripts\Modules"),
-    (Join-Path (Split-Path $repoScriptsRoot -Parent) "scripts\Drivers"),
-    (Join-Path (Split-Path $repoScriptsRoot -Parent) "scripts\Builder"),
+$script:searchDirs = @()
+if ($repoScriptsRoot -and (Test-Path $repoScriptsRoot)) {
+    $script:searchDirs += @(
+        (Join-Path $repoScriptsRoot "Modules"),
+        (Join-Path $repoScriptsRoot "Drivers"),
+        (Join-Path $repoScriptsRoot "Builder"),
+        (Join-Path $repoScriptsRoot "Host-Tools")
+    )
+    $parentOfScripts = Split-Path $repoScriptsRoot -Parent
+    if ($parentOfScripts -and (Test-Path $parentOfScripts)) {
+        $script:searchDirs += @(
+            (Join-Path $parentOfScripts "scripts\Modules"),
+            (Join-Path $parentOfScripts "scripts\Drivers"),
+            (Join-Path $parentOfScripts "scripts\Builder")
+        )
+    }
+}
+if ($scriptRoot -and (Test-Path $scriptRoot)) {
+    $script:searchDirs += $scriptRoot
+}
+$script:searchDirs += @(
     "$env:WINDIR\Setup\Scripts",
     "$env:WINDIR\Setup\Scripts\Modules",
     "C:\Windows\Setup\Scripts",
@@ -489,22 +540,48 @@ $window = [System.Windows.Markup.XamlReader]::Load($reader)
 try {
     if (Get-Command Get-SystemHardwareProfile -ErrorAction SilentlyContinue) {
         $hw = Get-SystemHardwareProfile -ForceRefresh
-        $window.FindName('lblHwBadge').Text = "$($hw.CPU.Name) | $($hw.Memory.TotalGiB) GB RAM"
-        $window.FindName('lblCpuInfo').Text = "$($hw.CPU.Name)"
-        $window.FindName('lblCoresInfo').Text = "$($hw.CPU.Cores) Nucleos / $($hw.CPU.LogicalProcessors) Hilos"
-        $window.FindName('lblRamInfo').Text = "$($hw.Memory.TotalGiB) GiB $($hw.Memory.SpeedMHz)MHz ($($hw.Memory.ChannelMode))"
-        $window.FindName('lblDiskInfo').Text = "$($hw.Disk.Type) (C: $([math]::Round($hw.Disk.SystemFreeGB, 1)) GB Libres)"
+        $freeC = try { [math]::Round(((Get-PSDrive C -ErrorAction SilentlyContinue).Free / 1GB), 1) } catch { 0 }
         
-        $primaryGpu = if ($hw.GPU.Devices.Count -gt 0) { $hw.GPU.Devices[0] } else { $null }
+        $cpuName   = if ($hw.CPU.Name) { $hw.CPU.Name } else { (Get-CimInstance Win32_Processor).Name }
+        $coresText = if ($hw.CPU.Cores -and $hw.CPU.Threads) { "$($hw.CPU.Cores) Nucleos / $($hw.CPU.Threads) Hilos" } else { "$((Get-CimInstance Win32_Processor).NumberOfCores) Nucleos" }
+        $ramGib    = if ($hw.RAM.TotalGiB) { $hw.RAM.TotalGiB } else { [math]::Round(((Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize / 1MB), 1) }
+        $ramText   = "$ramGib GiB $(if ($hw.RAM.MemoryType) { $hw.RAM.MemoryType }) $(if ($hw.RAM.SpeedMHz) { "@ $($hw.RAM.SpeedMHz)MHz" }) $(if ($hw.RAM.ChannelMode) { "($($hw.RAM.ChannelMode))" })".Trim()
+        $diskText  = "$($hw.Disk.DiskLabel) (C: $freeC GB Libres)"
+        
+        $badge = $window.FindName('lblHwBadge')
+        if ($badge) {
+            $badge.Text = "$($hw.Profile.DisplayName) | $ramGib GB RAM"
+            $badge.Foreground = [System.Windows.Media.Brushes]::LightGreen
+        }
+        
+        $window.FindName('lblCpuInfo').Text   = $cpuName
+        $window.FindName('lblCoresInfo').Text = $coresText
+        $window.FindName('lblRamInfo').Text   = $ramText
+        $window.FindName('lblDiskInfo').Text  = $diskText
+        
+        $primaryGpu = if ($hw.GPU.Devices -and $hw.GPU.Devices.Count -gt 0) { $hw.GPU.Devices[0] } else { $null }
         if ($primaryGpu) {
             $window.FindName('lblGpuInfo').Text = "$($primaryGpu.Name) ($($primaryGpu.VendorName))"
             $msiLabel = if ($primaryGpu.MsiStatus -eq 1) { "Habilitado [1]" } elseif ($primaryGpu.MsiStatus -eq 0) { "Deshabilitado [0]" } else { "No config" }
-            $window.FindName('lblMsiInfo').Text = $msiLabel
+            $window.FindName('lblMsiInfo').Text  = $msiLabel
             $window.FindName('lblHagsInfo').Text = if ($primaryGpu.SupportsHAGS) { "Soportado" } else { "No disponible" }
+        } else {
+            $window.FindName('lblGpuInfo').Text  = "GPU Estandar"
+            $window.FindName('lblMsiInfo').Text  = "No config"
+            $window.FindName('lblHagsInfo').Text = "No disponible"
         }
-        $window.FindName('lblAiPcInfo').Text = if ($hw.AI_PC.IsCertified) { "Si ($($hw.AI_PC.NPU_Device))" } else { "No detectada" }
+        
+        $aiPcText = if ($hw.NPU.IsAiPc) { "Si ($($hw.NPU.DeviceName))" } else { "No detectada" }
+        $window.FindName('lblAiPcInfo').Text = $aiPcText
+        
+        Write-CCLog "Telemetria de hardware cargada exitosamente: $cpuName | $ramGib GB RAM"
     } else {
-        $window.FindName('lblHwBadge').Text = "Hardware-Engine no disponible"
+        $badge = $window.FindName('lblHwBadge')
+        if ($badge) {
+            $badge.Text = "Hardware-Engine no disponible"
+            $badge.Foreground = [System.Windows.Media.Brushes]::Orange
+        }
+        Write-CCLog "Get-SystemHardwareProfile no disponible en el entorno" -Level "WARN"
     }
 } catch {
     Write-CCLog "Error al poblar telemetria de hardware: $($_.Exception.Message)" -Level "WARN"
