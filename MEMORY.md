@@ -1,3 +1,14 @@
+## [2026-09-20T19:20:00-03:00] Sincronización Total de romanOS Toolkit Maestro: Inyección en ISO (OEM/WIM), Lanzador Raíz, Actualización Documental y Pruebas Unitarias (PLAN-0085)
+
+- **Archivos Modificados:** `Lanzar-romanOS-Toolkit.cmd` (nuevo), `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Testing/Test-OptimizedISO-v2.ps1`, `docs/MANUAL_DE_USO.md`, `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `README.md`, `docs/plans/PLAN-0085-20260920-optimizacion-y-paridad-toolkit-maestro-ecosistema.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Inyección Garantizada en ISO ($OEM$ y WIM):** Se agregaron a `New-OptimizedWindowsISO-v2.ps1` las rutinas de copia para `Audit-SystemOptimization.ps1` (Auditor Universal Multi-Hardware, PLAN-0079) y `Switch-GameDevMode.ps1` / `.cmd` (Conmutador Bimodal Gaming/Dev, PLAN-0080/0081) en `$destModulesDir` / `$destModulesDir1` ($OEM$) y `$wimModulesDest` / `$wimScriptsDir` (WIM servicing offline), garantizando que las 15 opciones del Toolkit Maestro funcionen al 100% en el sistema instalado.
+  - **Lanzador de Raíz Ergonómico:** Se creó `Lanzar-romanOS-Toolkit.cmd` en la raíz del repositorio con auto-elevación UAC (`RunAs`), flag `-STA`, redirección de argumentos `%*` hacia `scripts\Modules\romanOS-Toolkit.ps1` y codificación estricta UTF-8 No-BOM / ANSI (Regla 4).
+  - **Docs-as-Code (Regla 10):** Se actualizaron `docs/MANUAL_DE_USO.md` y `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md` corrigiendo enlaces rotos heredados hacia `scripts/romanOS-Toolkit.cmd`, reflejando las 15 opciones del menú y los nuevos modos CLI (`UniversalAudit`, `GameAggressive`, `DevSwitch`, `MemoryTrim`, etc.). Se actualizó la tabla de scripts de `README.md`.
+  - **Arnés de Pruebas Unitarias:** Se incorporaron aserciones en `Test-OptimizedISO-v2.ps1` (Fase 2.16) para validar que el Toolkit soporte todos los parámetros CLI, contemple las opciones del menú interactivo, que el Builder inyecte los scripts en OEM y WIM, y que `Lanzar-romanOS-Toolkit.cmd` exista en la raíz y sea No-BOM.
+  - **Certificación Total:** **545 PASS / 0 FAIL / 1 SKIP** en `Test-OptimizedISO-v2.ps1` y **100% PASS** en `Invoke-TestSuite.ps1 -Quick` (39/39 scripts con UTF-8 BOM y 0 errores AST).
+- **Pendiente:** Ninguno.
+
 ## [2026-09-20T18:15:00-03:00] Erradicación de VBScript y Reemplazo por Lanzador GUI Nativo Win32 Subsystem 2 / winexe (PLAN-0084)
 
 - **Archivos Modificados:** `Lanzar-romanOS-Studio.cmd`, `Lanzar-romanOS-Studio.vbs` (eliminado), `scripts/GUI/romanOS-Studio-Launcher.cs` (nuevo), `docs/plans/PLAN-0084-20260920-reemplazo-vbs-por-lanzador-nativo-winexe.md`, `docs/plans/README.md`, `MEMORY.md`

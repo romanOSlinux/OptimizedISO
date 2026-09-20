@@ -4598,6 +4598,33 @@ if (Test-Path $memTrimSrc) {
     Add-AuditRecord -Resource "Optimize-ProcessMemory" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$auditSysSrc = Join-Path $ScriptsDir "Modules\Audit-SystemOptimization.ps1"
+if (Test-Path $auditSysSrc) {
+    Copy-Item -Path $auditSysSrc -Destination (Join-Path $OEMScriptsDir "Audit-SystemOptimization.ps1") -Force
+    Copy-Item -Path $auditSysSrc -Destination (Join-Path $OEMScriptsDir1 "Audit-SystemOptimization.ps1") -Force
+    Copy-Item -Path $auditSysSrc -Destination (Join-Path $destModulesDir "Audit-SystemOptimization.ps1") -Force
+    Copy-Item -Path $auditSysSrc -Destination (Join-Path $destModulesDir1 "Audit-SystemOptimization.ps1") -Force
+    Write-OK "Auditor universal de optimizacion (Audit-SystemOptimization) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Audit-SystemOptimization" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
+$gameDevSwitchSrc = Join-Path $ScriptsDir "Modules\Switch-GameDevMode.ps1"
+$gameDevSwitchCmdSrc = Join-Path $ScriptsDir "Modules\Switch-GameDevMode.cmd"
+if (Test-Path $gameDevSwitchSrc) {
+    Copy-Item -Path $gameDevSwitchSrc -Destination (Join-Path $OEMScriptsDir "Switch-GameDevMode.ps1") -Force
+    Copy-Item -Path $gameDevSwitchSrc -Destination (Join-Path $OEMScriptsDir1 "Switch-GameDevMode.ps1") -Force
+    Copy-Item -Path $gameDevSwitchSrc -Destination (Join-Path $destModulesDir "Switch-GameDevMode.ps1") -Force
+    Copy-Item -Path $gameDevSwitchSrc -Destination (Join-Path $destModulesDir1 "Switch-GameDevMode.ps1") -Force
+    if (Test-Path $gameDevSwitchCmdSrc) {
+        Copy-Item -Path $gameDevSwitchCmdSrc -Destination (Join-Path $OEMScriptsDir "Switch-GameDevMode.cmd") -Force
+        Copy-Item -Path $gameDevSwitchCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Switch-GameDevMode.cmd") -Force
+        Copy-Item -Path $gameDevSwitchCmdSrc -Destination (Join-Path $destModulesDir "Switch-GameDevMode.cmd") -Force
+        Copy-Item -Path $gameDevSwitchCmdSrc -Destination (Join-Path $destModulesDir1 "Switch-GameDevMode.cmd") -Force
+    }
+    Write-OK "Conmutador bimodal Game/Dev (Switch-GameDevMode) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Switch-GameDevMode" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 # ------------------------------------------------------------------
 # Garantizar Presencia de Submódulos del Toolkit Maestro en $OEM$
 # ------------------------------------------------------------------
@@ -7053,6 +7080,27 @@ if ($wimFile) {
                               Copy-Item -Path $memTrimCmdSrc -Destination (Join-Path $wimModulesDest "Optimize-ProcessMemory.cmd") -Force
                           }
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Optimize-ProcessMemory.ps1 y .cmd"
+                      }
+
+                      $auditSysSrc = Join-Path $ScriptsDir "Modules\Audit-SystemOptimization.ps1"
+                      if (Test-Path $auditSysSrc) {
+                          Copy-Item -Path $auditSysSrc -Destination (Join-Path $wimScriptsDir "Audit-SystemOptimization.ps1") -Force
+                          Copy-Item -Path $auditSysSrc -Destination (Join-Path $wimModulesDest "Audit-SystemOptimization.ps1") -Force
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Audit-SystemOptimization.ps1"
+                          Add-AuditRecord -Resource "Audit-SystemOptimization" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
+                      }
+
+                      $gameDevSwitchSrc = Join-Path $ScriptsDir "Modules\Switch-GameDevMode.ps1"
+                      $gameDevSwitchCmdSrc = Join-Path $ScriptsDir "Modules\Switch-GameDevMode.cmd"
+                      if (Test-Path $gameDevSwitchSrc) {
+                          Copy-Item -Path $gameDevSwitchSrc -Destination (Join-Path $wimScriptsDir "Switch-GameDevMode.ps1") -Force
+                          Copy-Item -Path $gameDevSwitchSrc -Destination (Join-Path $wimModulesDest "Switch-GameDevMode.ps1") -Force
+                          if (Test-Path $gameDevSwitchCmdSrc) {
+                              Copy-Item -Path $gameDevSwitchCmdSrc -Destination (Join-Path $wimScriptsDir "Switch-GameDevMode.cmd") -Force
+                              Copy-Item -Path $gameDevSwitchCmdSrc -Destination (Join-Path $wimModulesDest "Switch-GameDevMode.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Switch-GameDevMode.ps1 y .cmd"
+                          Add-AuditRecord -Resource "Switch-GameDevMode" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
                       }
 
                       # Inyectar submódulos de la suite para soporte del Toolkit en WIM montado

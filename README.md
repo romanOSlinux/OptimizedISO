@@ -1,4 +1,4 @@
-﻿# OptimizedISO
+# OptimizedISO
 
 > Genera una ISO de Windows 10/11 completamente desatendida (Zero-Touch) con limpieza de bloatware y optimizaciones de gaming/rendimiento preintegradas.
 
@@ -29,13 +29,16 @@ Al arrancar un PC desde la ISO generada por este proyecto, ocurre lo siguiente *
 
 ---
 
-## Scripts incluidos
-
-| Script | Descripción |
-|--------|-------------|
-| `New-OptimizedWindowsISO.ps1` | Script principal: toma una ISO de Windows, inyecta los optimizadores y genera una ISO desatendida |
-| `Win11-Debloat-v3-Adaptive.ps1` | Post-instalación: elimina bloatware, aplica tweaks de gaming, instala winget y apps |
-| `Win11-Network-Diagnostics-Optimizer.ps1` | Optimizador independiente de red para baja latencia y gaming |
+## Scripts y Herramientas Principales
+ 
+| Script / Lanzador | Ubicación | Descripción |
+|---|---|---|
+| `Lanzar-romanOS-Studio.exe` | Raíz | Interfaz gráfica moderna (WPF) para configuración y compilación de ISOs |
+| `Lanzar-romanOS-Toolkit.cmd` | Raíz | Hub Maestro interactivo on-demand (Gaming, Red, Mantenimiento, Poda RAM, Auditoría) |
+| `New-OptimizedWindowsISO-v2.ps1` | `scripts/Builder/` | Compilador principal: inyecta optimizaciones, updates, runtimes y genera ISO desatendida |
+| `Win11-Debloat-v3-Adaptive.ps1` | `scripts/Modules/` | Debloat adaptativo: elimina bloatware, tweaks de gaming, políticas de navegador |
+| `Switch-GameDevMode.cmd` | `scripts/Modules/` | Conmutador bimodal: alterna entre Modo Juego agresivo (libera RAM) y Modo Dev (Hyper-V/WSL2) |
+| `Win11-Network-Diagnostics-Optimizer.ps1` | `scripts/Modules/` | Diagnóstico de latencia, benchmarks DNS y ajuste fino TCP/IP |
 
 ---
 

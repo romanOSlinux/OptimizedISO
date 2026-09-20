@@ -8,7 +8,7 @@ Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros
 
 | Script / Herramienta | Lanzador Rápido | Propósito Principal | Parámetros Clave |
 | :--- | :--- | :--- | :--- |
-| **`romanOS-Toolkit.ps1`** | `romanOS-Toolkit.cmd` | Orquestador y Hub Maestro interactivo on-demand | `-Module`, `-ShowDashboards` |
+| **`romanOS-Toolkit.ps1`** | `Lanzar-romanOS-Toolkit.cmd` | Orquestador y Hub Maestro interactivo on-demand | `-Module`, `-ShowDashboards` |
 | **`Win11-Debloat-v3-Adaptive.ps1`** | `Win11-Debloat-v3-Adaptive.cmd` | Debloat adaptativo por hardware, gaming y privacidad | `-BrowsersOnly`, `-Unattended` |
 | **`Win11-Network-Diagnostics-Optimizer.ps1`** | `Win11-Network-Diagnostics-Optimizer.cmd` | Diagnóstico de latencia, DNS, MTU y TCP No-Delay | `-Unattended` |
 | **`Invoke-WindowsMaintenance.ps1`** | `Invoke-WindowsMaintenance.cmd` | Limpieza profunda WinSxS, Shaders, TRIM y SFC | `-PostInstall`, `-DeepClean`, `-RepairOnly`, `-Full`, `-Unattended` |
@@ -26,46 +26,69 @@ Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros
 
 ---
 
-## 1. Hub Maestro: `romanOS-Toolkit.ps1`
+## 1. Hub Maestro Desacoplado: `romanOS-Toolkit.ps1`
 
 El Hub Maestro orquesta todas las herramientas bajo demanda con **cero procesos residentes en segundo plano** (*zero-resident footprint*).
 
 ### 🖥️ Ejecución Interactiva
 ```powershell
-& "C:\OptimizedISO\scripts\romanOS-Toolkit.ps1"
+# Desde PowerShell como Administrador
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1"
 ```
-*O haz doble clic en `C:\OptimizedISO\scripts\romanOS-Toolkit.cmd`.*
+*O haz doble clic directamente en `C:\OptimizedISO\Lanzar-romanOS-Toolkit.cmd` en la raíz.*
 
 **Opciones del Menú Principal:**
-- `[1]` ⚡ Optimización Gaming & Hardware (invoca debloat adaptativo).
-- `[2]` 🌐 Diagnóstico de Red & Latencia.
-- `[3]` 🧹 Mantenimiento & Limpieza Profunda.
-- `[4]` 📋 Auditoría Forense Post-Instalación & Salud.
-- `[5]` 🛡️ Auditoría de Seguridad & Hardening Desacoplado.
-- `[6]` 🌐 **Optimizar y Debloat de Navegadores (Modo Directo sin tocar el SO)**.
-- `[7]` 📊 Generar y Abrir Dashboards HTML de Salud y Seguridad.
-- `[8]` 🔧 Acciones Rápidas (Flush DNS, Restart Explorer, God Mode, Reparación DISM/SFC, Shaders GPU, SSD TRIM).
-- `[0]` ❌ Salir.
+- `[1]`  ⚡ **Optimización Gaming & Hardware** (invoca debloat adaptativo, HAGS, MSI Mode).
+- `[2]`  🌐 **Diagnóstico de Red & Latencia** (Benchmarks DNS, TCP/IP, Sockets).
+- `[3]`  🧹 **Mantenimiento & Limpieza Profunda** (WinSxS DISM, Shaders GPU, SSD TRIM).
+- `[4]`  📋 **Auditoría Forense Post-Instalación & Salud** (Panther, CompactOS, PnP).
+- `[5]`  🔍 **Auditoría Forense de Huella en Reposo** (RAM en reposo, procesos residuales).
+- `[6]`  🛡️ **Auditoría de Seguridad & Hardening** (ASR, VBS, Protocolos On-Demand).
+- `[7]`  🌐 **Optimizar y Debloat de Navegadores** (Edge, Chrome, Brave, Firefox sin IA/bloatware).
+- `[8]`  📦 **Descargar Windows Updates Oficiales** (MSU/CAB para Slipstream en ISO).
+- `[9]`  💻 **Gestión Integral de Controladores** (Respaldo Host, DriverStore, Intel VMD).
+- `[10]` 👤 **Migrar o Rescatar Perfil de Usuario Local** (Respaldos y Recreación).
+- `[11]` 📊 **Generar y Abrir Dashboards HTML de Salud y Seguridad**.
+- `[12]` 🧠 **Poda Quirúrgica de Memoria RAM en Reposo** (psapi.dll EmptyWorkingSet).
+- `[13]` 🎯 **Auditor Universal de Optimización** (10 dominios, scoring y remediación).
+- `[14]` 🎮 **Conmutador Modo Juego / Modo Dev** (Liberar RAM para APU y cortar devoradores).
+- `[15]` ⚡ **Acciones Rápidas Express** (Flush DNS, Restart Explorer, GodMode, SFC).
+- `[0]`  ❌ **Salir del Toolkit**.
 
 ### ⚙️ Modos CLI Directos
 ```powershell
-# Lanzar directamente el módulo de Navegadores
-& "C:\OptimizedISO\scripts\romanOS-Toolkit.ps1" -Module Browsers
+# Lanzar Auditor Universal de Optimización del Sistema
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -Module UniversalAudit
 
-# Lanzar directamente el módulo de Gaming
-& "C:\OptimizedISO\scripts\romanOS-Toolkit.ps1" -Module Gaming
+# Conmutar dinámicamente a Modo Juego (recorte agresivo de RAM)
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -Module GameAggressive
 
-# Lanzar directamente el módulo de Red
-& "C:\OptimizedISO\scripts\romanOS-Toolkit.ps1" -Module Network
+# Conmutar dinámicamente a Modo Desarrollo (restaura Hyper-V, WSL2, Docker)
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -Module DevSwitch
 
-# Lanzar directamente el módulo de Mantenimiento
-& "C:\OptimizedISO\scripts\romanOS-Toolkit.ps1" -Module Maintenance
+# Poda de Memoria RAM en reposo
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -Module MemoryTrim
 
-# Lanzar directamente el módulo de Auditoría de Seguridad
-& "C:\OptimizedISO\scripts\romanOS-Toolkit.ps1" -Module Security
+# Auditoría Forense de Huella en Reposo
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -Module FootprintAudit
+
+# Lanzar optimizador de Navegadores
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -Module Browsers
+
+# Lanzar módulo de Gaming y Debloat
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -Module Gaming
+
+# Lanzar módulo de Red y Latencia
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -Module Network
+
+# Lanzar módulo de Mantenimiento y Limpieza
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -Module Maintenance
+
+# Lanzar auditoría de Seguridad
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -Module Security
 
 # Generar y abrir ambos reportes HTML en el escritorio y navegador
-& "C:\OptimizedISO\scripts\romanOS-Toolkit.ps1" -ShowDashboards
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -ShowDashboards
 ```
 
 ---

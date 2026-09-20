@@ -1595,6 +1595,35 @@ Assert-True "PLAN-0076: Builder autounattend incluye DynamicUpdate deshabilitado
 Assert-True "PLAN-0076: Builder genera Initialize-SuiteTasks.ps1 para ejecucion consolidada" ([bool]($v2FreshContent76 -match 'Initialize-SuiteTasks\.ps1'))
 Assert-True "PLAN-0076: SetupComplete lanza diagnosticos en background de forma desacoplada" ([bool]($v2FreshContent76 -match 'start "" /b.*PostInstall-Diagnostics\.ps1'))
 
+# -----------------------------------------------------------------------------
+# FASE 2.16: SINCRONIZACIÓN Y PARIDAD DEL TOOLKIT MAESTRO EN LA ISO (PLAN-0085)
+# -----------------------------------------------------------------------------
+Write-HarnessHeader2 "FASE 2.16: Sincronizacion y Paridad del Toolkit Maestro (PLAN-0085)"
+
+# 1. Validar parámetros CLI extendidos en romanOS-Toolkit.ps1
+$toolkitScriptPath85 = Join-Path $modulesDir "romanOS-Toolkit.ps1"
+$toolkitContent85    = Get-Content $toolkitScriptPath85 -Raw
+Assert-True "PLAN-0085: romanOS-Toolkit.ps1 acepta UniversalAudit en ValidateSet" ([bool]($toolkitContent85 -match 'UniversalAudit'))
+Assert-True "PLAN-0085: romanOS-Toolkit.ps1 acepta GameDevSwitch en ValidateSet" ([bool]($toolkitContent85 -match 'GameDevSwitch'))
+Assert-True "PLAN-0085: romanOS-Toolkit.ps1 declara funcion Invoke-UniversalAuditModule" ([bool]($toolkitContent85 -match 'function Invoke-UniversalAuditModule'))
+Assert-True "PLAN-0085: romanOS-Toolkit.ps1 declara funcion Invoke-GameDevSwitchModule" ([bool]($toolkitContent85 -match 'function Invoke-GameDevSwitchModule'))
+Assert-True "PLAN-0085: romanOS-Toolkit.ps1 incluye Auditor Universal en menu interactivo" ([bool]($toolkitContent85 -match 'Auditor Universal de Optimizacion'))
+Assert-True "PLAN-0085: romanOS-Toolkit.ps1 incluye Conmutador Modo Juego/Dev en menu interactivo" ([bool]($toolkitContent85 -match 'Conmutador Modo Juego / Modo Dev'))
+
+# 2. Validar inyección garantizada en Builder New-OptimizedWindowsISO-v2.ps1
+$builderContent85 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0085: Builder inyecta Audit-SystemOptimization.ps1 en `$OEM`$" ([bool]($builderContent85 -match '(?s)Audit-SystemOptimization\.ps1.*?destModulesDir'))
+Assert-True "PLAN-0085: Builder inyecta Switch-GameDevMode en `$OEM`$" ([bool]($builderContent85 -match '(?s)Switch-GameDevMode\.ps1.*?destModulesDir'))
+Assert-True "PLAN-0085: Builder inyecta Audit-SystemOptimization.ps1 en WIM" ([bool]($builderContent85 -match '(?s)Audit-SystemOptimization\.ps1.*?wimModulesDest'))
+Assert-True "PLAN-0085: Builder inyecta Switch-GameDevMode en WIM" ([bool]($builderContent85 -match '(?s)Switch-GameDevMode\.ps1.*?wimModulesDest'))
+
+# 3. Validar existencia y codificación No-BOM del lanzador raíz
+$rootLauncherPath85 = Join-Path $projectRootDir "Lanzar-romanOS-Toolkit.cmd"
+Assert-True "PLAN-0085: Lanzar-romanOS-Toolkit.cmd existe en la raiz" (Test-Path $rootLauncherPath85)
+$launcherBytes85 = if (Test-Path $rootLauncherPath85) { [System.IO.File]::ReadAllBytes($rootLauncherPath85) } else { @() }
+$launcherHasBom85 = ($launcherBytes85.Length -ge 3 -and $launcherBytes85[0] -eq 0xEF -and $launcherBytes85[1] -eq 0xBB -and $launcherBytes85[2] -eq 0xBF)
+Assert-True "PLAN-0085: Lanzar-romanOS-Toolkit.cmd es UTF-8 No-BOM / ANSI" (-not $launcherHasBom85)
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

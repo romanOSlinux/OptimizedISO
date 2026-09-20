@@ -1,4 +1,4 @@
-﻿# 📖 Manual de Uso Oficial: romanOS Toolkit & ISO Optimizada v2
+# 📖 Manual de Uso Oficial: romanOS Toolkit & ISO Optimizada v2
 
 Guía integral de uso y referencia técnica para la creación de imágenes ISO desatendidas de Windows 10/11 y la suite de herramientas **romanOS Toolkit Maestro** (Optimización Extrema para Gaming/Streaming, Mantenimiento, Red y Seguridad Desacoplada).
 
@@ -73,27 +73,36 @@ Una vez completada la instalación desatendida de Windows:
 
 ---
 
-## 🎛️ 4. Uso del Hub Maestro (`romanOS-Toolkit.cmd` / `.ps1`)
+## 🎛️ 4. Uso del Hub Maestro (`Lanzar-romanOS-Toolkit.cmd` / `.ps1`)
 
-El Hub Maestro [`scripts/romanOS-Toolkit.cmd`](file:///c:/OptimizedISO/scripts/romanOS-Toolkit.cmd) permite gestionar todo el equipo desde un solo menú centralizado.
+El Hub Maestro [Lanzar-romanOS-Toolkit.cmd](file:///c:/OptimizedISO/Lanzar-romanOS-Toolkit.cmd) (o [scripts/Modules/romanOS-Toolkit.cmd](file:///c:/OptimizedISO/scripts/Modules/romanOS-Toolkit.cmd)) permite gestionar todo el equipo desde un solo menú centralizado con cero procesos residentes en segundo plano (*Zero-Resident Footprint*).
 
 ### 🖱️ Cómo Abrirlo
-* Haz doble clic en el acceso directo del Menú Inicio **`romanOS Toolkit Maestro`**, o
+* Haz doble clic en **`Lanzar-romanOS-Toolkit.cmd`** en la raíz del repositorio,
+* O haz doble clic en el acceso directo del Menú Inicio **`romanOS Toolkit Maestro`** (en el sistema instalado), o
 * Ejecuta desde consola:
   ```powershell
-  .\scripts\Modules\romanOS-Toolkit.cmd
+  .\Lanzar-romanOS-Toolkit.cmd
   ```
 
 ### 📋 Menú Principal del Hub
 ```text
-  [1] ⚡ Optimización Gaming & Hardware (HAGS, MSI Mode, Latencia, Debloat)
-  [2] 🌐 Diagnóstico de Red & Latencia (Benchmarks DNS, TCP/IP, Sockets)
-  [3] 🧹 Mantenimiento & Limpieza Profunda (WinSxS DISM, Shaders, SSD TRIM)
-  [4] 📋 Auditoría Forense Post-Instalación & Salud (Panther, CompactOS, PnP)
-  [5] 🛡️  Auditoría de Seguridad & Hardening (ASR, VBS, Protocolos On-Demand)
-  [6] 📊 Generar y Abrir Dashboards HTML de Salud y Seguridad
-  [7] 🔧 Acciones Rápidas (Flush DNS, Restart Explorer, GodMode, Reparación)
-  [0] ❌ Salir del Toolkit
+  [1]  ⚡ Optimización Gaming & Hardware (HAGS, MSI Mode, Latencia, Debloat)
+  [2]  🌐 Diagnóstico de Red & Latencia (Benchmarks DNS, TCP/IP, Sockets)
+  [3]  🧹 Mantenimiento & Limpieza Profunda (WinSxS DISM, Shaders, SSD TRIM)
+  [4]  📋 Auditoría Forense Post-Instalación & Salud (Panther, CompactOS, PnP)
+  [5]  🔍 Auditoría Forense de Huella en Reposo (Procesos en Segundo Plano, RAM y Directivas)
+  [6]  🛡️ Auditoría de Seguridad & Hardening (ASR, VBS, Protocolos On-Demand)
+  [7]  🌐 Optimizar y Debloat de Navegadores (GPU, Menos RAM, Sin Copilot/IA)
+  [8]  📦 Descargar Windows Updates Oficiales (MSU/CAB para Slipstream en ISO)
+  [9]  💻 Gestión Integral de Controladores (Respaldo Host, DriverStore, Intel VMD)
+  [10] 👤 Migrar o Rescatar Perfil de Usuario Local (Respaldos y Recreacion)
+  [11] 📊 Generar y Abrir Dashboards HTML de Salud y Seguridad
+  [12] 🧠 Poda Quirurgica de Memoria RAM en Reposo (SearchHost, WebView2, Shell)
+  [13] 🎯 Auditor Universal de Optimizacion (Multi-Hardware, Latencia, Scoring y Remediacion)
+  [14] 🎮 Conmutador Modo Juego / Modo Dev (Liberar RAM para APU y Cortar Devoradores)
+  [15] ⚡ Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)
+  [0]  ❌ Salir del Toolkit
 ```
 
 ---
