@@ -4632,6 +4632,23 @@ if (Test-Path $gameDevSwitchSrc) {
     Add-AuditRecord -Resource "Switch-GameDevMode" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$gamingAppsSrc    = Join-Path $ScriptsDir "Modules\Optimize-GamingAndApps.ps1"
+$gamingAppsCmdSrc = Join-Path $ScriptsDir "Modules\Optimize-GamingAndApps.cmd"
+if (Test-Path $gamingAppsSrc) {
+    Copy-Item -Path $gamingAppsSrc -Destination (Join-Path $OEMScriptsDir "Optimize-GamingAndApps.ps1") -Force
+    Copy-Item -Path $gamingAppsSrc -Destination (Join-Path $OEMScriptsDir1 "Optimize-GamingAndApps.ps1") -Force
+    Copy-Item -Path $gamingAppsSrc -Destination (Join-Path $destModulesDir "Optimize-GamingAndApps.ps1") -Force
+    Copy-Item -Path $gamingAppsSrc -Destination (Join-Path $destModulesDir1 "Optimize-GamingAndApps.ps1") -Force
+    if (Test-Path $gamingAppsCmdSrc) {
+        Copy-Item -Path $gamingAppsCmdSrc -Destination (Join-Path $OEMScriptsDir "Optimize-GamingAndApps.cmd") -Force
+        Copy-Item -Path $gamingAppsCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Optimize-GamingAndApps.cmd") -Force
+        Copy-Item -Path $gamingAppsCmdSrc -Destination (Join-Path $destModulesDir "Optimize-GamingAndApps.cmd") -Force
+        Copy-Item -Path $gamingAppsCmdSrc -Destination (Join-Path $destModulesDir1 "Optimize-GamingAndApps.cmd") -Force
+    }
+    Write-OK "Optimizador de Juegos y Apps Electron (Optimize-GamingAndApps) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Optimize-GamingAndApps" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
 $ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
 $ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"

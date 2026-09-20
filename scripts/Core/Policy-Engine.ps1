@@ -1236,6 +1236,68 @@ $global:RomanOS_Policies = @(
         PSType        = "DWord"
         ExpectedValue = 1
         Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+    },
+    # --- MÓDULO G: CIBERSEGURIDAD ZERO-IMPACT & KERNEL HARDENING ---
+    @{
+        Id            = "POL_SEC_LSA_RUNASPPL"
+        Module        = "Modulo G - Hardening Seguro"
+        Category      = "Seguridad y Kernel"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\Lsa"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
+        ValueName     = "RunAsPPL"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Proteccion LSA RunAsPPL contra volcado de credenciales en memoria (lsass.exe)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/configuring-additional-lsa-protection"
+        UnattendDesc  = "Enable LSA Protection RunAsPPL"
+    },
+    @{
+        Id            = "POL_SEC_LSA_RUNASPPL_BOOT"
+        Module        = "Modulo G - Hardening Seguro"
+        Category      = "Seguridad y Kernel"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\Lsa"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
+        ValueName     = "RunAsPPLBoot"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 2
+        Profiles      = @(1, 2, 3)
+        Description   = "Configurar RunAsPPLBoot con variable UEFI persistente"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/configuring-additional-lsa-protection"
+        UnattendDesc  = "Enable RunAsPPLBoot with UEFI Variable"
+    },
+    @{
+        Id            = "POL_SEC_DRIVER_BLOCKLIST"
+        Module        = "Modulo G - Hardening Seguro"
+        Category      = "Seguridad y Kernel"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config"
+        ValueName     = "VulnerableDriverBlocklistEnable"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Lista negra recomendada de Microsoft para bloquear drivers vulnerables (BYOVD)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/security/application-security/application-control/windows-defender-application-control/design/microsoft-recommended-driver-block-rules"
+        UnattendDesc  = "Enable Microsoft Recommended Vulnerable Driver Blocklist"
+    },
+    # --- MÓDULO H: GAMING WDDM 3.x Y FLIP MODEL ---
+    @{
+        Id            = "POL_GAME_WINDOWED_OPTIMIZATION"
+        Module        = "Modulo H - Gaming WDDM 3.x"
+        Category      = "Rendimiento y Gaming"
+        RegistryKey   = "HKCU\Software\Microsoft\DirectX\UserGpuPreferences"
+        PSPath        = "HKCU:\Software\Microsoft\DirectX\UserGpuPreferences"
+        ValueName     = "DirectXUserGlobalSettings"
+        Type          = "REG_SZ"
+        PSType        = "String"
+        ExpectedValue = "SwapEffectUpgradeEnable=1;AutoHDREnable=1;VRROptimizeEnable=1;"
+        Profiles      = @(1, 2, 3)
+        Description   = "Forzar Flip Model y optimizaciones de juegos en ventana (AutoHDR, VRR, SwapEffect)"
+        OfficialDoc   = "https://devblogs.microsoft.com/directx/demystifying-full-screen-optimizations/"
+        UnattendDesc  = "Enable Windowed Game Optimizations and Flip Model"
     }
 )
 
@@ -1630,6 +1692,28 @@ $global:RomanOS_BrowserPolicies = @(
         ExpectedValue = 3
         Description   = "Prevencion de rastreo estricta (Nivel 3)"
     },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "WebRtcIPHandlingPolicy"
+        Type          = "REG_SZ"
+        PSType        = "String"
+        ExpectedValue = "disable_non_proxied_udp"
+        Description   = "Prevenir fuga de direccion IP local mediante WebRTC"
+    },
+    @{
+        Browser       = "Edge"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Edge"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+        ValueName     = "IdleDetectionAllowed"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 2
+        Description   = "Bloquear deteccion de inactividad del usuario por sitios web"
+    },
 
     # --- GOOGLE CHROME ---
     @{
@@ -1906,6 +1990,28 @@ $global:RomanOS_BrowserPolicies = @(
         PSType        = "DWord"
         ExpectedValue = 0
         Description   = "Ocultar icono de Chromecast en barra de herramientas"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "WebRtcIPHandlingPolicy"
+        Type          = "REG_SZ"
+        PSType        = "String"
+        ExpectedValue = "disable_non_proxied_udp"
+        Description   = "Prevenir fuga de direccion IP local mediante WebRTC"
+    },
+    @{
+        Browser       = "Chrome"
+        Category      = "Debloat y Privacidad"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Google\Chrome"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Google\Chrome"
+        ValueName     = "IdleDetectionAllowed"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 2
+        Description   = "Bloquear deteccion de inactividad del usuario por sitios web"
     },
 
     # --- MOZILLA FIREFOX ---
@@ -2376,9 +2482,19 @@ $global:RomanOS_NetworkPolicies = @(
         ActionType    = "NetAdapter_AdvancedProp"
         RegistryKeyword = "*EEE"
         RegistryValue   = "0"
-        DisplayMatch    = "Energy Efficient Ethernet|Green|Ahorro de energia"
+        DisplayMatch    = "Energy Efficient Ethernet|Green|ecol[oó]gico|Ahorro de energ[ií]a"
         DisplayValue    = "Disabled"
-        Description   = "EEE / Green Ethernet deshabilitado para reducir micro-cortes."
+        Description   = "EEE / Green Ethernet deshabilitado para reducir micro-cortes y latencia."
+    },
+    @{
+        Id            = "NET_NIC_POWER_SAVING"
+        Category      = "Hardware NIC"
+        ActionType    = "NetAdapter_AdvancedProp"
+        RegistryKeyword = "*PowerSavingMode"
+        RegistryValue   = "0"
+        DisplayMatch    = "Power Saving Mode|Modo de ahorro de energ[ií]a"
+        DisplayValue    = "Disabled"
+        Description   = "Power Saving Mode de NIC deshabilitado para eliminar latencias PHY."
     },
     @{
         Id            = "NET_NIC_DISABLE_RSC"

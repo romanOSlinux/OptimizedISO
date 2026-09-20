@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter")]
+    [ValidateSet("Gaming", "GamingApps", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter")]
     [string]$Module,
     [switch]$ShowDashboards,
     [switch]$GUI
@@ -243,6 +243,17 @@ function Invoke-UniversalAuditModule {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
     } else {
         Write-ErrorMsg "No se encontro Audit-SystemOptimization.ps1"
+        pause
+    }
+}
+
+function Invoke-GamingAndAppsModule {
+    $scriptFile = Resolve-ToolScript "Optimize-GamingAndApps.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Optimizador de Juegos, Apps Electron y VRAM"
+        & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
+    } else {
+        Write-ErrorMsg "No se encontro Optimize-GamingAndApps.ps1"
         pause
     }
 }
@@ -654,6 +665,7 @@ if ($Module) {
         "GUI"           { Invoke-ControlCenterGUI; exit }
         "ControlCenter" { Invoke-ControlCenterGUI; exit }
         "QuickActions"  { Show-QuickActionsMenu; exit }
+        "GamingApps"    { Invoke-GamingAndAppsModule; exit }
     }
 }
 
@@ -692,6 +704,7 @@ $mainMenuOpts = @(
     "Poda Quirurgica de Memoria RAM en Reposo (SearchHost, WebView2, Shell)",
     "Auditor Universal de Optimizacion (Multi-Hardware, Latencia, Scoring y Remediacion)",
     "Conmutador Modo Juego / Modo Dev (Liberar RAM para APU y Cortar Devoradores)",
+    "Optimizador de Juegos y Apps Electron (Steam VRAM, Discord, Shaders)",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)",
     "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
 )
@@ -715,8 +728,9 @@ while ($true) {
         12 { Invoke-MemoryTrimModule; pause }
         13 { Invoke-UniversalAuditModule; pause }
         14 { Invoke-GameDevSwitchModule -TargetMode "Status"; pause }
-        15 { Show-QuickActionsMenu; pause }
-        16 { Invoke-ControlCenterGUI; pause }
+        15 { Invoke-GamingAndAppsModule; pause }
+        16 { Show-QuickActionsMenu; pause }
+        17 { Invoke-ControlCenterGUI; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

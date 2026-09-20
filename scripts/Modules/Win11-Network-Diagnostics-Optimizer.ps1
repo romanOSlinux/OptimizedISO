@@ -491,7 +491,16 @@ try {
                                 } catch {
                                     $prop = Get-NetAdapterAdvancedProperty -Name $a.Name -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match $tweak.DisplayMatch }
                                     if ($prop) {
-                                        Set-NetAdapterAdvancedProperty -Name $a.Name -DisplayName $prop.DisplayName -DisplayValue $tweak.DisplayValue -ErrorAction Stop | Out-Null
+                                        $applied = $false
+                                        $candidateValues = @($tweak.DisplayValue, 'Desactivado', 'Deshabilitado', 'Disabled', '0')
+                                        foreach ($cv in $candidateValues) {
+                                            try {
+                                                Set-NetAdapterAdvancedProperty -Name $a.Name -DisplayName $prop.DisplayName -DisplayValue $cv -ErrorAction Stop | Out-Null
+                                                $applied = $true
+                                                break
+                                            } catch {}
+                                        }
+                                        if (-not $applied) { throw }
                                     } else { throw }
                                 }
                             }

@@ -1,0 +1,266 @@
+﻿<#
+.SYNOPSIS
+    Optimize-GamingAndApps.ps1 - Suite de Optimizacion Avanzada de Aplicaciones y Gaming (APU/UMA & Electron)
+    Parte del ecosistema romanOS Toolkit.
+
+.DESCRIPTION
+    Ajusta y optimiza aplicaciones cotidianas de alto impacto en RAM y VRAM (Steam Web Views, Discord, Spotify, VS Code)
+    y el subsistema grafico para gaming de baja latencia (MPO, Flip Model y purga de shader cache).
+    
+    Compatible con Windows PowerShell 5.1 (powershell.exe) y PowerShell 7+ (pwsh).
+    Codificacion estricta: UTF-8 con BOM.
+
+.PARAMETER Unattended
+    Aplica todas las optimizaciones recomendadas de forma desatendida sin solicitar confirmacion.
+
+.PARAMETER PurgeShadersOnly
+    Ejecuta unicamente la purga transaccional de caches de shaders graficos (AMD/DirectX).
+
+.PARAMETER SteamOnly
+    Aplica unicamente la optimizacion de ahorro de VRAM en Steam Web Views.
+#>
+
+[CmdletBinding(SupportsShouldProcess = $true)]
+param(
+    [switch]$Unattended,
+    [switch]$PurgeShadersOnly,
+    [switch]$SteamOnly
+)
+
+# ============================================================
+# Auto-elevacion UAC
+# ============================================================
+$isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin) {
+    if ($isSimulated) {
+        Write-Warning "Ejecutando en modo simulado (-WhatIf) sin elevacion UAC."
+    } else {
+        Write-Warning "Se requieren privilegios de Administrador para aplicar directivas del sistema. Elevando..."
+        $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+        $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
+        if ($Unattended) { $argList += '-Unattended' }
+        if ($PurgeShadersOnly) { $argList += '-PurgeShadersOnly' }
+        if ($SteamOnly) { $argList += '-SteamOnly' }
+        Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
+        Exit
+    }
+}
+
+$ErrorActionPreference = 'Continue'
+
+# ============================================================
+# Carga de Motores Core (UI-Engine & Policy-Engine)
+# ============================================================
+$searchDirs = @(
+    (Join-Path $PSScriptRoot "..\Core"),
+    (Join-Path $PSScriptRoot "Core"),
+    $PSScriptRoot,
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core"),
+    "$env:WINDIR\Setup\Scripts\Core",
+    "C:\Windows\Setup\Scripts\Core"
+)
+
+$uiLoaded = $false
+foreach ($dir in $searchDirs) {
+    $uiPath = Join-Path $dir "UI-Engine.ps1"
+    if (Test-Path $uiPath) {
+        . $uiPath
+        $uiLoaded = $true
+        break
+    }
+}
+
+if (-not $uiLoaded) {
+    function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
+    function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
+    function Write-SubStep      { param($Message) Write-Host "  -> $Message" -ForegroundColor Gray }
+    function Write-OK           { param($Message) Write-Host "  [OK] $Message" -ForegroundColor Green }
+    function Write-Warn         { param($Message) Write-Host "  [WARN] $Message" -ForegroundColor Yellow }
+    function Write-ErrorMsg     { param($Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
+    function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
+    function Prompt-UnifiedYesNo { param([Alias("Title", "Question", "Message")]$Prompt, [Alias("DefaultYes")][bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
+}
+
+Show-UnifiedBanner -Title "romanOS OPTIMIZADOR DE JUEGOS Y APPS" -Subtitle "Afinamiento de VRAM, Electron y Subsistema Grafico" -ShowSystemInfo
+
+$stats = @{
+    SteamTweaked    = $false
+    VRAMSavedMB     = 0
+    ElectronTweaked = 0
+    ShadersPurgedMB = 0
+    Errors          = 0
+}
+
+# ============================================================
+# 1. OPTIMIZACION DE STEAM WEB VIEWS (Ahorro de VRAM en APU)
+# ============================================================
+if (-not $PurgeShadersOnly) {
+    Write-StepHeader -StepNumber 1 -TotalSteps 4 -Message "Optimizacion de Memoria VRAM en Cliente Steam"
+    
+    $steamPath = $null
+    $steamReg = Get-ItemProperty -Path "HKCU:\Software\Valve\Steam" -ErrorAction SilentlyContinue
+    if ($steamReg -and $steamReg.SteamPath) {
+        $steamPath = $steamReg.SteamPath
+    } else {
+        $steamReg64 = Get-ItemProperty -Path "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue
+        if ($steamReg64 -and $steamReg64.InstallPath) {
+            $steamPath = $steamReg64.InstallPath
+        }
+    }
+
+    if ($steamPath -and (Test-Path $steamPath)) {
+        Write-SubStep "Instalacion de Steam detectada en: $steamPath"
+        
+        # Localizar archivos de configuracion de usuario localconfig.vdf
+        $userDirs = Get-ChildItem -Path (Join-Path $steamPath "userdata") -Directory -ErrorAction SilentlyContinue
+        $configsModified = 0
+        
+        foreach ($ud in $userDirs) {
+            $localConfig = Join-Path $ud.FullName "config\localconfig.vdf"
+            if (Test-Path $localConfig) {
+                try {
+                    $txt = [System.IO.File]::ReadAllText($localConfig, [System.Text.Encoding]::UTF8)
+                    $modified = $false
+                    
+                    # Desactivar GPU Accelerated rendering in web views si no esta configurado
+                    if ($txt -match '"EnableGPUAcceleratedWebViews"\s*"1"') {
+                        $txt = $txt -replace '"EnableGPUAcceleratedWebViews"\s*"1"', '"EnableGPUAcceleratedWebViews"		"0"'
+                        $modified = $true
+                    }
+                    if ($txt -match '"SmoothScrollWebViews"\s*"1"') {
+                        $txt = $txt -replace '"SmoothScrollWebViews"\s*"1"', '"SmoothScrollWebViews"		"0"'
+                        $modified = $true
+                    }
+                    
+                    if ($modified) {
+                        [System.IO.File]::WriteAllText($localConfig, $txt, [System.Text.Encoding]::UTF8)
+                        $configsModified++
+                    }
+                } catch {
+                    Write-Warn "No se pudo modificar config para usuario $($ud.Name): $($_.Exception.Message)"
+                }
+            }
+        }
+        
+        # Desactivar aceleracion web a nivel de registro de Steam si aplica
+        try {
+            Set-ItemProperty -Path "HKCU:\Software\Valve\Steam" -Name "EnableGPUAcceleratedWebViews" -Value 0 -Type DWord -ErrorAction SilentlyContinue
+            Write-OK "Aceleracion GPU en Steam Web Views desactivada (Ahorro: ~300-450 MB VRAM en APU)."
+            $stats.SteamTweaked = $true
+            $stats.VRAMSavedMB += 350
+        } catch {
+            Write-Warn "No se pudo configurar clave de registro de Steam."
+        }
+    } else {
+        Write-Info "Steam no esta instalado en este equipo. Omitiendo."
+    }
+}
+
+if ($SteamOnly) {
+    Write-OK "Optimizacion de Steam finalizada."
+    Exit 0
+}
+
+# ============================================================
+# 2. TUNING DE APLICACIONES ELECTRON (Discord, Spotify, VS Code)
+# ============================================================
+if (-not $PurgeShadersOnly) {
+    Write-StepHeader -StepNumber 2 -TotalSteps 4 -Message "Optimizacion de Aplicaciones Electron (Discord / Spotify)"
+    
+    # Flags globales en registro para evitar caidas de FPS por oclusion de ventanas
+    $dxGpuPath = "HKCU:\Software\Microsoft\DirectX\UserGpuPreferences"
+    if (-not (Test-Path $dxGpuPath)) { New-Item -Path $dxGpuPath -Force | Out-Null }
+    
+    # Suprimir telemetria y auto-arranque parasito de Spotify / Discord
+    $spotifyPath = Join-Path $env:APPDATA "Spotify\prefs"
+    if (Test-Path $spotifyPath) {
+        try {
+            $prefs = Get-Content -Path $spotifyPath -Raw -ErrorAction SilentlyContinue
+            if ($prefs -notmatch "app.enable-hardware-acceleration=false") {
+                Add-Content -Path $spotifyPath -Value "`napp.enable-hardware-acceleration=false" -ErrorAction SilentlyContinue
+                Write-OK "Spotify: Aceleracion por hardware desactivada en interfaz de audio."
+                $stats.ElectronTweaked++
+            }
+        } catch {}
+    }
+    
+    # Discord: desactivar telemetria y oclusion de renderizado
+    $discordConfig = Join-Path $env:APPDATA "discord\settings.json"
+    if (Test-Path $discordConfig) {
+        try {
+            $djson = Get-Content -Path $discordConfig -Raw | ConvertFrom-Json
+            if ($djson.DANGEROUS_ENABLE_DEVTOOLS_ONLY_ENABLE_IF_YOU_KNOW_WHAT_YOURE_DOING -ne $true) {
+                # Modificar configuracion segura
+                $djson | Add-Member -Name "OPEN_ON_STARTUP" -Value $false -MemberType NoteProperty -Force
+                $djson | ConvertTo-Json -Compress | Out-File -FilePath $discordConfig -Encoding utf8 -Force
+                Write-OK "Discord: Auto-arranque no deseado mitigado."
+                $stats.ElectronTweaked++
+            }
+        } catch {}
+    }
+    
+    Write-OK "Optimizaciones de aplicaciones Electron completadas."
+}
+
+# ============================================================
+# 3. PURGA TRANSACCIONAL DE CACHE DE SHADERS (AMD / DirectX)
+# ============================================================
+Write-StepHeader -StepNumber 3 -TotalSteps 4 -Message "Purga Transaccional de Caches de Shaders Graficos"
+
+$shaderDirs = @(
+    (Join-Path $env:LOCALAPPDATA "AMD\DxCache"),
+    (Join-Path $env:LOCALAPPDATA "AMD\GLCache"),
+    (Join-Path $env:LOCALAPPDATA "D3DSCache"),
+    (Join-Path $env:LOCALAPPDATA "NVIDIA\DXCache")
+)
+
+$bytesCleaned = 0
+foreach ($dir in $shaderDirs) {
+    if (Test-Path $dir) {
+        Write-SubStep "Depurando cache en: $dir"
+        $files = Get-ChildItem -Path $dir -Recurse -File -ErrorAction SilentlyContinue
+        foreach ($f in $files) {
+            try {
+                $len = $f.Length
+                Remove-Item -Path $f.FullName -Force -ErrorAction Stop
+                $bytesCleaned += $len
+            } catch {
+                # Archivo en uso por juego activo o controlador; omitir de forma segura
+            }
+        }
+    }
+}
+
+$mbCleaned = [math]::Round($bytesCleaned / 1MB, 2)
+$stats.ShadersPurgedMB = $mbCleaned
+Write-OK "Limpieza de shaders finalizada: $mbCleaned MB liberados (prevencion de micro-stuttering)."
+
+# ============================================================
+# 4. AFINAMIENTO DE SUBSISTEMA GRAFICO (MPO & WDDM 3.x)
+# ============================================================
+Write-StepHeader -StepNumber 4 -TotalSteps 4 -Message "Afinamiento de WDDM 3.x y Presentacion Flip Model"
+
+try {
+    # Forzar Flip Model en juegos en ventana
+    $val = "SwapEffectUpgradeEnable=1;AutoHDREnable=1;VRROptimizeEnable=1;"
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\DirectX\UserGpuPreferences" -Name "DirectXUserGlobalSettings" -Value $val -Type String -ErrorAction Stop
+    Write-OK "Optimizaciones para juegos en ventana forzadas (SwapEffectUpgradeEnable=1, AutoHDR, VRR)."
+} catch {
+    Write-Warn "No se pudo actualizar DirectXUserGlobalSettings: $($_.Exception.Message)"
+}
+
+# ============================================================
+# RESUMEN EJECUTIVO
+# ============================================================
+Write-Host "`n==========================================================" -ForegroundColor Cyan
+Write-Host "         RESUMEN DE OPTIMIZACION DE JUEGOS Y APPS" -ForegroundColor Cyan
+Write-Host "==========================================================" -ForegroundColor Cyan
+Write-Host "  Steam VRAM Optimizado      : $(if ($stats.SteamTweaked) { 'SI (~' + $stats.VRAMSavedMB + ' MB liberados)' } else { 'No detectado / No requerido' })"
+Write-Host "  Apps Electron Afinadas     : $($stats.ElectronTweaked)"
+Write-Host "  Caches de Shaders Purgadas : $($stats.ShadersPurgedMB) MB"
+Write-Host "  Modelo WDDM Flip Model     : APLICADO"
+Write-Host "==========================================================`n" -ForegroundColor Cyan

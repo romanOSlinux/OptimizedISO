@@ -466,6 +466,22 @@ try {
     } else {
         Register-AuditResult -Category "Kernel/BCD" -Item "BCD Boot Configuration" -Status "RESTRICTED" -ActualValue "Acceso denegado" -ExpectedValue "Solo Administrador" -Impact "Requiere elevacion para inspeccionar parametros de arranque del cargador EFI" -Source "bcdedit reference"
     }
+
+    # LSA Protection (RunAsPPL)
+    $lsaPpl = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -ErrorAction SilentlyContinue).RunAsPPL
+    if ($lsaPpl -eq 1 -or $lsaPpl -eq 2) {
+        Register-AuditResult -Category "Kernel/Seguridad" -Item "LSA Protection (RunAsPPL)" -Status "OK" -ActualValue "Habilitado ($lsaPpl)" -ExpectedValue "1 o 2" -Impact "lsass.exe protegido como PPL contra robo de credenciales en memoria" -Source "Microsoft Learn: LSA Protection"
+    } else {
+        Register-AuditResult -Category "Kernel/Seguridad" -Item "LSA Protection (RunAsPPL)" -Status "WARN" -ActualValue "Deshabilitado" -ExpectedValue "Habilitado" -Impact "Riesgo de volcado de contrasenas de memoria RAM (Mimikatz)" -Source "Microsoft Learn: LSA Protection" -RemediationCmd "Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name 'RunAsPPL' -Value 1 -Type DWord; Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -Name 'RunAsPPLBoot' -Value 2 -Type DWord"
+    }
+
+    # Driver Blocklist
+    $drvBl = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config" -ErrorAction SilentlyContinue).VulnerableDriverBlocklistEnable
+    if ($drvBl -eq 1) {
+        Register-AuditResult -Category "Kernel/Seguridad" -Item "Lista de Drivers Vulnerables" -Status "OK" -ActualValue "Habilitada (1)" -ExpectedValue "1" -Impact "Bloqueo proactivo de drivers vulnerables utilizados en ataques BYOVD" -Source "Microsoft Learn: Recommended Driver Block Rules"
+    } else {
+        Register-AuditResult -Category "Kernel/Seguridad" -Item "Lista de Drivers Vulnerables" -Status "WARN" -ActualValue "Deshabilitada" -ExpectedValue "1" -Impact "Vulnerabilidad ante escalada de privilegios a Ring 0 via drivers antiguos legitimos" -Source "Microsoft Learn: Recommended Driver Block Rules" -RemediationCmd "if (-not (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config')) { New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config' -Force | Out-Null }; Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config' -Name 'VulnerableDriverBlocklistEnable' -Value 1 -Type DWord"
+    }
 } catch {
     Register-AuditResult -Category "Kernel/VBS" -Item "DeviceGuard" -Status "WARN" -ActualValue "Error en consulta" -ExpectedValue "OK" -Impact "Desconocido" -Source "DeviceGuard"
 }

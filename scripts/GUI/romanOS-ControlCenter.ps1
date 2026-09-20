@@ -402,6 +402,7 @@ function Resolve-ToolScript {
                                 <WrapPanel>
                                     <Button x:Name="btnToggleHypervisor" Content="Alternar Hipervisor (VBS / Ring 0)" Width="250" Margin="0,0,10,10"/>
                                     <Button x:Name="btnRunDebloat" Content="Lanzar Debloat Adaptativo (Win11)" Width="240" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnRunGamingApps" Content="Optimizar Juegos y Apps (VRAM / Electron)" Width="280" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -810,6 +811,11 @@ $window.FindName('btnToggleHypervisor').Add_Click({
 $window.FindName('btnRunDebloat').Add_Click({
     $tool = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Debloat Adaptativo de Windows 11" }
+})
+
+$window.FindName('btnRunGamingApps').Add_Click({
+    $tool = Resolve-ToolScript "Optimize-GamingAndApps.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Optimizacion de Juegos, Apps Electron y VRAM" }
 })
 
 # --- Pestaña 3: Mantenimiento ---
