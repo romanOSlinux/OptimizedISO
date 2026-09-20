@@ -1,3 +1,15 @@
+## [2026-09-20T18:15:00-03:00] Erradicación de VBScript y Reemplazo por Lanzador GUI Nativo Win32 Subsystem 2 / winexe (PLAN-0084)
+
+- **Archivos Modificados:** `Lanzar-romanOS-Studio.cmd`, `Lanzar-romanOS-Studio.vbs` (eliminado), `scripts/GUI/romanOS-Studio-Launcher.cs` (nuevo), `docs/plans/PLAN-0084-20260920-reemplazo-vbs-por-lanzador-nativo-winexe.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Erradicación de VBScript Deprecado:** Ante el anuncio oficial de Microsoft sobre la deprecación y retiro de VBScript (FOD en 24H2, deshabilitado de fábrica en 2027 y purga total posterior), se eliminó de raíz el script heredado `Lanzar-romanOS-Studio.vbs`.
+  - **Estándar Oficial Win32 GUI (`IMAGE_SUBSYSTEM_WINDOWS_GUI` / 0x0002):** Se diseñó el lanzador nativo en C# `scripts/GUI/romanOS-Studio-Launcher.cs` compilable bajo demanda con `csc.exe` de .NET Framework 4.8.1 nativo en Windows 10/11.
+  - **Zero Console Flash Garantizado por Microsoft:** Al poseer cabecera PE Subsystem 2 (Win32 GUI), el kernel de Windows jamás reserva ni dibuja una ventana de consola. La invocación de `ProcessStartInfo` con `CreateNoWindow = true` (`CREATE_NO_WINDOW = 0x08000000`) ejecuta `powershell.exe` en segundo plano sin parpadeo de pantalla.
+  - **Lanzador JIT Auto-compilable:** `Lanzar-romanOS-Studio.cmd` verifica la existencia de `Lanzar-romanOS-Studio.exe`; si no existe, lo compila en ~250 ms con `csc.exe` y lo ejecuta.
+  - **Higiene Estricta Git (Regla 6):** El binario `Lanzar-romanOS-Studio.exe` (4.5 KB) queda 100% ignorado por `.gitignore`, manteniendo el repositorio exclusivamente compuesto de código fuente en texto plano.
+  - **Certificación Total:** Inspección de cabecera PE certificada en `Subsystem: 2 (IMAGE_SUBSYSTEM_WINDOWS_GUI)`, 5/5 fases aprobadas en `Invoke-TestSuite.ps1 -Quick` (39/39 scripts AST/BOM OK, 0 fallos).
+- **Pendiente:** Ninguno.
+
 ## [2026-09-08T00:30:00-03:00] Paridad en Perfil 1: Drivers GPU, Bloqueo Bloatware BIOS (WPBT), Prevención BitLocker y Matriz de Servicios (PLAN-0061)
 
 - **Archivos Modificados:** `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Modules/Audit-FreshInstallFootprint.ps1`, `scripts/Testing/Test-OptimizedISO-v2.ps1`, `docs/plans/PLAN-0061-20260908-paridad-perfil-1-drivers-wpbt-bitlocker.md`, `docs/plans/README.md`, `MEMORY.md`

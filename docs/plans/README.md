@@ -99,4 +99,5 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0081 | [PLAN-0081-20260912-modo-juego-agresivo-bimodal-apu-ram.md](PLAN-0081-20260912-modo-juego-agresivo-bimodal-apu-ram.md) | 2026-09-12 | Modo Juego Agresivo Bimodal para APU Radeon y Transparencia de Memoria | COMPLETADO |
 | 0082 | [PLAN-0082-20260914-reparacion-zero-touch-xml-entity-y-paridad-gui-studio.md](PLAN-0082-20260914-reparacion-zero-touch-xml-entity-y-paridad-gui-studio.md) | 2026-09-14 | Reparación de Instalación Zero-Touch en romanOS Studio (Escape de Entidades XML y Paridad Multi-Edición) | COMPLETADO |
 | 0083 | [PLAN-0083-20260914-saneamiento-integral-organizacion-y-desacoplamiento-ssot.md](PLAN-0083-20260914-saneamiento-integral-organizacion-y-desacoplamiento-ssot.md) | 2026-09-14 | Saneamiento Integral, Organización de Raíz y Unificación Arquitectónica SSOT | COMPLETADO |
+| 0084 | [PLAN-0084-20260920-reemplazo-vbs-por-lanzador-nativo-winexe.md](PLAN-0084-20260920-reemplazo-vbs-por-lanzador-nativo-winexe.md) | 2026-09-20 | Erradicación de VBScript y Reemplazo por Lanzador GUI Nativo Win32 (Subsystem 2 / winexe) | COMPLETADO |
 
