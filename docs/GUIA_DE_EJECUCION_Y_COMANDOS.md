@@ -8,7 +8,8 @@ Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros
 
 | Script / Herramienta | Lanzador Rápido | Propósito Principal | Parámetros Clave |
 | :--- | :--- | :--- | :--- |
-| **`romanOS-Toolkit.ps1`** | `Lanzar-romanOS-Toolkit.cmd` | Orquestador y Hub Maestro interactivo on-demand | `-Module`, `-ShowDashboards` |
+| **`romanOS-Toolkit.ps1`** | `Lanzar-romanOS-Toolkit.cmd` | Orquestador y Hub Maestro interactivo on-demand | `-Module`, `-ShowDashboards`, `-GUI` |
+| **`romanOS-ControlCenter.ps1`** | `Lanzar-romanOS-ControlCenter.cmd` | Interfaz gráfica moderna (WPF/XAML), telemetría en tiempo real y terminal asíncrona | `-WhatIf` |
 | **`Win11-Debloat-v3-Adaptive.ps1`** | `Win11-Debloat-v3-Adaptive.cmd` | Debloat adaptativo por hardware, gaming y privacidad | `-BrowsersOnly`, `-Unattended` |
 | **`Win11-Network-Diagnostics-Optimizer.ps1`** | `Win11-Network-Diagnostics-Optimizer.cmd` | Diagnóstico de latencia, DNS, MTU y TCP No-Delay | `-Unattended` |
 | **`Invoke-WindowsMaintenance.ps1`** | `Invoke-WindowsMaintenance.cmd` | Limpieza profunda WinSxS, Shaders, TRIM y SFC | `-PostInstall`, `-DeepClean`, `-RepairOnly`, `-Full`, `-Unattended` |
@@ -53,6 +54,7 @@ El Hub Maestro orquesta todas las herramientas bajo demanda con **cero procesos 
 - `[13]` 🎯 **Auditor Universal de Optimización** (10 dominios, scoring y remediación).
 - `[14]` 🎮 **Conmutador Modo Juego / Modo Dev** (Liberar RAM para APU y cortar devoradores).
 - `[15]` ⚡ **Acciones Rápidas Express** (Flush DNS, Restart Explorer, GodMode, SFC).
+- `[16]` 🖥️ **Abrir romanOS Control Center** (Interfaz Gráfica Moderna WPF & Telemetría).
 - `[0]`  ❌ **Salir del Toolkit**.
 
 ### ⚙️ Modos CLI Directos
@@ -89,6 +91,27 @@ El Hub Maestro orquesta todas las herramientas bajo demanda con **cero procesos 
 
 # Generar y abrir ambos reportes HTML en el escritorio y navegador
 & "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -ShowDashboards
+
+# Lanzar la Interfaz Grafica Moderna WPF (romanOS Control Center)
+& "C:\OptimizedISO\scripts\Modules\romanOS-Toolkit.ps1" -GUI
+```
+
+---
+
+## 1.1. Interfaz Gráfica Nativa: `romanOS-ControlCenter.ps1`
+
+El Panel de Control gráfico **romanOS Control Center** proporciona telemetría en tiempo real, conmutación de perfiles y ejecución asíncrona de herramientas sin bloquear la interfaz de usuario:
+
+### 🚀 Formas de Invocación
+```bat
+:: 1. Lanzador Win32 nativo JIT (cero parpadeo de consola) desde CMD o doble clic en la raíz
+C:\OptimizedISO\Lanzar-romanOS-ControlCenter.cmd
+
+:: 2. Ejecución directa en PowerShell 5.1 (modo gráfico STA obligatorio)
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\OptimizedISO\scripts\GUI\romanOS-ControlCenter.ps1"
+
+:: 3. Validación en frío sin abrir interfaz gráfica (-WhatIf)
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\OptimizedISO\scripts\GUI\romanOS-ControlCenter.ps1" -WhatIf
 ```
 
 ---

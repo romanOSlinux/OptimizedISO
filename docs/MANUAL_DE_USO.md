@@ -102,8 +102,35 @@ El Hub Maestro [Lanzar-romanOS-Toolkit.cmd](file:///c:/OptimizedISO/Lanzar-roman
   [13] 🎯 Auditor Universal de Optimizacion (Multi-Hardware, Latencia, Scoring y Remediacion)
   [14] 🎮 Conmutador Modo Juego / Modo Dev (Liberar RAM para APU y Cortar Devoradores)
   [15] ⚡ Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)
+  [16] 🖥️ Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)
   [0]  ❌ Salir del Toolkit
 ```
+
+---
+
+## 🖥️ 4.1. romanOS Control Center: Interfaz Gráfica Nativa (WPF / XAML)
+
+**romanOS Control Center** (`scripts/GUI/romanOS-ControlCenter.ps1`) proporciona una experiencia visual rica y moderna basada en Windows Presentation Foundation (WPF XAML) con estética Dark Mode (`#202020` / `#0A84FF`), diseñada para operar con **cero procesos residentes** (*Zero-Resident Footprint*).
+
+### 🚀 Formas de Lanzamiento
+1. **Lanzador Win32 JIT Directo (Raíz):** Haz doble clic en `Lanzar-romanOS-ControlCenter.cmd` en la raíz. Si el ejecutable no existe, se compila silenciosamente con `csc.exe` (`/target:winexe`), eliminando el parpadeo negro de consola.
+2. **Desde el Toolkit Maestro:**
+   ```powershell
+   # Vía parámetro CLI
+   .\scripts\Modules\romanOS-Toolkit.ps1 -GUI
+   
+   # O seleccionando la opción [16] en el menú interactivo
+   ```
+3. **Desde el Menú Inicio:** Acceso directo `romanOS Control Center` en el sistema instalado por la ISO.
+
+### 📑 Pestañas y Capacidades Modulares
+* **⚡ 1. Gaming & Hardware:** Conmutador rápido Game vs. Dev (Light / Aggressive / Dev), auditoría de Hardware-Engine (GPU, CPU, RAM, SMBIOS), estado de HAGS y modo MSI PCIe.
+* **🧠 2. RAM & Procesos:** Indicadores de telemetría de memoria física en tiempo real (RAM total, usada, libre y porcentaje con barra de progreso reactiva), poda quirúrgica instantánea de procesos devoradores (`psapi.dll EmptyWorkingSet`) y top de procesos consumidores.
+* **🧹 3. Mantenimiento & DISM:** Reparación rápida de imagen (`DISM /Online /Cleanup-Image /RestoreHealth` + `sfc /scannow`), purga profunda de WinSxS (`StartComponentCleanup /ResetBase`), limpieza de cachés de Shaders GPU (DirectX, NVIDIA, AMD) y ejecución de SSD TRIM.
+* **🌐 4. Red & Latencia:** Benchmark en tiempo real de latencia de resolución DNS (Cloudflare, Google, Quad9, OpenDNS), conmutación de servidores DNS en 1 clic y vaciado instantáneo de caché DNS (`ipconfig /flushdns`).
+* **🛡️ 5. Seguridad & Navegadores:** Optimización y debloat oficial de navegadores (Edge, Chrome, Brave, Firefox sin IA ni telemetría), auditoría de seguridad y hardening gaming-safe, y acceso directo a Dashboards HTML de instalación y seguridad.
+* **💻 6. Drivers & Utilidades:** Respaldo completo de controladores activos del Host (`Export-WindowsDriver`), limpieza y depuración del DriverStore (`FileRepository`) y asistente de migración de perfiles de usuario.
+* **📺 Consola de Telemetría Asíncrona:** Visor de terminal integrado a 60 FPS con streaming de salida en vivo (`ConcurrentQueue` + `RunspaceFactory`), botón de cancelación forzada segura (`taskkill /F /T`) y barra de estado reactiva.
 
 ---
 

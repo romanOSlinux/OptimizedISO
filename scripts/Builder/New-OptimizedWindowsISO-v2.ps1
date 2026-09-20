@@ -4625,6 +4625,41 @@ if (Test-Path $gameDevSwitchSrc) {
     Add-AuditRecord -Resource "Switch-GameDevMode" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
+$ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
+$ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"
+if (-not (Test-Path $ccCmdSrc)) {
+    $ccCmdSrc  = Join-Path $ScriptsDir "GUI\Lanzar-romanOS-ControlCenter.cmd"
+}
+
+if (Test-Path $ccScriptSrc) {
+    $oemGuiDir  = Join-Path $OEMScriptsDir "GUI"
+    $oemGuiDir1 = Join-Path $OEMScriptsDir1 "GUI"
+    if (-not (Test-Path $oemGuiDir))  { New-Item -ItemType Directory -Path $oemGuiDir -Force | Out-Null }
+    if (-not (Test-Path $oemGuiDir1)) { New-Item -ItemType Directory -Path $oemGuiDir1 -Force | Out-Null }
+    Copy-Item -Path $ccScriptSrc -Destination (Join-Path $oemGuiDir "romanOS-ControlCenter.ps1") -Force
+    Copy-Item -Path $ccScriptSrc -Destination (Join-Path $oemGuiDir1 "romanOS-ControlCenter.ps1") -Force
+    Copy-Item -Path $ccScriptSrc -Destination (Join-Path $OEMScriptsDir "romanOS-ControlCenter.ps1") -Force
+    Copy-Item -Path $ccScriptSrc -Destination (Join-Path $OEMScriptsDir1 "romanOS-ControlCenter.ps1") -Force
+    Copy-Item -Path $ccScriptSrc -Destination (Join-Path $destModulesDir "romanOS-ControlCenter.ps1") -Force
+    Copy-Item -Path $ccScriptSrc -Destination (Join-Path $destModulesDir1 "romanOS-ControlCenter.ps1") -Force
+
+    if (Test-Path $ccLauncherSrc) {
+        Copy-Item -Path $ccLauncherSrc -Destination (Join-Path $oemGuiDir "romanOS-ControlCenter-Launcher.cs") -Force
+        Copy-Item -Path $ccLauncherSrc -Destination (Join-Path $oemGuiDir1 "romanOS-ControlCenter-Launcher.cs") -Force
+    }
+
+    if (Test-Path $ccCmdSrc) {
+        Copy-Item -Path $ccCmdSrc -Destination (Join-Path $OEMScriptsDir "Lanzar-romanOS-ControlCenter.cmd") -Force
+        Copy-Item -Path $ccCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Lanzar-romanOS-ControlCenter.cmd") -Force
+        if ($OEMDesktopDir -and (Test-Path $OEMDesktopDir)) {
+            Copy-Item -Path $ccCmdSrc -Destination (Join-Path $OEMDesktopDir "Lanzar-romanOS-ControlCenter.cmd") -Force
+        }
+    }
+    Write-OK "romanOS Control Center (GUI, Launcher CS y Lanzador CMD) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "romanOS-ControlCenter" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts/GUI, Modules y Public Desktop"
+}
+
 # ------------------------------------------------------------------
 # Garantizar Presencia de Submódulos del Toolkit Maestro en $OEM$
 # ------------------------------------------------------------------
@@ -7101,6 +7136,33 @@ if ($wimFile) {
                           }
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Switch-GameDevMode.ps1 y .cmd"
                           Add-AuditRecord -Resource "Switch-GameDevMode" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
+                      }
+
+                      $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
+                      $ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
+                      $ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"
+                      if (-not (Test-Path $ccCmdSrc)) {
+                          $ccCmdSrc  = Join-Path $ScriptsDir "GUI\Lanzar-romanOS-ControlCenter.cmd"
+                      }
+
+                      if (Test-Path $ccScriptSrc) {
+                          $wimGuiDir = Join-Path $wimScriptsDir "GUI"
+                          if (-not (Test-Path $wimGuiDir)) {
+                              New-Item -ItemType Directory -Path $wimGuiDir -Force | Out-Null
+                          }
+                          Copy-Item -Path $ccScriptSrc -Destination (Join-Path $wimGuiDir "romanOS-ControlCenter.ps1") -Force
+                          Copy-Item -Path $ccScriptSrc -Destination (Join-Path $wimScriptsDir "romanOS-ControlCenter.ps1") -Force
+                          Copy-Item -Path $ccScriptSrc -Destination (Join-Path $wimModulesDest "romanOS-ControlCenter.ps1") -Force
+
+                          if (Test-Path $ccLauncherSrc) {
+                              Copy-Item -Path $ccLauncherSrc -Destination (Join-Path $wimGuiDir "romanOS-ControlCenter-Launcher.cs") -Force
+                          }
+
+                          if (Test-Path $ccCmdSrc) {
+                              Copy-Item -Path $ccCmdSrc -Destination (Join-Path $wimScriptsDir "Lanzar-romanOS-ControlCenter.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: romanOS Control Center (GUI, Launcher CS y Lanzador CMD)"
+                          Add-AuditRecord -Resource "romanOS-ControlCenter" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts/GUI y Modules"
                       }
 
                       # Inyectar submódulos de la suite para soporte del Toolkit en WIM montado

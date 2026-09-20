@@ -25,9 +25,10 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch")]
+    [ValidateSet("Gaming", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter")]
     [string]$Module,
-    [switch]$ShowDashboards
+    [switch]$ShowDashboards,
+    [switch]$GUI
 )
 
 # -----------------------------------------------------------------------------
@@ -47,6 +48,7 @@ if (-not $isAdmin) {
         $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath)
         if ($Module) { $argList += @('-Module', $Module) }
         if ($ShowDashboards) { $argList += '-ShowDashboards' }
+        if ($GUI) { $argList += '-GUI' }
         
         try {
             Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
@@ -393,6 +395,34 @@ function Invoke-DriversModule {
     }
 }
 
+function Invoke-ControlCenterGUI {
+    [CmdletBinding()]
+    param()
+    
+    Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Lanzando romanOS Control Center (WPF)"
+    $ccScript = $null
+    $candidates = @(
+        (Join-Path (Split-Path $PSScriptRoot -Parent) "GUI\romanOS-ControlCenter.ps1"),
+        (Join-Path $PSScriptRoot "..\GUI\romanOS-ControlCenter.ps1"),
+        (Join-Path $PSScriptRoot "GUI\romanOS-ControlCenter.ps1"),
+        (Join-Path $PSScriptRoot "romanOS-ControlCenter.ps1"),
+        "$env:WINDIR\Setup\Scripts\GUI\romanOS-ControlCenter.ps1",
+        "C:\Windows\Setup\Scripts\GUI\romanOS-ControlCenter.ps1"
+    )
+    foreach ($c in $candidates) {
+        if (Test-Path $c) { $ccScript = (Resolve-Path $c).Path; break }
+    }
+    
+    if ($ccScript) {
+        Write-Info "Iniciando romanOS Control Center (Interfaz Grafica Moderna WPF)..."
+        $psExe = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+        Start-Process -FilePath $psExe -ArgumentList "-WindowStyle Hidden -STA -NoProfile -ExecutionPolicy Bypass -File `"$ccScript`""
+        Write-OK "romanOS Control Center lanzado en proceso desacoplado."
+    } else {
+        Write-ErrorMsg "No se encontro romanOS-ControlCenter.ps1 en las rutas del sistema ni del repositorio."
+    }
+}
+
 function Show-QuickActionsMenu {
     Show-UnifiedBanner -Title "ACCIONES RAPIDAS DE SISTEMA" -Subtitle "Herramientas de Mantenimiento Express"
     
@@ -412,7 +442,8 @@ function Show-QuickActionsMenu {
         "Depuracion Segura del DriverStore (FileRepository)",
         "Poda Quirurgica de Memoria RAM en Reposo (psapi.dll EmptyWorkingSet)",
         "Auditor Universal de Optimizacion del Sistema (Multi-Hardware)",
-        "Conmutador Modo Juego / Modo Dev (Cortar Devoradores de Recursos / Hyper-V)"
+        "Conmutador Modo Juego / Modo Dev (Cortar Devoradores de Recursos / Hyper-V)",
+        "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -551,6 +582,9 @@ function Show-QuickActionsMenu {
         16 {
             Invoke-GameDevSwitchModule -TargetMode "Status"
         }
+        17 {
+            Invoke-ControlCenterGUI
+        }
         default { return }
     }
 
@@ -580,8 +614,15 @@ if ($Module) {
         "GameSwitch"    { Invoke-GameDevSwitchModule -TargetMode "Game" -TargetProfile "Light"; exit }
         "GameAggressive"{ Invoke-GameDevSwitchModule -TargetMode "Game" -TargetProfile "Aggressive"; exit }
         "DevSwitch"     { Invoke-GameDevSwitchModule -TargetMode "Dev"; exit }
+        "GUI"           { Invoke-ControlCenterGUI; exit }
+        "ControlCenter" { Invoke-ControlCenterGUI; exit }
         "QuickActions"  { Show-QuickActionsMenu; exit }
     }
+}
+
+if ($GUI) {
+    Invoke-ControlCenterGUI
+    exit
 }
 
 if ($ShowDashboards) {
@@ -614,7 +655,8 @@ $mainMenuOpts = @(
     "Poda Quirurgica de Memoria RAM en Reposo (SearchHost, WebView2, Shell)",
     "Auditor Universal de Optimizacion (Multi-Hardware, Latencia, Scoring y Remediacion)",
     "Conmutador Modo Juego / Modo Dev (Liberar RAM para APU y Cortar Devoradores)",
-    "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)"
+    "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)",
+    "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
 )
 
 while ($true) {
@@ -637,6 +679,7 @@ while ($true) {
         13 { Invoke-UniversalAuditModule; pause }
         14 { Invoke-GameDevSwitchModule -TargetMode "Status"; pause }
         15 { Show-QuickActionsMenu; pause }
+        16 { Invoke-ControlCenterGUI; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

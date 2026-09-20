@@ -1624,6 +1624,55 @@ $launcherBytes85 = if (Test-Path $rootLauncherPath85) { [System.IO.File]::ReadAl
 $launcherHasBom85 = ($launcherBytes85.Length -ge 3 -and $launcherBytes85[0] -eq 0xEF -and $launcherBytes85[1] -eq 0xBB -and $launcherBytes85[2] -eq 0xBF)
 Assert-True "PLAN-0085: Lanzar-romanOS-Toolkit.cmd es UTF-8 No-BOM / ANSI" (-not $launcherHasBom85)
 
+# -----------------------------------------------------------------------------
+Write-HarnessHeader2 "FASE 2.17: romanOS Control Center (WPF GUI Hub) (PLAN-0086)"
+
+# 1. Validar sintaxis AST y UTF-8 BOM en scripts/GUI/romanOS-ControlCenter.ps1
+$ccScriptPath86 = Join-Path $projectRootDir "scripts\GUI\romanOS-ControlCenter.ps1"
+Assert-True "PLAN-0086: romanOS-ControlCenter.ps1 existe en scripts\GUI" (Test-Path $ccScriptPath86)
+if (Test-Path $ccScriptPath86) {
+    $ccBytes86 = [System.IO.File]::ReadAllBytes($ccScriptPath86)
+    $ccHasBom86 = ($ccBytes86.Length -ge 3 -and $ccBytes86[0] -eq 0xEF -and $ccBytes86[1] -eq 0xBB -and $ccBytes86[2] -eq 0xBF)
+    Assert-True "PLAN-0086: romanOS-ControlCenter.ps1 tiene codificacion UTF-8 con BOM" $ccHasBom86
+
+    $ccContent86 = [System.IO.File]::ReadAllText($ccScriptPath86, [System.Text.Encoding]::UTF8)
+    $tokens86 = $null
+    $errors86 = $null
+    [void][System.Management.Automation.Language.Parser]::ParseInput($ccContent86, [ref]$tokens86, [ref]$errors86)
+    Assert-True "PLAN-0086: romanOS-ControlCenter.ps1 libre de errores sintacticos AST (0 errores)" ($errors86.Count -eq 0)
+    Assert-True "PLAN-0086: romanOS-ControlCenter.ps1 contiene definicion XAML y Dark Mode" ([bool]($ccContent86 -match 'Window' -and $ccContent86 -match '#202020'))
+    Assert-True "PLAN-0086: romanOS-ControlCenter.ps1 implementa streaming asincrono con RunspaceFactory" ([bool]($ccContent86 -match 'RunspaceFactory' -and $ccContent86 -match 'ConcurrentQueue'))
+}
+
+# 2. Validar Lanzador Win32 JIT C# y Script .cmd
+$ccLauncherCsPath86 = Join-Path $projectRootDir "scripts\GUI\romanOS-ControlCenter-Launcher.cs"
+Assert-True "PLAN-0086: romanOS-ControlCenter-Launcher.cs existe en scripts\GUI" (Test-Path $ccLauncherCsPath86)
+if (Test-Path $ccLauncherCsPath86) {
+    $csContent86 = Get-Content $ccLauncherCsPath86 -Raw
+    Assert-True "PLAN-0086: Lanzador C# define STAThread y CreateNoWindow" ([bool]($csContent86 -match 'STAThread' -and $csContent86 -match 'CreateNoWindow\s*=\s*true'))
+}
+
+$ccCmdPath86 = Join-Path $projectRootDir "Lanzar-romanOS-ControlCenter.cmd"
+Assert-True "PLAN-0086: Lanzar-romanOS-ControlCenter.cmd existe en la raiz" (Test-Path $ccCmdPath86)
+if (Test-Path $ccCmdPath86) {
+    $cmdBytes86 = [System.IO.File]::ReadAllBytes($ccCmdPath86)
+    $cmdHasBom86 = ($cmdBytes86.Length -ge 3 -and $cmdBytes86[0] -eq 0xEF -and $cmdBytes86[1] -eq 0xBB -and $cmdBytes86[2] -eq 0xBF)
+    Assert-True "PLAN-0086: Lanzar-romanOS-ControlCenter.cmd es UTF-8 No-BOM / ANSI" (-not $cmdHasBom86)
+    $cmdContent86 = Get-Content $ccCmdPath86 -Raw
+    Assert-True "PLAN-0086: Lanzador CMD invoca autocompilacion con csc.exe" ([bool]($cmdContent86 -match 'csc\.exe' -and $cmdContent86 -match '/target:winexe'))
+}
+
+# 3. Validar integración de romanOS Control Center en romanOS-Toolkit.ps1
+$toolkitContent86 = Get-Content (Join-Path $modulesDir "romanOS-Toolkit.ps1") -Raw
+Assert-True "PLAN-0086: romanOS-Toolkit.ps1 soporta parametro -GUI y switch" ([bool]($toolkitContent86 -match '\[switch\]\$GUI' -and $toolkitContent86 -match '"GUI"'))
+Assert-True "PLAN-0086: romanOS-Toolkit.ps1 declara funcion Invoke-ControlCenterGUI" ([bool]($toolkitContent86 -match 'function Invoke-ControlCenterGUI'))
+Assert-True "PLAN-0086: romanOS-Toolkit.ps1 incluye Control Center en menu principal" ([bool]($toolkitContent86 -match 'Abrir romanOS Control Center'))
+
+# 4. Validar inyección de romanOS Control Center en New-OptimizedWindowsISO-v2.ps1
+$builderContent86 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0086: Builder inyecta romanOS Control Center en `$OEM`$" ([bool]($builderContent86 -match '(?s)romanOS-ControlCenter\.ps1.*?destModulesDir'))
+Assert-True "PLAN-0086: Builder inyecta romanOS Control Center en WIM montado" ([bool]($builderContent86 -match '(?s)romanOS-ControlCenter\.ps1.*?wimModulesDest'))
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

@@ -34,6 +34,7 @@ Al arrancar un PC desde la ISO generada por este proyecto, ocurre lo siguiente *
 | Script / Lanzador | Ubicación | Descripción |
 |---|---|---|
 | `Lanzar-romanOS-Studio.exe` | Raíz | Interfaz gráfica moderna (WPF) para configuración y compilación de ISOs |
+| `Lanzar-romanOS-ControlCenter.cmd` | Raíz | Interfaz gráfica moderna (WPF) para el Hub Maestro (Telemetría en vivo, Gaming, Poda RAM, Red y Hardening) |
 | `Lanzar-romanOS-Toolkit.cmd` | Raíz | Hub Maestro interactivo on-demand (Gaming, Red, Mantenimiento, Poda RAM, Auditoría) |
 | `New-OptimizedWindowsISO-v2.ps1` | `scripts/Builder/` | Compilador principal: inyecta optimizaciones, updates, runtimes y genera ISO desatendida |
 | `Win11-Debloat-v3-Adaptive.ps1` | `scripts/Modules/` | Debloat adaptativo: elimina bloatware, tweaks de gaming, políticas de navegador |
