@@ -4835,6 +4835,15 @@ if exist "%WINDIR%\Setup\Scripts\Desplegar-Setup-Host.cmd" (
 )
 "@ + "`r`n"
 
+# Acceso directo para romanOS Control Center en Menu Inicio y Escritorio (PLAN-0086)
+$tasksBlock += @"
+if exist "%WINDIR%\Setup\Scripts\Lanzar-romanOS-ControlCenter.cmd" (
+    echo [%DATE% %TIME%] Creando accesos directos para romanOS Control Center... >> "%LOG%"
+    "%PS%" -NoProfile -ExecutionPolicy Bypass -Command "`$ws = New-Object -ComObject WScript.Shell; `$sm = if (`$env:ProgramData) { \"`$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema\" } else { 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Herramientas del Sistema' }; if (-not (Test-Path `$sm)) { New-Item -ItemType Directory -Path `$sm -Force | Out-Null }; `$sc = `$ws.CreateShortcut(\"`$sm\romanOS Control Center.lnk\"); `$sc.TargetPath = '%WINDIR%\Setup\Scripts\Lanzar-romanOS-ControlCenter.cmd'; `$sc.WorkingDirectory = '%WINDIR%\Setup\Scripts'; `$sc.Description = 'Centro de Control y Optimizacion romanOS'; `$sc.IconLocation = '%SystemRoot%\System32\imageres.dll,109'; `$sc.Save()" >> "%LOG%" 2>&1
+    "%PS%" -NoProfile -ExecutionPolicy Bypass -Command "`$ws = New-Object -ComObject WScript.Shell; `$dt = [System.Environment]::GetFolderPath('CommonDesktopDirectory'); if (Test-Path `$dt) { `$sc = `$ws.CreateShortcut(\"`$dt\romanOS Control Center.lnk\"); `$sc.TargetPath = '%WINDIR%\Setup\Scripts\Lanzar-romanOS-ControlCenter.cmd'; `$sc.WorkingDirectory = '%WINDIR%\Setup\Scripts'; `$sc.Description = 'Centro de Control y Optimizacion romanOS'; `$sc.IconLocation = '%SystemRoot%\System32\imageres.dll,109'; `$sc.Save() }" >> "%LOG%" 2>&1
+)
+"@ + "`r`n"
+
 $optimizationsBlock = @"
 REM ===========================================================
 REM Configuracion de Planes de Energia y Rendimiento
@@ -5027,6 +5036,29 @@ if (Test-Path "$scriptsDir\Desplegar-Setup-Host.cmd") {
             `$scHost.Description = 'Suite Modular de Despliegue (Dev-IA y Gaming)'
             `$scHost.IconLocation = '%SystemRoot%\System32\shell32.dll,277'
             `$scHost.Save()
+        } catch {}
+    }
+}
+
+if (Test-Path "$scriptsDir\Lanzar-romanOS-ControlCenter.cmd") {
+    try {
+        `$scCC = `$ws.CreateShortcut("`$sm\romanOS Control Center.lnk")
+        `$scCC.TargetPath = "$scriptsDir\Lanzar-romanOS-ControlCenter.cmd"
+        `$scCC.WorkingDirectory = "$scriptsDir"
+        `$scCC.Description = 'Centro de Control y Optimizacion romanOS'
+        `$scCC.IconLocation = '%SystemRoot%\System32\imageres.dll,109'
+        `$scCC.Save()
+    } catch {}
+    `$dt = [System.Environment]::GetFolderPath('CommonDesktopDirectory')
+    if (-not `$dt -or -not (Test-Path `$dt)) { `$dt = if (`$env:PUBLIC) { "`$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" } }
+    if (Test-Path `$dt) {
+        try {
+            `$scCCDt = `$ws.CreateShortcut("`$dt\romanOS Control Center.lnk")
+            `$scCCDt.TargetPath = "$scriptsDir\Lanzar-romanOS-ControlCenter.cmd"
+            `$scCCDt.WorkingDirectory = "$scriptsDir"
+            `$scCCDt.Description = 'Centro de Control y Optimizacion romanOS'
+            `$scCCDt.IconLocation = '%SystemRoot%\System32\imageres.dll,109'
+            `$scCCDt.Save()
         } catch {}
     }
 }
@@ -7186,6 +7218,12 @@ if ($wimFile) {
                           }
                       }
 
+                      if ($suiteTasksContent) {
+                          $suiteTasksDest = Join-Path $wimScriptsDir "Initialize-SuiteTasks.ps1"
+                          [System.IO.File]::WriteAllText($suiteTasksDest, $suiteTasksContent, [System.Text.Encoding]::UTF8)
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Initialize-SuiteTasks.ps1"
+                      }
+
                      foreach ($script in $scriptsToInject) {
                          $dest = Join-Path $wimScriptsDir $script.DestName
                          Copy-Item -Path $script.Source -Destination $dest -Force
@@ -7239,6 +7277,10 @@ if ($wimFile) {
                          $wimPublicDesktop = Join-Path $WimMountDir "Users\Public\Desktop"
                          if (Test-Path $wimPublicDesktop) {
                              Copy-Item -Path $auditarDest -Destination (Join-Path $wimPublicDesktop "Auditar-Instalacion.cmd") -Force
+                             $wimCCLauncher = Join-Path $wimScriptsDir "Lanzar-romanOS-ControlCenter.cmd"
+                             if (Test-Path $wimCCLauncher) {
+                                 Copy-Item -Path $wimCCLauncher -Destination (Join-Path $wimPublicDesktop "Lanzar-romanOS-ControlCenter.cmd") -Force
+                             }
                          }
                      }
 
