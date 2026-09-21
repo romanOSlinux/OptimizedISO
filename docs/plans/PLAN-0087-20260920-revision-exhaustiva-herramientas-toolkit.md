@@ -79,7 +79,7 @@ La auditoría se ejecutará secuencialmente respetando 5 bloques temáticos estr
 ### Bloque 2: Optimización de Rendimiento, Gaming y Navegadores
 | Orden | Herramienta | Archivos Evaluados | Foco del Análisis Forense |
 | :---: | :--- | :--- | :--- |
-| **05** | **Optimización Gaming & Debloat** | `scripts/Modules/Win11-Debloat-v3-Adaptive.ps1`<br>`scripts/Modules/Win11-Debloat-v3-Adaptive.cmd` | HAGS en WDDM 3.x, Game Mode, MMCSS tuning para audio/juegos, DirectStorage BypassIO, impacto en anti-cheats. |
+| **05** | **Optimización Gaming & Debloat**<br>`[AUDITADO - PASS]` | `scripts/Modules/Win11-Debloat-v3-Adaptive.ps1`<br>`scripts/Modules/Win11-Debloat-v3-Adaptive.cmd` | HAGS seguro en WDDM 3.x (bloqueado en UMA), MMCSS tuning, blindaje de rutas modulares y display de salvaguardas NPU/MUX. |
 | **06** | **Optimización de Navegadores** | `scripts/Modules/Optimize-WebBrowsers.ps1`<br>`scripts/Modules/Optimize-WebBrowsers.cmd` | Directivas Edge/Chrome/Firefox: aceleración por hardware GPU real, sleeping tabs, límite de caché vs degradación de rendimiento. |
 | **07** | **Poda Quirúrgica de Memoria RAM** | `scripts/Modules/Optimize-ProcessMemory.ps1`<br>`scripts/Modules/Optimize-ProcessMemory.cmd` | `psapi.dll EmptyWorkingSet`: impacto real en RAM vs coste de Hard Page Faults al volver a acceder a memoria. |
 | **08** | **Conmutador Modo Juego / Dev** | `scripts/Modules/Switch-GameDevMode.ps1`<br>`scripts/Modules/Switch-GameDevMode.cmd` | Congelación de servicios pesados (Docker, WSL2, Hyper-V, SQL) para maximizar VRAM en APUs y RAM en gaming. |

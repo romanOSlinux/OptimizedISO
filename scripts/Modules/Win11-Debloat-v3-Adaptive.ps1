@@ -1671,8 +1671,8 @@ if ($activeServices.Count -eq 0) {
         # Filtrado de Salvaguardas Arquitectonicas
         $selectedServices = $selectedServices | Where-Object { 
             $skip = $false
-            if ($hasNpu -and ($_.Name -match 'NPU' -or $_.DisplayName -match 'NPU|OpenVINO|Neural')) { $skip = $true; Write-Host "  - Protegido:  (NPU AI Boost)" -ForegroundColor DarkGray }
-            if ($hasMuxRisk -and ($_.Name -match 'nvdisplay|nvcontainer')) { $skip = $true; Write-Host "  - Protegido:  (MUX Switch)" -ForegroundColor DarkGray }
+            if ($hasNpu -and ($_.Name -match 'NPU' -or $_.DisplayName -match 'NPU|OpenVINO|Neural')) { $skip = $true; Write-Host "  - Protegido: $($_.DisplayName) (NPU AI Boost)" -ForegroundColor DarkGray }
+            if ($hasMuxRisk -and ($_.Name -match 'nvdisplay|nvcontainer')) { $skip = $true; Write-Host "  - Protegido: $($_.DisplayName) (MUX Switch)" -ForegroundColor DarkGray }
             -not $skip
         }
     }
@@ -2447,7 +2447,11 @@ if ($applyNagle) {
     $netScript = $null
     $netCandidates = @(
         (Join-Path $PSScriptRoot "Win11-Network-Diagnostics-Optimizer.ps1"),
+        "$env:WINDIR\Setup\Scripts\Modules\Win11-Network-Diagnostics-Optimizer.ps1",
+        "$env:WINDIR\Setup\Scripts\Win11-Network-Diagnostics-Optimizer.ps1",
+        "C:\Windows\Setup\Scripts\Modules\Win11-Network-Diagnostics-Optimizer.ps1",
         "C:\Windows\Setup\Scripts\Win11-Network-Diagnostics-Optimizer.ps1",
+        "C:\OptimizedISO\scripts\Modules\Win11-Network-Diagnostics-Optimizer.ps1",
         "C:\OptimizedISO\scripts\Win11-Network-Diagnostics-Optimizer.ps1"
     )
     foreach ($cand in $netCandidates) {
@@ -2517,7 +2521,11 @@ if ($contextAlreadyInstalled) {
         $helperScript = $null
         $candidates = @(
             (Join-Path $PSScriptRoot "Add-OptimizedContextMenus.ps1"),
+            "$env:WINDIR\Setup\Scripts\Modules\Add-OptimizedContextMenus.ps1",
+            "$env:WINDIR\Setup\Scripts\Add-OptimizedContextMenus.ps1",
+            "C:\Windows\Setup\Scripts\Modules\Add-OptimizedContextMenus.ps1",
             "C:\Windows\Setup\Scripts\Add-OptimizedContextMenus.ps1",
+            "C:\OptimizedISO\scripts\Modules\Add-OptimizedContextMenus.ps1",
             "C:\OptimizedISO\scripts\Add-OptimizedContextMenus.ps1"
         )
         foreach ($cand in $candidates) {
