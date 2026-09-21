@@ -102,7 +102,7 @@ La auditoría se ejecutará secuencialmente respetando 5 bloques temáticos estr
 ### Bloque 5: Ecosistema de Drivers, Actualizaciones y Migración
 | Orden | Herramienta | Archivos Evaluados | Foco del Análisis Forense |
 | :---: | :--- | :--- | :--- |
-| **16** | **Descargador de Windows Updates** | `scripts/Builder/Get-WindowsUpdates.ps1`<br>`scripts/Builder/Get-WindowsUpdates.cmd` | Catálogo oficial Microsoft Update, resolución de SSU/LCU y Checkpoints KB5043080 para Windows 11 24H2/25H2. |
+| **16** | **Descargador de Windows Updates**<br>`[AUDITADO - PASS]` | `scripts/Builder/Get-WindowsUpdates.ps1`<br>`scripts/Builder/Get-WindowsUpdates.cmd` | Catálogo oficial Microsoft Update, Checkpoint KB5043080 para 24H2/25H2, Authenticode y blindaje UAC/rutas. |
 | **17** | **Gestión Integral de Drivers** | `scripts/Drivers/Backup-HardwareDrivers.ps1`<br>`scripts/Drivers/Clean-DriverStore.ps1`<br>`scripts/Drivers/Get-CriticalDrivers.ps1` | `Export-WindowsDriver`, depuración de FileRepository mediante `pnputil.exe` y obtención de Intel VMD / VirtIO. |
 | **18** | **Migración de Perfil de Usuario** | `scripts/Modules/Migrar-Usuario-W11.ps1` | Exportación e importación segura de AppData Local/Roaming, colmena de registro `NTUSER.DAT` y privilegios ACLs. |
 
