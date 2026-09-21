@@ -9,7 +9,7 @@ if /i "%~1"=="Status" goto :skip_uac
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo [!] Solicitando elevacion de privilegios de Administrador...
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process cmd.exe -ArgumentList '/c \"\"%~f0\" %*\"' -Verb RunAs"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process cmd.exe -ArgumentList '/c \"\"%~f0\"\" %*' -Verb RunAs"
     exit /b 0
 )
 
@@ -18,7 +18,9 @@ cd /d "%~dp0"
 
 :: Localizar el script PowerShell
 set "SCRIPT_PS1=%~dp0Switch-GameDevMode.ps1"
+if not exist "%SCRIPT_PS1%" set "SCRIPT_PS1=%WINDIR%\Setup\Scripts\Modules\Switch-GameDevMode.ps1"
 if not exist "%SCRIPT_PS1%" set "SCRIPT_PS1=%WINDIR%\Setup\Scripts\Switch-GameDevMode.ps1"
+if not exist "%SCRIPT_PS1%" set "SCRIPT_PS1=C:\Windows\Setup\Scripts\Modules\Switch-GameDevMode.ps1"
 if not exist "%SCRIPT_PS1%" set "SCRIPT_PS1=C:\Windows\Setup\Scripts\Switch-GameDevMode.ps1"
 
 if not exist "%SCRIPT_PS1%" (
