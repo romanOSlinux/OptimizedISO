@@ -19,7 +19,7 @@ Ruta a la ISO original de Windows 10 u 11 (si se omite, se ofrece descarga ofici
 Activa la descarga directa de medios limpios desde los servidores oficiales de Microsoft.
 
 .PARAMETER DownloadVersion
-Versión de Windows a descargar (ej. "11_25H2", "11_24H2", "11_LTSC_2024", "10_22H2").
+Versión de Windows a descargar (ej. "11_25H2", "11_24H2", "11_23H2", "11_LTSC_2024").
 
 .PARAMETER DownloadEdition
 Tipo de medio: "Consumer", "Business", "IoTEnterprise".
@@ -218,7 +218,7 @@ param(
     [switch]$NoBlockOneDrive,
 
     [Parameter()]
-    [ValidateSet("amd64", "arm64", "x86")]
+    [ValidateSet("amd64", "arm64")]
     [string]$Architecture = "amd64",
 
     [Parameter()]
@@ -2927,40 +2927,6 @@ function Get-OnlineWindowsReleases {
             Channel     = "LTSC"
         })
 
-        # Windows 10 Release Health
-        $req10 = [System.Net.HttpWebRequest]::Create("https://learn.microsoft.com/es-es/windows/release-health/release-information")
-        $req10.Timeout = $TimeoutSec * 1000
-        $req10.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-        $resp10 = $req10.GetResponse()
-        $stream10 = $resp10.GetResponseStream()
-        $reader10 = [System.IO.StreamReader]::new($stream10)
-        $html10 = $reader10.ReadToEnd()
-        $reader10.Close()
-        $resp10.Close()
-
-        if ($html10 -match 'Versi[oó]n\s+(22H2)\s+\(OS build\s+(\d+)\)') {
-            $discoveredList.Add([PSCustomObject]@{
-                Key         = "10_22H2"
-                DisplayName = "Windows 10 $($Matches[1]) (Build $($Matches[2]))"
-                Tag         = "Versión final de Windows 10 (Soporte 2025)"
-                Version     = "10_22H2"
-                Build       = $Matches[2]
-                Family      = "Windows 10"
-                Channel     = "General Availability"
-            })
-        }
-
-        # LTSC 2021 (Windows 10)
-        $discoveredList.Add([PSCustomObject]@{
-            Key         = "10_LTSC_2021"
-            DisplayName = "Windows 10 Enterprise LTSC 2021 (Build 19044)"
-            Tag         = "Soporte Extendido hasta 2032"
-            Version     = "10_LTSC_2021"
-            Build       = "19044"
-            Family      = "Windows 10"
-            Channel     = "LTSC"
-        })
-
         if ($discoveredList.Count -gt 0) {
             $onlineSuccess = $true
             Write-OK "Catálogo en vivo obtenido exitosamente de Microsoft Learn ($($discoveredList.Count) versiones activas)."
@@ -2975,9 +2941,7 @@ function Get-OnlineWindowsReleases {
         $discoveredList.Add([PSCustomObject]@{ Key="11_25H2"; DisplayName="Windows 11 25H2 (Build 26200)"; Tag="Última versión anual GA"; Version="11_25H2"; Build="26200"; Family="Windows 11"; Channel="General Availability" })
         $discoveredList.Add([PSCustomObject]@{ Key="11_24H2"; DisplayName="Windows 11 24H2 (Build 26100)"; Tag="Canal General y Base LTSC 2024"; Version="11_24H2"; Build="26100"; Family="Windows 11"; Channel="General Availability" })
         $discoveredList.Add([PSCustomObject]@{ Key="11_23H2"; DisplayName="Windows 11 23H2 (Build 22631)"; Tag="Versión previa activa y madura"; Version="11_23H2"; Build="22631"; Family="Windows 11"; Channel="General Availability" })
-        $discoveredList.Add([PSCustomObject]@{ Key="10_22H2"; DisplayName="Windows 10 22H2 (Build 19045)"; Tag="Versión final de Windows 10 (Soporte 2025)"; Version="10_22H2"; Build="19045"; Family="Windows 10"; Channel="General Availability" })
         $discoveredList.Add([PSCustomObject]@{ Key="11_LTSC_2024"; DisplayName="Windows 11 Enterprise LTSC 2024 (Build 26100)"; Tag="Soporte Extendido 5/10 años"; Version="11_LTSC_2024"; Build="26100"; Family="Windows 11"; Channel="LTSC" })
-        $discoveredList.Add([PSCustomObject]@{ Key="10_LTSC_2021"; DisplayName="Windows 10 Enterprise LTSC 2021 (Build 19044)"; Tag="Soporte Extendido hasta 2032"; Version="10_LTSC_2021"; Build="19044"; Family="Windows 10"; Channel="LTSC" })
     }
 
     return $discoveredList
@@ -3097,12 +3061,6 @@ function Invoke-OfficialWindowsDownload {
             EvalNote     = "Windows 11 Enterprise LTSC 2024 (Build 26100) — Evaluación oficial 90 días"
             IoTNote      = "IoT Enterprise LTSC: usar ISO 24H2 estándar + PID.txt con clave IoT en setup"
         }
-        "10_LTSC_2021" = @{
-            EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-10-enterprise"
-            MassgraveTag = "#windows-10"
-            EvalNote     = "Windows 10 Enterprise LTSC 2021 (Build 19044) — Evaluación oficial 90 días"
-            IoTNote      = ""
-        }
         "11_25H2" = @{
             EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise"
             MassgraveTag = "#windows-11"
@@ -3114,12 +3072,6 @@ function Invoke-OfficialWindowsDownload {
             MassgraveTag = "#windows-11"
             EvalNote     = "Windows 11 Enterprise 24H2 (Build 26100) — Evaluación oficial 90 días"
             IoTNote      = "IoT Enterprise: usar ISO 24H2 estándar + PID.txt con clave IoT en setup"
-        }
-        "10_22H2" = @{
-            EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-10-enterprise"
-            MassgraveTag = "#windows-10"
-            EvalNote     = "Windows 10 Enterprise 22H2 — Evaluación oficial 90 días"
-            IoTNote      = ""
         }
     }
     $editionLinks = $specialLinks[$Version]
@@ -3251,7 +3203,6 @@ function Invoke-OfficialWindowsDownload {
             "11_25H2" = "https://go.microsoft.com/fwlink/?linkid=2156295"
             "11_24H2" = "https://go.microsoft.com/fwlink/?linkid=2156295"
             "11_23H2" = "https://go.microsoft.com/fwlink/?linkid=2156295"
-            "10_22H2" = "https://go.microsoft.com/fwlink/?LinkId=691209"
         }
         $mctUrl = $mctUrls[$Version]
 
@@ -4139,7 +4090,10 @@ $contextCandidate     = Join-Path $ScriptsDir "Modules\Add-OptimizedContextMenus
 $legacyCandidate      = Join-Path $ScriptsDir "Modules\Windows${detectedVersion}_PostInstall_Optimizer.ps1"
 
 # Verificar si se pasó ruta explícita por parámetro CLI
-$paramScriptPath = if ($detectedVersion -eq "10") { $Win10ScriptPath } else { $Win11ScriptPath }
+if ($detectedVersion -eq "10") {
+    throw "romanOS está diseñado y optimizado exclusivamente para Windows 11 (Build >= 22000). La imagen proporcionada corresponde a Windows 10, la cual ha sido descontinuada del ecosistema."
+}
+$paramScriptPath = $Win11ScriptPath
 
 if ($paramScriptPath) {
     $resolvedPath = if (Test-Path $paramScriptPath) { $paramScriptPath } else { Join-Path $ScriptsDir $paramScriptPath }

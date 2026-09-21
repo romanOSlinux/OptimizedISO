@@ -15,7 +15,7 @@
          - Todas las ediciones: Catalogo Massgrave Genuine Media (enlaces directos CDN Microsoft + SHA-256)
 
 .PARAMETER Version
-    Versión oficial: "11_25H2", "11_24H2", "11_23H2", "10_22H2", "11_LTSC_2024", "10_LTSC_2021".
+    Versión oficial: "11_25H2", "11_24H2", "11_23H2", "11_LTSC_2024".
 
 .PARAMETER Edition
     Tipo de contenedor: "Consumer", "Business", "IoTEnterprise".
@@ -364,40 +364,6 @@ function Get-OnlineWindowsReleases {
             Channel     = "LTSC"
         })
 
-        # Windows 10
-        $req10 = [System.Net.HttpWebRequest]::Create("https://learn.microsoft.com/es-es/windows/release-health/release-information")
-        $req10.Timeout = $TimeoutSec * 1000
-        $req10.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-        $resp10 = $req10.GetResponse()
-        $stream10 = $resp10.GetResponseStream()
-        $reader10 = [System.IO.StreamReader]::new($stream10)
-        $html10 = $reader10.ReadToEnd()
-        $reader10.Close()
-        $resp10.Close()
-
-        if ($html10 -match 'Versi[oó]n\s+(22H2)\s+\(OS build\s+(\d+)\)') {
-            $discoveredList.Add([PSCustomObject]@{
-                Key         = "10_22H2"
-                DisplayName = "Windows 10 $($Matches[1]) (Build $($Matches[2]))"
-                Tag         = "Versión final de Windows 10 (Soporte 2025)"
-                Version     = "10_22H2"
-                Build       = $Matches[2]
-                Family      = "Windows 10"
-                Channel     = "General Availability"
-            })
-        }
-
-        # LTSC 2021 (Windows 10)
-        $discoveredList.Add([PSCustomObject]@{
-            Key         = "10_LTSC_2021"
-            DisplayName = "Windows 10 Enterprise LTSC 2021 (Build 19044)"
-            Tag         = "Soporte Extendido hasta 2032"
-            Version     = "10_LTSC_2021"
-            Build       = "19044"
-            Family      = "Windows 10"
-            Channel     = "LTSC"
-        })
-
         if ($discoveredList.Count -gt 0) {
             $onlineSuccess = $true
             Write-OK "Catálogo en vivo obtenido exitosamente de Microsoft Learn ($($discoveredList.Count) versiones activas)."
@@ -412,9 +378,7 @@ function Get-OnlineWindowsReleases {
         $discoveredList.Add([PSCustomObject]@{ Key="11_25H2"; DisplayName="Windows 11 25H2 (Build 26200)"; Tag="Última versión anual GA"; Version="11_25H2"; Build="26200"; Family="Windows 11"; Channel="General Availability" })
         $discoveredList.Add([PSCustomObject]@{ Key="11_24H2"; DisplayName="Windows 11 24H2 (Build 26100)"; Tag="Canal General y Base LTSC 2024"; Version="11_24H2"; Build="26100"; Family="Windows 11"; Channel="General Availability" })
         $discoveredList.Add([PSCustomObject]@{ Key="11_23H2"; DisplayName="Windows 11 23H2 (Build 22631)"; Tag="Versión previa activa y madura"; Version="11_23H2"; Build="22631"; Family="Windows 11"; Channel="General Availability" })
-        $discoveredList.Add([PSCustomObject]@{ Key="10_22H2"; DisplayName="Windows 10 22H2 (Build 19045)"; Tag="Versión final de Windows 10 (Soporte 2025)"; Version="10_22H2"; Build="19045"; Family="Windows 10"; Channel="General Availability" })
         $discoveredList.Add([PSCustomObject]@{ Key="11_LTSC_2024"; DisplayName="Windows 11 Enterprise LTSC 2024 (Build 26100)"; Tag="Soporte Extendido 5/10 años"; Version="11_LTSC_2024"; Build="26100"; Family="Windows 11"; Channel="LTSC" })
-        $discoveredList.Add([PSCustomObject]@{ Key="10_LTSC_2021"; DisplayName="Windows 10 Enterprise LTSC 2021 (Build 19044)"; Tag="Soporte Extendido hasta 2032"; Version="10_LTSC_2021"; Build="19044"; Family="Windows 10"; Channel="LTSC" })
     }
 
     return $discoveredList
@@ -549,14 +513,6 @@ $specialEditionLinks = @{
         MctSupport   = $false   # MCT publico NO soporta LTSC
         FidoSupport  = $false   # Fido CDN es canal Consumer, no incluye LTSC
     }
-    "10_LTSC_2021" = @{
-        EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-10-enterprise"
-        MassgraveTag = "#windows-10"
-        EvalNote     = "Windows 10 Enterprise LTSC 2021 (Build 19044) — ISO de Evaluacion 90 dias (oficial Microsoft)"
-        IoTNote      = ""
-        MctSupport   = $false
-        FidoSupport  = $false
-    }
     "11_24H2" = @{  # Consumer puede usar Fido/MCT; Business/IoT necesita canal especial
         EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise"
         MassgraveTag = "#windows-11"
@@ -573,14 +529,6 @@ $specialEditionLinks = @{
         MctSupport   = $true
         FidoSupport  = $true
     }
-    "10_22H2" = @{
-        EvalCenter   = "https://www.microsoft.com/en-us/evalcenter/evaluate-windows-10-enterprise"
-        MassgraveTag = "#windows-10"
-        EvalNote     = "Windows 10 Enterprise 22H2 — ISO de Evaluacion 90 dias (oficial Microsoft)"
-        IoTNote      = ""
-        MctSupport   = $true
-        FidoSupport  = $true
-    }
 }
 $currentEditionLinks = $specialEditionLinks[$Version]
 
@@ -589,7 +537,6 @@ $mctSources = @{
     "11_25H2"  = @{ Url = "https://go.microsoft.com/fwlink/?linkid=2156295"; Name = "MediaCreationTool_Win11_25H2.exe"; Build = "26200" }
     "11_24H2"  = @{ Url = "https://go.microsoft.com/fwlink/?linkid=2156295"; Name = "MediaCreationTool_Win11_24H2.exe"; Build = "26100" }
     "11_23H2"  = @{ Url = "https://go.microsoft.com/fwlink/?linkid=2156295"; Name = "MediaCreationTool_Win11_23H2.exe"; Build = "22631" }
-    "10_22H2"  = @{ Url = "https://go.microsoft.com/fwlink/?LinkId=691209";  Name = "MediaCreationTool_Win10_22H2.exe"; Build = "19045" }
 }
 $targetMct = $mctSources[$Version]
 if (-not $targetMct) {

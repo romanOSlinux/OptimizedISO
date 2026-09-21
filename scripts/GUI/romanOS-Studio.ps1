@@ -292,10 +292,9 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,20">
                         <ComboBox x:Name="cmbUpdateVersion" Width="150" Margin="0,0,10,0">
                             <ComboBoxItem Content="11_24H2" IsSelected="True" />
+                            <ComboBoxItem Content="11_25H2" />
                             <ComboBoxItem Content="11_23H2" />
-                            <ComboBoxItem Content="10_22H2" />
                             <ComboBoxItem Content="11_LTSC_2024" />
-                            <ComboBoxItem Content="10_LTSC_2021" />
                         </ComboBox>
                         <Button x:Name="btnDownloadUpdates" Content="📥 Descargar Updates" Width="180" Background="#2C2C2C" Foreground="#00E5FF" BorderBrush="#00E5FF" BorderThickness="1" />
                     </StackPanel>

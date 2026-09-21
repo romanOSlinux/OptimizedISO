@@ -734,6 +734,7 @@ function Get-SystemHardwareProfile {
             IsIntelXeon          = $isIntelXeon
             IsDualCcdX3D         = $isDualCcdX3D
             IsLowEnd             = $isLowEndCPU
+            IsARM64              = ($cpuVendor -eq 'ARM' -or $env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
             IdleTempC            = $cpuTempC
             IdleTempWarn         = $cpuTempWarn
         }
@@ -1001,5 +1002,37 @@ function Test-HagsSupport {
     }
 
     return $false
+}
+
+# -----------------------------------------------------------------------------
+# FUNCION AUXILIAR CANONICA: Resolve-SystemBinary
+# Resuelve binarios nativos del sistema protegiendo contra redireccion WOW64
+# (Sysnative vs System32) en entornos de 32 bits ejecutando sobre SO de 64 bits.
+# -----------------------------------------------------------------------------
+
+function Resolve-SystemBinary {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BinaryName
+    )
+
+    $sysDir = if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProcess) {
+        "$env:SystemRoot\Sysnative"
+    } else {
+        "$env:SystemRoot\System32"
+    }
+
+    $fullPath = Join-Path $sysDir $BinaryName
+    if (Test-Path $fullPath) {
+        return $fullPath
+    }
+
+    $fallbackPath = Join-Path "$env:SystemRoot\System32" $BinaryName
+    if (Test-Path $fallbackPath) {
+        return $fallbackPath
+    }
+
+    return $BinaryName
 }
 

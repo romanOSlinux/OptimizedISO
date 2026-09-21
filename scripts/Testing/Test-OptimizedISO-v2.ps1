@@ -445,9 +445,9 @@ Assert-NoThrow "Get-OnlineWindowsReleases: no crash con timeout=1s" {
 }
 Assert-NotNull "Get-OnlineWindowsReleases: Retorna coleccion no nula" $script:releases
 Assert-True "Get-OnlineWindowsReleases: Al menos 4 versiones en catalogo base" ($script:releases.Count -ge 4)
-Assert-True "Get-OnlineWindowsReleases: Catalogo incluye ediciones LTSC" (($script:releases | Where-Object { $_.Channel -eq "LTSC" }).Count -ge 1)
-Assert-True "Get-OnlineWindowsReleases: Catalogo incluye Windows 11 GA" (($script:releases | Where-Object { $_.Family -eq "Windows 11" -and $_.Channel -eq "General Availability" }).Count -ge 1)
-Assert-True "Get-OnlineWindowsReleases: Catalogo incluye Windows 10" (($script:releases | Where-Object { $_.Family -eq "Windows 10" }).Count -ge 1)
+Assert-True "Get-OnlineWindowsReleases: Catalogo incluye ediciones LTSC" ((@($script:releases | Where-Object { $_.Channel -eq "LTSC" })).Count -ge 1)
+Assert-True "Get-OnlineWindowsReleases: Catalogo incluye Windows 11 GA" ((@($script:releases | Where-Object { $_.Family -eq "Windows 11" -and $_.Channel -eq "General Availability" })).Count -ge 1)
+Assert-True "Get-OnlineWindowsReleases: Catalogo es 100% puro Windows 11 (cero Win10)" ((@($script:releases | Where-Object { $_.Family -eq "Windows 10" })).Count -eq 0)
 
 $sampleRel = if ($script:releases) { $script:releases[0] } else { $null }
 if ($sampleRel) {
@@ -466,10 +466,10 @@ Assert-NoThrow "Invoke-OfficialWindowsDownload: LTSC 2024 + IoTEnterprise sin cr
 Assert-Null "Invoke-OfficialWindowsDownload: LTSC 2024 + IoT => null (ruta manual asistida)" $script:resLTSC
 
 $script:resBiz = $null
-Assert-NoThrow "Invoke-OfficialWindowsDownload: 10 LTSC 2021 + Business sin crash" {
-    $script:resBiz = Invoke-OfficialWindowsDownload -Version "10_LTSC_2021" -Edition "Business" -Language "Spanish" -OutputDir $TEMP_OUTPUT
+Assert-NoThrow "Invoke-OfficialWindowsDownload: 25H2 + Business sin crash" {
+    $script:resBiz = Invoke-OfficialWindowsDownload -Version "11_25H2" -Edition "Business" -Language "Spanish" -OutputDir $TEMP_OUTPUT
 }
-Assert-Null "Invoke-OfficialWindowsDownload: LTSC 2021 + Business => null (ruta especial)" $script:resBiz
+Assert-Null "Invoke-OfficialWindowsDownload: 25H2 + Business => null (Business = canal especial)" $script:resBiz
 
 $script:res24HBiz = $null
 Assert-NoThrow "Invoke-OfficialWindowsDownload: 24H2 + Business sin crash" {
@@ -481,8 +481,8 @@ Assert-NoThrow "Invoke-OfficialWindowsDownload: Consumer 25H2 ejecuta flujo con 
     Invoke-OfficialWindowsDownload -Version "11_25H2" -Edition "Consumer" -Language "Spanish" -OutputDir $TEMP_OUTPUT
 }
 
-Assert-NoThrow "Invoke-OfficialWindowsDownload: Consumer 10 22H2 ejecuta flujo con fallback seguro" {
-    Invoke-OfficialWindowsDownload -Version "10_22H2" -Edition "Consumer" -Language "Spanish" -OutputDir $TEMP_OUTPUT
+Assert-NoThrow "Invoke-OfficialWindowsDownload: Consumer 23H2 ejecuta flujo con fallback seguro" {
+    Invoke-OfficialWindowsDownload -Version "11_23H2" -Edition "Consumer" -Language "Spanish" -OutputDir $TEMP_OUTPUT
 }
 
 # --- FASE 2E: RESOLUCION DE ISO ---

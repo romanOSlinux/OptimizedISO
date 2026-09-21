@@ -34,7 +34,7 @@ if exist "%ROOT%scripts\GUI\romanOS-ControlCenter-Launcher.cs" (
 if defined SRC if defined EXE (
     if not exist "%EXE%" (
         if exist "%CSC%" (
-            "%CSC%" /nologo /target:winexe /optimize+ /out:"%EXE%" "%SRC%" >nul 2>&1
+            "%CSC%" /nologo /target:winexe /platform:anycpu /optimize+ /out:"%EXE%" "%SRC%" >nul 2>&1
         )
     )
     if exist "%EXE%" (

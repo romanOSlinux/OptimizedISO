@@ -14,7 +14,7 @@ if not exist "%CSC%" set "CSC=%SystemRoot%\Microsoft.NET\Framework\v4.0.30319\cs
 
 if not exist "%EXE%" (
     if exist "%CSC%" if exist "%SRC%" (
-        "%CSC%" /nologo /target:winexe /optimize+ /out:"%EXE%" "%SRC%" >nul 2>&1
+        "%CSC%" /nologo /target:winexe /platform:anycpu /optimize+ /out:"%EXE%" "%SRC%" >nul 2>&1
     )
 )
 

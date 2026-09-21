@@ -15,11 +15,10 @@
       4. SafeOS Dynamic Updates - Actualizaciones de compatibilidad para el entorno WinRE / Setup.
 
 .PARAMETER Version
-    Versión de destino de Windows:
-    "11_25H2", "11_24H2", "11_23H2", "10_22H2", "11_LTSC_2024", "10_LTSC_2021".
+    Versión oficial: "11_25H2", "11_24H2", "11_23H2", "11_LTSC_2024".
 
 .PARAMETER Architecture
-    Arquitectura de destino: "amd64" (x64, por defecto), "arm64", "x86".
+    Arquitectura de destino: "amd64" (x64, por defecto), "arm64".
 
 .PARAMETER PackageType
     Tipo de paquetes a descargar: "All" (LCU + .NET + SSU), "LCUOnly", "DotNetOnly", "SafeOSOnly".
@@ -50,12 +49,12 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [Parameter()]
-    [ValidateSet("11_25H2", "11_24H2", "11_23H2", "10_22H2", "11_LTSC_2024", "10_LTSC_2021")]
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("11_25H2", "11_24H2", "11_23H2", "11_LTSC_2024")]
     [string]$Version = "",
 
-    [Parameter()]
-    [ValidateSet("amd64", "arm64", "x86")]
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("amd64", "arm64")]
     [string]$Architecture = "amd64",
 
     [Parameter()]
@@ -510,19 +509,15 @@ if ([string]::IsNullOrWhiteSpace($Version) -and -not $Unattended) {
     $versionOpts = @(
         "Windows 11 24H2 / 25H2 (Compilación 26100+)",
         "Windows 11 23H2 (Compilación 22631)",
-        "Windows 11 IoT Enterprise LTSC 2024 (Compilación 26100)",
-        "Windows 10 22H2 (Compilación 19045)",
-        "Windows 10 Enterprise LTSC 2021 (Compilación 19044)"
+        "Windows 11 IoT Enterprise LTSC 2024 (Compilación 26100)"
     )
 
-    $vChoice = Show-UnifiedMenu -Title "VERSIONES OFICIALES DISPONIBLES" -Options $versionOpts -DefaultChoice 1 -AllowCancel -CancelText "Cancelar y Salir"
+    $vChoice = Show-UnifiedMenu -Title "VERSIONES OFICIALES DISPONIBLES (WINDOWS 11)" -Options $versionOpts -DefaultChoice 1 -AllowCancel -CancelText "Cancelar y Salir"
     
     switch ($vChoice) {
         1 { $Version = "11_24H2" }
         2 { $Version = "11_23H2" }
         3 { $Version = "11_LTSC_2024" }
-        4 { $Version = "10_22H2" }
-        5 { $Version = "10_LTSC_2021" }
         default {
             Write-Host "`n  Operacion cancelada por el usuario.`n" -ForegroundColor Yellow
             exit 0
@@ -554,7 +549,6 @@ Write-LogEntry -Level "INIT" -Message ("=" * 64)
 
 $archTag = switch ($Architecture) {
     "arm64" { "arm64" }
-    "x86"   { "x86" }
     default { "x64" }
 }
 
@@ -588,20 +582,6 @@ $searchMatrix = switch ($Version) {
             LCU    = "Cumulative Update Windows 11 23H2 $archTag"
             DotNet = "Cumulative Update for .NET Framework 3.5 and 4.8.1 for Windows 11, version 23H2 for $archTag"
             SafeOS = "Safe OS Dynamic Update for Windows 11, version 23H2 for $archTag"
-        }
-    }
-    "10_22H2" {
-        @{
-            LCU    = "Cumulative Update Windows 10 22H2 $archTag"
-            DotNet = "Cumulative Update for .NET Framework 3.5 and 4.8.1 for Windows 10 Version 22H2 for $archTag"
-            SafeOS = "Safe OS Dynamic Update for Windows 10 Version 22H2 for $archTag"
-        }
-    }
-    "10_LTSC_2021" {
-        @{
-            LCU    = "Cumulative Update Windows 10 21H2 $archTag"
-            DotNet = "Cumulative Update for .NET Framework 3.5 and 4.8.1 for Windows 10 Version 21H2 for $archTag"
-            SafeOS = "Safe OS Dynamic Update for Windows 10 Version 21H2 for $archTag"
         }
     }
 }
@@ -647,7 +627,7 @@ if ($PackageType -in @("All", "LCUOnly")) {
     
     # Filtrar el parche acumulativo del SO (excluyendo .NET y SafeOS)
     $lcuMatch = $lcuItems | Where-Object {
-        $_.Title -match 'Cumulative Update for (Windows 10|Windows 11)' -and
+        $_.Title -match 'Cumulative Update for Windows 11' -and
         $_.Title -notmatch '\.NET' -and
         $_.Title -notmatch 'Dynamic'
     } | Select-Object -First 1

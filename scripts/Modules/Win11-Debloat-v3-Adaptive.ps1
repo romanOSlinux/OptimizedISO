@@ -150,6 +150,25 @@ foreach ($p in $policyEnginePaths) {
     }
 }
 
+# ============================================================
+# CARGA DE MOTOR DE HARDWARE UNIFICADO (Core\Hardware-Engine.ps1)
+# ============================================================
+$hardwareEnginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Hardware-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Core\Hardware-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Hardware-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Hardware-Engine.ps1"),
+    "C:\Windows\Setup\Scripts\Core\Hardware-Engine.ps1"
+)
+$hwEngineLoaded = $false
+foreach ($p in $hardwareEnginePaths) {
+    if (Test-Path $p) {
+        . $p
+        $hwEngineLoaded = $true
+        break
+    }
+}
+
 # Variables globales de rutas de registro (usadas en multiples secciones)
 $adv    = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 $expPol = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
@@ -407,8 +426,7 @@ Write-Host "`n[*] Analizando hardware del sistema..." -ForegroundColor Cyan
 Write-Host "" -ForegroundColor Gray
 
 # ================================================================
-# DETECCION COMPLETA DE HARDWARE
-# Cada dato se usa para tomar decisiones automaticas en secciones posteriores
+# DETECCION COMPLETA DE HARDWARE (SSOT: Hardware-Engine.ps1)
 # ================================================================
 
 # --- Detección de Sistema Pre-Optimizado por ISO (romanOS / OptimizedISO) ---
@@ -429,195 +447,80 @@ try {
     }
 } catch {}
 
-# --- Plataforma: Laptop vs Desktop ---
-# Metodo dual: PCSystemType (fuente primaria, Microsoft Learn) +
-# Win32_Battery (confirmacion). Una UPS por USB puede reportarse
-# como bateria, por eso PCSystemType prevalece en caso de conflicto.
-$csys    = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
-$battery = Get-CimInstance Win32_Battery        -ErrorAction SilentlyContinue
-$pcType  = if ($csys) { [int]$csys.PCSystemType } else { 0 }
-$isLaptopByType    = ($pcType -eq 2)
-$isLaptopByBattery = ($null -ne $battery)
-if ($isLaptopByType -and -not $isLaptopByBattery) {
-    $isLaptop = $true
-    $laptopSrc = 'PCSystemType=2'
-} elseif ($isLaptopByType -and $isLaptopByBattery) {
-    $isLaptop = $true
-    $laptopSrc = 'PCSystemType=2 + bateria'
-} elseif (-not $isLaptopByType -and $isLaptopByBattery) {
-    # Conflicto: probablemente UPS o AIO. PCSystemType prevalece.
-    $isLaptop = $false
-    $laptopSrc = 'PCSystemType=Desktop (bateria detectada, posible UPS -- tratado como Desktop)'
+# Introspección Canónica mediante Hardware-Engine.ps1 (SSOT)
+$hwProfileObj = if (Get-Command Get-SystemHardwareProfile -ErrorAction SilentlyContinue) {
+    Get-SystemHardwareProfile
 } else {
-    $isLaptop = $false
-    $laptopSrc = 'PCSystemType=Desktop'
+    $null
 }
 
-# --- Modern Standby (S0ix) en Laptops ---
-$hasModernStandby = $false
-if ($isLaptop) {
-    try {
-        $powerPlatform = Get-CimInstance -Namespace root\cimv2\power -ClassName Win32_PowerPlatform -ErrorAction SilentlyContinue
-        if ($powerPlatform -and ($powerPlatform.AoAc -or $powerPlatform.ModernStandby)) {
-            $hasModernStandby = $true
-        } else {
-            $aoacReg = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power" -Name "PlatformAoAcOverride" -ErrorAction SilentlyContinue
-            if ($aoacReg) { $hasModernStandby = $true }
-        }
-    } catch {}
-}
-
-# --- RAM total ---
-$ramBytes = if ($csys) { [long]$csys.TotalPhysicalMemory } else { 0 }
-$ramGiB   = [math]::Round($ramBytes / 1GB, 1)
-$isLowRAM = ($ramGiB -le 4)   # <= 4 GiB = recursos limitados
-
-# --- Disco: NVMe / SATA SSD / HDD ---
-# [NEW-1] Detectamos el disco de arranque real usando IsBoot de Get-Disk
-# Ref: https://learn.microsoft.com/powershell/module/storage/get-disk
-$isHDD   = $false
-$isNVMe  = $false
-$diskBusType = 'Desconocido'
-try {
-    # Obtener el número de disco del boot drive de forma lógica y segura
-    $bootDiskNumber = (Get-Disk -ErrorAction Stop | Where-Object IsBoot -eq $true | Select-Object -First 1).Number
-    # Enlazar con PhysicalDisk para obtener MediaType y BusType
-    $sysDisk = Get-PhysicalDisk -ErrorAction Stop | Where-Object DeviceId -eq $bootDiskNumber | Select-Object -First 1
-    if (-not $sysDisk) {
-        # Si fallase la asociación exacta por DeviceId, caer al primer disco físico como fallback
-        $sysDisk = Get-PhysicalDisk -ErrorAction Stop | Sort-Object DeviceId | Select-Object -First 1
-    }
-    $diskBusType  = $sysDisk.BusType     # NVMe, SATA, USB, SAS, etc.
-    $diskMediaRaw = $sysDisk.MediaType   # HDD, SSD, Unspecified
-    $isHDD  = ($diskMediaRaw -eq 'HDD')
-    $isNVMe = ($diskBusType  -eq 'NVMe')
-    # Label descriptivo para el reporte
-    if     ($isNVMe)              { $diskLabel = 'NVMe SSD' }
-    elseif ($diskBusType -eq 'SATA' -and -not $isHDD) { $diskLabel = 'SATA SSD' }
-    elseif ($isHDD)               { $diskLabel = 'HDD' }
-    else                          { $diskLabel = "$diskBusType / $diskMediaRaw" }
-} catch {
-    # Fallback: Win32_DiskDrive (menos preciso, sin BusType confiable)
-    try {
-        $wmiDisk = Get-CimInstance Win32_DiskDrive -ErrorAction Stop |
-                   Sort-Object Index | Select-Object -First 1
-        if ($wmiDisk.Model -match 'HDD|WD[^C]|Seagate|Toshiba|Hitachi|HGST|ST[0-9]') {
-            $isHDD = $true; $diskLabel = 'HDD (heuristica)'
-        } elseif ($wmiDisk.Model -match 'NVMe|PCIe') {
-            $isNVMe = $true; $diskLabel = 'NVMe SSD (heuristica)'
-        } else {
-            $diskLabel = 'SSD/Desconocido (heuristica)'
-        }
-    } catch {
-        $diskLabel = 'Desconocido'
-    }
-}
-
-# --- RAM: total y canales (single vs dual channel) ---
-# [NEW-2] Contar slots de RAM ocupados para detectar single-channel.
-# En iGPU + single channel, el ancho de banda de memoria se reduce hasta 40%.
-# Ref: Win32_PhysicalMemory BankLabel / DeviceLocator
-$ramChannels   = 0
-$isSingleChannel = $false
-try {
-    $ramModules = Get-CimInstance Win32_PhysicalMemory -ErrorAction Stop
-    # BankLabel distingue los canales fisicos (BANK 0, BANK 1, etc.)
-    $ramChannels = ($ramModules | Select-Object -ExpandProperty BankLabel -Unique).Count
-    $isSingleChannel = ($ramChannels -eq 1 -and $ramModules.Count -eq 1)
-} catch {
+if ($hwProfileObj) {
+    # Mapeo SSOT a variables del Debloat
+    $isIsoOptimized   = $isIsoOptimized -or $hwProfileObj.Profile.IsIsoOptimized
+    $isLaptop         = $hwProfileObj.Platform.IsLaptop
+    $laptopSrc        = $hwProfileObj.Platform.PlatformSource
+    $hasModernStandby = $hwProfileObj.Platform.HasModernStandby
+    $ramBytes         = $hwProfileObj.RAM.TotalBytes
+    $ramGiB           = $hwProfileObj.RAM.TotalGiB
+    $isLowRAM         = $hwProfileObj.RAM.IsLowRAM
+    $ramChannels      = $hwProfileObj.RAM.ChannelCount
+    $isSingleChannel  = $hwProfileObj.RAM.IsSingleChannel
+    $isHDD            = $hwProfileObj.Disk.IsHDD
+    $isNVMe           = $hwProfileObj.Disk.IsNVMe
+    $diskBusType      = $hwProfileObj.Disk.BootBusType
+    $diskLabel        = $hwProfileObj.Disk.DiskLabel
+    $cpuName          = $hwProfileObj.CPU.Name
+    $cpuCores         = $hwProfileObj.CPU.Cores
+    $cpuMHz           = $hwProfileObj.CPU.MaxClockMHz
+    $isModernCPU      = $hwProfileObj.CPU.IsModern
+    $isLowEndCPU      = $hwProfileObj.CPU.IsLowEnd
+    $isARM64          = $hwProfileObj.CPU.IsARM64
+    $cpuTempC         = $hwProfileObj.CPU.IdleTempC
+    $cpuTempWarn      = $hwProfileObj.CPU.IdleTempWarn
+    $isGaming         = $hwProfileObj.GPU.HasDedicatedGpu
+    $is_iGPU          = $hwProfileObj.GPU.HasIntegratedGpu
+    $gpuLabel         = $hwProfileObj.GPU.GpuSummary
+    $hasNpu           = $hwProfileObj.NPU.HasNpu
+    $npuName          = $hwProfileObj.NPU.DeviceName
+    $hwProfile        = $hwProfileObj.Profile.DisplayName
+    $isIsoOptimized   = $hwProfileObj.Profile.IsIsoOptimized
+} else {
+    # Fallback de emergencia si Hardware-Engine.ps1 no estuviera accesible
+    $csys     = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
+    $isLaptop = if ($csys) { ([int]$csys.PCSystemType -eq 2) } else { $false }
+    $laptopSrc = 'Fallback PCSystemType'
+    $hasModernStandby = $false
+    $ramBytes = if ($csys) { [long]$csys.TotalPhysicalMemory } else { 0 }
+    $ramGiB   = [math]::Round($ramBytes / 1GB, 1)
+    $isLowRAM = ($ramGiB -le 4)
     $ramChannels = 0
-}
-
-# --- CPU: nombre, generacion, TDP estimado ---
-$cpuObj   = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue
-$cpuName  = if ($cpuObj) { $cpuObj.Name.Trim() } else { 'Desconocido' }
-$cpuCores = if ($cpuObj) { [int]$cpuObj.NumberOfCores } else { 0 }
-$cpuMHz   = if ($cpuObj) { [int]$cpuObj.MaxClockSpeed } else { 0 }
-
-# CPU moderna (timer fix SOLO beneficia a estas):
-# - Intel 12th Gen+ (Alder Lake, Raptor Lake, Meteor Lake, Arrow Lake, Lunar Lake)
-# - AMD Ryzen 5000+ (Zen 3, Zen 4, Zen 5)
-# - Intel Core Ultra (cualquier generacion)
-$isIntel12thPlus = ($cpuName -match 'Core i[0-9]-1[2-9][0-9]{3}') -or
-                   ($cpuName -match 'Core i[0-9]-[2-9][0-9]{4}') -or
-                   ($cpuName -match 'Core Ultra')
-$isRyzen5kPlus   = ($cpuName -match 'Ryzen [0-9] [5-9][0-9]{3}') -or
-                   ($cpuName -match 'Ryzen [0-9] [1-9][0-9]{4}')
-$isModernCPU     = $isIntel12thPlus -or $isRyzen5kPlus
-
-# CPU de bajos recursos (Celeron, Pentium, Atom, Ryzen 3 1xxx-3xxx, i3 1xxx-6xxx)
-# [FIX-PS51] Regex con [^0-9] confunde el parser de PS5.1 (lo interpreta como array index).
-# Equivalente funcional: -notmatch '[0-9]' al final del patron.
-$isLowEndCPU = ($cpuName -match 'Celeron|Pentium|Atom|J[0-9]{4}|N[0-9]{4}') -or
-               ($cpuName -match 'Ryzen 3 [1-4][0-9]{3}') -or
-               ($cpuName -match 'Core i3-[1-6][0-9]{3}' -and $cpuName -notmatch 'Core i3-[1-6][0-9]{4}') -or
-               ($cpuCores -le 2 -and $cpuMHz -le 2400)
-
-# --- Temperatura CPU en idle (solo lectura, sin decision automatica) ---
-# [NEW-3] MSAcpi_ThermalZoneTemperature en decimas de Kelvin.
-# Formula: (CurrentTemperature - 2732) / 10 = Celsius.
-# Solo se usa como ADVERTENCIA en laptops: temp en idle > 70 C sugiere
-# throttling termico activo o pasta termica deteriorada.
-# NO se usa como gate automatico (temp en idle != temp bajo carga).
-# Ref: https://learn.microsoft.com/windows/win32/wmisdk/wmi-architecture
-$cpuTempC    = $null
-$cpuTempWarn = $false
-try {
-    $thermalZones = Get-CimInstance -Namespace 'root/WMI' `
-                    -ClassName 'MSAcpi_ThermalZoneTemperature' -ErrorAction Stop
-    if ($thermalZones) {
-        # Tomar la zona primaria (primera en el array)
-        $rawTemp  = ($thermalZones | Select-Object -First 1).CurrentTemperature
-        $cpuTempC = [math]::Round(($rawTemp - 2732) / 10, 1)
-        # Advertir si laptop en idle supera 70 C (umbral conservador)
-        $cpuTempWarn = ($isLaptop -and $cpuTempC -gt 70)
-    }
-} catch {
-    # MSAcpi no disponible en todas las plataformas (VMs, algunos OEMs) -- silencioso
+    $isSingleChannel = $false
+    $isHDD    = $false
+    $isNVMe   = $true
+    $diskBusType = 'NVMe/SSD'
+    $diskLabel = 'SSD (fallback)'
+    $cpuObj   = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue
+    $cpuName  = if ($cpuObj) { $cpuObj.Name.Trim() } else { 'Desconocido' }
+    $cpuCores = if ($cpuObj) { [int]$cpuObj.NumberOfCores } else { 0 }
+    $cpuMHz   = if ($cpuObj) { [int]$cpuObj.MaxClockSpeed } else { 0 }
+    $isModernCPU = $true
+    $isLowEndCPU = $false
+    $isARM64  = ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
     $cpuTempC = $null
+    $cpuTempWarn = $false
+    $isGaming = $false
+    $is_iGPU  = $false
+    $gpuLabel = 'GPU Estandar'
+    $hasNpu   = $false
+    $npuName  = 'Ausente'
+    $hwProfile = if ($isLaptop) { 'NOTEBOOK' } else { 'PC ESCRITORIO' }
+    $isIsoOptimized = (Test-Path "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1")
 }
 
-# --- GPU: dedicada vs integrada, nombre ---
-$gpuObjs  = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue
-$isGaming = $false
-$is_iGPU = $false
-$gpuNames = @()
-foreach ($g in $gpuObjs) {
-    $gpuNames += $g.Name
-    if ($g.Name -match 'NVIDIA|AMD Radeon (RX|[6-8][0-9]{2}M)|Intel Arc') { $isGaming = $true }
-    if ($g.Name -match 'AMD Radeon [6-8][0-9]{2}M|Intel Iris|Intel Arc Graphics') { $is_iGPU = $true }
+$hasMuxRisk = $isLaptop -and ($gpuLabel -match 'NVIDIA') -and ($gpuLabel -match 'AMD|Intel')
+if ($hasMuxRisk) {
+    Write-Host "  [!] NVIDIA Advanced Optimus (MUX Switch) detectado. Se protegeran servicios de display." -ForegroundColor Yellow
 }
-
-if ($isLaptop -and ($gpuNames -match 'NVIDIA') -and ($gpuNames -match 'AMD Radeon|Intel')) { $hasMuxRisk = $true; Write-Host "  [!] NVIDIA Advanced Optimus (MUX Switch) detectado. Se protegeran servicios de display." -ForegroundColor Yellow 
-}
-# [FIX-PS51] Ternario inline a nivel de sentencia confunde al parser PS5.1.
-# Envolver en $() lo convierte en subexpresion valida en todos los runtime.
-$gpuLabel = $(if ($gpuNames.Count -gt 0) { $gpuNames -join ' | ' } else { 'No detectada' })
-
-# --- NPU (Neural Processing Unit) ---
-$hasNpu = $false
-$npuName = 'Ausente'
-try {
-    # [PLAN-0043] Detectar NPUs (AI PC) via clase PnP de Microsoft o nombre heuristico
-    $npuDevice = Get-PnpDevice -ErrorAction Stop | Where-Object { $_.Class -eq 'ComputeAccelerator' -or $_.FriendlyName -match 'NPU|Neural|IPU|AI' } | Select-Object -First 1
-    if ($npuDevice) {
-        $hasNpu = $true
-        $npuName = $npuDevice.FriendlyName
-    }
-} catch {}
-
-# --- Perfil de equipo consolidado ---
-# Usamos una etiqueta de perfil para mostrar al usuario y para tomar decisiones
-if     ($isLaptop -and $isLowRAM -and $isHDD) { $hwProfile = 'NOTEBOOK LIMITADA  (HDD + <=4GB RAM)' }
-elseif ($isLaptop -and $isLowRAM)             { $hwProfile = 'NOTEBOOK LIMITADA  (SSD + <=4GB RAM)' }
-elseif ($isLaptop -and $isHDD)                { $hwProfile = 'NOTEBOOK HDD' }
-elseif ($isLaptop -and $isGaming)             { $hwProfile = 'NOTEBOOK GAMING' }
-elseif ($isLaptop)                            { $hwProfile = 'NOTEBOOK' }
-elseif ($isLowRAM -and $isHDD)                { $hwProfile = 'PC ESCRITORIO LIMITADA  (HDD + <=4GB RAM)' }
-elseif ($isLowRAM)                            { $hwProfile = 'PC ESCRITORIO CON POCA RAM  (<=4GB)' }
-elseif ($isHDD)                               { $hwProfile = 'PC ESCRITORIO HDD' }
-elseif ($isGaming)                            { $hwProfile = 'PC GAMING  (GPU dedicada)' }
-else                                          { $hwProfile = 'PC ESCRITORIO' }
 
 # ================================================================
 # REPORTE DE HARDWARE DETECTADO
@@ -710,7 +613,7 @@ function Install-WingetIfNeeded {
     if (-not $wingetCmd) {
         $searchPaths = @(
             "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe",
-            "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe"
+            "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_*__8wekyb3d8bbwe\winget.exe"
         )
         foreach ($pattern in $searchPaths) {
             $found = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue | Select-Object -Last 1
@@ -728,7 +631,7 @@ function Install-WingetIfNeeded {
     try {
         Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ErrorAction Stop
         Start-Sleep -Seconds 2
-        $found = Get-ChildItem -Path "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue | Select-Object -Last 1
+        $found = Get-ChildItem -Path "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_*__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue | Select-Object -Last 1
         if ($found) { $env:PATH += ";$($found.DirectoryName)" }
         if (Get-Command winget -ErrorAction SilentlyContinue) {
             Write-Host "  - Winget registrado con exito (RegisterByFamilyName)." -ForegroundColor Green
@@ -745,7 +648,7 @@ function Install-WingetIfNeeded {
         Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -ErrorAction Stop | Out-Null
         Repair-WinGetPackageManager -AllUsers -ErrorAction Stop
         Start-Sleep -Seconds 2
-        $found = Get-ChildItem -Path "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue | Select-Object -Last 1
+        $found = Get-ChildItem -Path "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_*__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue | Select-Object -Last 1
         if ($found) { $env:PATH += ";$($found.DirectoryName)" }
         if (Get-Command winget -ErrorAction SilentlyContinue) {
             Write-Host "  - Winget reparado con exito (Repair-WinGetPackageManager)." -ForegroundColor Green
@@ -847,7 +750,7 @@ function Install-WingetIfNeeded {
 
                     # Despues de provisionar, registrar para el usuario actual
                     Start-Sleep -Seconds 3
-                    $manifest = Get-ChildItem -Path "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\AppxManifest.xml" -ErrorAction SilentlyContinue | Select-Object -Last 1
+                    $manifest = Get-ChildItem -Path "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_*__8wekyb3d8bbwe\AppxManifest.xml" -ErrorAction SilentlyContinue | Select-Object -Last 1
                     if ($manifest) {
                         Add-AppxPackage -DisableDevelopmentMode -Register $manifest.FullName -ErrorAction SilentlyContinue
                     }
@@ -882,7 +785,7 @@ function Install-WingetIfNeeded {
             if ($installed) {
                 # Actualizar PATH
                 Start-Sleep -Seconds 2
-                $newWinget = Get-ChildItem -Path "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue | Select-Object -Last 1
+                $newWinget = Get-ChildItem -Path "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_*__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue | Select-Object -Last 1
                 if ($newWinget) { $env:PATH += ";$($newWinget.DirectoryName)" }
                 # Tambien agregar WindowsApps al PATH (a veces winget queda registrado ahi)
                 $winAppsPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps"
