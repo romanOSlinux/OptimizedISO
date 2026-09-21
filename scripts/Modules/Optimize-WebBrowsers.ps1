@@ -26,19 +26,20 @@ function Ensure-Elevation {
     if (-not $isAdmin) {
         $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
         $scriptCmd = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Definition }
-        $argList = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$scriptCmd`""
+        $argArray = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptCmd)
         if ($PSBoundParameters.Count -gt 0) {
             foreach ($k in $PSBoundParameters.Keys) {
                 if ($PSBoundParameters[$k] -is [switch] -and $PSBoundParameters[$k]) {
-                    $argList += " -$k"
+                    $argArray += "-$k"
                 } elseif ($PSBoundParameters[$k] -isnot [switch]) {
-                    $argList += " -$k `"$($PSBoundParameters[$k])`""
+                    $argArray += "-$k"
+                    $argArray += "$($PSBoundParameters[$k])"
                 }
             }
         }
         Write-Warning "Este script requiere privilegios de Administrador. Reiniciando de forma elevada..."
         try {
-            Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
+            Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs
         } catch {
             Write-Error "No se pudo obtener privilegios de Administrador: $($_.Exception.Message)"
         }
@@ -56,6 +57,7 @@ $policyEnginePaths = @(
     (Join-Path $scriptPath "Core\Policy-Engine.ps1"),
     (Join-Path $scriptPath "Policy-Engine.ps1"),
     (Join-Path (Split-Path $scriptPath -Parent) "scripts\Core\Policy-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\Policy-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1"
 )
 $policyLoaded = $false
@@ -79,6 +81,7 @@ $uiEnginePaths = @(
     (Join-Path $scriptPath "Core\UI-Engine.ps1"),
     (Join-Path $scriptPath "UI-Engine.ps1"),
     (Join-Path (Split-Path $scriptPath -Parent) "scripts\Core\UI-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\UI-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
 )
 $uiLoaded = $false
@@ -211,7 +214,8 @@ try {
     $copilotPolicies = @(
         @{ Path = "HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot"; Name = "TurnOffWindowsCopilot"; Value = 1 },
         @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot"; Name = "TurnOffWindowsCopilot"; Value = 1 },
-        @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows AI";      Name = "DisableAIDataAnalysis"; Value = 1 }
+        @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI";      Name = "DisableAIDataAnalysis"; Value = 1 },
+        @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows AI";     Name = "DisableAIDataAnalysis"; Value = 1 }
     )
 
     foreach ($cp in $copilotPolicies) {
