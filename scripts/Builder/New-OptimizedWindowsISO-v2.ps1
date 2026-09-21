@@ -4554,6 +4554,13 @@ if (Test-Path $userMigSrc) {
     Copy-Item -Path $userMigSrc -Destination (Join-Path $OEMScriptsDir1 "Migrar-Usuario-W11.ps1") -Force
     Copy-Item -Path $userMigSrc -Destination (Join-Path $destModulesDir "Migrar-Usuario-W11.ps1") -Force
     Copy-Item -Path $userMigSrc -Destination (Join-Path $destModulesDir1 "Migrar-Usuario-W11.ps1") -Force
+    $userMigCmd = Join-Path $ScriptsDir "Modules\Migrar-Usuario-W11.cmd"
+    if (Test-Path $userMigCmd) {
+        Copy-Item -Path $userMigCmd -Destination (Join-Path $OEMScriptsDir "Migrar-Usuario-W11.cmd") -Force
+        Copy-Item -Path $userMigCmd -Destination (Join-Path $OEMScriptsDir1 "Migrar-Usuario-W11.cmd") -Force
+        Copy-Item -Path $userMigCmd -Destination (Join-Path $destModulesDir "Migrar-Usuario-W11.cmd") -Force
+        Copy-Item -Path $userMigCmd -Destination (Join-Path $destModulesDir1 "Migrar-Usuario-W11.cmd") -Force
+    }
     Write-OK "Herramienta de migracion de usuario inyectada en `$OEM`$."
     Add-AuditRecord -Resource "Migrar-Usuario-W11" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
@@ -7115,6 +7122,11 @@ if ($wimFile) {
                       if (Test-Path $userMigSrc) {
                           Copy-Item -Path $userMigSrc -Destination (Join-Path $wimScriptsDir "Migrar-Usuario-W11.ps1") -Force
                           Copy-Item -Path $userMigSrc -Destination (Join-Path $wimModulesDest "Migrar-Usuario-W11.ps1") -Force
+                          $userMigCmd = Join-Path $ScriptsDir "Modules\Migrar-Usuario-W11.cmd"
+                          if (Test-Path $userMigCmd) {
+                              Copy-Item -Path $userMigCmd -Destination (Join-Path $wimScriptsDir "Migrar-Usuario-W11.cmd") -Force
+                              Copy-Item -Path $userMigCmd -Destination (Join-Path $wimModulesDest "Migrar-Usuario-W11.cmd") -Force
+                          }
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Migrar-Usuario-W11.ps1"
                       }
 

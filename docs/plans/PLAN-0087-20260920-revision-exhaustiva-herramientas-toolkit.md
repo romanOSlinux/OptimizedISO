@@ -1,6 +1,6 @@
 # PLAN-0087: Auditoría Forense de Ingeniería, Validación Empírica y Modernización 1 a 1 de las Herramientas del romanOS Toolkit
 
-**Estado:** `PENDIENTE`  
+**Estado:** `COMPLETADO`  
 **Fecha:** 2026-09-20  
 **Autor:** Antigravity AI Pair Programmer & romanOS Team  
 **Rama:** `feature/offline-ui-tweaks`  
@@ -104,7 +104,7 @@ La auditoría se ejecutará secuencialmente respetando 5 bloques temáticos estr
 | :---: | :--- | :--- | :--- |
 | **16** | **Descargador de Windows Updates**<br>`[AUDITADO - PASS]` | `scripts/Builder/Get-WindowsUpdates.ps1`<br>`scripts/Builder/Get-WindowsUpdates.cmd` | Catálogo oficial Microsoft Update, Checkpoint KB5043080 para 24H2/25H2, Authenticode y blindaje UAC/rutas. |
 | **17** | **Gestión Integral de Drivers**<br>`[AUDITADO - PASS]` | `scripts/Drivers/Backup-HardwareDrivers.ps1`<br>`scripts/Drivers/Clean-DriverStore.ps1`<br>`scripts/Drivers/Get-CriticalDrivers.ps1` | `Export-WindowsDriver`, depuración de FileRepository vía `pnputil.exe`, Intel VMD / VirtIO y blindaje UAC/rutas. |
-| **18** | **Migración de Perfil de Usuario** | `scripts/Modules/Migrar-Usuario-W11.ps1` | Exportación e importación segura de AppData Local/Roaming, colmena de registro `NTUSER.DAT` y privilegios ACLs. |
+| **18** | **Migración de Perfil de Usuario**<br>`[AUDITADO - PASS]` | `scripts/Modules/Migrar-Usuario-W11.ps1`<br>`scripts/Modules/Migrar-Usuario-W11.cmd` | Migración selectiva no destructiva (Desktop, Docs, Media, sin AppData corrupto), lanzador batch y STA threading. |
 
 ---
 
