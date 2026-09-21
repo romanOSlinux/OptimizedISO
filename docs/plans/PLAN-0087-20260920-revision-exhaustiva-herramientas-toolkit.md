@@ -74,7 +74,7 @@ La auditoría se ejecutará secuencialmente respetando 5 bloques temáticos estr
 | **01** | **Hub Orquestador CLI**<br>`[AUDITADO - PASS]` | `scripts/Modules/romanOS-Toolkit.ps1`<br>`Lanzar-romanOS-Toolkit.cmd` | Blindaje de `$script:searchDirs` y corrección de sintaxis `sc.exe`/`Set-Service` en restauración de servicios. |
 | **02** | **romanOS Control Center**<br>`[AUDITADO - PASS]` | `scripts/GUI/romanOS-ControlCenter.ps1`<br>`Lanzar-romanOS-ControlCenter.cmd`<br>`scripts/GUI/romanOS-ControlCenter-Launcher.cs` | WPF Dark Mode, telemetría de hardware, streaming a 60 FPS y blindaje de selección de adaptador de red físico. |
 | **03** | **Menús Contextuales Optimizados**<br>`[AUDITADO - PASS]` | `scripts/Modules/Add-OptimizedContextMenus.ps1`<br>`scripts/Modules/Add-OptimizedContextMenus.cmd` | Verbos estáticos nativos (0 DLLs residentes), CLSID clásico y Take Ownership blindado con SID BUILTIN\Administradores. |
-| **04** | **Acciones Rápidas Express** | Función `Show-QuickActionsMenu` en `romanOS-Toolkit.ps1` | Evaluación de atajos rápidos: flushdns, reinicio explorer, God Mode, toggle bcdedit hipervisor. |
+| **04** | **Acciones Rápidas Express**<br>`[AUDITADO - PASS]` | Función `Show-QuickActionsMenu` en `romanOS-Toolkit.ps1` | Atajos exprés: God Mode, flushdns, SSD TRIM, toggle hipervisor y reinicio de Explorer protegido contra doble proceso. |
 
 ### Bloque 2: Optimización de Rendimiento, Gaming y Navegadores
 | Orden | Herramienta | Archivos Evaluados | Foco del Análisis Forense |

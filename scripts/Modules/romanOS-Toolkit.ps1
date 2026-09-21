@@ -462,9 +462,12 @@ function Show-QuickActionsMenu {
         2 {
             Write-SubStep "Reiniciando Explorador..."
             Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Milliseconds 500
-            Start-Process "explorer.exe"
+            Start-Sleep -Milliseconds 800
+            if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue)) {
+                Start-Process "explorer.exe"
+            }
             Write-OK "Explorador de Windows reiniciado."
+            Start-Sleep -Seconds 1
         }
         3 {
             Write-SubStep "Abriendo God Mode..."
@@ -477,6 +480,7 @@ function Show-QuickActionsMenu {
             Write-StepHeader -StepNumber 2 -TotalSteps 2 -Message "Ejecutando SFC Scannow"
             sfc /scannow
             Write-OK "Proceso de reparacion completado."
+            pause
         }
         5 {
             Write-SubStep "Delegando purga de Shaders GPU a Invoke-WindowsMaintenance.ps1..."
@@ -565,6 +569,7 @@ function Show-QuickActionsMenu {
             } else {
                 Write-Warn "Modulo Hardware-Engine.ps1 no disponible."
             }
+            pause
         }
         11 {
             Invoke-ContextMenuModule
