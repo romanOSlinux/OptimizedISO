@@ -340,7 +340,8 @@ try {
     
     # 1. Test contra Cloudflare DNS
     Write-SubStep "Probando conexion hacia Cloudflare DNS (1.1.1.1)..."
-    $t1 = Test-NetConnection -ComputerName 1.1.1.1 -ErrorAction SilentlyContinue
+    $cfDns = "1.1.1.1"
+    $t1 = Test-NetConnection -ComputerName $cfDns -ErrorAction SilentlyContinue
     if ($t1.PingSucceeded) {
         Write-OK "Ping exitoso. Latencia promedio: $($t1.PingReplyDetails.RoundTripTime) ms."
     } else {
