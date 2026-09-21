@@ -71,7 +71,7 @@ La auditoría se ejecutará secuencialmente respetando 5 bloques temáticos estr
 ### Bloque 1: Orquestación, GUI y Accesibilidad
 | Orden | Herramienta | Archivos Evaluados | Foco del Análisis Forense |
 | :---: | :--- | :--- | :--- |
-| **01** | **Hub Orquestador CLI** | `scripts/Modules/romanOS-Toolkit.ps1`<br>`Lanzar-romanOS-Toolkit.cmd` | Resolución de rutas de fallback, elevación UAC, paridad con CLI desatendido, menús ANSI. |
+| **01** | **Hub Orquestador CLI**<br>`[AUDITADO - PASS]` | `scripts/Modules/romanOS-Toolkit.ps1`<br>`Lanzar-romanOS-Toolkit.cmd` | Blindaje de `$script:searchDirs` y corrección de sintaxis `sc.exe`/`Set-Service` en restauración de servicios. |
 | **02** | **romanOS Control Center** | `scripts/GUI/romanOS-ControlCenter.ps1`<br>`Lanzar-romanOS-ControlCenter.cmd`<br>`scripts/GUI/romanOS-ControlCenter-Launcher.cs` | WPF Dark Mode, telemetría asíncrona (DispatcherTimer / WMI vs GetSystemTimes), streaming a 60 FPS sin memory leaks. |
 | **03** | **Menús Contextuales Optimizados** | `scripts/Modules/Add-OptimizedContextMenus.ps1`<br>`scripts/Modules/Add-OptimizedContextMenus.cmd` | Menú clásico de 1 clic (CLSID nativo vs hacks de explorer), comandos Power-User en registro. |
 | **04** | **Acciones Rápidas Express** | Función `Show-QuickActionsMenu` en `romanOS-Toolkit.ps1` | Evaluación de atajos rápidos: flushdns, reinicio explorer, God Mode, toggle bcdedit hipervisor. |

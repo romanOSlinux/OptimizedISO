@@ -130,7 +130,7 @@ foreach ($p in $policyEnginePaths) {
 
 # Resolucion de rutas de scripts hermanos
 $repoScriptsRoot = Split-Path $PSScriptRoot -Parent
-$searchDirs = @(
+$script:searchDirs = @(
     $PSScriptRoot,
     (Join-Path $PSScriptRoot "scripts"),
     (Join-Path $PSScriptRoot "Drivers"),
@@ -503,19 +503,23 @@ function Show-QuickActionsMenu {
         8 {
             Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Restaurando Servicios de Sistema"
             Write-SubStep "Habilitando e iniciando Wi-Fi (WlanSvc)..."
-            sc.exe config WlanSvc start=auto | Out-Null
+            Set-Service -Name WlanSvc -StartupType Automatic -ErrorAction SilentlyContinue
+            sc.exe config WlanSvc start= auto | Out-Null
             Start-Service WlanSvc -ErrorAction SilentlyContinue
 
             Write-SubStep "Habilitando e iniciando Bluetooth (bthserv)..."
-            sc.exe config bthserv start=auto | Out-Null
+            Set-Service -Name bthserv -StartupType Automatic -ErrorAction SilentlyContinue
+            sc.exe config bthserv start= auto | Out-Null
             Start-Service bthserv -ErrorAction SilentlyContinue
 
             Write-SubStep "Habilitando e iniciando Cola de Impresion (Spooler)..."
-            sc.exe config Spooler start=auto | Out-Null
+            Set-Service -Name Spooler -StartupType Automatic -ErrorAction SilentlyContinue
+            sc.exe config Spooler start= auto | Out-Null
             Start-Service Spooler -ErrorAction SilentlyContinue
 
             Write-SubStep "Habilitando e iniciando Busqueda de Windows (WSearch)..."
-            sc.exe config WSearch start=delayed-auto | Out-Null
+            Set-Service -Name WSearch -StartupType Automatic -ErrorAction SilentlyContinue
+            sc.exe config WSearch start= delayed-auto | Out-Null
             Start-Service WSearch -ErrorAction SilentlyContinue
 
             Write-OK "Servicios restaurados a inicio automatico."
