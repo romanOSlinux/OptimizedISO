@@ -61,6 +61,7 @@ $uiEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\UI-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
 )
 $uiLoaded = $false
@@ -92,6 +93,7 @@ $enginePaths = @(
     (Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"),
     (Join-Path $PSScriptRoot "Policy-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\Policy-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1"
 )
 $engineLoaded = $false
