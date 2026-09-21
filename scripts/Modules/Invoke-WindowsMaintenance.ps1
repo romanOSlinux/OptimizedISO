@@ -47,7 +47,7 @@
     Ejecuta todos los modulos de forma automatica y desatendida.
 #>
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [switch]$Unattended,
     [switch]$PostInstall,
@@ -60,6 +60,13 @@ param(
     [switch]$ShadersOnly,
     [switch]$TrimOnly
 )
+
+# Modo simulado -WhatIf
+$isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
+if ($isSimulated) {
+    Write-Host "[WhatIf] Invoke-WindowsMaintenance.ps1 validado correctamente en modo simulado." -ForegroundColor Green
+    return
+}
 
 # ============================================================
 # 0. PRE-FLIGHT: ELEVACION DE PRIVILEGIOS Y CONFIGURACION BASE
@@ -410,8 +417,14 @@ if ($runMod4) {
         $shaderPaths = @(
             (Join-Path $prof.LocalPath "AppData\Local\D3DSCache"),
             (Join-Path $prof.LocalPath "AppData\Local\NVIDIA\DXCache"),
+            (Join-Path $prof.LocalPath "AppData\Local\NVIDIA\GLCache"),
+            (Join-Path $prof.LocalPath "AppData\Local\NVIDIA Corporation\NV_Cache"),
             (Join-Path $prof.LocalPath "AppData\LocalLow\NVIDIA\PerDriverVersion\DXCache"),
-            (Join-Path $prof.LocalPath "AppData\Local\AMD\DxCache")
+            (Join-Path $prof.LocalPath "AppData\Local\AMD\DxCache"),
+            (Join-Path $prof.LocalPath "AppData\Local\AMD\GLCache"),
+            (Join-Path $prof.LocalPath "AppData\Local\Intel\ShaderCache"),
+            (Join-Path $prof.LocalPath "AppData\Local\Intel\DXCache"),
+            (Join-Path $prof.LocalPath "AppData\Local\Intel\IGC")
         )
         foreach ($sP in $shaderPaths) {
             if (Test-Path -LiteralPath $sP) {
@@ -577,12 +590,27 @@ if ($runMod6) {
         foreach ($vol in $volumes) {
             $dl = $vol.DriveLetter
             try {
-                $diskType = (Get-PhysicalDisk | Where-Object { $_.DeviceID -eq '0' } -ErrorAction SilentlyContinue).MediaType
-                if ($diskType -eq 'SSD' -or $null -eq $diskType) {
+                $part = Get-Partition -DriveLetter $dl -ErrorAction SilentlyContinue
+                $disk = if ($part) { Get-Disk -Number $part.DiskNumber -ErrorAction SilentlyContinue } else { $null }
+                $pdisk = if ($disk) { Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object DeviceId -eq $disk.Number } else { $null }
+
+                $isSolidState = $false
+                if ($pdisk -and $pdisk.MediaType -eq 'SSD') {
+                    $isSolidState = $true
+                } elseif ($disk -and $disk.BusType -eq 'NVMe') {
+                    $isSolidState = $true
+                } elseif ($pdisk -and $pdisk.MediaType -eq 'HDD') {
+                    $isSolidState = $false
+                } else {
+                    # Fallback si no hay WMI Storage: asumir SSD si no es explicitamente HDD
+                    $isSolidState = $true
+                }
+
+                if ($isSolidState) {
                     Optimize-Volume -DriveLetter $dl -ReTrim -Verbose -ErrorAction SilentlyContinue
                     Write-OK "Comando TRIM ejecutado en unidad ${dl}: (Rendimiento NAND restaurado)."
                 } else {
-                    Write-Info "Unidad ${dl}: detectada como HDD mecanico. Omitiendo comando TRIM."
+                    Write-Info "Unidad ${dl}: detectada como HDD mecanico ($($disk.BusType)). Omitiendo comando TRIM."
                 }
             } catch {
                 Write-Warn "No se pudo ejecutar TRIM en unidad ${dl}: $($_.Exception.Message)"

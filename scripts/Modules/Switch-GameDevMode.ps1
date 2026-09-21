@@ -10,7 +10,7 @@
        - Detiene la pila de virtualizacion de Hyper-V (vmms, vmcompute, HNS, CmService, HvHost, nvagent)
          y desactiva el adaptador virtual vEthernet (Default Switch) para eliminar DPC latency y jitter.
        - Liquida navegadores en segundo plano huerfanos (msedge.exe sin ventana) y actualizadores,
-         recuperando entre 1.5 GB y 2.5 GB de DDR5 para la APU Radeon 760M (Unified Memory Architecture).
+         recuperando entre 1.5 GB y 2.5 GB de memoria RAM para la GPU/VRAM del sistema.
        - Pausa servicios de telemetria y compatibilidad que anaden shims a ejecutables (PcaSvc, DPS, InventorySvc, DusmSvc).
        - Aplica poda de Working Set mediante P/Invoke EmptyWorkingSet (psapi.dll) sobre componentes UI
          y sobre Antigravity IDE (reduciendo su consumo sin cerrarlo).
@@ -147,6 +147,27 @@ if (-not $uiLoaded -or -not (Get-Command Show-UnifiedBanner -ErrorAction Silentl
     function Write-ErrorMsg     { param($Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red }
     function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
 }
+
+# Carga de Motor de Hardware (SSOT)
+$hwEnginePaths = @(
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Hardware-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Core\Hardware-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Hardware-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Hardware-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\Hardware-Engine.ps1",
+    "C:\Windows\Setup\Scripts\Core\Hardware-Engine.ps1"
+)
+$hwLoaded = $false
+foreach ($hp in $hwEnginePaths) {
+    if (Test-Path $hp) {
+        . $hp
+        $hwLoaded = $true
+        break
+    }
+}
+$script:HardwareProfile = if ($hwLoaded -and (Get-Command Get-SystemHardwareProfile -ErrorAction SilentlyContinue)) {
+    Get-SystemHardwareProfile
+} else { $null }
 
 # -----------------------------------------------------------------------------
 # 3. LISTAS MAESTRAS Y BLINDAJE INVIOLABLE
@@ -395,7 +416,9 @@ if ($Mode -eq "Game") {
     $initialMem = Get-SystemMemoryMetrics
     
     if (-not $Quiet) {
-        $bannerSub = if ($Profile -eq 'Aggressive') { "PERFIL AGRESIVO - Gaming Puro y Maxima DDR5 para APU Radeon" } else { "PERFIL LIVIANO - Baja Latencia de Red DPC y Ventanas Conservadas" }
+        $gpuName = if ($script:HardwareProfile -and $script:HardwareProfile.GPU.Devices.Count -gt 0) { $script:HardwareProfile.GPU.Devices[0].Name } else { "GPU" }
+        $targetVramLabel = if ($script:HardwareProfile -and $script:HardwareProfile.GPU.HasIntegratedGpu) { "VRAM Compartida ($gpuName)" } else { "GPU ($gpuName) / Gaming" }
+        $bannerSub = if ($Profile -eq 'Aggressive') { "PERFIL AGRESIVO - Gaming Puro y Maxima Memoria para $targetVramLabel" } else { "PERFIL LIVIANO - Baja Latencia de Red DPC y Ventanas Conservadas" }
         Show-UnifiedBanner -Title "romanOS GAME SWITCH" -Subtitle $bannerSub -ShowSystemInfo
         Write-Host "  RAM Inicial: $($initialMem.UsedGB) GB usados | $($initialMem.FreeGB) GB libres" -ForegroundColor Yellow
         Write-Host "  Perfil     : $($Profile.ToUpper())" -ForegroundColor Cyan
@@ -554,7 +577,7 @@ if ($Mode -eq "Game") {
         Write-Host "  [OK] MODO JUEGO ACTIVADO EXITOSAMENTE" -ForegroundColor Green
         Write-Host ("  Perfil Seleccionado : {0}" -f $(if($Profile -eq 'Aggressive'){'MODO AGRESIVO (Gaming Puro APU / Maxima RAM)'}else{'MODO LIVIANO (Baja Latencia DPC / Ventanas Conservadas)'})) -ForegroundColor $(if($Profile -eq 'Aggressive'){'Cyan'}else{'Yellow'})
         Write-Host ("  RAM Libre Inicial   : {0,5} GB" -f $initialMem.FreeGB) -ForegroundColor Gray
-        Write-Host ("  RAM Libre Actual    : {0,5} GB (Ganancia neta: +{1} GB para Juegos/APU)" -f $finalMem.FreeGB, $freedGB) -ForegroundColor Yellow
+        Write-Host ("  RAM Libre Actual    : {0,5} GB (Ganancia neta: +{1} GB para Juegos/GPU)" -f $finalMem.FreeGB, $freedGB) -ForegroundColor Yellow
         Write-Host "  Latencia de Red     : Optimizada (vmswitch.sys de Hyper-V desactivado)" -ForegroundColor Cyan
         Write-Host "  Planificador Kernel : SystemResponsiveness = 0 | GPU Priority = 8" -ForegroundColor Green
         
@@ -569,7 +592,7 @@ if ($Mode -eq "Game") {
             if (-not $ideWasKilled -and $ideRamMB -gt 0) {
                 Write-Host ("      - Antigravity IDE / Dev : ~{0} MB (~{1} GB retenidos en sesion de desarrollo)" -f $ideRamMB, [math]::Round($ideRamMB/1024, 2)) -ForegroundColor DarkGray
             }
-            Write-Host "      --> Para partidas pesadas donde la iGPU Radeon 760M requiera toda la DDR5," -ForegroundColor Yellow
+            Write-Host "      --> Para partidas pesadas donde los juegos y la GPU requieran toda la memoria libre," -ForegroundColor Yellow
             Write-Host "          ejecuta la opcion [2] MODO JUEGO AGRESIVO para liberar estos gigabytes." -ForegroundColor Yellow
         }
         Write-Host "  ===============================================================" -ForegroundColor Green

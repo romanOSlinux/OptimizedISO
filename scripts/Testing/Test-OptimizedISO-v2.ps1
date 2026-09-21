@@ -1673,6 +1673,43 @@ $builderContent86 = Get-Content $TargetScript -Raw
 Assert-True "PLAN-0086: Builder inyecta romanOS Control Center en `$OEM`$" ([bool]($builderContent86 -match '(?s)romanOS-ControlCenter\.ps1.*?destModulesDir'))
 Assert-True "PLAN-0086: Builder inyecta romanOS Control Center en WIM montado" ([bool]($builderContent86 -match '(?s)romanOS-ControlCenter\.ps1.*?wimModulesDest'))
 
+# -----------------------------------------------------------------------------
+Write-HarnessHeader2 "FASE 2.18: Universalizacion Multi-Hardware y Resiliencia de Control Center (PLAN-0092)"
+
+# 1. Validar resolucion topologica de almacenamiento y shaders en Invoke-WindowsMaintenance.ps1
+$maintPath92 = Join-Path $modulesDir "Invoke-WindowsMaintenance.ps1"
+$maintContent92 = Get-Content $maintPath92 -Raw
+Assert-True "PLAN-0092: Invoke-WindowsMaintenance.ps1 resuelve disco por Get-Partition para TRIM" ([bool]($maintContent92 -match 'Get-Partition -DriveLetter \$dl'))
+Assert-True "PLAN-0092: Invoke-WindowsMaintenance.ps1 no asume DeviceID = 0 rígidamente" (-not [bool]($maintContent92 -match 'DeviceID\s*-eq\s*''0'''))
+Assert-True "PLAN-0092: Invoke-WindowsMaintenance.ps1 incluye Intel\ShaderCache" ([bool]($maintContent92 -match 'Intel\\ShaderCache'))
+Assert-True "PLAN-0092: Invoke-WindowsMaintenance.ps1 incluye NVIDIA\GLCache" ([bool]($maintContent92 -match 'NVIDIA\\GLCache'))
+Assert-True "PLAN-0092: Invoke-WindowsMaintenance.ps1 incluye AMD\GLCache" ([bool]($maintContent92 -match 'AMD\\GLCache'))
+
+# 2. Validar catalogo de shaders ampliado en Optimize-GamingAndApps.ps1
+$gamingPath92 = Join-Path $modulesDir "Optimize-GamingAndApps.ps1"
+$gamingContent92 = Get-Content $gamingPath92 -Raw
+Assert-True "PLAN-0092: Optimize-GamingAndApps.ps1 incluye Intel\ShaderCache" ([bool]($gamingContent92 -match 'Intel\\ShaderCache'))
+Assert-True "PLAN-0092: Optimize-GamingAndApps.ps1 incluye NVIDIA\GLCache" ([bool]($gamingContent92 -match 'NVIDIA\\GLCache'))
+Assert-True "PLAN-0092: Optimize-GamingAndApps.ps1 incluye AMD\GLCache" ([bool]($gamingContent92 -match 'AMD\\GLCache'))
+
+# 3. Validar DNS por gateway predeterminado y textos XAML universales en Control Center
+$ccContent92 = Get-Content $ccScriptPath86 -Raw
+Assert-True "PLAN-0092: romanOS-ControlCenter.ps1 consulta Get-NetRoute para configurar DNS" ([bool]($ccContent92 -match 'Get-NetRoute -DestinationPrefix ''0\.0\.0\.0/0'''))
+Assert-True "PLAN-0092: romanOS-ControlCenter.ps1 generaliza descripcion XAML de Modo Agresivo" (-not [bool]($ccContent92 -match 'para la APU Radeon\.'))
+
+# 4. Validar integracion SSOT de Hardware-Engine en Audit-SystemOptimization.ps1
+$auditPath92 = Join-Path $modulesDir "Audit-SystemOptimization.ps1"
+$auditContent92 = Get-Content $auditPath92 -Raw
+Assert-True "PLAN-0092: Audit-SystemOptimization.ps1 carga canonicamente Hardware-Engine.ps1" ([bool]($auditContent92 -match 'Core\\Hardware-Engine\.ps1'))
+Assert-True "PLAN-0092: Audit-SystemOptimization.ps1 consume Get-SystemHardwareProfile" ([bool]($auditContent92 -match 'Get-SystemHardwareProfile'))
+Assert-True "PLAN-0092: Audit-SystemOptimization.ps1 resuelve particion C: de forma resiliente" ([bool]($auditContent92 -match 'Get-Partition -DriveLetter C'))
+
+# 5. Validar dinamismo de GPU y carga de Hardware-Engine en Switch-GameDevMode.ps1
+$switchPath92 = Join-Path $modulesDir "Switch-GameDevMode.ps1"
+$switchContent92 = Get-Content $switchPath92 -Raw
+Assert-True "PLAN-0092: Switch-GameDevMode.ps1 carga canonicamente Hardware-Engine.ps1" ([bool]($switchContent92 -match 'Core\\Hardware-Engine\.ps1'))
+Assert-True "PLAN-0092: Switch-GameDevMode.ps1 no contiene textos hardcodeados de APU Radeon 760M" (-not [bool]($switchContent92 -match 'para la APU Radeon 760M'))
+
 # --- FASE 3: PRUEBA DE INTEGRACION GENERAL ---
 Write-HarnessHeader2 "FASE 3: Integracion de Ciclo Completo"
 $intDir = Join-Path $TEMP_ROOT "Integration"

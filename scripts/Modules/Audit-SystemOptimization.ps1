@@ -71,6 +71,24 @@ if (-not $uiLoaded -or -not (Get-Command Show-UnifiedBanner -ErrorAction Silentl
     function Write-Info         { param($Message) Write-Host "  [i] $Message" -ForegroundColor DarkGray }
 }
 
+# Carga de Hardware-Engine (SSOT)
+$hwEnginePaths = @(
+    (Join-Path (Split-Path $scriptRoot -Parent) "Core\Hardware-Engine.ps1"),
+    (Join-Path $scriptRoot "Core\Hardware-Engine.ps1"),
+    (Join-Path $scriptRoot "Hardware-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\Hardware-Engine.ps1",
+    "C:\Windows\Setup\Scripts\Core\Hardware-Engine.ps1",
+    "C:\OptimizedISO\scripts\Core\Hardware-Engine.ps1"
+)
+$hwLoaded = $false
+foreach ($hp in $hwEnginePaths) {
+    if (Test-Path $hp) {
+        . $hp
+        $hwLoaded = $true
+        break
+    }
+}
+
 # -----------------------------------------------------------------------------
 # 2. VERIFICACION DE PRIVILEGIOS Y NIVEL DE INTEGRIDAD
 # -----------------------------------------------------------------------------
@@ -194,39 +212,36 @@ if (-not $isAdmin) {
 
 Write-StepHeader -StepNumber 1 -TotalSteps 10 -Message "Introspeccion Heuristica de Hardware y Arquitectura"
 
+$hw = if ($hwLoaded -and (Get-Command Get-SystemHardwareProfile -ErrorAction SilentlyContinue)) {
+    Get-SystemHardwareProfile
+} else { $null }
+
 $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
 $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
 $cpu = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1
-$battery = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
-$disks = @(Get-CimInstance Win32_DiskDrive -ErrorAction SilentlyContinue)
-$sysLogical = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'" -ErrorAction SilentlyContinue
 
-$isLaptop = ($null -ne $battery -and $battery.Count -gt 0)
-$isVM = ($cs.Model -match 'Virtual|Hyper-V|VMware|KVM|QEMU|VirtualBox')
-$ramTotalGiB = [math]::Round($cs.TotalPhysicalMemory / 1GB, 2)
-$ramFreeGiB = [math]::Round($os.FreePhysicalMemory / 1MB, 2)
+$isLaptop = if ($hw) { $hw.Platform.IsLaptop } else { ($null -ne (Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue)) }
+$isVM     = if ($hw) { $hw.Platform.IsVM } else { ($cs.Model -match 'Virtual|Hyper-V|VMware|KVM|QEMU|VirtualBox') }
+$ramTotalGiB = if ($hw) { $hw.RAM.TotalGiB } else { [math]::Round($cs.TotalPhysicalMemory / 1GB, 2) }
+$ramFreeGiB  = [math]::Round($os.FreePhysicalMemory / 1MB, 2)
 
-$cpuVendor = if ($cpu.Manufacturer -match 'Intel') { 'Intel' } elseif ($cpu.Manufacturer -match 'AMD') { 'AMD' } else { 'Otro' }
-$isIntelHybrid = ($cpuVendor -eq 'Intel' -and ($cpu.Name -match '12th Gen|13th Gen|14th Gen|Core Ultra'))
+$cpuVendor = if ($hw) { $hw.CPU.Vendor } else { if ($cpu.Manufacturer -match 'Intel') { 'Intel' } elseif ($cpu.Manufacturer -match 'AMD') { 'AMD' } else { 'Otro' } }
+$isIntelHybrid = if ($hw) { $hw.CPU.IsHybrid } else { ($cpuVendor -eq 'Intel' -and ($cpu.Name -match '12th Gen|13th Gen|14th Gen|Core Ultra')) }
 
-# Deteccion de Tipo de Almacenamiento Principal
-$isNVMe = $false
-$isSSD = $false
-foreach ($d in $disks) {
-    if ($d.Model -match 'NVMe|SSD' -or $d.InterfaceType -match 'NVMe') { $isSSD = $true }
-    if ($d.Model -match 'NVMe' -or $d.InterfaceType -match 'NVMe') { $isNVMe = $true }
-}
-# Fallback MSFT_PhysicalDisk
-try {
-    $phys = Get-PhysicalDisk -ErrorAction SilentlyContinue
-    if ($phys) {
-        $bootPhys = $phys | Where-Object { $_.MediaType -eq 'SSD' -or $_.BusType -eq 'NVMe' }
+# Deteccion de Tipo de Almacenamiento Principal (C:)
+$isNVMe = if ($hw) { $hw.Disk.IsNVMe } else { $false }
+$isSSD  = if ($hw) { $hw.Disk.IsSSD } else { $false }
+if (-not $hw) {
+    try {
+        $bootPart = Get-Partition -DriveLetter C -ErrorAction SilentlyContinue
+        $bootDisk = if ($bootPart) { Get-Disk -Number $bootPart.DiskNumber -ErrorAction SilentlyContinue } else { $null }
+        $bootPhys = if ($bootDisk) { Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object DeviceId -eq $bootDisk.Number } else { $null }
         if ($bootPhys) {
-            $isSSD = $true
-            if (($bootPhys | Where-Object { $_.BusType -eq 'NVMe' }).Count -gt 0) { $isNVMe = $true }
+            $isSSD  = ($bootPhys.MediaType -eq 'SSD')
+            $isNVMe = ($bootDisk.BusType -eq 'NVMe')
         }
-    }
-} catch {}
+    } catch {}
+}
 
 Write-SubStep "Equipo          : $(if ($isVM) { 'Maquina Virtual' } elseif ($isLaptop) { 'Portatil / Laptop' } else { 'PC de Escritorio / Torre' })"
 Write-SubStep "Procesador      : $($cpu.Name) ($($cpu.NumberOfCores)C / $($cpu.NumberOfLogicalProcessors)T) [$cpuVendor $(if ($isIntelHybrid){'Hibrido P/E Cores'})]"

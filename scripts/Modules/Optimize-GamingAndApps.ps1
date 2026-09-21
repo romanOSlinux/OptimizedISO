@@ -215,7 +215,12 @@ $shaderDirs = @(
     (Join-Path $env:LOCALAPPDATA "AMD\DxCache"),
     (Join-Path $env:LOCALAPPDATA "AMD\GLCache"),
     (Join-Path $env:LOCALAPPDATA "D3DSCache"),
-    (Join-Path $env:LOCALAPPDATA "NVIDIA\DXCache")
+    (Join-Path $env:LOCALAPPDATA "NVIDIA\DXCache"),
+    (Join-Path $env:LOCALAPPDATA "NVIDIA\GLCache"),
+    (Join-Path $env:LOCALAPPDATA "NVIDIA Corporation\NV_Cache"),
+    (Join-Path $env:LOCALAPPDATA "Intel\ShaderCache"),
+    (Join-Path $env:LOCALAPPDATA "Intel\DXCache"),
+    (Join-Path $env:LOCALAPPDATA "Intel\IGC")
 )
 
 $bytesCleaned = 0
