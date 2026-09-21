@@ -352,8 +352,8 @@ function Install-OptimizedContextMenus {
 
     # --- F. Tomar Posesión (Take Ownership) en Archivos y Carpetas ---
     Out-LogInfo "Registrando: Tomar Posesión (Take Ownership)..."
-    $cmdTakeownFile = "cmd.exe /c takeown /f `"%1`" && icacls `"%1`" /grant *S-1-3-0:(F) /c /l /q"
-    $cmdTakeownDir  = "cmd.exe /c takeown /f `"%1`" /r /d y && icacls `"%1`" /grant *S-1-3-0:(OI)(CI)F /t /c /l /q"
+    $cmdTakeownFile = "cmd.exe /c takeown /f `"%1`" && icacls `"%1`" /grant *S-1-5-32-544:(F) *S-1-3-0:(F) /c /l /q"
+    $cmdTakeownDir  = "cmd.exe /c takeown /f `"%1`" /r /d y && icacls `"%1`" /grant *S-1-5-32-544:(OI)(CI)F *S-1-3-0:(OI)(CI)F /t /c /l /q"
 
     Set-ShellVerb -Path "HKLM:\SOFTWARE\Classes\*\shell\TakeOwnership" `
         -DisplayName "Tomar Posesión (Take Ownership)" -Icon "%SystemRoot%\System32\imageres.dll,73" `
