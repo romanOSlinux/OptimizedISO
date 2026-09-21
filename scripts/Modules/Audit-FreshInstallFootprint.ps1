@@ -33,6 +33,8 @@ param(
 $uiEngineCandidates = @(
     (Join-Path $PSScriptRoot "..\Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\UI-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
 )
 
@@ -569,11 +571,25 @@ if ($detectedVampires -eq 0) {
 }
 
 # Guardar Reporte Markdown
+$reportSaved = $false
 try {
     $reportText = $report -join "`r`n"
     [System.IO.File]::WriteAllText($ExportPath, $reportText, [System.Text.Encoding]::UTF8)
     Write-Host "`n  [OK] Reporte Markdown guardado en: $ExportPath" -ForegroundColor Green
+    $reportSaved = $true
+} catch {
+    Write-Warn "No se pudo guardar en $ExportPath ($($_.Exception.Message)). Intentando en carpeta temporal..."
+    try {
+        $fallbackPath = Join-Path $env:TEMP "romanOS_Footprint_Audit.md"
+        [System.IO.File]::WriteAllText($fallbackPath, $reportText, [System.Text.Encoding]::UTF8)
+        Write-Host "  [OK] Reporte guardado en ruta de respaldo: $fallbackPath" -ForegroundColor Green
+        $reportSaved = $true
+    } catch {
+        Write-Warn "Fallo crítico al guardar reporte: $($_.Exception.Message)"
+    }
+}
 
+try {
     # Intentar copiar al Escritorio
     $desktopPath = [Environment]::GetFolderPath("Desktop")
     if (Test-Path $desktopPath) {
@@ -581,9 +597,7 @@ try {
         [System.IO.File]::WriteAllText($desktopReport, $reportText, [System.Text.Encoding]::UTF8)
         Write-Host "  [OK] Copia del reporte creada en el Escritorio: $desktopReport" -ForegroundColor Green
     }
-} catch {
-    Write-Warn "No se pudo guardar el reporte en disco: $($_.Exception.Message)"
-}
+} catch { }
 
 Write-Host "`n========================================================" -ForegroundColor Cyan
 Write-Host "   AUDITORIA FINALIZADA EXITOSAMENTE" -ForegroundColor White
