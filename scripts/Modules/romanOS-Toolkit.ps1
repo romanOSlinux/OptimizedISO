@@ -315,20 +315,48 @@ function Invoke-OpenDashboards {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $secScript -AuditOnly
     }
     
-    # Buscar HTMLs generados
-    $desktopPath = [Environment]::GetFolderPath('CommonDesktopDirectory')
-    if (-not $desktopPath -or -not (Test-Path $desktopPath)) {
-        $desktopPath = if ($env:PUBLIC) { "$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" }
+    # Buscar HTMLs generados en directorios candidatos (Escritorio usuario, comun, Logs o Temp)
+    $searchFolders = @(
+        [Environment]::GetFolderPath('Desktop'),
+        [Environment]::GetFolderPath('CommonDesktopDirectory'),
+        (if ($env:PUBLIC) { "$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" }),
+        "$env:WINDIR\Setup\Logs",
+        $env:TEMP
+    ) | Where-Object { $_ -and (Test-Path $_) }
+
+    $diagHtml = $null
+    $secHtml  = $null
+
+    foreach ($folder in $searchFolders) {
+        if (-not $diagHtml) {
+            $candDiag1 = Join-Path $folder "INFORME_INSTALACION.html"
+            $candDiag2 = Join-Path $folder "PostInstall_Report.html"
+            if (Test-Path $candDiag1) { $diagHtml = $candDiag1 }
+            elseif (Test-Path $candDiag2) { $diagHtml = $candDiag2 }
+        }
+        if (-not $secHtml) {
+            $candSec1 = Join-Path $folder "INFORME_SEGURIDAD.html"
+            $candSec2 = Join-Path $folder "SecurityAudit_Report.html"
+            if (Test-Path $candSec1) { $secHtml = $candSec1 }
+            elseif (Test-Path $candSec2) { $secHtml = $candSec2 }
+        }
     }
     
-    $diagHtml = Join-Path $desktopPath "INFORME_INSTALACION.html"
-    $secHtml  = Join-Path $desktopPath "INFORME_SEGURIDAD.html"
+    if ($diagHtml -and (Test-Path $diagHtml)) { 
+        Start-Process -FilePath $diagHtml 
+        Write-OK "Dashboard de Instalacion abierto: $diagHtml"
+    } else {
+        Write-Warn "No se encontro el Dashboard de Instalacion HTML."
+    }
+
+    if ($secHtml -and (Test-Path $secHtml)) { 
+        Start-Process -FilePath $secHtml 
+        Write-OK "Dashboard de Seguridad abierto: $secHtml"
+    } else {
+        Write-Warn "No se encontro el Dashboard de Seguridad HTML."
+    }
     
-    if (Test-Path $diagHtml) { Start-Process -FilePath $diagHtml }
-    if (Test-Path $secHtml)  { Start-Process -FilePath $secHtml }
-    
-    Write-OK "Dashboards HTML abiertos en el navegador web local."
-    Start-Sleep -Seconds 2
+    Start-Sleep -Seconds 1
 }
 
 function Invoke-ContextMenuModule {

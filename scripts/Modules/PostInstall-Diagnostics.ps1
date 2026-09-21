@@ -92,9 +92,12 @@ try {
         New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
     }
 
-    $desktopPath = [Environment]::GetFolderPath('CommonDesktopDirectory')
+    $desktopPath = [Environment]::GetFolderPath('Desktop')
     if (-not $desktopPath -or -not (Test-Path $desktopPath)) {
-        $desktopPath = if ($env:PUBLIC) { "$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" }
+        $desktopPath = [Environment]::GetFolderPath('CommonDesktopDirectory')
+        if (-not $desktopPath -or -not (Test-Path $desktopPath)) {
+            $desktopPath = if ($env:PUBLIC) { "$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" }
+        }
     }
 
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -599,11 +602,18 @@ try {
 
     # Guardar reportes en disco (Markdown)
     $systemReportPath = Join-Path $OutputDir "PostInstall_Report.md"
-    [System.IO.File]::WriteAllText($systemReportPath, $finalReport, [System.Text.Encoding]::UTF8)
-
     $desktopReportPath = Join-Path $desktopPath "INFORME_INSTALACION.md"
+    $finalReportPath = $systemReportPath
+    try {
+        [System.IO.File]::WriteAllText($systemReportPath, $finalReport, [System.Text.Encoding]::UTF8)
+    } catch {
+        $systemReportPath = Join-Path $env:TEMP "PostInstall_Report.md"
+        $finalReportPath = $systemReportPath
+        try { [System.IO.File]::WriteAllText($systemReportPath, $finalReport, [System.Text.Encoding]::UTF8) } catch {}
+    }
     try {
         [System.IO.File]::WriteAllText($desktopReportPath, $finalReport, [System.Text.Encoding]::UTF8)
+        $finalReportPath = $desktopReportPath
     } catch {
         Write-Warn -Message "No se pudo copiar el informe al escritorio del usuario." -Cause $_.Exception.Message -Action "El informe permanece disponible en $systemReportPath"
     }
@@ -781,26 +791,34 @@ try {
 
     $systemReportHtmlPath = Join-Path $OutputDir "PostInstall_Report.html"
     $desktopReportHtmlPath = Join-Path $desktopPath "INFORME_INSTALACION.html"
-    [System.IO.File]::WriteAllText($systemReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
+    $finalReportHtmlPath = $systemReportHtmlPath
+    try {
+        [System.IO.File]::WriteAllText($systemReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
+    } catch {
+        $systemReportHtmlPath = Join-Path $env:TEMP "PostInstall_Report.html"
+        $finalReportHtmlPath = $systemReportHtmlPath
+        try { [System.IO.File]::WriteAllText($systemReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8) } catch {}
+    }
     try {
         [System.IO.File]::WriteAllText($desktopReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
+        $finalReportHtmlPath = $desktopReportHtmlPath
     } catch {
         Write-Warn -Message "No se pudo copiar el dashboard HTML al escritorio del usuario." -Cause $_.Exception.Message -Action "El dashboard permanece disponible en $systemReportHtmlPath"
     }
 
     # Salida en consola
     $logMap = @{
-        "Informe Markdown"       = $desktopReportPath
-        "Dashboard HTML"         = $desktopReportHtmlPath
+        "Informe Markdown"       = $finalReportPath
+        "Dashboard HTML"         = $finalReportHtmlPath
     }
     $diagStatus = if ($criticalErrors.Count -gt 0) { "FAILED" } elseif ($warnings.Count -gt 0) { "WARNING" } else { "SUCCESS" }
     Show-UnifiedSummary -Title "AUDITORIA POST-INSTALACION" -Status $diagStatus -DurationSeconds 0 -ErrorsCount $criticalErrors.Count -WarnsCount $warnings.Count -Logs $logMap
 
     if ($ShowInNotepad) {
-        Start-Process -FilePath "notepad.exe" -ArgumentList $desktopReportPath
+        Start-Process -FilePath "notepad.exe" -ArgumentList $finalReportPath
     }
     if ($ShowHtml -or $ShowReport) {
-        Start-Process -FilePath $desktopReportHtmlPath
+        Start-Process -FilePath $finalReportHtmlPath
     }
 } catch {
     Write-Host "[ERROR] Excepcion durante la auditoria post-instalacion: $($_.Exception.Message)" -ForegroundColor Red
