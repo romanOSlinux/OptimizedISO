@@ -104,5 +104,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0086 | [PLAN-0086-20260920-romanos-toolkit-gui-control-center.md](PLAN-0086-20260920-romanos-toolkit-gui-control-center.md) | 2026-09-20 | romanOS Control Center: Interfaz Gráfica Nativa (WPF / XAML) para el Hub Maestro y Ecosistema de Herramientas | COMPLETADO |
 | 0087 | [PLAN-0087-20260920-revision-exhaustiva-herramientas-toolkit.md](PLAN-0087-20260920-revision-exhaustiva-herramientas-toolkit.md) | 2026-09-20 | Auditoría Forense de Ingeniería, Validación Empírica y Modernización 1 a 1 de las Herramientas del romanOS Toolkit | COMPLETADO |
 | 0088 | [PLAN-0088-20260920-optimizacion-avanzada-so-aplicaciones-gaming-navegadores-y-seguridad.md](PLAN-0088-20260920-optimizacion-avanzada-so-aplicaciones-gaming-navegadores-y-seguridad.md) | 2026-09-20 | Optimización Avanzada y Hardening de Impacto Cero en Sistema Operativo, Aplicaciones, Gaming y Navegadores | COMPLETADO |
+| 0089 | [PLAN-0089-20260920-profiler-forense-latencia-dpc-isr-y-telemetria-kernel-etw.md](PLAN-0089-20260920-profiler-forense-latencia-dpc-isr-y-telemetria-kernel-etw.md) | 2026-09-20 | Profiler Forense Dinámico de Latencia DPC, Interrupciones ISR y Telemetría de Kernel en Tiempo Real | PENDIENTE |
+
 
 
