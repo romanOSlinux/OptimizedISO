@@ -859,19 +859,19 @@ $window.FindName('btnRunDnsBench').Add_Click({
 })
 
 $window.FindName('btnSetCloudflareDns').Add_Click({
-    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$w = Get-NetAdapter | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('1.1.1.1','1.0.0.1'); Write-Host '[OK] DNS configurado en Cloudflare (1.1.1.1).' } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Cloudflare"
+    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' -and `$_.HardwareInterface -eq `$true } | Select-Object -First 1; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('1.1.1.1','1.0.0.1'); Write-Host ('[OK] DNS configurado en Cloudflare (1.1.1.1) en ' + `$w.Name + ' (' + `$w.InterfaceDescription + ')') } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Cloudflare"
 })
 
 $window.FindName('btnSetGoogleDns').Add_Click({
-    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$w = Get-NetAdapter | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('8.8.8.8','8.8.4.4'); Write-Host '[OK] DNS configurado en Google (8.8.8.8).' } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Google"
+    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' -and `$_.HardwareInterface -eq `$true } | Select-Object -First 1; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('8.8.8.8','8.8.4.4'); Write-Host ('[OK] DNS configurado en Google (8.8.8.8) en ' + `$w.Name + ' (' + `$w.InterfaceDescription + ')') } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Google"
 })
 
 $window.FindName('btnSetQuad9Dns').Add_Click({
-    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$w = Get-NetAdapter | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('9.9.9.9','149.112.112.112'); Write-Host '[OK] DNS configurado en Quad9 (9.9.9.9).' } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Quad9"
+    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' -and `$_.HardwareInterface -eq `$true } | Select-Object -First 1; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('9.9.9.9','149.112.112.112'); Write-Host ('[OK] DNS configurado en Quad9 (9.9.9.9) en ' + `$w.Name + ' (' + `$w.InterfaceDescription + ')') } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Quad9"
 })
 
 $window.FindName('btnResetDnsDhcp').Add_Click({
-    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$w = Get-NetAdapter | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ResetServerAddresses; Write-Host '[OK] DNS restaurado a DHCP automatico.' } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Restaurar DNS DHCP"
+    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' -and `$_.HardwareInterface -eq `$true } | Select-Object -First 1; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ResetServerAddresses; Write-Host ('[OK] DNS restaurado a DHCP automatico en ' + `$w.Name + ' (' + `$w.InterfaceDescription + ')') } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Restaurar DNS DHCP"
 })
 
 # --- Pestaña 5: Seguridad & Navegadores ---
