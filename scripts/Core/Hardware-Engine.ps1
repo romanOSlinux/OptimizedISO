@@ -236,30 +236,48 @@ function Get-SystemHardwareProfile {
 
     # CPU Moderna (Beneficiada por GlobalTimerResolutionRequests y optimizaciones de scheduler)
     # - Intel 12th Gen+ (Alder Lake, Raptor Lake, Meteor Lake, Arrow Lake, Lunar Lake)
-    # - AMD Ryzen 5000+ (Zen 3, Zen 4, Zen 5)
-    # - Intel Core Ultra
+    # - Intel Core Ultra (Series 1 & 2)
+    # - Intel Core 3/5/7 (Series 1)
+    # - Intel Processor N-Series (Alder Lake-N)
+    # - AMD Ryzen 5000+ (Zen 3, Zen 4, Zen 5, Ryzen AI 300)
     $isIntel12thPlus = ($cpuName -match 'i[3579]-1[2-9][0-9]{3}') -or
                        ($cpuName -match 'i[3579]-[2-9][0-9]{4}') -or
                        ($cpuName -match 'Core.*Ultra') -or
-                       ($cpuName -match '1[2-9]th Gen Intel')
+                       ($cpuName -match 'Core\s+[3579]\s+[0-9]{3}') -or
+                       ($cpuName -match '1[2-9]th Gen Intel') -or
+                       ($cpuName -match 'Intel.*Processor.*N[0-9]{2,3}')
     $isRyzen5kPlus   = ($cpuName -match 'Ryzen [3579] [5-9][0-9]{3}') -or
                        ($cpuName -match 'Ryzen [3579] [1-9][0-9]{4}') -or
                        ($cpuName -match 'Ryzen.*AI')
     $isModernCPU     = ($isIntel12thPlus -or $isRyzen5kPlus)
 
-    # CPU Hibrida Intel (P-Cores + E-Cores gestionados por Intel Thread Director)
-    $isHybridCPU = ($cpuName -match 'i[579]-1[2-4][0-9]{3}' -or $cpuName -match 'Core.*Ultra') -and
-                   ($cpuThreads -gt ($cpuCores * 1.5)) -and ($cpuCores -gt 4)
+    # Clasificacion de Arquitectura Intel
+    # 1. Intel Hybrid (P-Cores + E-Cores gestionados por Intel Thread Director)
+    #    - Intel Core Ultra Series 1 (Meteor Lake) y Series 2 (Arrow Lake / Lunar Lake sin Hyper-Threading en P-cores)
+    #    - Intel 12th-14th Gen (i5/i7/i9 12xxx-14xxx con P+E cores)
+    #    - Intel Core 3/5/7 Series 1 (e.g. Core 5 120U, Core 7 150U)
+    $isIntelUltra     = ($cpuVendor -eq 'Intel' -and $cpuName -match 'Core.*Ultra')
+    $isIntelAlderRap  = ($cpuVendor -eq 'Intel' -and ($cpuName -match 'i[579]-1[2-4][0-9]{3}') -and ($cpuThreads -gt ($cpuCores * 1.2)) -and ($cpuCores -gt 4))
+    $isHybridCPU      = ($isIntelUltra -or $isIntelAlderRap)
 
-    # AMD 3D V-Cache multi-CCD asimetrico (7900X3D, 7950X3D, 9900X3D, 9950X3D)
+    # 2. Intel E-Core Only (Alder Lake-N: N95, N100, N200, N300, i3-N305)
+    $isEcoreOnly      = ($cpuVendor -eq 'Intel' -and ($cpuName -match 'Processor\s+N[0-9]{2,3}' -or $cpuName -match 'i3-N[0-9]{3}'))
+
+    # 3. Intel Legacy Core (1st - 11th Gen: Nehalem a Rocket Lake)
+    $isLegacyIntel    = ($cpuVendor -eq 'Intel' -and ($cpuName -match 'i[3579]-[1-9][0-9]{2,3}' -or $cpuName -match '[1-9]th Gen Intel') -and -not $isIntel12thPlus)
+
+    # 4. Intel Xeon (Workstation & Server con topologia Mesh / Multi-NUMA)
+    $isIntelXeon      = ($cpuVendor -eq 'Intel' -and $cpuName -match 'Xeon')
+
+    # 5. AMD 3D V-Cache multi-CCD asimetrico (7900X3D, 7950X3D, 9900X3D, 9950X3D)
     # Requiere que el driver AMD PPM Provisioning gestione el parking del CCD sin V-Cache
-    $isDualCcdX3D = ($cpuName -match 'Ryzen 9 (7900X3D|7950X3D|9900X3D|9950X3D)')
+    $isDualCcdX3D     = ($cpuName -match 'Ryzen 9 (7900X3D|7950X3D|9900X3D|9950X3D)')
 
-    # CPU de Recursos Limitados / Low-End (Celeron, Atom, Pentium, Ryzen 3 1xxx-3xxx, i3 1st-6th Gen)
-    $isLowEndCPU = ($cpuName -match 'Celeron|Pentium|Atom|J[0-9]{4}|N[0-9]{4}') -or
-                   ($cpuName -match 'Ryzen 3 [1-4][0-9]{3}') -or
-                   ($cpuName -match 'i3-[1-6][0-9]{3}' -and $cpuName -notmatch 'i3-[1-6][0-9]{4}') -or
-                   ($cpuCores -le 2 -and $cpuMHz -le 2400)
+    # 6. CPU de Recursos Limitados / Low-End (Celeron, Atom, Pentium, Ryzen 3 1xxx-3xxx, i3 1st-6th Gen)
+    $isLowEndCPU      = ($cpuName -match 'Celeron|Pentium|Atom|J[0-9]{4}' -or ($cpuName -match 'N[0-9]{4}' -and $cpuName -notmatch 'Processor\s+N')) -or
+                        ($cpuName -match 'Ryzen 3 [1-4][0-9]{3}') -or
+                        ($cpuName -match 'i3-[1-6][0-9]{3}' -and $cpuName -notmatch 'i3-[1-6][0-9]{4}') -or
+                        ($cpuCores -le 2 -and $cpuMHz -le 2400)
 
     # Temperatura CPU en Idle (MSAcpi_ThermalZoneTemperature)
     $cpuTempC    = $null
@@ -711,6 +729,9 @@ function Get-SystemHardwareProfile {
             MaxClockMHz          = $cpuMHz
             IsModern             = $isModernCPU
             IsHybrid             = $isHybridCPU
+            IsEcoreOnly          = $isEcoreOnly
+            IsLegacyIntel        = $isLegacyIntel
+            IsIntelXeon          = $isIntelXeon
             IsDualCcdX3D         = $isDualCcdX3D
             IsLowEnd             = $isLowEndCPU
             IdleTempC            = $cpuTempC

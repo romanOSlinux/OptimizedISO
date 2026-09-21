@@ -4649,6 +4649,23 @@ if (Test-Path $gamingAppsSrc) {
     Add-AuditRecord -Resource "Optimize-GamingAndApps" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$latencyTraceSrc    = Join-Path $ScriptsDir "Modules\Trace-SystemLatency.ps1"
+$latencyTraceCmdSrc = Join-Path $ScriptsDir "Modules\Trace-SystemLatency.cmd"
+if (Test-Path $latencyTraceSrc) {
+    Copy-Item -Path $latencyTraceSrc -Destination (Join-Path $OEMScriptsDir "Trace-SystemLatency.ps1") -Force
+    Copy-Item -Path $latencyTraceSrc -Destination (Join-Path $OEMScriptsDir1 "Trace-SystemLatency.ps1") -Force
+    Copy-Item -Path $latencyTraceSrc -Destination (Join-Path $destModulesDir "Trace-SystemLatency.ps1") -Force
+    Copy-Item -Path $latencyTraceSrc -Destination (Join-Path $destModulesDir1 "Trace-SystemLatency.ps1") -Force
+    if (Test-Path $latencyTraceCmdSrc) {
+        Copy-Item -Path $latencyTraceCmdSrc -Destination (Join-Path $OEMScriptsDir "Trace-SystemLatency.cmd") -Force
+        Copy-Item -Path $latencyTraceCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Trace-SystemLatency.cmd") -Force
+        Copy-Item -Path $latencyTraceCmdSrc -Destination (Join-Path $destModulesDir "Trace-SystemLatency.cmd") -Force
+        Copy-Item -Path $latencyTraceCmdSrc -Destination (Join-Path $destModulesDir1 "Trace-SystemLatency.cmd") -Force
+    }
+    Write-OK "Profiler Forense de Latencia DPC/ISR (Trace-SystemLatency) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Trace-SystemLatency" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
 $ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
 $ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"

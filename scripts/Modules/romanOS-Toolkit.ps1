@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "GamingApps", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter")]
+    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter")]
     [string]$Module,
     [switch]$ShowDashboards,
     [switch]$GUI
@@ -254,6 +254,29 @@ function Invoke-GamingAndAppsModule {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile
     } else {
         Write-ErrorMsg "No se encontro Optimize-GamingAndApps.ps1"
+        pause
+    }
+}
+
+function Invoke-LatencyTraceModule {
+    param(
+        [int]$Seconds = 5,
+        [switch]$Continuous,
+        [switch]$ExportReport
+    )
+    $scriptFile = Resolve-ToolScript "Trace-SystemLatency.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Profiler Forense de Latencia DPC/ISR Multi-Hardware"
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptFile)
+        if ($Continuous) {
+            $argList += '-Continuous'
+        } else {
+            $argList += @('-DurationSeconds', $Seconds)
+        }
+        if ($ExportReport) { $argList += '-ExportReport' }
+        & powershell.exe @argList
+    } else {
+        Write-ErrorMsg "No se encontro Trace-SystemLatency.ps1"
         pause
     }
 }
@@ -664,8 +687,10 @@ if ($Module) {
         "DevSwitch"     { Invoke-GameDevSwitchModule -TargetMode "Dev"; exit }
         "GUI"           { Invoke-ControlCenterGUI; exit }
         "ControlCenter" { Invoke-ControlCenterGUI; exit }
-        "QuickActions"  { Show-QuickActionsMenu; exit }
-        "GamingApps"    { Invoke-GamingAndAppsModule; exit }
+        "QuickActions"    { Show-QuickActionsMenu; exit }
+        "GamingApps"      { Invoke-GamingAndAppsModule; exit }
+        "LatencyProfiler" { Invoke-LatencyTraceModule; exit }
+        "TraceLatency"    { Invoke-LatencyTraceModule; exit }
     }
 }
 
@@ -684,7 +709,7 @@ try {
     if ([System.Console]::IsInputRedirected) {
         Show-UnifiedBanner -Title "romanOS TOOLKIT MAESTRO" -Subtitle "Hub de Optimizacion, Gaming, Mantenimiento y Seguridad" -ShowSystemInfo
         Write-Info "Ejecucion no interactiva detectada."
-        Write-Info "Uso desatendido: .\romanOS-Toolkit.ps1 -Module <Gaming|Network|Maintenance|Diagnostics|Security|Browsers|Updates|Drivers|UserMigration|UniversalAudit|Dashboards|QuickActions>"
+        Write-Info "Uso desatendido: .\romanOS-Toolkit.ps1 -Module <Gaming|Network|Maintenance|Diagnostics|Security|Browsers|Updates|Drivers|UserMigration|UniversalAudit|Dashboards|QuickActions|LatencyProfiler>"
         exit 0
     }
 } catch {}
@@ -705,6 +730,7 @@ $mainMenuOpts = @(
     "Auditor Universal de Optimizacion (Multi-Hardware, Latencia, Scoring y Remediacion)",
     "Conmutador Modo Juego / Modo Dev (Liberar RAM para APU y Cortar Devoradores)",
     "Optimizador de Juegos y Apps Electron (Steam VRAM, Discord, Shaders)",
+    "Profiler Forense de Latencia DPC/ISR (Sub-Microsegundo, Invariant TSC, Drivers)",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)",
     "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
 )
@@ -729,8 +755,9 @@ while ($true) {
         13 { Invoke-UniversalAuditModule; pause }
         14 { Invoke-GameDevSwitchModule -TargetMode "Status"; pause }
         15 { Invoke-GamingAndAppsModule; pause }
-        16 { Show-QuickActionsMenu; pause }
-        17 { Invoke-ControlCenterGUI; pause }
+        16 { Invoke-LatencyTraceModule; pause }
+        17 { Show-QuickActionsMenu; pause }
+        18 { Invoke-ControlCenterGUI; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

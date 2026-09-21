@@ -339,6 +339,7 @@ function Resolve-ToolScript {
                                     <Button x:Name="btnQuickShaders" Content="Purgar Shaders GPU" Width="180" Margin="0,0,10,10"/>
                                     <Button x:Name="btnQuickTrimSSD" Content="Ejecutar SSD TRIM" Width="160" Margin="0,0,10,10"/>
                                     <Button x:Name="btnQuickAudit" Content="Auditar Salud Completa" Width="200" Margin="0,0,10,10" Background="#233544" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnQuickLatency" Content="Test Latencia DPC (µs)" Width="190" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -403,6 +404,7 @@ function Resolve-ToolScript {
                                     <Button x:Name="btnToggleHypervisor" Content="Alternar Hipervisor (VBS / Ring 0)" Width="250" Margin="0,0,10,10"/>
                                     <Button x:Name="btnRunDebloat" Content="Lanzar Debloat Adaptativo (Win11)" Width="240" Margin="0,0,10,10"/>
                                     <Button x:Name="btnRunGamingApps" Content="Optimizar Juegos y Apps (VRAM / Electron)" Width="280" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnRunLatencyProfiler" Content="Profiler Forense Latencia DPC (Microsegundos)" Width="310" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -788,6 +790,11 @@ $window.FindName('btnQuickAudit').Add_Click({
     if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Auditoria Universal de Optimizacion" }
 })
 
+$window.FindName('btnQuickLatency').Add_Click({
+    $tool = Resolve-ToolScript "Trace-SystemLatency.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -DurationSeconds 5" -TaskTitle "Test Forense de Latencia DPC/ISR (5 segundos)" }
+})
+
 # --- Pestaña 2: Gaming & Bimodal ---
 $window.FindName('btnGameAggressive').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
@@ -816,6 +823,11 @@ $window.FindName('btnRunDebloat').Add_Click({
 $window.FindName('btnRunGamingApps').Add_Click({
     $tool = Resolve-ToolScript "Optimize-GamingAndApps.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Optimizacion de Juegos, Apps Electron y VRAM" }
+})
+
+$window.FindName('btnRunLatencyProfiler').Add_Click({
+    $tool = Resolve-ToolScript "Trace-SystemLatency.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -DurationSeconds 5" -TaskTitle "Profiler Forense de Latencia DPC/ISR en Vivo" }
 })
 
 # --- Pestaña 3: Mantenimiento ---

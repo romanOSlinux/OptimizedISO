@@ -156,6 +156,24 @@ $cpuUltra = "Intel(R) Core(TM) Ultra 7 155H"
 $isUltraModern = ($cpuUltra -match 'Core.*Ultra')
 Assert-Test -Name "Intel Core Ultra 7 155H clasificado como CPU Moderna" -Condition $isUltraModern
 
+$cpuArrowLake = "Intel(R) Core(TM) Ultra 9 285K"
+$isArrowLakeModern = ($cpuArrowLake -match 'Core.*Ultra')
+$isArrowLakeHybrid = ($cpuArrowLake -match 'Core.*Ultra')
+Assert-Test -Name "Intel Core Ultra 9 285K (Arrow Lake) clasificado como Moderno e Hibrido" -Condition ($isArrowLakeModern -and $isArrowLakeHybrid)
+
+$cpuN100 = "Intel(R) Processor N100"
+$isN100EcoreOnly = ($cpuN100 -match 'Processor\s+N[0-9]{2,3}')
+$isN100Modern = ($cpuN100 -match 'Intel.*Processor.*N[0-9]{2,3}')
+Assert-Test -Name "Intel Processor N100 (Alder Lake-N) clasificado como E-Core Only y Moderno" -Condition ($isN100EcoreOnly -and $isN100Modern)
+
+$cpu10700K = "Intel(R) Core(TM) i7-10700K CPU @ 3.80GHz"
+$is10700KLegacy = ($cpu10700K -match 'i[3579]-[1-9][0-9]{2,3}' -and $cpu10700K -notmatch 'i[3579]-1[2-9][0-9]{3}')
+Assert-Test -Name "Intel Core i7-10700K clasificado como Legacy Intel (Pre-12th)" -Condition $is10700KLegacy
+
+$cpuXeon = "Intel(R) Xeon(R) Platinum 8480+"
+$isXeon = ($cpuXeon -match 'Xeon')
+Assert-Test -Name "Intel Xeon Platinum 8480+ clasificado como Xeon" -Condition $isXeon
+
 $cpuCeleron = "Intel(R) Celeron(R) N4020 CPU @ 1.10GHz"
 $isCeleronLowEnd = ($cpuCeleron -match 'Celeron|Pentium|Atom|J[0-9]{4}|N[0-9]{4}')
 Assert-Test -Name "Intel Celeron N4020 clasificado como Low-End" -Condition $isCeleronLowEnd
