@@ -88,7 +88,7 @@ La auditoría se ejecutará secuencialmente respetando 5 bloques temáticos estr
 | Orden | Herramienta | Archivos Evaluados | Foco del Análisis Forense |
 | :---: | :--- | :--- | :--- |
 | **09** | **Diagnóstico de Red & Latencia**<br>`[AUDITADO - PASS]` | `scripts/Modules/Win11-Network-Diagnostics-Optimizer.ps1`<br>`scripts/Modules/Win11-Network-Diagnostics-Optimizer.cmd` | Stack TCP moderno (CUBIC, AutoTuning Gigabit), Nagle off, DoH nativo (Cloudflare/Quad9) y blindaje de UAC/rutas. |
-| **10** | **Mantenimiento & Limpieza Profunda** | `scripts/Modules/Invoke-WindowsMaintenance.ps1`<br>`scripts/Modules/Invoke-WindowsMaintenance.cmd` | DISM ResetBase en WinSxS, purga de Shaders (DirectX/NV/AMD) vs regeneración con stuttering, TRIM forzado en SSDs. |
+| **10** | **Mantenimiento & Limpieza Profunda**<br>`[AUDITADO - PASS]` | `scripts/Modules/Invoke-WindowsMaintenance.ps1`<br>`scripts/Modules/Invoke-WindowsMaintenance.cmd` | 6 módulos integrales: DISM WinSxS ResetBase, purga de shaders selectiva, SSD TRIM nativo y elevación blindada. |
 
 ### Bloque 4: Seguridad, Auditoría y Observabilidad Forense
 | Orden | Herramienta | Archivos Evaluados | Foco del Análisis Forense |

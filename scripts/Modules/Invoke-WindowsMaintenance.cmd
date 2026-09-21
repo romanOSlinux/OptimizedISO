@@ -11,7 +11,7 @@ echo.
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo [!] Solicitando elevacion de privilegios de Administrador...
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process cmd.exe -ArgumentList '/c \"\"%~f0\"\"' -Verb RunAs"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process cmd.exe -ArgumentList '/c \"\"%~f0\"\" %*' -Verb RunAs"
     exit /b 0
 )
 
@@ -19,8 +19,16 @@ cd /d "%~dp0"
 
 if exist "%~dp0Invoke-WindowsMaintenance.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0Invoke-WindowsMaintenance.ps1" %*
+) else if exist "%WINDIR%\Setup\Scripts\Modules\Invoke-WindowsMaintenance.ps1" (
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\Modules\Invoke-WindowsMaintenance.ps1" %*
+) else if exist "%WINDIR%\Setup\Scripts\Invoke-WindowsMaintenance.ps1" (
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\Invoke-WindowsMaintenance.ps1" %*
+) else if exist "C:\Windows\Setup\Scripts\Modules\Invoke-WindowsMaintenance.ps1" (
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\Modules\Invoke-WindowsMaintenance.ps1" %*
+) else if exist "C:\Windows\Setup\Scripts\Invoke-WindowsMaintenance.ps1" (
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\Invoke-WindowsMaintenance.ps1" %*
 ) else (
-    echo [ERROR] No se encontro Invoke-WindowsMaintenance.ps1 en el directorio actual: %~dp0
+    echo [ERROR] No se encontro Invoke-WindowsMaintenance.ps1 en %~dp0 ni en C:\Windows\Setup\Scripts\
     pause
     exit /b 1
 )
