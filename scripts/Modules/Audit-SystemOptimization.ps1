@@ -48,6 +48,7 @@ $uiEnginePaths = @(
     (Join-Path (Split-Path $scriptRoot -Parent) "Core\UI-Engine.ps1"),
     (Join-Path $scriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $scriptRoot "UI-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\UI-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1",
     "C:\OptimizedISO\scripts\Core\UI-Engine.ps1"
 )

@@ -7,6 +7,21 @@ setlocal enabledelayedexpansion
 
 title romanOS - Auditor Universal de Optimizacion
 
+set "SCRIPT_PS1="
+if exist "%~dp0Modules\Audit-SystemOptimization.ps1" (
+    set "SCRIPT_PS1=%~dp0Modules\Audit-SystemOptimization.ps1"
+) else if exist "%~dp0Audit-SystemOptimization.ps1" (
+    set "SCRIPT_PS1=%~dp0Audit-SystemOptimization.ps1"
+) else if exist "%WINDIR%\Setup\Scripts\Modules\Audit-SystemOptimization.ps1" (
+    set "SCRIPT_PS1=%WINDIR%\Setup\Scripts\Modules\Audit-SystemOptimization.ps1"
+) else if exist "%WINDIR%\Setup\Scripts\Audit-SystemOptimization.ps1" (
+    set "SCRIPT_PS1=%WINDIR%\Setup\Scripts\Audit-SystemOptimization.ps1"
+) else if exist "C:\Windows\Setup\Scripts\Modules\Audit-SystemOptimization.ps1" (
+    set "SCRIPT_PS1=C:\Windows\Setup\Scripts\Modules\Audit-SystemOptimization.ps1"
+) else if exist "C:\Windows\Setup\Scripts\Audit-SystemOptimization.ps1" (
+    set "SCRIPT_PS1=C:\Windows\Setup\Scripts\Audit-SystemOptimization.ps1"
+)
+
 net session >nul 2>&1
 if %errorlevel% equ 0 (
     echo.
@@ -14,7 +29,11 @@ if %errorlevel% equ 0 (
     echo   romanOS AUDITOR UNIVERSAL - MODO ELEVADO (ADMINISTRADOR)
     echo ==============================================================================
     echo.
-    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0Modules\Audit-SystemOptimization.ps1" %*
+    if defined SCRIPT_PS1 (
+        powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "!SCRIPT_PS1!" %*
+    ) else (
+        echo [ERROR] No se encontro Audit-SystemOptimization.ps1
+    )
     goto :fin
 )
 
@@ -38,13 +57,17 @@ if not defined modo set modo=1
 if "%modo%"=="1" (
     echo.
     echo   Solicitando elevacion UAC...
-    powershell.exe -NoProfile -Command "Start-Process cmd.exe -ArgumentList '/c \"\"%~f0\" %*\"' -Verb RunAs"
+    powershell.exe -NoProfile -Command "Start-Process cmd.exe -ArgumentList '/c \"\"%~f0\"\" %*' -Verb RunAs"
     exit /b 0
 )
 
 if "%modo%"=="2" (
     echo.
-    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0Modules\Audit-SystemOptimization.ps1" %*
+    if defined SCRIPT_PS1 (
+        powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "!SCRIPT_PS1!" %*
+    ) else (
+        echo [ERROR] No se encontro Audit-SystemOptimization.ps1
+    )
     goto :fin
 )
 
@@ -52,7 +75,11 @@ if "%modo%"=="0" (
     exit /b 0
 )
 
-powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0Modules\Audit-SystemOptimization.ps1" %*
+if defined SCRIPT_PS1 (
+    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "!SCRIPT_PS1!" %*
+) else (
+    echo [ERROR] No se encontro Audit-SystemOptimization.ps1
+)
 
 :fin
 echo.

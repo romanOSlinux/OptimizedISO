@@ -97,7 +97,7 @@ La auditoría se ejecutará secuencialmente respetando 5 bloques temáticos estr
 | **12** | **Auditoría Forense de Huella (Footprint)**<br>`[AUDITADO - PASS]` | `scripts/Modules/Audit-FreshInstallFootprint.ps1` | Medición empírica de huella en reposo: procesos activos, RAM física consumida vs asignada, resolución modular y fallback a TEMP. |
 | **13** | **Auditoría de Seguridad & Hardening**<br>`[AUDITADO - PASS]` | `scripts/Modules/Invoke-WindowsSecurityHardening.ps1`<br>`scripts/Modules/Invoke-WindowsSecurityHardening.cmd` | Reglas ASR, LSA RunAsPPL, VBS/HVCI, reporte dual MD/HTML interactivo, ruta de escritorio de usuario y blindaje UAC. |
 | **14** | **Generador de Dashboards Visuales**<br>`[AUDITADO - PASS]` | Función `Invoke-OpenDashboards` en `romanOS-Toolkit.ps1` | Sincronización dinámica de reportes (Instalación y Seguridad), búsqueda en cascada multi-directorio y apertura local. |
-| **15** | **Auditor Universal de Optimización** | `scripts/Modules/Audit-SystemOptimization.ps1` | Evaluación de 10 dominios técnicos, heurística de scoring 0-100 y remediación asistida con validación multi-hardware. |
+| **15** | **Auditor Universal de Optimización**<br>`[AUDITADO - PASS]` | `scripts/Modules/Audit-SystemOptimization.ps1`<br>`scripts/Auditar-Optimizacion-PC.cmd` | Evaluación de 10 dominios técnicos, heurística de scoring 0-100, remediación asistida con validación multi-hardware y blindaje de rutas. |
 
 ### Bloque 5: Ecosistema de Drivers, Actualizaciones y Migración
 | Orden | Herramienta | Archivos Evaluados | Foco del Análisis Forense |
