@@ -23,6 +23,7 @@ $uiEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\UI-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
 )
 $uiLoaded = $false
@@ -54,6 +55,7 @@ $hwEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\Hardware-Engine.ps1"),
     (Join-Path $PSScriptRoot "Hardware-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Hardware-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\Hardware-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\Hardware-Engine.ps1"
 )
 $hwLoaded = $false
@@ -73,6 +75,7 @@ $policyEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"),
     (Join-Path $PSScriptRoot "Policy-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\Policy-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1"
 )
 $policyLoaded = $false

@@ -93,7 +93,7 @@ La auditoría se ejecutará secuencialmente respetando 5 bloques temáticos estr
 ### Bloque 4: Seguridad, Auditoría y Observabilidad Forense
 | Orden | Herramienta | Archivos Evaluados | Foco del Análisis Forense |
 | :---: | :--- | :--- | :--- |
-| **11** | **Auditoría Forense Post-Instalación** | `scripts/Modules/PostInstall-Diagnostics.ps1`<br>`scripts/Modules/Auditar-Instalacion.cmd` | Panther logs, CompactOS, dispositivos PnP con error, generación de reportes HTML/Markdown interactivos. |
+| **11** | **Auditoría Forense Post-Instalación**<br>`[AUDITADO - PASS]` | `scripts/Modules/PostInstall-Diagnostics.ps1`<br>`scripts/Modules/Auditar-Instalacion.cmd` | Panther logs, CompactOS, dispositivos PnP con error, generación de reportes HTML/Markdown interactivos y blindaje de UAC/rutas. |
 | **12** | **Auditoría Forense de Huella (Footprint)**| `scripts/Modules/Audit-FreshInstallFootprint.ps1` | Medición empírica de huella en reposo: procesos activos, RAM física consumida vs asignada, trazabilidad de servicios. |
 | **13** | **Auditoría de Seguridad & Hardening** | `scripts/Modules/Invoke-WindowsSecurityHardening.ps1`<br>`scripts/Modules/Invoke-WindowsSecurityHardening.cmd` | Reglas ASR, LSA RunAsPPL, VBS/HVCI, mitigaciones Spectre/Meltdown: evaluación gaming-safe sin romper compatibilidad. |
 | **14** | **Generador de Dashboards Visuales** | Función `Invoke-OpenDashboards` en `romanOS-Toolkit.ps1` | Sincronización de diagnósticos de instalación y seguridad y apertura unificada en navegadores locales. |
