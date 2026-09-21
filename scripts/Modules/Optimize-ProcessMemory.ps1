@@ -34,6 +34,33 @@ param(
     [switch]$Unattended
 )
 
+function Ensure-Elevation {
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) {
+        $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+        $scriptCmd = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Definition }
+        $argArray = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptCmd)
+        if ($PSBoundParameters.Count -gt 0) {
+            foreach ($k in $PSBoundParameters.Keys) {
+                if ($PSBoundParameters[$k] -is [switch] -and $PSBoundParameters[$k]) {
+                    $argArray += "-$k"
+                } elseif ($PSBoundParameters[$k] -isnot [switch]) {
+                    $argArray += "-$k"
+                    $argArray += "$($PSBoundParameters[$k])"
+                }
+            }
+        }
+        Write-Warning "Este script requiere privilegios de Administrador para abrir handles de procesos del sistema. Elevando..."
+        try {
+            Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs
+        } catch {
+            Write-Error "No se pudo obtener privilegios de Administrador: $($_.Exception.Message)"
+        }
+        exit
+    }
+}
+Ensure-Elevation
+
 # -----------------------------------------------------------------------------
 # 0. CONFIGURACION DE ENTORNO Y CARGA DE PSAPI
 # -----------------------------------------------------------------------------
@@ -64,6 +91,7 @@ $uiEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\UI-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
 )
 $uiLoaded = $false
