@@ -102,4 +102,5 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0084 | [PLAN-0084-20260920-reemplazo-vbs-por-lanzador-nativo-winexe.md](PLAN-0084-20260920-reemplazo-vbs-por-lanzador-nativo-winexe.md) | 2026-09-20 | Erradicación de VBScript y Reemplazo por Lanzador GUI Nativo Win32 (Subsystem 2 / winexe) | COMPLETADO |
 | 0085 | [PLAN-0085-20260920-optimizacion-y-paridad-toolkit-maestro-ecosistema.md](PLAN-0085-20260920-optimizacion-y-paridad-toolkit-maestro-ecosistema.md) | 2026-09-20 | Sincronización Total de romanOS Toolkit Maestro: Inyección en ISO (OEM/WIM), Lanzador Raíz, Actualización Documental y Pruebas Unitarias | COMPLETADO |
 | 0086 | [PLAN-0086-20260920-romanos-toolkit-gui-control-center.md](PLAN-0086-20260920-romanos-toolkit-gui-control-center.md) | 2026-09-20 | romanOS Control Center: Interfaz Gráfica Nativa (WPF / XAML) para el Hub Maestro y Ecosistema de Herramientas | COMPLETADO |
+| 0087 | [PLAN-0087-20260920-revision-exhaustiva-herramientas-toolkit.md](PLAN-0087-20260920-revision-exhaustiva-herramientas-toolkit.md) | 2026-09-20 | Auditoría y Revisión Exhaustiva 1 a 1 de las Herramientas del Toolkit Maestro romanOS | PENDIENTE |
 
