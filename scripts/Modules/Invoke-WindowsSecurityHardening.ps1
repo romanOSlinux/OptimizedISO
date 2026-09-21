@@ -86,6 +86,7 @@ $uiEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
+    "$env:WINDIR\Setup\Scripts\Core\UI-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
 )
 $uiLoaded = $false
@@ -121,9 +122,12 @@ if (-not (Test-Path $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 }
 
-$desktopPath = [Environment]::GetFolderPath('CommonDesktopDirectory')
+$desktopPath = [Environment]::GetFolderPath('Desktop')
 if (-not $desktopPath -or -not (Test-Path $desktopPath)) {
-    $desktopPath = if ($env:PUBLIC) { "$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" }
+    $desktopPath = [Environment]::GetFolderPath('CommonDesktopDirectory')
+    if (-not $desktopPath -or -not (Test-Path $desktopPath)) {
+        $desktopPath = if ($env:PUBLIC) { "$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" }
+    }
 }
 
 # -----------------------------------------------------------------------------
@@ -482,9 +486,17 @@ function Export-SecurityAuditReports {
     $mdText = $md -join "`r`n"
     $mdFilePath = Join-Path $OutputDir "SecurityAudit_Report.md"
     $desktopMdFilePath = Join-Path $desktopPath "INFORME_SEGURIDAD.md"
-    [System.IO.File]::WriteAllText($mdFilePath, $mdText, [System.Text.Encoding]::UTF8)
+    $finalMdPath = $mdFilePath
+    try {
+        [System.IO.File]::WriteAllText($mdFilePath, $mdText, [System.Text.Encoding]::UTF8)
+    } catch {
+        $mdFilePath = Join-Path $env:TEMP "SecurityAudit_Report.md"
+        $finalMdPath = $mdFilePath
+        try { [System.IO.File]::WriteAllText($mdFilePath, $mdText, [System.Text.Encoding]::UTF8) } catch {}
+    }
     try { 
-        [System.IO.File]::WriteAllText($desktopMdFilePath, $mdText, [System.Text.Encoding]::UTF8) 
+        [System.IO.File]::WriteAllText($desktopMdFilePath, $mdText, [System.Text.Encoding]::UTF8)
+        $finalMdPath = $desktopMdFilePath
     } catch {
         Write-Warn -Message "No se pudo copiar el informe de seguridad al escritorio del usuario." -Cause $_.Exception.Message -Action "El informe permanece disponible en $mdFilePath"
     }
@@ -629,9 +641,17 @@ function Export-SecurityAuditReports {
 
     $htmlFilePath = Join-Path $OutputDir "SecurityAudit_Report.html"
     $desktopHtmlFilePath = Join-Path $desktopPath "INFORME_SEGURIDAD.html"
-    [System.IO.File]::WriteAllText($htmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8)
+    $finalHtmlPath = $htmlFilePath
+    try {
+        [System.IO.File]::WriteAllText($htmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8)
+    } catch {
+        $htmlFilePath = Join-Path $env:TEMP "SecurityAudit_Report.html"
+        $finalHtmlPath = $htmlFilePath
+        try { [System.IO.File]::WriteAllText($htmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8) } catch {}
+    }
     try { 
-        [System.IO.File]::WriteAllText($desktopHtmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8) 
+        [System.IO.File]::WriteAllText($desktopHtmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8)
+        $finalHtmlPath = $desktopHtmlFilePath
     } catch {
         Write-Warn -Message "No se pudo copiar el dashboard HTML de seguridad al escritorio del usuario." -Cause $_.Exception.Message -Action "El dashboard permanece disponible en $htmlFilePath"
     }
@@ -644,14 +664,14 @@ function Export-SecurityAuditReports {
     Write-Host "  Verificaciones Aprobadas  : $($script:passedCount)" -ForegroundColor Green
     Write-Host "  Advertencias              : $($script:warningCount)" -ForegroundColor $(if ($script:warningCount -gt 0) { 'Yellow' } else { 'Gray' })
     Write-Host "  Riesgos Criticos          : $($script:dangerCount)" -ForegroundColor $(if ($script:dangerCount -gt 0) { 'Red' } else { 'Gray' })
-    Write-Host "  Reporte Markdown guardado : $desktopMdFilePath" -ForegroundColor Cyan
-    Write-Host "  Reporte HTML guardado     : $desktopHtmlFilePath" -ForegroundColor Cyan
+    Write-Host "  Reporte Markdown guardado : $finalMdPath" -ForegroundColor Cyan
+    Write-Host "  Reporte HTML guardado     : $finalHtmlPath" -ForegroundColor Cyan
     Write-Host "==========================================================================" -ForegroundColor Cyan
     Write-Host ""
 
-    if ($ShowReport -or (Test-Path $desktopHtmlFilePath)) {
+    if ($ShowReport -or (Test-Path $finalHtmlPath)) {
         if ($ShowReport) {
-            Start-Process -FilePath $desktopHtmlFilePath
+            Start-Process -FilePath $finalHtmlPath
         }
     }
 }

@@ -95,7 +95,7 @@ La auditoría se ejecutará secuencialmente respetando 5 bloques temáticos estr
 | :---: | :--- | :--- | :--- |
 | **11** | **Auditoría Forense Post-Instalación**<br>`[AUDITADO - PASS]` | `scripts/Modules/PostInstall-Diagnostics.ps1`<br>`scripts/Modules/Auditar-Instalacion.cmd` | Panther logs, CompactOS, dispositivos PnP con error, generación de reportes HTML/Markdown interactivos y blindaje de UAC/rutas. |
 | **12** | **Auditoría Forense de Huella (Footprint)**<br>`[AUDITADO - PASS]` | `scripts/Modules/Audit-FreshInstallFootprint.ps1` | Medición empírica de huella en reposo: procesos activos, RAM física consumida vs asignada, resolución modular y fallback a TEMP. |
-| **13** | **Auditoría de Seguridad & Hardening** | `scripts/Modules/Invoke-WindowsSecurityHardening.ps1`<br>`scripts/Modules/Invoke-WindowsSecurityHardening.cmd` | Reglas ASR, LSA RunAsPPL, VBS/HVCI, mitigaciones Spectre/Meltdown: evaluación gaming-safe sin romper compatibilidad. |
+| **13** | **Auditoría de Seguridad & Hardening**<br>`[AUDITADO - PASS]` | `scripts/Modules/Invoke-WindowsSecurityHardening.ps1`<br>`scripts/Modules/Invoke-WindowsSecurityHardening.cmd` | Reglas ASR, LSA RunAsPPL, VBS/HVCI, reporte dual MD/HTML interactivo, ruta de escritorio de usuario y blindaje UAC. |
 | **14** | **Generador de Dashboards Visuales** | Función `Invoke-OpenDashboards` en `romanOS-Toolkit.ps1` | Sincronización de diagnósticos de instalación y seguridad y apertura unificada en navegadores locales. |
 | **15** | **Auditor Universal de Optimización** | `scripts/Modules/Audit-SystemOptimization.ps1` | Evaluación de 10 dominios técnicos, heurística de scoring 0-100 y remediación asistida con validación multi-hardware. |
 
