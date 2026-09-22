@@ -486,6 +486,20 @@ function Resolve-ToolScript {
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
+
+                        <!-- Tarjeta romanOS Service Drift Watchdog -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Guardian Anti-Drift y Watchdog de Servicios (romanOS Anti-Drift)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Monitorea y previene que Windows Update o procesos en segundo plano reactiven telemetria, diagnostic tracking y servicios degradadores de rendimiento." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                
+                                <WrapPanel>
+                                    <Button x:Name="btnAuditDriftGUI" Content="Auditar Desvio de Servicios" Width="210" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnRemediateDriftGUI" Content="Remediar Desvio (1-Clic)" Width="200" Margin="0,0,10,10" Background="#3E2723" BorderBrush="#FF5252" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnInstallDriftTaskGUI" Content="Instalar Tarea Watchdog" Width="180" Margin="0,0,10,10"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -1095,6 +1109,28 @@ $window.FindName('btnListSnapshotsCLI').Add_Click({
 
 # Inicializar combo de snapshots
 Refresh-CCSnapshotsComboBox
+
+# Manejadores de Eventos: romanOS Service Drift Watchdog
+$window.FindName('btnAuditDriftGUI').Add_Click({
+    $tool = Resolve-ToolScript "Watchdog-ServiceDrift.ps1"
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Audit -SkipElevation" -TaskTitle "Auditoria de Desvio Anti-Drift"
+    }
+})
+
+$window.FindName('btnRemediateDriftGUI').Add_Click({
+    $tool = Resolve-ToolScript "Watchdog-ServiceDrift.ps1"
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Remediate -SkipElevation" -TaskTitle "Remediacion de Desvio Anti-Drift"
+    }
+})
+
+$window.FindName('btnInstallDriftTaskGUI').Add_Click({
+    $tool = Resolve-ToolScript "Watchdog-ServiceDrift.ps1"
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action InstallTask -SkipElevation" -TaskTitle "Instalacion de Tarea Programada Watchdog"
+    }
+})
 
 # --- Pestaña 4: Red ---
 $window.FindName('btnRunDnsBench').Add_Click({

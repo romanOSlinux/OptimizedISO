@@ -4702,6 +4702,23 @@ if (Test-Path $liveSandboxSrc) {
     Add-AuditRecord -Resource "Invoke-LiveSandbox" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$watchdogSrc    = Join-Path $ScriptsDir "Modules\Watchdog-ServiceDrift.ps1"
+$watchdogCmdSrc = Join-Path $ScriptsDir "Modules\Watchdog-ServiceDrift.cmd"
+if (Test-Path $watchdogSrc) {
+    Copy-Item -Path $watchdogSrc -Destination (Join-Path $OEMScriptsDir "Watchdog-ServiceDrift.ps1") -Force
+    Copy-Item -Path $watchdogSrc -Destination (Join-Path $OEMScriptsDir1 "Watchdog-ServiceDrift.ps1") -Force
+    Copy-Item -Path $watchdogSrc -Destination (Join-Path $destModulesDir "Watchdog-ServiceDrift.ps1") -Force
+    Copy-Item -Path $watchdogSrc -Destination (Join-Path $destModulesDir1 "Watchdog-ServiceDrift.ps1") -Force
+    if (Test-Path $watchdogCmdSrc) {
+        Copy-Item -Path $watchdogCmdSrc -Destination (Join-Path $OEMScriptsDir "Watchdog-ServiceDrift.cmd") -Force
+        Copy-Item -Path $watchdogCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Watchdog-ServiceDrift.cmd") -Force
+        Copy-Item -Path $watchdogCmdSrc -Destination (Join-Path $destModulesDir "Watchdog-ServiceDrift.cmd") -Force
+        Copy-Item -Path $watchdogCmdSrc -Destination (Join-Path $destModulesDir1 "Watchdog-ServiceDrift.cmd") -Force
+    }
+    Write-OK "Guardian Anti-Drift y Watchdog de Servicios (Watchdog-ServiceDrift) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Watchdog-ServiceDrift" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
 $ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
 $ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"
@@ -7309,6 +7326,19 @@ if ($wimFile) {
                           }
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Invoke-LiveSandbox.ps1 y .cmd"
                           Add-AuditRecord -Resource "Invoke-LiveSandbox" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
+                      }
+
+                      $watchdogSrc    = Join-Path $ScriptsDir "Modules\Watchdog-ServiceDrift.ps1"
+                      $watchdogCmdSrc = Join-Path $ScriptsDir "Modules\Watchdog-ServiceDrift.cmd"
+                      if (Test-Path $watchdogSrc) {
+                          Copy-Item -Path $watchdogSrc -Destination (Join-Path $wimScriptsDir "Watchdog-ServiceDrift.ps1") -Force
+                          Copy-Item -Path $watchdogSrc -Destination (Join-Path $wimModulesDest "Watchdog-ServiceDrift.ps1") -Force
+                          if (Test-Path $watchdogCmdSrc) {
+                              Copy-Item -Path $watchdogCmdSrc -Destination (Join-Path $wimScriptsDir "Watchdog-ServiceDrift.cmd") -Force
+                              Copy-Item -Path $watchdogCmdSrc -Destination (Join-Path $wimModulesDest "Watchdog-ServiceDrift.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Watchdog-ServiceDrift.ps1 y .cmd"
+                          Add-AuditRecord -Resource "Watchdog-ServiceDrift" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
                       }
 
                       $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"

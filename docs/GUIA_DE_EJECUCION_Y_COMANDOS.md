@@ -21,11 +21,12 @@ Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros
 | **`Get-EssentialRuntimes.ps1`** | *(Ejecutar en PS Admin)* | Descarga de paquetes redistribuibles (VC++, DirectX, .NET) | `-DownloadDir`, `-SkipDirectX`, `-SkipDotNet` |
 | **`New-TestVM-HyperV.ps1`** | *(Ejecutar en PS Admin)* | Despliegue automatizado de VM de prueba en Hyper-V (Gen 2) | `-ISOPath`, `-MemoryGB`, `-CPUCount`, `-DiskSizeGB` |
 | **`Test-OptimizedISO-v2.ps1`** | *(Ejecutar en PS Admin)* | Suite de pruebas unitarias y validación del compilador | `-LogDir`, `-TargetScript` |
-| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (12 Fases) | `-Quick`, `-LogDir` |
+| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (13 Fases) | `-Quick`, `-LogDir` |
 | **`Manage-SystemSnapshots.ps1`** | `Manage-SystemSnapshots.cmd` | Motor de Instantáneas y Reversión Atómica (Snapshot & Rollback) | `-Action`, `-Name`, `-SnapshotId`, `-IncludeVSS`, `-Force` |
 | **`Deploy-AppProfiles.ps1`** | `Deploy-AppProfiles.cmd` | Gestor de Perfiles de Software, Winget y Runtimes de IA por Hardware | `-Profile`, `-InstallRuntimesOnly`, `-AutoDetectHardware`, `-Unattended`, `-WhatIf` |
 | **`Monitor-ThermalEnergy.ps1`** | `Monitor-ThermalEnergy.cmd` | Monitor de Throttling Térmico, Sensores y Calibración Energética | `-Action`, `-SampleDurationSec`, `-EnergyProfile`, `-Unattended`, `-WhatIf` |
 | **`Invoke-LiveSandbox.ps1`** | `Invoke-LiveSandbox.cmd` | Orquestador de Entornos Sandbox Descartables (.wsb, Air-Gap, vGPU) | `-Action`, `-Preset`, `-SharedFolder`, `-Unattended`, `-WhatIf` |
+| **`Watchdog-ServiceDrift.ps1`** | `Watchdog-ServiceDrift.cmd` | Guardián Anti-Drift: Auditoría y Remediación de Servicios y Tareas | `-Action`, `-Target`, `-LogDir`, `-Unattended`, `-WhatIf` |
 | **`Setup-AntigravityWindows.ps1`** | `Setup-AntigravityWindows.cmd` | Inicializador de entorno, dependencias winget y skills de Antigravity | `-InstallPrerequisites`, `-EnableHyperV`, `-SetExecutionPolicy`, `-CheckOnly` |
 | **`Limpiar-ResiduosWinISO.ps1`** | *(Ejecutar en PS Admin)* | Limpieza profunda de montajes DISM bloqueados, temporales y colmenas | `-ScanOnly`, `-Force`, `-Silent` |
 
@@ -517,6 +518,29 @@ Orquestador nativo y desacoplado para ejecutar utilidades de terceros, mods de j
 
 # 6. Simular el lanzamiento (-WhatIf) para auditoría sin invocar el proceso
 & "C:\OptimizedISO\scripts\Modules\Invoke-LiveSandbox.ps1" -Action Launch -Preset SafeAnalysis -WhatIf
+```
+
+---
+
+## 18. Guardián Anti-Drift y Watchdog de Servicios: `Watchdog-ServiceDrift.ps1`
+
+Auditor en caliente y remediador de desvío de configuración (*Configuration Drift*) tras la instalación de parches mensuales de Windows Update (LCUs) o software que reactiva telemetría (`DiagTrack`, `dmwappushservice`, `WerSvc`, tareas programadas CEIP).
+
+```powershell
+# 1. Auditar en caliente la paridad de servicios y tareas frente al estándar SSOT de romanOS
+& "C:\OptimizedISO\scripts\Modules\Watchdog-ServiceDrift.ps1" -Action Audit
+
+# 2. Remediar atómicamente todos los desvíos detectados (detener y deshabilitar en 1-clic)
+& "C:\OptimizedISO\scripts\Modules\Watchdog-ServiceDrift.ps1" -Action Remediate -Unattended
+
+# 3. Simular remediación (-WhatIf) para inspección sin alterar el sistema
+& "C:\OptimizedISO\scripts\Modules\Watchdog-ServiceDrift.ps1" -Action Remediate -WhatIf
+
+# 4. Registrar tarea programada periódica para auditoría automática y silenciosa
+& "C:\OptimizedISO\scripts\Modules\Watchdog-ServiceDrift.ps1" -Action RegisterTask
+
+# 5. Desinstalar la tarea programada periódica
+& "C:\OptimizedISO\scripts\Modules\Watchdog-ServiceDrift.ps1" -Action UnregisterTask
 ```
 
 ---

@@ -25,12 +25,13 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling", "Sandbox", "LiveSandbox")]
+    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling", "Sandbox", "LiveSandbox", "Watchdog", "AntiDrift")]
     [string]$Module,
     [string]$AppProfile,
     [string]$ThermalAction = 'Status',
     [string]$SandboxPreset = 'SafeAnalysis',
     [string]$SharedFolder,
+    [string]$WatchdogAction = 'Status',
     [switch]$ShowDashboards,
     [switch]$GUI,
     [switch]$Snapshot
@@ -363,6 +364,22 @@ function Invoke-SandboxModule {
         & powershell.exe @argList
     } else {
         Write-ErrorMsg "No se encontro Invoke-LiveSandbox.ps1"
+        pause
+    }
+}
+
+function Invoke-WatchdogModule {
+    param(
+        [string]$Action = "Status"
+    )
+    $scriptFile = Resolve-ToolScript "Watchdog-ServiceDrift.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando romanOS Anti-Drift Guardian & Service Watchdog"
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptFile, '-Action', $Action)
+        if ($WhatIfPreference -or $PSBoundParameters.ContainsKey('WhatIf')) { $argList += '-WhatIf' }
+        & powershell.exe @argList
+    } else {
+        Write-ErrorMsg "No se encontro Watchdog-ServiceDrift.ps1"
         pause
     }
 }
@@ -761,6 +778,10 @@ function Show-QuickActionsMenu {
             Invoke-SandboxModule -Action "Status"
             pause
         }
+        22 {
+            Invoke-WatchdogModule -Action "Status"
+            pause
+        }
         default { return }
     }
 
@@ -803,6 +824,8 @@ if ($Module) {
         "Throttling"    { Invoke-ThermalModule -Action $ThermalAction; exit }
         "Sandbox"       { Invoke-SandboxModule -Action "Status" -Preset $SandboxPreset -SharedFolder $SharedFolder; exit }
         "LiveSandbox"   { Invoke-SandboxModule -Action "Status" -Preset $SandboxPreset -SharedFolder $SharedFolder; exit }
+        "Watchdog"      { Invoke-WatchdogModule -Action $WatchdogAction; exit }
+        "AntiDrift"     { Invoke-WatchdogModule -Action $WatchdogAction; exit }
         "QuickActions"    { Show-QuickActionsMenu; exit }
         "GamingApps"      { Invoke-GamingAndAppsModule; exit }
         "LatencyProfiler" { Invoke-LatencyTraceModule; exit }
@@ -859,6 +882,7 @@ $mainMenuOpts = @(
     "Gestor de Perfiles de Software y Runtimes de IA (Deploy-AppProfiles)",
     "Monitor de Throttling Termico y Calibrador Energetico (Monitor-ThermalEnergy)",
     "Entorno Sandbox Descartable en Vivo (Invoke-LiveSandbox)",
+    "Guardian Anti-Drift de Servicios y Tareas (Watchdog-ServiceDrift)",
     "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
 )
 
@@ -888,7 +912,8 @@ while ($true) {
         19 { Invoke-AppProfilesModule -AutoDetectHardware; pause }
         20 { Invoke-ThermalModule -Action "Status"; pause }
         21 { Invoke-SandboxModule -Action "Status"; pause }
-        22 { Invoke-ControlCenterGUI; pause }
+        22 { Invoke-WatchdogModule -Action "Status"; pause }
+        23 { Invoke-ControlCenterGUI; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

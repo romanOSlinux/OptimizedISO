@@ -1,3 +1,21 @@
+## [2026-09-22T11:40:00-03:00] romanOS Anti-Drift Guardian & Service Watchdog: Auditoría en Caliente y Remediación Atómica de Desvío Post-Windows Update (PLAN-0103)
+
+- **Archivos Modificados:** `scripts/Modules/Watchdog-ServiceDrift.ps1` (nuevo), `scripts/Modules/Watchdog-ServiceDrift.cmd` (nuevo), `scripts/Testing/Test-WatchdogServiceDrift.ps1` (nuevo), `scripts/Testing/Test-WatchdogServiceDrift.cmd` (nuevo), `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/romanOS-Toolkit.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Testing/Invoke-TestSuite.ps1`, `README.md`, `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `docs/plans/PLAN-0103-20260922-guardian-anti-drift-y-watchdog-servicios.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Motor Nativo Anti-Drift y Watchdog en Caliente:** Creación de `scripts/Modules/Watchdog-ServiceDrift.ps1` y su lanzador Win32 `.cmd` (No-BOM, UAC, STA). Proporciona auditoría en vivo del estado real de los servicios y tareas frente al estándar SSOT de `Policy-Engine.ps1`, protegiendo al sistema de la degradación silenciosa (*Configuration Drift*) provocada por parches mensuales de Windows Update (LCUs).
+  - **Telemetría Cuantitativa de Paridad:**
+    - Evalúa 8 servicios críticos (`DiagTrack`, `dmwappushservice`, `WerSvc`, `RetailDemo`, `MapsBroker`, `lfsvc`, `TroubleshootingSvc`, `RemoteRegistry`).
+    - Evalúa 8 tareas programadas de telemetría e inventario (`Microsoft Compatibility Appraiser`, `ProgramDataUpdater`, `StartupAppTask`, `Consolidator`, `UsbCeip`, `DmClient`, `DmClientOnScenarioDownload`, `QueueReporting`).
+    - Calcula el porcentaje cuantitativo de paridad (*romanOS Parity Index*, 0-100%).
+  - **Modo Remediación Atómica (1-Clic):** Deshabilita y detiene en caliente servicios y tareas desviadas combinando `Set-Service -StartupType Disabled` con fallback a `sc.exe config <Svc> start= disabled` y `Disable-ScheduledTask`, con soporte estricto de `-WhatIf`.
+  - **Automatización Silenciosa:** Capacidad de registrar y desinstalar la tarea programada `romanOS-AntiDriftWatchdog` para auditorías periódicas bajo la cuenta SYSTEM sin impacto al usuario.
+  - **Integración en romanOS Control Center (WPF XAML):** Nueva tarjeta interactiva en la pestaña "Mantenimiento" con indicador de paridad, botón de auditoría en caliente y botón de remediación en 1-clic con streaming asíncrono a 60 FPS.
+  - **Integración en romanOS Toolkit Maestro:** Opción 22 en el menú principal interactivo, opción en Acciones Rápidas y soporte CLI `-Module Watchdog` / `-AntiDrift` / `-WatchdogAction`.
+  - **Inyección en Despliegue e ISO:** Inyección física en `$OEM$\$$\Setup\Scripts\Modules` y en el WIM montado offline (`$wimModulesDest`).
+  - **Certificación Total de Pruebas:** Arnés unitario `Test-WatchdogServiceDrift.ps1` (13/13 PASS) e integración como **Fase 13 permanente** en `Invoke-TestSuite.ps1` (**13/13 Fases PASS, 100% de éxito en 71.2s, 0 errores, 0 advertencias**).
+  - **Culminación del Programa de 5 Módulos de Alta Ingeniería:** Los 5 módulos acordados (Snapshots, App/AI Profiles, Thermal/Energy, Live Sandbox y Anti-Drift Watchdog) han sido desarrollados, certificados y desplegados en paridad total en todo el ecosistema romanOS.
+- **Pendiente:** Ninguno. Programa de 5 Módulos de Alta Ingeniería 100% Culminado.
+
 ## [2026-09-22T09:45:00-03:00] romanOS Live Sandbox Environment: Orquestador de Aislamiento Efímero, Generador Dinámico .wsb y Perfiles Desatendidos (PLAN-0102)
 
 - **Archivos Modificados:** `scripts/Modules/Invoke-LiveSandbox.ps1` (nuevo), `scripts/Modules/Invoke-LiveSandbox.cmd` (nuevo), `scripts/Testing/Test-LiveSandbox.ps1` (nuevo), `scripts/Testing/Test-LiveSandbox.cmd` (nuevo), `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/romanOS-Toolkit.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Testing/Invoke-TestSuite.ps1`, `README.md`, `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `docs/plans/PLAN-0102-20260922-live-sandbox-environment.md`, `docs/plans/README.md`, `MEMORY.md`

@@ -1,7 +1,7 @@
 # PLAN-0103: Guardián Anti-Drift y Watchdog de Servicios de romanOS
 
 **Fecha:** 2026-09-22  
-**Estado:** PENDIENTE  
+**Estado:** COMPLETADO  
 **Autor:** Antigravity / romanOS Software Engineering  
 **Alcance:** Ecosistema Completo (Core, Modules, GUI Control Center, Toolkit Maestro, ISO Builder, $OEM$, Testing Harness)
 
@@ -87,9 +87,9 @@ Construir el **romanOS Anti-Drift Guardian & Service Watchdog**, un módulo nati
 
 ## 4. Criterios de Aceptación y Validación
 
-- [ ] Sintaxis y codificación UTF-8 con BOM en todos los `.ps1` y ANSI No-BOM en `.cmd`.
-- [ ] Ejecución en frío verificada en Windows PowerShell 5.1 (`powershell.exe -STA -NoProfile`).
-- [ ] Cero fallos silenciosos (CWE-390 / Fail-Visible): Telemetría visible ante servicios no encontrados o permisos insuficientes.
-- [ ] Remediación atómica con soporte estricto de `-WhatIf`.
-- [ ] 100% de aserciones aprobadas en `Test-WatchdogServiceDrift.ps1`.
-- [ ] 13/13 fases aprobadas en `Invoke-TestSuite.ps1`.
+- [x] Sintaxis y codificación UTF-8 con BOM en todos los `.ps1` y ANSI No-BOM en `.cmd`.
+- [x] Ejecución en frío verificada en Windows PowerShell 5.1 (`powershell.exe -STA -NoProfile`).
+- [x] Cero fallos silenciosos (CWE-390 / Fail-Visible): Telemetría visible ante servicios no encontrados o permisos insuficientes.
+- [x] Remediación atómica con soporte estricto de `-WhatIf`.
+- [x] 100% de aserciones aprobadas en `Test-WatchdogServiceDrift.ps1`.
+- [x] 13/13 fases aprobadas en `Invoke-TestSuite.ps1`.
