@@ -43,7 +43,7 @@ param(
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$ErrorActionPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Continue'
 
 #------------------------------------------------------------------------------
 # SALIDA CON COLOR
@@ -208,6 +208,7 @@ function Remove-Residuo {
                 Dismount-WindowsImage -Path $Item.Ruta -Discard -ErrorAction Stop | Out-Null
                 $ok = $true
             } catch {
+                Write-Warn "Dismount-WindowsImage falló ($($_.Exception.Message)). Intentando desmonte con dism.exe..."
                 & dism.exe /Unmount-Image /MountDir:"$($Item.Ruta)" /Discard 2>&1 | Out-Null
                 $ok = ($LASTEXITCODE -eq 0)
             }

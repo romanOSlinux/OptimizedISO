@@ -124,7 +124,9 @@ function Initialize-Log {
 
     try {
         Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null
-    } catch {}
+    } catch {
+        Write-LogEntry -Level "WARN" -Message "No se pudo iniciar transcript en ($script:TranscriptFile) - $($_.Exception.Message)"
+    }
 
     Write-LogEntry -Level "INIT" -Message ("=" * 64)
     Write-LogEntry -Level "INIT" -Message "Official Windows ISO Downloader (Unified Engine)"
@@ -252,7 +254,9 @@ function Write-LogSummary {
     Write-LogEntry -Level "INIT" -Message "Transcript          : $script:TranscriptFile"
     Write-LogEntry -Level "INIT" -Message ("=" * 64)
 
-    try { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null } catch {}
+    try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
+        Write-LogEntry -Level "INFO" -Message "Transcript finalizado: $($_.Exception.Message)"
+    }
 
     # Generar reporte Markdown
     try {
@@ -294,7 +298,9 @@ function Write-LogSummary {
             }
         }
         [System.IO.File]::WriteAllText($script:AiSummaryFile, $sb.ToString(), [System.Text.Encoding]::UTF8)
-    } catch {}
+    } catch {
+        Write-LogEntry -Level "WARN" -Message "No se pudo escribir el informe Markdown en ($script:AiSummaryFile) - $($_.Exception.Message)"
+    }
 
     $logMap = @{}
     if ($script:AiSummaryFile)  { $logMap["AI Diagnostic MD"] = $script:AiSummaryFile }
@@ -411,12 +417,16 @@ if (-not $Version) {
             $Version = $selectedRelease.Key
         } else {
             Write-Host "  [WARN] Operación cancelada." -ForegroundColor Yellow
-            try { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null } catch {}
+            try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
+                Write-LogEntry -Level "INFO" -Message "Transcript finalizado: $($_.Exception.Message)"
+            }
             exit 0
         }
     } else {
         Write-Host "  [WARN] Operación cancelada." -ForegroundColor Yellow
-        try { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null } catch {}
+        try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
+            Write-LogEntry -Level "INFO" -Message "Transcript finalizado: $($_.Exception.Message)"
+        }
         exit 0
     }
 }

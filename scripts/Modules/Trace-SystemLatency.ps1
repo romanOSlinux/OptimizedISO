@@ -102,7 +102,9 @@ function Get-TimerResolutionInfo {
                 Status    = if (($cur / 10000.0) -le 0.505) { "ELITE (0.5ms)" } elseif (($cur / 10000.0) -le 1.005) { "OPTIMIZADO (1.0ms)" } else { "ESTANDAR ($([math]::Round($cur / 10000.0, 1))ms)" }
             }
         }
-    } catch {}
+    } catch {
+        Write-Warning "[Trace-SystemLatency] No se pudo consultar la resolución del temporizador nativo ($($_.Exception.Message)). Usando valores por defecto."
+    }
     return [PSCustomObject]@{ MinMs = 15.625; MaxMs = 0.5; CurrentMs = 1.0; Status = "Desconocido" }
 }
 
@@ -122,8 +124,11 @@ function Invoke-LatencySamplingBurst {
 
     # Adquisicion de contadores WMI de DPC iniciales
     $wmiInitial = try {
-        Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor -Filter "Name='_Total'" -ErrorAction SilentlyContinue
-    } catch { $null }
+        Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor -Filter "Name='_Total'" -ErrorAction Stop
+    } catch {
+        Write-Warning "[Trace-SystemLatency] No se pudieron adquirir contadores DPC iniciales Win32_PerfFormattedData_PerfOS_Processor: $($_.Exception.Message)"
+        $null
+    }
 
     $loopEndTicks = $sw.ElapsedTicks + ($freq * $Seconds)
 
@@ -157,8 +162,11 @@ function Invoke-LatencySamplingBurst {
 
     # Adquisicion de contadores WMI de DPC finales
     $wmiFinal = try {
-        Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor -Filter "Name='_Total'" -ErrorAction SilentlyContinue
-    } catch { $null }
+        Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor -Filter "Name='_Total'" -ErrorAction Stop
+    } catch {
+        Write-Warning "[Trace-SystemLatency] No se pudieron adquirir contadores DPC finales Win32_PerfFormattedData_PerfOS_Processor: $($_.Exception.Message)"
+        $null
+    }
 
     $dpcQueuedSec = if ($wmiFinal -and $wmiFinal.DPCsQueuedPersec) { [int]$wmiFinal.DPCsQueuedPersec } else { 0 }
     $interruptsSec = if ($wmiFinal -and $wmiFinal.InterruptsPersec) { [int]$wmiFinal.InterruptsPersec } else { 0 }
@@ -233,8 +241,10 @@ function Get-HardwareDriverAttribution {
 
     $runningDrivers = @()
     try {
-        $runningDrivers = @(Get-CimInstance Win32_SystemDriver -Filter "State='Running'" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)
-    } catch {}
+        $runningDrivers = @(Get-CimInstance Win32_SystemDriver -Filter "State='Running'" -ErrorAction Stop | Select-Object -ExpandProperty Name)
+    } catch {
+        Write-Warning "[Trace-SystemLatency] No se pudieron consultar los controladores activos Win32_SystemDriver: $($_.Exception.Message)"
+    }
 
     $results = [System.Collections.Generic.List[PSCustomObject]]::new()
 
@@ -346,7 +356,10 @@ function Get-HardwareDriverAttribution {
 
     # AMD 3D V-Cache (Dual-CCD)
     if ($Profile -and $Profile.CPU -and $Profile.CPU.IsDualCcdX3D) {
-        $x3dService = Get-Service -Name "AMD3DV互CachePerformanceOptimizer" -ErrorAction SilentlyContinue
+        $x3dService = Get-Service -Name "AMD3DVCacheOptimizer" -ErrorAction SilentlyContinue
+        if (-not $x3dService) {
+            $x3dService = Get-Service | Where-Object { $_.Name -like "*AMD*3D*Cache*" -or $_.DisplayName -like "*AMD 3D V-Cache*" } | Select-Object -First 1
+        }
         $results.Add([PSCustomObject]@{
             DriverName  = "amdppm.sys / amd3dvcachesvc"
             Component   = "AMD 3D V-Cache Asymmetric Dual-CCD Scheduler"
@@ -358,7 +371,7 @@ function Get-HardwareDriverAttribution {
     }
 
     # -------------------------------------------------------------------------
-    # 3. SUBSISTEMA NVIDIA
+    # 3. SUBSISTEMA GPU (NVIDIA, AMD RADEON, INTEL ARC)
     # -------------------------------------------------------------------------
     if ($runningDrivers -contains 'nvlddmkm') {
         # Verificacion de modo MSI para NVIDIA
@@ -370,7 +383,9 @@ function Get-HardwareDriverAttribution {
                 $val = (Get-ItemProperty -Path $msiKey -Name "MSISupported" -ErrorAction SilentlyContinue).MSISupported
                 if ($val -eq 1) { $nvMsiEnabled = $true }
             }
-        } catch {}
+        } catch {
+            Write-Warning "[Trace-SystemLatency] Error consultando soporte MSI para NVIDIA: $($_.Exception.Message)"
+        }
 
         $results.Add([PSCustomObject]@{
             DriverName  = "nvlddmkm.sys"
@@ -382,6 +397,62 @@ function Get-HardwareDriverAttribution {
                 "Modo MSI: HABILITADO [OK]. En panel de control NVIDIA, preferir 'Modo de control de energia: Maximo rendimiento preferido' por juego."
             } else {
                 "ALERTA: Modo MSI NO DETECTADO. Activar MSI-X para NVIDIA reduce significativamente los picos de DPC."
+            }
+        })
+    }
+
+    # AMD Radeon Graphics
+    if ($runningDrivers -contains 'amdkmdag' -or $runningDrivers -contains 'amdkmpfd') {
+        $amdMsiEnabled = $false
+        try {
+            $gpuPdo = (Get-CimInstance Win32_PnPEntity | Where-Object { $_.Service -in @('amdkmdag','amdkmpfd') } | Select-Object -First 1).DeviceID
+            if ($gpuPdo) {
+                $msiKey = "HKLM:\SYSTEM\CurrentControlSet\Enum\$gpuPdo\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties"
+                $val = (Get-ItemProperty -Path $msiKey -Name "MSISupported" -ErrorAction SilentlyContinue).MSISupported
+                if ($val -eq 1) { $amdMsiEnabled = $true }
+            }
+        } catch {
+            Write-Warning "[Trace-SystemLatency] Error consultando soporte MSI para AMD Radeon: $($_.Exception.Message)"
+        }
+
+        $results.Add([PSCustomObject]@{
+            DriverName  = "amdkmdag.sys"
+            Component   = "AMD Radeon Adrenalin Graphics Driver"
+            Vendor      = "AMD"
+            Status      = "Activo en Kernel"
+            Impact      = "Critico para Latencia DPC y Tiempos de Cuadro"
+            Tuning      = if ($amdMsiEnabled) {
+                "Modo MSI: HABILITADO [OK]. En Radeon Software, activar Radeon Anti-Lag y desactivar ULPS si causa stuttering."
+            } else {
+                "ALERTA: Modo MSI NO DETECTADO. Habilitar MSI para la GPU Radeon optimiza las interrupciones PCIe."
+            }
+        })
+    }
+
+    # Intel Arc / Iris Xe Graphics
+    if ($runningDrivers -contains 'igfxn' -or $runningDrivers -contains 'i915' -or $runningDrivers -contains 'igfx') {
+        $intelMsiEnabled = $false
+        try {
+            $gpuPdo = (Get-CimInstance Win32_PnPEntity | Where-Object { $_.Service -in @('igfxn','i915','igfx') } | Select-Object -First 1).DeviceID
+            if ($gpuPdo) {
+                $msiKey = "HKLM:\SYSTEM\CurrentControlSet\Enum\$gpuPdo\Device Parameters\Interrupt Management\MessageSignaledInterruptProperties"
+                $val = (Get-ItemProperty -Path $msiKey -Name "MSISupported" -ErrorAction SilentlyContinue).MSISupported
+                if ($val -eq 1) { $intelMsiEnabled = $true }
+            }
+        } catch {
+            Write-Warning "[Trace-SystemLatency] Error consultando soporte MSI para Intel Arc/Graphics: $($_.Exception.Message)"
+        }
+
+        $results.Add([PSCustomObject]@{
+            DriverName  = "igfxn.sys / i915.sys"
+            Component   = "Intel Arc / Iris Xe Graphics Driver"
+            Vendor      = "Intel"
+            Status      = "Activo en Kernel"
+            Impact      = "Critico para Rendimiento Grafico y DPC"
+            Tuning      = if ($intelMsiEnabled) {
+                "Modo MSI: HABILITADO [OK]. Asegurar que Resizable BAR / Smart Access Memory este activo en UEFI BIOS."
+            } else {
+                "ALERTA: Modo MSI NO DETECTADO. Verificar soporte MSI y Resizable BAR para Intel Arc."
             }
         })
     }
@@ -550,7 +621,9 @@ function Export-LatencyReport {
 
     $logDir = Join-Path $PSScriptRoot "..\..\Log"
     if (-not (Test-Path -LiteralPath $logDir)) {
-        try { New-Item -Path $logDir -ItemType Directory -Force | Out-Null } catch {}
+        try { New-Item -Path $logDir -ItemType Directory -Force | Out-Null } catch {
+            Write-Warning "[Trace-SystemLatency] No se pudo crear el directorio de logs '$logDir': $($_.Exception.Message)"
+        }
     }
 
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -568,7 +641,9 @@ function Export-LatencyReport {
 
     try {
         $reportObj | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $jsonFile -Encoding UTF8
-    } catch {}
+    } catch {
+        Write-Warning "[Trace-SystemLatency] Error escribiendo reporte JSON '$jsonFile': $($_.Exception.Message)"
+    }
 
     $mdLines = @(
         "# romanOS - Reporte Forense de Latencia DPC/ISR y Tiempo Real",
@@ -616,7 +691,9 @@ function Export-LatencyReport {
         Write-Host "`n[romanOS] Informe guardado con exito en:" -ForegroundColor Green
         Write-Host "  - Markdown: $mdFile" -ForegroundColor Cyan
         Write-Host "  - JSON    : $jsonFile" -ForegroundColor Cyan
-    } catch {}
+    } catch {
+        Write-Warning "[Trace-SystemLatency] Error escribiendo reporte Markdown '$mdFile': $($_.Exception.Message)"
+    }
 }
 
 # =============================================================================

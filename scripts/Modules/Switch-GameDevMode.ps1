@@ -72,7 +72,9 @@ if ($Profile -eq "Aggressive") { $ForceKillEdge = $true }
 # 0. CONFIGURACION DE ENTORNO Y AUTO-ELEVACION UAC
 # -----------------------------------------------------------------------------
 $ErrorActionPreference = 'Continue'
-try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop } catch {
+    Write-Warning "[Switch-GameDevMode] No se pudo establecer ExecutionPolicy en Scope Process: $($_.Exception.Message)"
+}
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin -and $Mode -ne 'Status') {
@@ -273,7 +275,9 @@ function Save-ServiceSnapshot {
             $snapshot['__SystemResponsiveness'] = $mmProps.SystemResponsiveness
             $snapshot['__NoLazyMode']           = $mmProps.NoLazyMode
         }
-    } catch {}
+    } catch {
+        Write-Warn "No se pudo consultar Multimedia\SystemProfile: $($_.Exception.Message)"
+    }
     
     try {
         $json = $snapshot | ConvertTo-Json -Depth 3
@@ -288,7 +292,9 @@ function Get-ServiceSnapshot {
         try {
             $json = [System.IO.File]::ReadAllText($script:StateFilePath, [System.Text.Encoding]::UTF8)
             return ($json | ConvertFrom-Json)
-        } catch {}
+        } catch {
+            Write-Warn "No se pudo leer el archivo de estado ($script:StateFilePath) - $($_.Exception.Message)"
+        }
     }
     return $null
 }
@@ -406,7 +412,9 @@ if ($Mode -eq "Status") {
     
     if (-not $Unattended -and -not [System.Console]::IsInputRedirected) {
         Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
-        try { [void][System.Console]::ReadKey($true) } catch {}
+        try { [void][System.Console]::ReadKey($true) } catch {
+            Write-Host ""
+        }
     }
     return
 }
@@ -456,7 +464,9 @@ if ($Mode -eq "Game") {
                 Stop-Process -Name "msedge" -Force -ErrorAction SilentlyContinue
                 $edgeWasKilled = $true
                 if (-not $Quiet) { Write-OK "Microsoft Edge liquidado ($($edgeProcs.Count) procesos | +$edgeRamMB MB liberados para DDR5/APU)" }
-            } catch {}
+            } catch {
+                Write-Warn "No se pudo finalizar proceso msedge: $($_.Exception.Message)"
+            }
         } else {
             if (-not $Quiet) {
                 Write-Warn "Microsoft Edge tiene ventanas abiertas ($edgeRamMB MB en RAM). Conservado en Modo Liviano."
@@ -472,7 +482,9 @@ if ($Mode -eq "Game") {
             try {
                 Stop-Process -Name $procName -Force -ErrorAction SilentlyContinue
                 if (-not $Quiet) { Write-OK "Proceso terminado: $procName ($($procs.Count) instancias)" }
-            } catch {}
+            } catch {
+                Write-Warn "No se pudo finalizar proceso ($procName) - $($_.Exception.Message)"
+            }
         }
     }
     
@@ -512,7 +524,9 @@ if ($Mode -eq "Game") {
                 Stop-Process -Name "Antigravity IDE", "language_server_windows_x64" -Force -ErrorAction SilentlyContinue
                 $ideWasKilled = $true
                 if (-not $Quiet) { Write-OK "Antigravity IDE cerrado completamente (+ $ideRamMB MB liberados para DDR5/APU)" }
-            } catch {}
+            } catch {
+                Write-Warn "No se pudo cerrar proceso de IDE: $($_.Exception.Message)"
+            }
         } else {
             $ideReclaimed = 0.0
             foreach ($ip in $ideProcs) {
@@ -564,7 +578,9 @@ if ($Mode -eq "Game") {
         } else {
             if (-not $Quiet) { Write-OK "Plan de energia ya se encuentra en 'Maximo Rendimiento'." }
         }
-    } catch {}
+    } catch {
+        Write-Warn "No se pudo conmutar el plan de energía: $($_.Exception.Message)"
+    }
     
     # Resumen Final de Metricas
     $finalMem = Get-SystemMemoryMetrics
@@ -600,7 +616,9 @@ if ($Mode -eq "Game") {
         
         if (-not $Unattended -and -not [System.Console]::IsInputRedirected) {
             Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
-            try { [void][System.Console]::ReadKey($true) } catch {}
+            try { [void][System.Console]::ReadKey($true) } catch {
+                Write-Host ""
+            }
         }
     }
     
@@ -680,7 +698,9 @@ if ($Mode -eq "Dev") {
         }
         Set-ItemProperty -Path $mmKey -Name "SystemResponsiveness" -Value $restoredResp -Type DWord -Force -ErrorAction SilentlyContinue
         if (-not $Quiet) { Write-OK "SystemResponsiveness restaurado a $restoredResp (perfil estandar de desarrollo)." }
-    } catch {}
+    } catch {
+        Write-Warn "No se pudo restaurar SystemResponsiveness: $($_.Exception.Message)"
+    }
     
     # 4. Verificacion Operativa de Hyper-V y Switch de Red
     if (-not $Quiet) { Write-StepHeader -StepNumber 4 -TotalSteps 4 -Message "Verificando disponibilidad de conmutador virtual de red..." }
@@ -712,7 +732,9 @@ if ($Mode -eq "Dev") {
         
         if (-not $Unattended -and -not [System.Console]::IsInputRedirected) {
             Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
-            try { [void][System.Console]::ReadKey($true) } catch {}
+            try { [void][System.Console]::ReadKey($true) } catch {
+                Write-Host ""
+            }
         }
     }
     

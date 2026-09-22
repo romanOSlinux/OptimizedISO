@@ -1,6 +1,6 @@
 @echo off
 :: Lanzador para grabar opciones interactivas en un archivo JSON (Preset)
-:: Regla 4: Soporte Gr?fico STA Obligatorio
+:: Regla 4: Soporte Grafico STA Obligatorio
 echo.
 echo =======================================================
 echo   Solicitando privilegios de Administrador...

@@ -108,6 +108,11 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0090 | [PLAN-0090-20260920-revision-universal-hardware-ecosistema-y-desacople-win10.md](PLAN-0090-20260920-revision-universal-hardware-ecosistema-y-desacople-win10.md) | 2026-09-20 | Revisión Exhaustiva del Ecosistema de Scripts y Ejecutables, Universalización Multi-Hardware y Desacoplamiento Definitivo de Windows 10 | COMPLETADO |
 | 0091 | [PLAN-0091-20260921-auditoria-integral-certificacion-produccion-ecosistema.md](PLAN-0091-20260921-auditoria-integral-certificacion-produccion-ecosistema.md) | 2026-09-21 | Auditoría Integral y Certificación de Preparación para Producción del Ecosistema romanOS / OptimizedISO | COMPLETADO |
 | 0092 | [PLAN-0092-20260921-correccion-forense-multi-hardware-control-center-ecosistema.md](PLAN-0092-20260921-correccion-forense-multi-hardware-control-center-ecosistema.md) | 2026-09-21 | Corrección Forense de Compatibilidad Multi-Hardware Universal, Mapeo Topológico de Almacenamiento (TRIM) y Sincronización SSOT en romanOS Control Center | COMPLETADO |
+| 0093 | [PLAN-0093-20260921-auditoria-resiliencia-hardware-y-telemetria-visible-errores.md](PLAN-0093-20260921-auditoria-resiliencia-hardware-y-telemetria-visible-errores.md) | 2026-09-21 | Auditoría Forense de Suposiciones de Hardware, Erradicación de Fallos Silenciosos y Telemetría Visible de Diagnóstico | COMPLETADO |
+| 0094 | [PLAN-0094-20260921-auditoria-tecnica-exhaustiva-ecosistema-2026.md](PLAN-0094-20260921-auditoria-tecnica-exhaustiva-ecosistema-2026.md) | 2026-09-21 | Auditoría Técnica Exhaustiva de Todo el Ecosistema romanOS / OptimizedISO (Estado del Arte 2026) | COMPLETADO |
+| 0095 | [PLAN-0095-20260921-resolucion-integral-hallazgos-auditoria-2026.md](PLAN-0095-20260921-resolucion-integral-hallazgos-auditoria-2026.md) | 2026-09-21 | Resolución Integral y Optimización de Hallazgos de la Auditoría Técnica 2026 | COMPLETADO |
+
+
 
 
 

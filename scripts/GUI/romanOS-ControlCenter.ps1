@@ -24,7 +24,9 @@ param()
 # 0. CONFIGURACIÓN DE ENTORNO Y AUTO-ELEVACIÓN UAC
 # -----------------------------------------------------------------------------
 $ErrorActionPreference = 'Continue'
-try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop } catch {
+    Write-Warning "[romanOS-ControlCenter] No se pudo establecer ExecutionPolicy: $($_.Exception.Message)"
+}
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
@@ -65,7 +67,9 @@ if (-not $scriptRoot -or -not (Test-Path $scriptRoot)) {
 # Inicializacion de logs locales
 $logDir = Join-Path $scriptRoot "..\..\Log"
 if (-not (Test-Path $logDir)) {
-    try { New-Item -ItemType Directory -Path $logDir -Force | Out-Null } catch {}
+    try { New-Item -ItemType Directory -Path $logDir -Force | Out-Null } catch {
+        Write-Warning "[romanOS-ControlCenter] No se pudo crear directorio de logs ($logDir) - $($_.Exception.Message)"
+    }
 }
 $script:ControlCenterLogPath = if (Test-Path $logDir) {
     Join-Path $logDir "romanOS-ControlCenter_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
@@ -77,7 +81,9 @@ function Write-CCLog {
     param([string]$Message, [string]$Level = "INFO")
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $line = "[$timestamp] [$Level] $Message"
-    try { Out-File -FilePath $script:ControlCenterLogPath -InputObject $line -Append -Encoding UTF8 -ErrorAction SilentlyContinue } catch {}
+    try { Out-File -FilePath $script:ControlCenterLogPath -InputObject $line -Append -Encoding UTF8 -ErrorAction Stop } catch {
+        Write-Warning "[romanOS-ControlCenter] No se pudo escribir en log: $($_.Exception.Message)"
+    }
 }
 
 Write-CCLog "Iniciando sesion de romanOS Control Center GUI"
@@ -703,7 +709,9 @@ function Start-ControlCenterTask {
                 $t.RS.Close()
                 $t.PS.Dispose()
                 $t.RS.Dispose()
-            } catch {}
+            } catch {
+                Write-CCLog "Aviso al liberar recursos de PowerShell RunSpace: $($_.Exception.Message)" "WARN"
+            }
 
             $exitCode = $t.State.ExitCode
             Write-CCLog "Tarea finalizada: $($t.TaskTitle) con codigo de salida $exitCode"
@@ -743,7 +751,9 @@ $window.FindName('btnCancelProcess').Add_Click({
                     & taskkill.exe /F /T /PID $proc.Id | Out-Null
                     $window.FindName('txtConsole').AppendText("`r`n[!] Tarea detenida por el usuario.`r`n")
                 }
-            } catch {}
+            } catch {
+                Write-CCLog "Error al terminar subproceso con taskkill: $($_.Exception.Message)" "WARN"
+            }
         }
     }
 })

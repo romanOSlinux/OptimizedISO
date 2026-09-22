@@ -1702,7 +1702,7 @@ $auditPath92 = Join-Path $modulesDir "Audit-SystemOptimization.ps1"
 $auditContent92 = Get-Content $auditPath92 -Raw
 Assert-True "PLAN-0092: Audit-SystemOptimization.ps1 carga canonicamente Hardware-Engine.ps1" ([bool]($auditContent92 -match 'Core\\Hardware-Engine\.ps1'))
 Assert-True "PLAN-0092: Audit-SystemOptimization.ps1 consume Get-SystemHardwareProfile" ([bool]($auditContent92 -match 'Get-SystemHardwareProfile'))
-Assert-True "PLAN-0092: Audit-SystemOptimization.ps1 resuelve particion C: de forma resiliente" ([bool]($auditContent92 -match 'Get-Partition -DriveLetter C'))
+Assert-True "PLAN-0092: Audit-SystemOptimization.ps1 resuelve particion de arranque de forma resiliente" ([bool]($auditContent92 -match 'Get-Partition -DriveLetter'))
 
 # 5. Validar dinamismo de GPU y carga de Hardware-Engine en Switch-GameDevMode.ps1
 $switchPath92 = Join-Path $modulesDir "Switch-GameDevMode.ps1"
@@ -1745,8 +1745,10 @@ Assert-Equal "Integracion: Resolve-SourceISO resuelve correctamente la ISO tempo
 
 # --- LIMPIEZA TEMPORAL ---
 try {
-    if (Test-Path $TEMP_ROOT) { Remove-Item -Path $TEMP_ROOT -Recurse -Force -ErrorAction SilentlyContinue }
-} catch {}
+    if (Test-Path $TEMP_ROOT) { Remove-Item -Path $TEMP_ROOT -Recurse -Force -ErrorAction Stop }
+} catch {
+    Write-Warning "No se pudo eliminar la carpeta temporal de prueba '$TEMP_ROOT': $($_.Exception.Message)"
+}
 
 # --- FASE 4: EVALUACION FINAL Y REPORTE ---
 $totalTests = $script:HPass + $script:HFail + $script:HSkip

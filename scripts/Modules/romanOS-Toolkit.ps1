@@ -35,27 +35,36 @@ param(
 # 0. CONFIGURACION DE ENTORNO Y AUTO-ELEVACION UAC
 # -----------------------------------------------------------------------------
 $ErrorActionPreference = 'Continue'
-try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+try {
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue
+} catch {
+    Write-Verbose "No se pudo cambiar ExecutionPolicy de proceso: $($_.Exception.Message)"
+}
 
 # Auto-elevacion de privilegios
+$isSimulated = ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    if ($PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC")) {
-        Write-Host "  [!] Elevando privilegios de Administrador (UAC)..." -ForegroundColor Yellow
-        $scriptPath = $MyInvocation.MyCommand.Definition
-        if (-not $scriptPath) { $scriptPath = $PSCommandPath }
-        
-        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath)
-        if ($Module) { $argList += @('-Module', $Module) }
-        if ($ShowDashboards) { $argList += '-ShowDashboards' }
-        if ($GUI) { $argList += '-GUI' }
-        
-        try {
-            Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
-        } catch {
-            Write-Error "Fallo al solicitar elevacion UAC: $($_.Exception.Message)"
+    if ($isSimulated) {
+        Write-Host "  [WhatIf] Ejecución simulada con -WhatIf (omitiendo solicitud de elevación UAC)." -ForegroundColor Yellow
+    } else {
+        if ($PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC")) {
+            Write-Host "  [!] Elevando privilegios de Administrador (UAC)..." -ForegroundColor Yellow
+            $scriptPath = $MyInvocation.MyCommand.Definition
+            if (-not $scriptPath) { $scriptPath = $PSCommandPath }
+            
+            $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath)
+            if ($Module) { $argList += @('-Module', $Module) }
+            if ($ShowDashboards) { $argList += '-ShowDashboards' }
+            if ($GUI) { $argList += '-GUI' }
+            
+            try {
+                Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
+            } catch {
+                Write-Error "Fallo al solicitar elevacion UAC: $($_.Exception.Message)"
+            }
+            exit
         }
-        exit
     }
 }
 
@@ -67,7 +76,7 @@ $uiEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
-    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+    (Join-Path $env:SystemRoot "Setup\Scripts\Core\UI-Engine.ps1")
 )
 $uiLoaded = $false
 foreach ($p in $uiEnginePaths) {
@@ -98,7 +107,7 @@ $hwEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\Hardware-Engine.ps1"),
     (Join-Path $PSScriptRoot "Hardware-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Hardware-Engine.ps1"),
-    "C:\Windows\Setup\Scripts\Core\Hardware-Engine.ps1"
+    (Join-Path $env:SystemRoot "Setup\Scripts\Core\Hardware-Engine.ps1")
 )
 $hwLoaded = $false
 foreach ($p in $hwEnginePaths) {
@@ -117,7 +126,7 @@ $policyEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"),
     (Join-Path $PSScriptRoot "Policy-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"),
-    "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1"
+    (Join-Path $env:SystemRoot "Setup\Scripts\Core\Policy-Engine.ps1")
 )
 $policyLoaded = $false
 foreach ($p in $policyEnginePaths) {
@@ -145,13 +154,13 @@ $script:searchDirs = @(
     "$env:WINDIR\Setup\Scripts",
     "$env:WINDIR\Setup\Scripts\Modules",
     "$env:WINDIR\Setup\Scripts\Drivers",
-    "C:\Windows\Setup\Scripts",
-    "C:\Windows\Setup\Scripts\Modules",
-    "C:\Windows\Setup\Scripts\Drivers",
-    "C:\OptimizedISO\scripts",
-    "C:\OptimizedISO\scripts\Drivers",
-    "C:\OptimizedISO\scripts\Modules",
-    "C:\OptimizedISO\scripts\Builder"
+    (Join-Path $env:SystemRoot "Setup\Scripts"),
+    (Join-Path $env:SystemRoot "Setup\Scripts\Modules"),
+    (Join-Path $env:SystemRoot "Setup\Scripts\Drivers"),
+    (Join-Path $env:SystemDrive "OptimizedISO\scripts"),
+    (Join-Path $env:SystemDrive "OptimizedISO\scripts\Drivers"),
+    (Join-Path $env:SystemDrive "OptimizedISO\scripts\Modules"),
+    (Join-Path $env:SystemDrive "OptimizedISO\scripts\Builder")
 )
 
 function Resolve-ToolScript {
@@ -353,7 +362,7 @@ function Invoke-OpenDashboards {
     $searchFolders = @(
         [Environment]::GetFolderPath('Desktop'),
         [Environment]::GetFolderPath('CommonDesktopDirectory'),
-        (if ($env:PUBLIC) { "$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" }),
+        (if ($env:PUBLIC) { "$env:PUBLIC\Desktop" } else { (Join-Path $env:SystemDrive "Users\Public\Desktop") }),
         "$env:WINDIR\Setup\Logs",
         $env:TEMP
     ) | Where-Object { $_ -and (Test-Path $_) }
@@ -469,7 +478,7 @@ function Invoke-ControlCenterGUI {
         (Join-Path $PSScriptRoot "GUI\romanOS-ControlCenter.ps1"),
         (Join-Path $PSScriptRoot "romanOS-ControlCenter.ps1"),
         "$env:WINDIR\Setup\Scripts\GUI\romanOS-ControlCenter.ps1",
-        "C:\Windows\Setup\Scripts\GUI\romanOS-ControlCenter.ps1"
+        (Join-Path $env:SystemRoot "Setup\Scripts\GUI\romanOS-ControlCenter.ps1")
     )
     foreach ($c in $candidates) {
         if (Test-Path $c) { $ccScript = (Resolve-Path $c).Path; break }
@@ -712,7 +721,9 @@ try {
         Write-Info "Uso desatendido: .\romanOS-Toolkit.ps1 -Module <Gaming|Network|Maintenance|Diagnostics|Security|Browsers|Updates|Drivers|UserMigration|UniversalAudit|Dashboards|QuickActions|LatencyProfiler>"
         exit 0
     }
-} catch {}
+} catch {
+    Write-Verbose "No se pudo determinar si la consola está redirigida: $($_.Exception.Message)"
+}
 
 $mainMenuOpts = @(
     "Optimizacion Gaming & Hardware (HAGS, MSI Mode, Latencia, Debloat)",

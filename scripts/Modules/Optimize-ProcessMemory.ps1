@@ -35,6 +35,11 @@ param(
 )
 
 function Ensure-Elevation {
+    $isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
+    if ($isSimulated) {
+        Write-Host "[WhatIf] Modo simulado detectado: omitiendo elevación UAC en Ensure-Elevation." -ForegroundColor Yellow
+        return
+    }
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) {
         $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -145,7 +150,9 @@ function Invoke-RomanOSMemoryTrim {
                     [void]$webViewPidsToTrim.Add($cp.ProcessId)
                 }
             }
-        } catch {}
+        } catch {
+            Write-Warn "No se pudo consultar instancias secundarias de WebView2 para SearchHost: $($_.Exception.Message)"
+        }
     }
 
     if (-not $Silent) {
@@ -243,7 +250,9 @@ $res = Invoke-RomanOSMemoryTrim -Targets $ProcessNames -Silent:$Quiet -ReturnObj
 
 if (-not $Unattended -and -not $Quiet -and -not [System.Console]::IsInputRedirected) {
     Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
-    try { [void][System.Console]::ReadKey($true) } catch {}
+    try { [void][System.Console]::ReadKey($true) } catch {
+        Write-Host ""
+    }
 }
 
 if ($PassThru) {

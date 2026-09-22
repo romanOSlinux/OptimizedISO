@@ -53,7 +53,11 @@ param(
 # 0. CONFIGURACIÓN DE ENTORNO Y ELEVACIÓN UAC
 # -----------------------------------------------------------------------------
 $ErrorActionPreference = 'Continue'
-try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+try {
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue
+} catch {
+    Write-Verbose "No se pudo ajustar ExecutionPolicy de proceso: $($_.Exception.Message)"
+}
 
 $isSimulated = ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 
@@ -105,11 +109,13 @@ $uiEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
-    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+    (Join-Path $env:SystemRoot "Setup\Scripts\Core\UI-Engine.ps1")
 )
 foreach ($p in $uiEnginePaths) {
     if (Test-Path $p) {
-        try { . $p; $uiLoaded = $true; break } catch {}
+        try { . $p; $uiLoaded = $true; break } catch {
+            Write-Warning "No se pudo cargar el motor de interfaz desde '$p': $($_.Exception.Message)"
+        }
     }
 }
 

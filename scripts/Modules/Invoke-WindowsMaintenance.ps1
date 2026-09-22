@@ -72,7 +72,9 @@ if ($isSimulated) {
 # 0. PRE-FLIGHT: ELEVACION DE PRIVILEGIOS Y CONFIGURACION BASE
 # ============================================================
 # Forzar Bypass de ExecutionPolicy en el proceso actual
-try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop } catch {
+    Write-Warning "[Invoke-WindowsMaintenance] No se pudo establecer ExecutionPolicy en Scope Process: $($_.Exception.Message)"
+}
 
 $ErrorActionPreference = 'Continue'
 
@@ -104,15 +106,21 @@ if (-not $isAdmin) {
 }
 
 # Inicializar directorio de logs
-$logDir = "C:\Logs"
+$logDir = if ($env:SystemDrive) { "$($env:SystemDrive)\Logs" } else { "C:\Logs" }
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 $logFile   = Join-Path $logDir "Maintenance_$timestamp.log"
 
-try { Start-Transcript -Path $logFile -Append -Force | Out-Null } catch {}
+try { Start-Transcript -Path $logFile -Append -Force | Out-Null } catch {
+    Write-Warning "[Invoke-WindowsMaintenance] Start-Transcript no disponible: $($_.Exception.Message)"
+}
 
 # Forzar TLS moderno
-try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor 3072 -bor 12288 } catch {}
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor 3072 -bor 12288
+} catch {
+    Write-Warning "[Invoke-WindowsMaintenance] No se pudo forzar TLS moderno: $($_.Exception.Message)"
+}
 
 # ============================================================
 # CARGA DE MOTOR VISUAL UNIFICADO O MICRO-FALLBACK STANDALONE
@@ -152,11 +160,16 @@ function Write-Section {
 }
 
 function Get-DriveFreeBytes {
-    param([string]$DriveLetter = 'C')
+    param([string]$DriveLetter = '')
+    if ([string]::IsNullOrWhiteSpace($DriveLetter)) {
+        $DriveLetter = if ($env:SystemDrive) { $env:SystemDrive.TrimEnd(':') } else { 'C' }
+    }
     try {
-        $drive = Get-PSDrive -Name $DriveLetter -ErrorAction SilentlyContinue
+        $drive = Get-PSDrive -Name $DriveLetter -ErrorAction Stop
         if ($drive) { return $drive.Free }
-    } catch {}
+    } catch {
+        Write-Warning "[Invoke-WindowsMaintenance] No se pudo obtener espacio libre para unidad ($DriveLetter) - $($_.Exception.Message)"
+    }
     return 0
 }
 
@@ -181,26 +194,31 @@ function Remove-PathSilently {
             $items = Get-ChildItem -LiteralPath $Path -Force -ErrorAction SilentlyContinue
             foreach ($item in $items) {
                 try {
-                    Remove-Item -LiteralPath $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
+                    Remove-Item -LiteralPath $item.FullName -Recurse -Force -ErrorAction Stop
                     $deletedCount++
-                } catch {}
+                } catch {
+                    Write-Warning "[Invoke-WindowsMaintenance] No se pudo eliminar $($item.FullName): $($_.Exception.Message)"
+                }
             }
         } else {
-            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
             $deletedCount++
         }
-    } catch {}
+    } catch {
+        Write-Warning "[Invoke-WindowsMaintenance] Error al purgar ($Path) - $($_.Exception.Message)"
+    }
     return $deletedCount
 }
 
 # ============================================================
 # MEDIDAS INICIALES DE ESPACIO
 # ============================================================
-$initialFreeBytes = Get-DriveFreeBytes 'C'
+$sysLetter = if ($env:SystemDrive) { $env:SystemDrive.TrimEnd(':') } else { 'C' }
+$initialFreeBytes = Get-DriveFreeBytes $sysLetter
 $osInfo = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
 
 Show-UnifiedBanner -Title "MANTENIMIENTO Y REPARACION DE WINDOWS" -Subtitle "Optimizacion de Espacio, WinSxS, Shaders y Reparacion DISM" -ShowSystemInfo
-Write-Info "Espacio Libre Inicial (C:): $(Format-Bytes $initialFreeBytes)"
+Write-Info "Espacio Libre Inicial ($($sysLetter):): $(Format-Bytes $initialFreeBytes)"
 Write-Info "Archivo de Registro: $logFile"
 
 # ============================================================
@@ -244,7 +262,9 @@ if ($ShadersOnly) {
         4 { $runMod5 = $true }
         default {
             Write-Warn "Operacion cancelada por el usuario."
-            try { Stop-Transcript | Out-Null } catch {}
+            try { Stop-Transcript | Out-Null } catch {
+                Write-Info "Transcript detenido: $($_.Exception.Message)"
+            }
             exit 0
         }
     }
@@ -256,11 +276,12 @@ if ($ShadersOnly) {
 if ($runMod1) {
     Write-Section "1" "Saneamiento de Residuos de Despliegue e Instalacion ISO/OOBE"
     
+    $sysDrive = if ($env:SystemDrive) { $env:SystemDrive } else { "C:" }
     $setupResidues = @(
-        "C:\`$WINDOWS.~BT",
-        "C:\`$WINDOWS.~WS",
-        "C:\`$SysReset",
-        "C:\`$WinREAgent",
+        "$sysDrive\`$WINDOWS.~BT",
+        "$sysDrive\`$WINDOWS.~WS",
+        "$sysDrive\`$SysReset",
+        "$sysDrive\`$WinREAgent",
         "$env:WINDIR\Panther",
         "$env:WINDIR\inf\setupapi.offline.log",
         "$env:WINDIR\Logs\MoSetup",
@@ -346,7 +367,9 @@ if ($runMod2) {
             try {
                 [System.Diagnostics.Eventing.Reader.EventLogSession]::GlobalSession.ClearLog($l.LogName)
                 $clearedLogs++
-            } catch {}
+            } catch {
+                Write-LogEntry -Level "DEBUG" -Message "No se pudo vaciar registro de eventos $($l.LogName): $($_.Exception.Message)"
+            }
         }
         Write-OK "Registros de eventos depurados ($clearedLogs logs limpiados)."
     } catch {
@@ -571,7 +594,9 @@ if ($runMod5) {
     try {
         $reagentRes = Start-Process -FilePath "reagentc.exe" -ArgumentList @("/info") -Wait -PassThru -NoNewWindow
         Write-OK "Estado de WinRE consultado."
-    } catch {}
+    } catch {
+        Write-Warn "Error consultando reagentc.exe /info: $($_.Exception.Message)"
+    }
 }
 
 # ============================================================
@@ -624,9 +649,12 @@ if ($runMod6) {
         # 6.B Depuracion de Copias de Sombra VSS Obsoletas
         Write-SubStep "Depurando instantaneas de volumen VSS antiguas..."
         try {
-            Start-Process -FilePath "vssadmin.exe" -ArgumentList @("delete", "shadows", "/for=C:", "/oldest", "/quiet") -Wait -PassThru -NoNewWindow | Out-Null
-            Write-OK "Sombras de volumen VSS obsoletas depuradas."
-        } catch {}
+            $sysDrive = if ($env:SystemDrive) { $env:SystemDrive } else { "C:" }
+            Start-Process -FilePath "vssadmin.exe" -ArgumentList @("delete", "shadows", "/for=$sysDrive", "/oldest", "/quiet") -Wait -PassThru -NoNewWindow | Out-Null
+            Write-OK "Sombras de volumen VSS obsoletas depuradas en $sysDrive."
+        } catch {
+            Write-Warn "Error depurando instantáneas VSS en $sysDrive - $($_.Exception.Message)"
+        }
 
         # 6.C Precompilacion de Ensamblados .NET NGen
         Write-SubStep "Compilando tareas nativas de .NET Framework pendientes (ngen.exe)..."
@@ -636,14 +664,16 @@ if ($runMod6) {
                 Start-Process -FilePath $ngenPath -ArgumentList @("executeQueuedItems") -Wait -PassThru -NoNewWindow | Out-Null
                 Write-OK "Tareas NGen .NET precompiladas."
             }
-        } catch {}
+        } catch {
+            Write-Warn "Error ejecutando precompilación NGen: $($_.Exception.Message)"
+        }
     }
 }
 
 # ============================================================
 # 7. DASHBOARD FINAL: MEDICION Y CALCULO DE ESPACIO LIBERADO
 # ============================================================
-$finalFreeBytes = Get-DriveFreeBytes 'C'
+$finalFreeBytes = Get-DriveFreeBytes $sysLetter
 $freedBytes     = $finalFreeBytes - $initialFreeBytes
 
 Write-Info "Espacio Libre Inicial : $(Format-Bytes $initialFreeBytes)"
@@ -658,4 +688,6 @@ $logMap = @{ "Log de Auditoria" = $logFile }
 Show-UnifiedSummary -Title "MANTENIMIENTO WINDOWS" -Status "SUCCESS" -DurationSeconds 0 -ErrorsCount 0 -WarnsCount 0 -Logs $logMap
 Write-OK "Proceso de mantenimiento y reparacion completado con exito."
 
-try { Stop-Transcript | Out-Null } catch {}
+try { Stop-Transcript | Out-Null } catch {
+    Write-Info "Transcript finalizado: $($_.Exception.Message)"
+}

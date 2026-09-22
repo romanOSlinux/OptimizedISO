@@ -51,7 +51,9 @@ param(
 # 0. CONFIGURACION DE ENTORNO, BYPASS Y AUTO-ELEVACION UAC
 # -----------------------------------------------------------------------------
 $ErrorActionPreference = 'Continue'
-try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop } catch {
+    Write-Warning "[Invoke-WindowsSecurityHardening] No se pudo fijar ExecutionPolicy en Scope Process: $($_.Exception.Message)"
+}
 
 # Comprobar privilegios de Administrador
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -404,8 +406,10 @@ function Invoke-ApplySafeHardeningEngine {
     Write-Host "  [+] Deshabilitando protocolo inseguro SMBv1..." -ForegroundColor White
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "SMB1" /t REG_DWORD /d 0 /f | Out-Null
     try {
-        Disable-WindowsOptionalFeature -Online -FeatureName "SMB1Protocol" -NoRestart -ErrorAction SilentlyContinue | Out-Null
-    } catch {}
+        Disable-WindowsOptionalFeature -Online -FeatureName "SMB1Protocol" -NoRestart -ErrorAction Stop | Out-Null
+    } catch {
+        Write-Warn "No se pudo deshabilitar la característica SMB1Protocol: $($_.Exception.Message)"
+    }
 
     # 3. Deshabilitar LLMNR para evitar ataques MitM en red local
     Write-Host "  [+] Deshabilitando resolucion LLMNR en DNS Client..." -ForegroundColor White
@@ -425,9 +429,11 @@ function Invoke-ApplySafeHardeningEngine {
     # 6. Deshabilitar Servicio RemoteRegistry
     Write-Host "  [+] Deshabilitando servicio de Registro Remoto (RemoteRegistry)..." -ForegroundColor White
     try {
-        Set-Service -Name RemoteRegistry -StartupType Disabled -ErrorAction SilentlyContinue
-        Stop-Service -Name RemoteRegistry -Force -ErrorAction SilentlyContinue
-    } catch {}
+        Set-Service -Name RemoteRegistry -StartupType Disabled -ErrorAction Stop
+        Stop-Service -Name RemoteRegistry -Force -ErrorAction Stop
+    } catch {
+        Write-Warn "No se pudo deshabilitar o detener RemoteRegistry: $($_.Exception.Message)"
+    }
 
     # 7. Forzar Autenticacion NTLMv2 (LmCompatibilityLevel = 5)
     Write-Host "  [+] Forzando autenticacion segura NTLMv2 (LmCompatibilityLevel = 5)..." -ForegroundColor White
@@ -492,7 +498,11 @@ function Export-SecurityAuditReports {
     } catch {
         $mdFilePath = Join-Path $env:TEMP "SecurityAudit_Report.md"
         $finalMdPath = $mdFilePath
-        try { [System.IO.File]::WriteAllText($mdFilePath, $mdText, [System.Text.Encoding]::UTF8) } catch {}
+        try {
+            [System.IO.File]::WriteAllText($mdFilePath, $mdText, [System.Text.Encoding]::UTF8)
+        } catch {
+            Write-Warn -Message "No se pudo escribir el reporte Markdown en $mdFilePath" -Cause $_.Exception.Message -Action "El archivo Markdown no pudo ser creado"
+        }
     }
     try { 
         [System.IO.File]::WriteAllText($desktopMdFilePath, $mdText, [System.Text.Encoding]::UTF8)
@@ -647,7 +657,11 @@ function Export-SecurityAuditReports {
     } catch {
         $htmlFilePath = Join-Path $env:TEMP "SecurityAudit_Report.html"
         $finalHtmlPath = $htmlFilePath
-        try { [System.IO.File]::WriteAllText($htmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8) } catch {}
+        try {
+            [System.IO.File]::WriteAllText($htmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8)
+        } catch {
+            Write-Warn -Message "No se pudo escribir el reporte HTML en $htmlFilePath" -Cause $_.Exception.Message -Action "El archivo HTML no pudo ser creado"
+        }
     }
     try { 
         [System.IO.File]::WriteAllText($desktopHtmlFilePath, $htmlContent, [System.Text.Encoding]::UTF8)
@@ -691,9 +705,11 @@ if ($ApplySafeHardening) {
     try {
         Write-Info "Habilitando reglas ASR de Microsoft Defender en modo bloqueo..."
         foreach ($ruleId in $asrRulesCatalog.Keys) {
-            Add-MpPreference -AttackSurfaceReductionRules_Ids $ruleId -AttackSurfaceReductionRules_Actions 1 -ErrorAction SilentlyContinue
+            Add-MpPreference -AttackSurfaceReductionRules_Ids $ruleId -AttackSurfaceReductionRules_Actions 1 -ErrorAction Stop
         }
-    } catch {}
+    } catch {
+        Write-Warn "No se pudieron habilitar todas las reglas ASR de Defender: $($_.Exception.Message)"
+    }
     Invoke-SecurityAuditEngine
     Export-SecurityAuditReports
 } else {

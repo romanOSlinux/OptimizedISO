@@ -79,13 +79,17 @@ try {
 
 # Precarga de ensamblados WPF para soporte garantizado de interfaz grafica (Out-GridView)
 try {
-    Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase -ErrorAction SilentlyContinue
-} catch {}
+    Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase -ErrorAction Stop
+} catch {
+    Write-Warning "[Win11-Debloat] No se pudieron precargar ensamblados WPF: $($_.Exception.Message)"
+}
 
 # ============================================================
 # Comprobar privilegios de Administrador y auto-elevar
 # ============================================================
-try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop } catch {
+    Write-Warning "[Win11-Debloat] No se pudo establecer ExecutionPolicy en Scope Process: $($_.Exception.Message)"
+}
 
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Warning "Este script debe ejecutarse como Administrador. Reiniciando con privilegios elevados..."
@@ -233,7 +237,9 @@ function Write-LogSummary {
     Write-LogEntry -Level "INIT" -Message ("=" * 64)
 
     # Detener transcript
-    try { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null } catch {}
+    try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
+        Write-LogEntry -Level "INFO" -Message "Transcript previo detenido o no activo: $($_.Exception.Message)"
+    }
 
     # Generar Reporte Markdown optimizado para IA
     try {
@@ -289,7 +295,9 @@ function Write-LogSummary {
         if ($script:AiSummaryFile) {
             [System.IO.File]::WriteAllText($script:AiSummaryFile, $sb.ToString(), [System.Text.Encoding]::UTF8)
         }
-    } catch {}
+    } catch {
+        Write-Warning "[Win11-Debloat] Error generando reporte diagnóstico Markdown: $($_.Exception.Message)"
+    }
 
     $logMap = @{}
     if ($script:AiSummaryFile)  { $logMap["AI Diagnostic MD"] = $script:AiSummaryFile }
@@ -325,14 +333,18 @@ function Set-Reg {
     try {
         # Copia de seguridad si la clave existe
         if (Test-Path $Path) {
-            $backupFile = "C:\Logs\RegistryBackup_BeforeChanges.reg"
+            $logsDir = if ($env:SystemDrive) { "$($env:SystemDrive)\Logs" } else { "C:\Logs" }
+            if (-not (Test-Path $logsDir)) { New-Item -Path $logsDir -ItemType Directory -Force | Out-Null }
+            $backupFile = Join-Path $logsDir "RegistryBackup_BeforeChanges.reg"
             if (-not (Test-Path $backupFile)) {
                 # Convertir ruta PowerShell a ruta nativa de registro para reg.exe
                 $nativePath = $Path -replace '(?i)^HKLM:\\', 'HKLM\' -replace '(?i)^HKCU:\\', 'HKCU\'
                 # Ejecutar reg export de manera segura
                 try {
                     & reg.exe export $nativePath $backupFile /y *>$null
-                } catch {}
+                } catch {
+                    Write-WarnEntry -Message "No se pudo exportar copia previa de registro para $nativePath" -Cause $_.Exception.Message
+                }
             }
         }
         if (-not (Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
@@ -445,7 +457,9 @@ try {
     if ($hasSetupScripts -or $hasPolEngineDirectives -or $hasGamerContext) {
         $isIsoOptimized = $true
     }
-} catch {}
+} catch {
+    Write-Warning "[Win11-Debloat] Error al detectar banderas de pre-optimización de la ISO: $($_.Exception.Message)"
+}
 
 # Introspección Canónica mediante Hardware-Engine.ps1 (SSOT)
 $hwProfileObj = if (Get-Command Get-SystemHardwareProfile -ErrorAction SilentlyContinue) {
@@ -852,7 +866,12 @@ $prerequisites += [PSCustomObject]@{
 }
 
 # 3. .NET Desktop Runtime 8.0
-$dotnetRuntimes = try { & dotnet --list-runtimes 2>$null } catch { @() }
+$dotnetRuntimes = try {
+    & dotnet --list-runtimes 2>$null
+} catch {
+    Write-Verbose "dotnet CLI no disponible en el sistema para listar runtimes: $($_.Exception.Message)"
+    @()
+}
 $hasNet8 = $dotnetRuntimes | Where-Object { $_ -match 'Microsoft\.WindowsDesktop\.App 8\.' }
 $prerequisites += [PSCustomObject]@{
     Componente = '.NET Desktop Runtime 8.0'
@@ -904,8 +923,9 @@ $netfx3Reg = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\
 $netfx3Installed = ($null -ne $netfx3Reg -and $netfx3Reg.Install -eq 1)
 if (-not $netfx3Installed) {
     $netfx3 = try {
-        Get-WindowsOptionalFeature -Online -FeatureName NetFx3 -ErrorAction SilentlyContinue 2>$null
+        Get-WindowsOptionalFeature -Online -FeatureName NetFx3 -ErrorAction Stop 2>$null
     } catch {
+        Write-LogEntry -Level "INFO" -Message "Get-WindowsOptionalFeature NetFx3 no devolvió resultado, probando DISM: $($_.Exception.Message)"
         $null
     }
     if ($null -ne $netfx3 -and $netfx3.State -eq 'Enabled') {
@@ -1293,8 +1313,10 @@ if ($presentWin32.Count -eq 0) {
         $userSetup = "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe"
         if (Test-Path $userSetup) {
             try {
-                Start-Process -FilePath $userSetup -ArgumentList "/uninstall /silent" -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue
-            } catch {}
+                Start-Process -FilePath $userSetup -ArgumentList "/uninstall /silent" -Wait -WindowStyle Hidden -ErrorAction Stop
+            } catch {
+                Write-LogEntry -Level "WARN" -Message "No se pudo ejecutar desinstalador de usuario de OneDrive: $($_.Exception.Message)"
+            }
         }
 
         # Desinstalador nativo en System32 / SysWOW64
@@ -1302,20 +1324,26 @@ if ($presentWin32.Count -eq 0) {
         $sysWowSetup = "$env:SystemRoot\SysWOW64\OneDriveSetup.exe"
         if (Test-Path $sys32Setup) {
             try {
-                Start-Process -FilePath $sys32Setup -ArgumentList "/uninstall /silent" -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue
-            } catch {}
+                Start-Process -FilePath $sys32Setup -ArgumentList "/uninstall /silent" -Wait -WindowStyle Hidden -ErrorAction Stop
+            } catch {
+                Write-LogEntry -Level "WARN" -Message "No se pudo ejecutar desinstalador System32 de OneDrive: $($_.Exception.Message)"
+            }
         }
         if (Test-Path $sysWowSetup) {
             try {
-                Start-Process -FilePath $sysWowSetup -ArgumentList "/uninstall /silent" -Wait -WindowStyle Hidden -ErrorAction SilentlyContinue
-            } catch {}
+                Start-Process -FilePath $sysWowSetup -ArgumentList "/uninstall /silent" -Wait -WindowStyle Hidden -ErrorAction Stop
+            } catch {
+                Write-LogEntry -Level "WARN" -Message "No se pudo ejecutar desinstalador SysWOW64 de OneDrive: $($_.Exception.Message)"
+            }
         }
 
         # Desinstalador vía winget si está disponible
         if (Get-Command winget -ErrorAction SilentlyContinue) {
             try {
                 winget uninstall --id Microsoft.OneDrive --silent --accept-source-agreements --disable-interactivity 2>&1 | Out-Null
-            } catch {}
+            } catch {
+                Write-LogEntry -Level "WARN" -Message "Fallo al desinstalar OneDrive vía WinGet: $($_.Exception.Message)"
+            }
         }
 
         Write-Host "    [3/5] Eliminando tareas programadas de OneDrive..." -ForegroundColor Gray
@@ -1343,7 +1371,9 @@ if ($presentWin32.Count -eq 0) {
             if (Test-Path $defaultRunKey) {
                 Remove-ItemProperty -Path $defaultRunKey -Name "OneDriveSetup" -Force -ErrorAction SilentlyContinue
             }
-        } catch {}
+        } catch {
+            Write-LogEntry -Level "WARN" -Message "No se pudo limpiar clave de inicio de OneDrive en .DEFAULT: $($_.Exception.Message)"
+        }
 
         Write-Host "    [5/5] Aplicando directivas GPO y ocultando del Explorador..." -ForegroundColor Gray
         $policyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive"
@@ -1586,7 +1616,9 @@ if ($selectedServices) {
     foreach ($svcInfo in $selectedServices) {
         $svc = Get-Service -Name $svcInfo.Name -ErrorAction SilentlyContinue
         if ($svc) {
-            try { Stop-Service -Name $svcInfo.Name -Force -ErrorAction SilentlyContinue } catch {}
+            try { Stop-Service -Name $svcInfo.Name -Force -ErrorAction Stop } catch {
+                Write-LogEntry -Level "WARN" -Message "No se pudo detener servicio $($svcInfo.Name): $($_.Exception.Message)"
+            }
             try {
                 Set-Service -Name $svcInfo.Name -StartupType Disabled -ErrorAction Stop
                 Write-Host "  - Deshabilitado: $($svcInfo.DisplayName)" -ForegroundColor Green
@@ -1738,16 +1770,28 @@ $sysMainNowDisabled = ($null -ne (Get-Service SysMain -EA SilentlyContinue)) -an
                       ((Get-Service SysMain -EA SilentlyContinue).StartType -eq 'Disabled')
 if ($sysMainNowDisabled -and -not $isHDD) {
     # SysMain off + SSD: sin compresion (CPU libre mas valioso que RAM comprimida en SSD rapido)
-    # [FIX] Disable-MMAgent falla con TerminatingError visible en transcript cuando el
-    # servicio subyacente (SysMain/MMAgent) ya esta deshabilitado. Usar SilentlyContinue
-    # y suprimir stream de error del host para evitar ruido en el log.
-    try { Disable-MMAgent -MemoryCompression -ErrorAction SilentlyContinue 2>$null; Write-Host "    - MemoryCompression DESACTIVADO (SysMain off + SSD)." -ForegroundColor Green } catch {}
-    try { Disable-MMAgent -PageCombining    -ErrorAction SilentlyContinue 2>$null; Write-Host "    - PageCombining DESACTIVADO." -ForegroundColor Green } catch {}
+    try {
+        Disable-MMAgent -MemoryCompression -ErrorAction Stop 2>$null
+        Write-Host "    - MemoryCompression DESACTIVADO (SysMain off + SSD)." -ForegroundColor Green
+    } catch {
+        Write-LogEntry -Level "WARN" -Message "No se pudo desactivar MemoryCompression (SysMain detenido): $($_.Exception.Message)"
+    }
+    try {
+        Disable-MMAgent -PageCombining -ErrorAction Stop 2>$null
+        Write-Host "    - PageCombining DESACTIVADO." -ForegroundColor Green
+    } catch {
+        Write-LogEntry -Level "WARN" -Message "No se pudo desactivar PageCombining: $($_.Exception.Message)"
+    }
 } elseif ($isARM64) {
     Write-Host "    - SysMain MANTENIDO activo (Modo Seguro ARM64: Prism requiere agresividad de cache)." -ForegroundColor Green
 } elseif ($isLowRAM -and $isHDD) {
     # Poca RAM + HDD: MANTENER compresion (comprimir es mas rapido que paginar al HDD)
-    try { Enable-MMAgent -MemoryCompression -ErrorAction SilentlyContinue; Write-Host "    - MemoryCompression ACTIVO (HDD + poca RAM: mejor comprimir que paginar)." -ForegroundColor Green } catch {}
+    try {
+        Enable-MMAgent -MemoryCompression -ErrorAction Stop
+        Write-Host "    - MemoryCompression ACTIVO (HDD + poca RAM: mejor comprimir que paginar)." -ForegroundColor Green
+    } catch {
+        Write-LogEntry -Level "WARN" -Message "No se pudo activar MemoryCompression: $($_.Exception.Message)"
+    }
 }
 
 # -- Pagefile: ajuste para RAM escasa --
@@ -1779,7 +1823,9 @@ if (-not $isLaptop) {
     try {
         powercfg /hibernate off 2>&1 | Out-Null
         Write-Host "    - Hibernacion DESHABILITADA en Desktop (libera $('{0:N1}' -f $ramGiB) GiB en disco)." -ForegroundColor Green
-    } catch {}
+    } catch {
+        Write-LogEntry -Level "WARN" -Message "No se pudo desactivar hibernación con powercfg: $($_.Exception.Message)"
+    }
 } else {
     Write-Host "    - Hibernacion MANTENIDA en Laptop (necesaria para S4/fast resume)." -ForegroundColor Gray
 }
@@ -2508,5 +2554,7 @@ Write-Host "`n  REINICIA el equipo para que bcdedit, HAGS y servicios tomen efec
     # Escribir resumen de errores al log antes de cerrar transcript
     Write-LogSummary
     # Stop-Transcript en finally: se ejecuta SIEMPRE, incluso si el script falla a mitad
-    try { Stop-Transcript | Out-Null } catch {}
+    try { Stop-Transcript | Out-Null } catch {
+        Write-LogEntry -Level "INFO" -Message "Transcript finalizado: $($_.Exception.Message)"
+    }
 }

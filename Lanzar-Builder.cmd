@@ -1,6 +1,6 @@
 @echo off
-:: Lanzador con Elevaci?n Autom?tica de Privilegios para romanOS Builder
-:: Regla 4: Soporte Gr?fico STA Obligatorio
+:: Lanzador con Elevacion Automatica de Privilegios para romanOS Builder
+:: Regla 4: Soporte Grafico STA Obligatorio
 echo.
 echo =======================================================
 echo   Solicitando privilegios de Administrador...

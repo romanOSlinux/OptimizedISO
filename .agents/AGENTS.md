@@ -82,3 +82,19 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **Lectura Estructural y Comparativa:** El agente DEBE buscar deliberadamente variables de entorno, banderas de compilación, parámetros de configuración (ej. Compress:fast, TargetVersion) y comparar mentalmente la métrica actual contra los logs históricos.
 - **Cerrojo Anti-Truncamiento (Grep Físico Obligatorio):** Está estrictamente prohibido auditar resultados de comandos largos (como `Invoke-TestSuite.ps1`) leyendo la salida de consola, ya que el sistema trunca la salida ocultando errores previos. El agente está OBLIGADO a usar la herramienta `grep_search` apuntando al archivo físico `.log` buscando las palabras `FAIL`, `ERROR` o `Exception`. Emitir un veredicto de éxito sin ejecutar `grep_search` en el log físico constituye una violación directa de las reglas.
 - **Activación de Skill:** Para cualquier tarea que implique leer logs extensos, el agente DEBE activar y adherirse a la skill `log-forensics` antes de emitir un diagnóstico al usuario.
+
+## 13. Principio de Auditoría Holística y Prohibición Estricta de Fallos Silenciosos
+- **Alcance Obligatorio de Repositorio Completo (Whole-Repository Scope):**
+  1. Ante el descubrimiento de una suposición errónea (ej. asumir `DeviceID = 0`, partición `C:`, adaptador de red único, GPU única o proveedor exclusivo), o cualquier defecto sistémico de diseño, está TERMINANTEMENTE PROHIBIDO limitar la corrección a un archivo aislado o a un subconjunto arbitrario de scripts.
+  2. El agente DEBE obligatoriamente extender la auditoría y la solución al **100% de los scripts del repositorio** (`scripts/Core`, `scripts/Builder`, `scripts/Modules`, `scripts/GUI`, `scripts/Drivers`, `scripts/Host-Tools`), empleando herramientas de introspección sintáctica (AST de PowerShell / Grep físico) para erradicar el patrón en toda la base de código.
+- **Prohibición Absoluta de Fallos Silenciosos (CWE-390 / Fail-Visible):**
+  1. Queda estrictamente prohibido el uso de bloques `catch { }` vacíos, `catch { $null }`, o capturas que devoren excepciones sin emitir telemetría visible.
+  2. Todo bloque `catch` en módulos de hardware, sistema, red, compilación o mantenimiento DEBE emitir un mensaje visible (`Write-Warning`, `Write-Error`, o alerta en UI/terminal con coloración de advertencia) que detalle:
+     - El recurso, componente o tarea que se intentaba ejecutar.
+     - La causa técnica exacta de la falla (`$_.Exception.Message`).
+     - El comportamiento alternativo o fallback adoptado.
+  3. El uso de `-ErrorAction SilentlyContinue` queda restringido exclusivamente a comprobaciones de existencia previas no destructivas (ej. `Test-Path` o `Get-Command`), y NUNCA en operaciones que modifiquen el sistema, manipulen el registro, ejecuten procesos externos o consulten la topología del hardware.
+- **Validación Cuantificada y Cero Suposiciones:**
+  1. Para dar por cerrada cualquier auditoría o corrección sistémica, el agente DEBE presentar al usuario una matriz métrica cuantificada con el 100% de los scripts del proyecto demostrando cero ocurrencias residuales del defecto.
+  2. Se debe activar y seguir la skill `holistic-audit` para la ejecución estandarizada de esta metodología.
+

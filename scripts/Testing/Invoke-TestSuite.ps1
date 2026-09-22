@@ -28,7 +28,7 @@
 [CmdletBinding()]
 param(
     [switch]$Quick,
-    [string]$LogDir = "C:\OptimizedISO\Log"
+    [string]$LogDir
 )
 
 $ErrorActionPreference = 'Continue'
@@ -42,7 +42,7 @@ $uiEnginePaths = @(
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
-    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+    (Join-Path $env:SystemRoot "Setup\Scripts\Core\UI-Engine.ps1")
 )
 $uiLoaded = $false
 foreach ($p in $uiEnginePaths) {
@@ -67,8 +67,18 @@ Show-UnifiedBanner -Title "ORQUESTADOR MAESTRO DE PRUEBAS" -Subtitle "romanOS / 
 
 $suiteResults = [System.Collections.Generic.List[PSCustomObject]]::new()
 $totalSteps = if ($Quick) { 5 } else { 6 }
-$repoRoot = Split-Path $PSScriptRoot -Parent
-if (-not (Test-Path (Join-Path $repoRoot ".agents"))) { $repoRoot = "C:\OptimizedISO" }
+$repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+if (-not (Test-Path (Join-Path $repoRoot ".agents"))) {
+    $repoCandidate = Split-Path $PSScriptRoot -Parent
+    if (Test-Path (Join-Path $repoCandidate ".agents")) {
+        $repoRoot = $repoCandidate
+    } else {
+        $repoRoot = (Join-Path $env:SystemDrive "OptimizedISO")
+    }
+}
+if (-not $LogDir) {
+    $LogDir = Join-Path $repoRoot "Log"
+}
 
 # -----------------------------------------------------------------------------
 # FASE 1: VALIDACION SINTACTICA AST Y UTF-8 BOM
@@ -218,7 +228,9 @@ try {
         [void]$sb.AppendLine("| $($r.Phase) | $($r.Name) | $badge |")
     }
     [System.IO.File]::WriteAllText($reportPath, $sb.ToString(), [System.Text.Encoding]::UTF8)
-} catch {}
+} catch {
+    Write-Warning "No se pudo escribir el reporte consolidado en '$reportPath': $($_.Exception.Message)"
+}
 
 $logMap = @{}
 if ($reportPath) { $logMap["Reporte Consolidado"] = $reportPath }

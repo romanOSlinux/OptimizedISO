@@ -125,8 +125,9 @@ if ($PSCmdlet.ShouldProcess($DestinationPath, "Exportar controladores de tercero
                 Drivers         = $manifestData
             }
             $manifestOutput | ConvertTo-Json -Depth 4 | Out-File -FilePath $manifestPath -Encoding UTF8 -Force
-            Write-DriverLog "Manifiesto guardado en: $manifestPath" "DarkGray"
-        } catch {}
+        } catch {
+            Write-DriverLog "No se pudo guardar manifiesto JSON en ($manifestPath) - $($_.Exception.Message)" "Yellow"
+        }
 
         Write-Host ""
         Write-Host "  [OK] Exportación exitosa: $exportedCount controlador(es) exportados en '$DestinationPath'." -ForegroundColor Green

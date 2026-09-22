@@ -23,7 +23,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
-    [string]$ExportPath = "C:\romanOS_Footprint_Audit.md"
+    [string]$ExportPath = "$env:SystemDrive\romanOS_Footprint_Audit.md"
 )
 
 # -----------------------------------------------------------------------------
@@ -35,7 +35,7 @@ $uiEngineCandidates = @(
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\UI-Engine.ps1"),
     "$env:WINDIR\Setup\Scripts\Core\UI-Engine.ps1",
-    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+    (Join-Path $env:SystemRoot "Setup\Scripts\Core\UI-Engine.ps1")
 )
 
 $uiLoaded = $false
@@ -45,7 +45,9 @@ foreach ($cand in $uiEngineCandidates) {
             . $cand
             $uiLoaded = $true
             break
-        } catch { }
+        } catch {
+            Write-Warning "No se pudo cargar UI-Engine desde '$cand': $($_.Exception.Message)"
+        }
     }
 }
 
@@ -271,7 +273,9 @@ foreach ($t in $targetAudits) {
                         Write-Host ("      - PID {0,-5} | Padre: {1,-20} | Args: {2}" -f $cp.ProcessId, $parentName, $cmdArgs) -ForegroundColor DarkGray
                     }
                 }
-            } catch {}
+            } catch {
+                Write-Verbose "No se pudo obtener detalle forense de WebView2: $($_.Exception.Message)"
+            }
         }
     }
 
@@ -597,7 +601,9 @@ try {
         [System.IO.File]::WriteAllText($desktopReport, $reportText, [System.Text.Encoding]::UTF8)
         Write-Host "  [OK] Copia del reporte creada en el Escritorio: $desktopReport" -ForegroundColor Green
     }
-} catch { }
+} catch {
+    Write-Warning "No se pudo generar copia de respaldo del reporte en el Escritorio: $($_.Exception.Message)"
+}
 
 Write-Host "`n========================================================" -ForegroundColor Cyan
 Write-Host "   AUDITORIA FINALIZADA EXITOSAMENTE" -ForegroundColor White

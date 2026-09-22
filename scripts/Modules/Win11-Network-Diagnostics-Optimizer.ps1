@@ -13,13 +13,17 @@ param(
 
 # Precarga de ensamblados WPF para soporte garantizado de interfaz grafica (Out-GridView)
 try {
-    Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase -ErrorAction SilentlyContinue
-} catch {}
+    Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase -ErrorAction Stop
+} catch {
+    Write-Warning "[Network-Optimizer] No se pudieron precargar ensamblados WPF: $($_.Exception.Message)"
+}
 
 # ============================================================
 # Comprobar privilegios de Administrador y auto-elevar
 # ============================================================
-try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop } catch {
+    Write-Warning "[Network-Optimizer] No se pudo establecer ExecutionPolicy: $($_.Exception.Message)"
+}
 
 $isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -168,7 +172,9 @@ function Write-LogSummary {
     Write-LogEntry -Level "INIT" -Message ("=" * 64)
 
     # Detener transcript
-    try { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null } catch {}
+    try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
+        Write-LogEntry -Level "INFO" -Message "Transcript previo detenido o no activo: $($_.Exception.Message)"
+    }
 
     # Generar Reporte Markdown optimizado para IA
     try {
@@ -499,7 +505,9 @@ try {
                                                 Set-NetAdapterAdvancedProperty -Name $a.Name -DisplayName $prop.DisplayName -DisplayValue $cv -ErrorAction Stop | Out-Null
                                                 $applied = $true
                                                 break
-                                            } catch {}
+                                            } catch {
+                                                Write-LogEntry -Level "DEBUG" -Message "Valor '$cv' no aceptado por $($prop.DisplayName) en $($a.Name): $($_.Exception.Message)"
+                                            }
                                         }
                                         if (-not $applied) { throw }
                                     } else { throw }
@@ -572,5 +580,7 @@ try {
 
 } finally {
     Write-LogSummary
-    try { Stop-Transcript | Out-Null } catch {}
+    try { Stop-Transcript | Out-Null } catch {
+        Write-LogEntry -Level "INFO" -Message "Transcript finalizado: $($_.Exception.Message)"
+    }
 }

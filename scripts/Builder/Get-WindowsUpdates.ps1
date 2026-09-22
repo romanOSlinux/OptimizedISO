@@ -84,7 +84,9 @@ param(
 # 0. CONFIGURACIÓN DE ENTORNO Y AUTO-ELEVACIÓN UAC
 # -----------------------------------------------------------------------------
 $ErrorActionPreference = 'Continue'
-try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop } catch {
+    Write-Warning "[Get-WindowsUpdates] No se pudo establecer ExecutionPolicy: $($_.Exception.Message)"
+}
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # Auto-elevación si es requerida para manipulación de carpetas protegidas
@@ -213,7 +215,9 @@ function Write-LogEntry {
 function Write-LogSummary {
     $totalDuration = [math]::Round(((Get-Date) - $script:StartTime).TotalSeconds, 1)
 
-    try { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null } catch {}
+    try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
+        Write-LogEntry -Level "INFO" -Message "Transcript finalizado: $($_.Exception.Message)"
+    }
 
     try {
         $overallStatus = if ($script:LogErrors.Count -eq 0) { "SUCCESS" } else { "FAILED" }
@@ -536,7 +540,9 @@ if (-not (Test-Path $targetFolder)) {
     New-Item -ItemType Directory -Path $targetFolder -Force | Out-Null
 }
 
-try { Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null } catch {}
+try { Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null } catch {
+    Write-LogEntry -Level "WARN" -Message "No se pudo iniciar transcript en ($script:TranscriptFile) - $($_.Exception.Message)"
+}
 
 Write-LogEntry -Level "INIT" -Message ("=" * 64)
 Write-LogEntry -Level "INIT" -Message "Iniciando Descarga de Windows Updates"

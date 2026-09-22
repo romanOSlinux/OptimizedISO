@@ -233,14 +233,17 @@ $isNVMe = if ($hw) { $hw.Disk.IsNVMe } else { $false }
 $isSSD  = if ($hw) { $hw.Disk.IsSSD } else { $false }
 if (-not $hw) {
     try {
-        $bootPart = Get-Partition -DriveLetter C -ErrorAction SilentlyContinue
+        $sysLetter = if ($env:SystemDrive) { $env:SystemDrive.TrimEnd(':') } else { 'C' }
+        $bootPart = Get-Partition -DriveLetter $sysLetter -ErrorAction SilentlyContinue
         $bootDisk = if ($bootPart) { Get-Disk -Number $bootPart.DiskNumber -ErrorAction SilentlyContinue } else { $null }
         $bootPhys = if ($bootDisk) { Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object DeviceId -eq $bootDisk.Number } else { $null }
         if ($bootPhys) {
             $isSSD  = ($bootPhys.MediaType -eq 'SSD')
             $isNVMe = ($bootDisk.BusType -eq 'NVMe')
         }
-    } catch {}
+    } catch {
+        Write-Warning "[Audit-SystemOptimization] Error determinando topología física del disco de arranque ($sysLetter): $($_.Exception.Message)"
+    }
 }
 
 Write-SubStep "Equipo          : $(if ($isVM) { 'Maquina Virtual' } elseif ($isLaptop) { 'Portatil / Laptop' } else { 'PC de Escritorio / Torre' })"
@@ -383,7 +386,8 @@ try {
     }
 
     # BypassIO DirectStorage
-    $bypassProbe = Invoke-SafeAdminProbe -ActionName "fsutil bypassio state C:" -Script { & fsutil bypassio state C: }
+    $sysDrive = if ($env:SystemDrive) { $env:SystemDrive } else { "C:" }
+    $bypassProbe = Invoke-SafeAdminProbe -ActionName "fsutil bypassio state $sysDrive" -Script { & fsutil bypassio state "$sysDrive" }
     if ($bypassProbe.Success) {
         if ("$($bypassProbe.Output)" -match 'is supported|est[aá] admitido|OK|compatible') {
             Register-AuditResult -Category "Almacenamiento" -Item "BypassIO (DirectStorage NVMe)" -Status "OK" -ActualValue "Soportado y Activo" -ExpectedValue "Soportado" -Impact "Ruta rapida de I/O directo del NVMe a la VRAM de la GPU" -Source "Microsoft Learn: DirectStorage & BypassIO"
@@ -391,7 +395,7 @@ try {
             Register-AuditResult -Category "Almacenamiento" -Item "BypassIO (DirectStorage NVMe)" -Status "WARN" -ActualValue "No soportado o vetado por minifiltros" -ExpectedValue "Soportado" -Impact "Juegos compatibles caen en la ruta de I/O tradicional con overhead" -Source "Microsoft Learn: DirectStorage & BypassIO"
         }
     } else {
-        Register-AuditResult -Category "Almacenamiento" -Item "BypassIO (DirectStorage NVMe)" -Status "RESTRICTED" -ActualValue "Acceso denegado" -ExpectedValue "Solo Administrador" -Impact "Requiere elevacion para interrogar al controlador de la particion C:" -Source "fsutil bypassio command reference"
+        Register-AuditResult -Category "Almacenamiento" -Item "BypassIO (DirectStorage NVMe)" -Status "RESTRICTED" -ActualValue "Acceso denegado" -ExpectedValue "Solo Administrador" -Impact "Requiere elevacion para interrogar al controlador de la particion $sysDrive" -Source "fsutil bypassio command reference"
     }
 
     # CompactOS

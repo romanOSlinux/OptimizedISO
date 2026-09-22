@@ -316,7 +316,9 @@ try {
         } else {
             $reportLines.Add("- **Optimizacion NTFS (disablelastaccess):** Estandar")
         }
-    } catch {}
+    } catch {
+        Write-Warn -Message "Error al auditar optimizaciones NTFS (fsutil behavior query disablelastaccess)" -Cause $_.Exception.Message -Action "Continuando con las siguientes comprobaciones"
+    }
 
 
 
@@ -330,16 +332,19 @@ try {
         $reportLines.Add("- **GPU Scheduling (HAGS):** No forzado o estandar ($hagsVal)")
     }
 
-    # Auditoria BypassIO / DirectStorage en particion C:
+    # Auditoria BypassIO / DirectStorage en particion del sistema
     try {
-        $bypassIoQuery = & fsutil bypassio state C: 2>&1
+        $sysDrive = if ($env:SystemDrive) { $env:SystemDrive } else { "C:" }
+        $bypassIoQuery = & fsutil bypassio state $sysDrive 2>&1
         if ($bypassIoQuery -match 'is supported|est[aá] admitido|OK|compatible') {
-            $passedChecks.Add("BypassIO / DirectStorage verificado y compatible en particion C:.")
+            $passedChecks.Add("BypassIO / DirectStorage verificado y compatible en particion $sysDrive.")
             $reportLines.Add("- **BypassIO (DirectStorage NVMe):** Soportado y Activo [OK]")
         } else {
-            $reportLines.Add("- **BypassIO (DirectStorage NVMe):** No disponible o vetado en este entorno")
+            $reportLines.Add("- **BypassIO (DirectStorage NVMe):** No disponible o vetado en este entorno ($sysDrive)")
         }
-    } catch {}
+    } catch {
+        Write-Warn -Message "Error al consultar estado de BypassIO en $sysDrive" -Cause $_.Exception.Message -Action "Registrando estado no disponible"
+    }
 
 
     # Tema Oscuro del Sistema y Apps (PLAN-0030: HKCU prioritario, con fallback a HKLM)
@@ -365,7 +370,9 @@ try {
         } else {
             $reportLines.Add("- **TCP ECN Capability:** Deshabilitado o estandar")
         }
-    } catch {}
+    } catch {
+        Write-Warn -Message "Error consultando estado TCP ECN Capability" -Cause $_.Exception.Message -Action "Continuando con las siguientes auditorías"
+    }
 
     $reportLines.Add("")
 
@@ -609,7 +616,11 @@ try {
     } catch {
         $systemReportPath = Join-Path $env:TEMP "PostInstall_Report.md"
         $finalReportPath = $systemReportPath
-        try { [System.IO.File]::WriteAllText($systemReportPath, $finalReport, [System.Text.Encoding]::UTF8) } catch {}
+        try {
+            [System.IO.File]::WriteAllText($systemReportPath, $finalReport, [System.Text.Encoding]::UTF8)
+        } catch {
+            Write-Warn -Message "No se pudo escribir el informe Markdown en la ruta temporal $systemReportPath" -Cause $_.Exception.Message -Action "El informe no pudo guardarse en disco"
+        }
     }
     try {
         [System.IO.File]::WriteAllText($desktopReportPath, $finalReport, [System.Text.Encoding]::UTF8)
@@ -797,7 +808,11 @@ try {
     } catch {
         $systemReportHtmlPath = Join-Path $env:TEMP "PostInstall_Report.html"
         $finalReportHtmlPath = $systemReportHtmlPath
-        try { [System.IO.File]::WriteAllText($systemReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8) } catch {}
+        try {
+            [System.IO.File]::WriteAllText($systemReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
+        } catch {
+            Write-Warn -Message "No se pudo escribir el dashboard HTML en la ruta temporal $systemReportHtmlPath" -Cause $_.Exception.Message -Action "El informe HTML no pudo guardarse en disco"
+        }
     }
     try {
         [System.IO.File]::WriteAllText($desktopReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)

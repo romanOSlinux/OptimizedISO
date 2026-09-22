@@ -46,7 +46,9 @@ function Show-UnifiedBanner {
     )
 
     if (-not $NoClear) {
-        try { Clear-Host -ErrorAction SilentlyContinue } catch {}
+        try { Clear-Host -ErrorAction Stop } catch {
+            Write-Verbose "[UI-Engine] Clear-Host omitido en entorno no interactivo."
+        }
     }
 
     $w = if ($script:UI_BoxWidth -and $script:UI_BoxWidth -gt 10) { $script:UI_BoxWidth } else { 74 }
@@ -85,14 +87,17 @@ function Show-UnifiedBanner {
             $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
             $adminBadge = if ($isAdmin) { " (Admin)" } else { " (Standard)" }
             $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
-            $sysDrive = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'" -ErrorAction SilentlyContinue
+            $sysLetter = if ($env:SystemDrive) { $env:SystemDrive } else { "C:" }
+            $sysDrive = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$sysLetter'" -ErrorAction SilentlyContinue
             $freeGB = if ($sysDrive) { [math]::Round($sysDrive.FreeSpace / 1GB, 1) } else { "N/A" }
 
             Write-Host "  Host: $env:COMPUTERNAME | Usuario: $env:USERNAME$adminBadge" -ForegroundColor Gray
             if ($os) {
-                Write-Host "  SO  : $($os.Caption) ($($os.OSArchitecture)) | C: $freeGB GB libres" -ForegroundColor Gray
+                Write-Host "  SO  : $($os.Caption) ($($os.OSArchitecture)) | $sysLetter $freeGB GB libres" -ForegroundColor Gray
             }
-        } catch {}
+        } catch {
+            Write-Warning "[UI-Engine] No se pudo adquirir telemetría de sistema: $($_.Exception.Message)"
+        }
         Write-Host "  $('─' * ($w - 2))" -ForegroundColor DarkGray
     }
     Write-Host ""
@@ -181,7 +186,9 @@ function Write-OK {
                 $script:CurrentStepObj.Note = $Message
             }
         }
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo actualizar CurrentStepObj: $($_.Exception.Message)"
+    }
 }
 
 function Write-Warn {
@@ -209,13 +216,17 @@ function Write-Warn {
         if ($null -ne $script:LogWarns -and -not [object]::ReferenceEquals($script:LogWarns, $global:RomanOS_LogWarns)) {
             [void]$script:LogWarns.Add($fullMsg)
         }
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo agregar advertencia a script:LogWarns: $($_.Exception.Message)"
+    }
     try {
         if ($script:CurrentStepObj -and $script:CurrentStepObj.Status -ne "ERROR") {
             $script:CurrentStepObj.Status = "WARN"
             $script:CurrentStepObj.Note = $fullMsg
         }
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo actualizar CurrentStepObj con advertencia: $($_.Exception.Message)"
+    }
 }
 
 function Write-ErrorMsg {
@@ -243,13 +254,17 @@ function Write-ErrorMsg {
         if ($null -ne $script:LogErrors -and -not [object]::ReferenceEquals($script:LogErrors, $global:RomanOS_LogErrors)) {
             [void]$script:LogErrors.Add($fullMsg)
         }
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo agregar error a script:LogErrors: $($_.Exception.Message)"
+    }
     try {
         if ($script:CurrentStepObj) {
             $script:CurrentStepObj.Status = "ERROR"
             $script:CurrentStepObj.Note = $fullMsg
         }
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo actualizar CurrentStepObj con error: $($_.Exception.Message)"
+    }
 }
 
 function Write-Info {
@@ -319,13 +334,17 @@ function Write-ForensicException {
         if ($null -ne $script:LogErrors -and -not [object]::ReferenceEquals($script:LogErrors, $global:RomanOS_LogErrors)) {
             [void]$script:LogErrors.Add($forensicHeader)
         }
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo registrar error forense en script:LogErrors: $($_.Exception.Message)"
+    }
     try {
         if ($script:CurrentStepObj) {
             $script:CurrentStepObj.Status = "ERROR"
             $script:CurrentStepObj.Note = $forensicHeader
         }
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo actualizar CurrentStepObj con error forense: $($_.Exception.Message)"
+    }
 
     return [PSCustomObject]@{
         Header          = $forensicHeader

@@ -156,7 +156,9 @@ function Write-LogSummary {
     Write-LogEntry -Level "INIT" -Message "Transcript          : $script:TranscriptFile"
     Write-LogEntry -Level "INIT" -Message ("=" * 64)
 
-    try { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null } catch {}
+    try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
+        Write-LogEntry -Level "INFO" -Message "Transcript finalizado: $($_.Exception.Message)"
+    }
 
     try {
         $overallStatus = if ($script:LogErrors.Count -eq 0) { "SUCCESS" } else { "FAILED" }
@@ -254,7 +256,9 @@ function Invoke-SafeDownload {
 
 try {
     Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null
-} catch {}
+} catch {
+    Write-LogEntry -Level "WARN" -Message "No se pudo iniciar transcript en ($script:TranscriptFile) - $($_.Exception.Message)"
+}
 
 Write-LogEntry -Level "INIT" -Message ("=" * 64)
 Write-LogEntry -Level "INIT" -Message "Get-EssentialRuntimes Download Log"

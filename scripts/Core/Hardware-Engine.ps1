@@ -215,7 +215,9 @@ function Get-SystemHardwareProfile {
                 $aoacReg = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power" -Name "PlatformAoAcOverride" -ErrorAction SilentlyContinue
                 if ($aoacReg) { $hasModernStandby = $true }
             }
-        } catch {}
+        } catch {
+            Write-Warning "[Hardware-Engine] No se pudo interrogar Win32_PowerPlatform o registro de ModernStandby: $($_.Exception.Message)"
+        }
     }
 
     # =========================================================================
@@ -410,8 +412,9 @@ function Get-SystemHardwareProfile {
 
     # DirectStorage / BypassIO (Solo aplicable y verificable en discos NVMe)
     if ($isNVMe) {
+        $targetDrive = if ($env:SystemDrive) { "$($env:SystemDrive)\" } else { "C:\" }
         try {
-            $bypassIoOut = & fsutil.exe bypassIO state C:\ 2>&1 | Out-String
+            $bypassIoOut = & fsutil.exe bypassIO state $targetDrive 2>&1 | Out-String
             if ($bypassIoOut -match 'BypassIo is supported' -or $bypassIoOut -match 'BypassIo is enabled') {
                 $isBypassIOSupported = $true
                 $directStorageStatus = 'DirectStorage / BypassIO: ACTIVO [OK]'
@@ -420,6 +423,7 @@ function Get-SystemHardwareProfile {
                 $directStorageStatus = 'DirectStorage: Estandar (sin BypassIO)'
             }
         } catch {
+            Write-Warning "[Hardware-Engine] Error interrogando BypassIO con fsutil en ($targetDrive) - $($_.Exception.Message)"
             $directStorageStatus = 'DirectStorage: NVMe detectado (fsutil no accesible)'
         }
     } else {
@@ -573,8 +577,10 @@ function Get-SystemHardwareProfile {
 
         if ($msiRegPath -and (Test-Path $msiRegPath)) {
             try {
-                $currentMsiVal = (Get-ItemProperty -Path $msiRegPath -Name 'MSISupported' -ErrorAction SilentlyContinue).MSISupported
-            } catch {}
+                $currentMsiVal = (Get-ItemProperty -Path $msiRegPath -Name 'MSISupported' -ErrorAction Stop).MSISupported
+            } catch {
+                Write-Warning "[Hardware-Engine] No se pudo leer MSISupported en ($msiRegPath) - $($_.Exception.Message)"
+            }
         }
 
         $gpuDevices.Add([PSCustomObject]@{
@@ -683,7 +689,9 @@ function Get-SystemHardwareProfile {
         if (($cloudPol -and $cloudPol.DisableWindowsConsumerFeatures -eq 1) -or ($tpmBypass -and $tpmBypass.BypassTPMCheck -eq 1)) {
             $isIsoOptimized = $true
         }
-    } catch {}
+    } catch {
+        Write-Warning "[Hardware-Engine] Error comprobando claves de optimización ISO: $($_.Exception.Message)"
+    }
 
     $profileId   = ''
     $profileName = ''

@@ -601,7 +601,9 @@ function Write-LogSummary {
     Write-LogEntry -Level "INIT" -Message ("=" * 64)
 
     # Detener transcript
-    try { Stop-Transcript -ErrorAction SilentlyContinue | Out-Null } catch {}
+    try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
+        Write-LogEntry -Level "INFO" -Message "Transcript finalizado: $($_.Exception.Message)"
+    }
 
     # Generar Reporte Markdown optimizado para IA (Opción 1)
     try {
@@ -928,7 +930,9 @@ function Invoke-MonitoredProcess {
                     $proc.Refresh()
                     $memMB = [math]::Round($proc.WorkingSet64 / 1MB, 1)
                 }
-            } catch {}
+            } catch {
+                Write-Verbose "[Invoke-ExecutableWithResilience] No se pudo leer memoria del proceso: $($_.Exception.Message)"
+            }
 
             Write-Host "    [⏳ Heartbeat] $TaskDescription en progreso... (Transcurrido: $elapsedStr | RAM: ${memMB} MB)" -ForegroundColor DarkGray
             Write-LogEntry -Level "INFO" -Message "[HEARTBEAT] $TaskDescription en ejecución (Transcurrido: $elapsedStr | RAM: ${memMB} MB)" -NoAccumulate
@@ -944,7 +948,9 @@ function Invoke-MonitoredProcess {
                     $proc.Kill()
                     $proc.WaitForExit(3000)
                 }
-            } catch {}
+            } catch {
+                Write-Warn "No se pudo terminar el subproceso con timeout (PID $($proc.Id)): $($_.Exception.Message)"
+            }
             break
         }
     }
@@ -953,7 +959,9 @@ function Invoke-MonitoredProcess {
 
     try {
         [System.Threading.Tasks.Task]::WaitAll(@($stdoutTask, $stderrTask), 2000) | Out-Null
-    } catch {}
+    } catch {
+        Write-Verbose "[Invoke-ExecutableWithResilience] Espera de streams stdout/stderr finalizada: $($_.Exception.Message)"
+    }
 
     $stdout = if ($stdoutTask.IsCompleted) { $stdoutTask.Result.Trim() } else { "" }
     $stderr = if ($stderrTask.IsCompleted) { $stderrTask.Result.Trim() } else { "" }
@@ -1078,7 +1086,9 @@ function Get-WimPatchLevel {
                     }
                 }
             }
-        } catch {}
+        } catch {
+            Write-Warn "Get-WimPatchLevel: no se pudo leer UBR desde colmena SOFTWARE montada - $($_.Exception.Message)"
+        }
 
     } catch {
         Write-Warn "Get-WimPatchLevel: error consultando DISM /Get-Packages - $($_.Exception.Message)"
@@ -1230,14 +1240,18 @@ function Invoke-SafeWimDismount {
     if (-not $dismountSuccess -and -not $alreadyCommitted) {
         Write-Warn "No se pudo desmontar con '$Action'. Intentando desmontaje forzado (/Discard)..."
         try {
-            Dismount-WindowsImage -Path $MountDir -Discard -ErrorAction SilentlyContinue | Out-Null
-        } catch {}
+            Dismount-WindowsImage -Path $MountDir -Discard -ErrorAction Stop | Out-Null
+        } catch {
+            Write-Warn "Dismount-WindowsImage -Discard falló en ($MountDir) - $($_.Exception.Message)"
+        }
 
         if (Get-Command "dism.exe" -ErrorAction SilentlyContinue) {
             try {
                 & dism.exe /Unmount-Wim /MountDir:"$MountDir" /Discard 2>&1 | Out-Null
                 & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null
-            } catch {}
+            } catch {
+                Write-Warn "dism.exe /Unmount-Wim forzado falló en ($MountDir) - $($_.Exception.Message)"
+            }
         }
     }
 
@@ -5730,7 +5744,9 @@ if ($wimFile) {
                 if ($bootItem -and $bootItem.IsReadOnly) {
                     Set-ItemProperty -Path $bootWimCandidate -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
                 }
-            } catch {}
+            } catch {
+                Write-Warn "No se pudo modificar atributo IsReadOnly en ($bootWimCandidate) - $($_.Exception.Message)"
+            }
 
             $bootIndices = @()
             try {
@@ -5798,7 +5814,9 @@ if ($wimFile) {
                 try {
                     # Limpieza preventiva por iteración: elimina puntos huérfanos del ciclo anterior
                     if (Get-Command "dism.exe" -ErrorAction SilentlyContinue) {
-                        try { & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null } catch {}
+                        try { & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null } catch {
+                            Write-Verbose "[New-OptimizedWindowsISO] Limpieza preventiva /Cleanup-Mountpoints omitida: $($_.Exception.Message)"
+                        }
                     }
 
                     if (Test-Path $WimMountDir) {
@@ -7469,13 +7487,17 @@ if ($wimFile) {
                 if (Get-Command "Get-WindowsImage" -ErrorAction SilentlyContinue) {
                     $mountedWim = Get-WindowsImage -Mounted -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $WimMountDir }
                     if ($mountedWim) {
-                        Dismount-WindowsImage -Path $WimMountDir -Discard -ErrorAction SilentlyContinue | Out-Null
+                        Dismount-WindowsImage -Path $WimMountDir -Discard -ErrorAction Stop | Out-Null
                     }
                 }
-            } catch {}
+            } catch {
+                Write-Warn "Error desmontando WIM remanente en cleanup de finally: $($_.Exception.Message)"
+            }
 
             if (Get-Command "dism.exe" -ErrorAction SilentlyContinue) {
-                try { & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null } catch {}
+                try { & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null } catch {
+                    Write-Verbose "[New-OptimizedWindowsISO] /Cleanup-Mountpoints omitido en cleanup: $($_.Exception.Message)"
+                }
             }
 
             if (Test-Path $ScratchDir) {
@@ -7626,7 +7648,9 @@ if ($biosBootFile -and (-not (Test-Path $isoBootFileStandard))) {
             $biosBootFile = $isoBootFileStandard
             Write-Host "    [AUTO-REPAIR] 'etfsboot.com' inyectado en directorio 'boot\' de la ISO." -ForegroundColor DarkGreen
         }
-    } catch {}
+    } catch {
+        Write-Warn "No se pudo inyectar etfsboot.com en '$isoBootFileStandard': $($_.Exception.Message)"
+    }
 }
 
 $isoEfiBootDir = Join-Path $ISOFilesDir "efi\microsoft\boot"
@@ -7641,7 +7665,9 @@ if ($uefiBootFile) {
                 $uefiBootFile = $isoEfiFileStandard
                 Write-Host "    [AUTO-REPAIR] Bootloader UEFI ($uefiFileName) inyectado en 'efi\microsoft\boot\' de la ISO." -ForegroundColor DarkGreen
             }
-        } catch {}
+        } catch {
+            Write-Warn "No se pudo inyectar bootloader UEFI en '$isoEfiFileStandard': $($_.Exception.Message)"
+        }
     }
 }
 

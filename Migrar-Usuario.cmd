@@ -4,23 +4,17 @@
 :: romanOS / OptimizedISO
 :: ==========================================================================
 
-:: --- Auto-Elevacion ---
->nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
-if '%errorlevel%' NEQ '0' (
-    echo Solicitando permisos de administrador...
-    goto UACPrompt
-) else ( goto gotAdmin )
+:: --- Auto-Elevacion de Privilegios UAC ---
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Solicitando permisos de Administrador [UAC]...
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b 0
+)
 
-:UACPrompt
-    echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
-    echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
-    "%temp%\getadmin.vbs"
-    del "%temp%\getadmin.vbs"
-    exit /B
-
-:gotAdmin
-    pushd "%CD%"
-    CD /D "%~dp0"
+pushd "%CD%"
+cd /d "%~dp0"
 
 :: --- Invocacion a PowerShell ---
-powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -Command "& { & '%~dp0scripts\Modules\Migrar-Usuario-W11.ps1' }"
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Modules\Migrar-Usuario-W11.ps1"
+

@@ -185,7 +185,9 @@ if (-not $PurgeShadersOnly) {
                 Write-OK "Spotify: Aceleracion por hardware desactivada en interfaz de audio."
                 $stats.ElectronTweaked++
             }
-        } catch {}
+        } catch {
+            Write-Warn "No se pudo modificar aceleración por hardware en preferencias de Spotify: $($_.Exception.Message)"
+        }
     }
     
     # Discord: desactivar telemetria y oclusion de renderizado
@@ -200,7 +202,9 @@ if (-not $PurgeShadersOnly) {
                 Write-OK "Discord: Auto-arranque no deseado mitigado."
                 $stats.ElectronTweaked++
             }
-        } catch {}
+        } catch {
+            Write-Warn "No se pudo actualizar configuración de Discord ($discordConfig) - $($_.Exception.Message)"
+        }
     }
     
     Write-OK "Optimizaciones de aplicaciones Electron completadas."

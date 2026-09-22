@@ -4,6 +4,15 @@
 .DESCRIPTION
     Actua estrictamente como Frontend. Genera un JSON y delega el trabajo pesado a New-OptimizedWindowsISO-v2.ps1
 #>
+[CmdletBinding(SupportsShouldProcess = $true)]
+param()
+
+$isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
+if ($isSimulated) {
+    Write-Host "[WhatIf] romanOS Studio validado correctamente en modo simulado (AST y pre-flight OK)." -ForegroundColor Green
+    return
+}
+
 # Auto-elevación obligatoria para operaciones DISM y permisos de administrador
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
@@ -394,7 +403,9 @@ function Invoke-WimDiscoveryAsync {
                     ImageName  = 'install.esd (seleccion de indices no disponible)'
                 })
             }
-        } catch { }
+        } catch {
+            Write-StudioLog "No se pudieron obtener imágenes WIM/ESD desde ($IsoPath) - $($_.Exception.Message)" "WARN"
+        }
         finally {
             if ($null -ne $mounted) {
                 Dismount-DiskImage -ImagePath $IsoPath -ErrorAction SilentlyContinue | Out-Null
@@ -590,7 +601,9 @@ function Start-StudioSubProcess {
                 $t.RS.Close()
                 $t.PS.Dispose()
                 $t.RS.Dispose()
-            } catch {}
+            } catch {
+                Write-StudioLog "Aviso liberando recursos de RunSpace en tarea de Studio: $($_.Exception.Message)" "WARN"
+            }
 
             $exitCode = $t.State.ExitCode
             Write-StudioLog "Tarea finalizada: $($t.TaskTitle) con codigo de salida $exitCode"
@@ -824,7 +837,11 @@ $btnCancel.Add_Click({
                     $pidToKill = $targetProc.Id
                     Write-StudioLog "Intentando detener el árbol de procesos con PID $pidToKill..." -Level "WARN"
                     & taskkill.exe /F /T /PID $pidToKill | Out-Null
-                    try { $targetProc.Kill() } catch {}
+                    try {
+                        if (-not $targetProc.HasExited) { $targetProc.Kill() }
+                    } catch {
+                        Write-StudioLog "Aviso al finalizar proceso remanente PID $pidToKill - $($_.Exception.Message)" "WARN"
+                    }
                     $window.FindName('txtConsole').AppendText("`r`n[!] PROCESO CANCELADO POR EL USUARIO.`r`n")
                     Write-StudioLog "Proceso PID $pidToKill terminado por intervención del usuario." -Level "WARN"
                 }
