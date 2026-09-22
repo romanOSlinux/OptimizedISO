@@ -118,6 +118,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0100 | [PLAN-0100-20260922-app-profiles-and-ai-runtimes-manager.md](PLAN-0100-20260922-app-profiles-and-ai-runtimes-manager.md) | 2026-09-22 | romanOS App & AI Runtimes Manager: Gestor Modular de Perfiles de Software, Winget Desatendido y Librerías de IA por Hardware | COMPLETADO |
 | 0101 | [PLAN-0101-20260922-thermal-throttling-and-energy-profiler.md](PLAN-0101-20260922-thermal-throttling-and-energy-profiler.md) | 2026-09-22 | romanOS Thermal Throttling Monitor & Energy Profiler: Diagnóstico Térmico, Detección de Estrangulamiento y Calibración Energética | COMPLETADO |
 | 0102 | [PLAN-0102-20260922-live-sandbox-environment.md](PLAN-0102-20260922-live-sandbox-environment.md) | 2026-09-22 | romanOS Live Sandbox Environment: Orquestador de Aislamiento Efímero, Generador Dinámico .wsb y Perfiles Desatendidos | COMPLETADO |
+| 0103 | [PLAN-0103-20260922-guardian-anti-drift-y-watchdog-servicios.md](PLAN-0103-20260922-guardian-anti-drift-y-watchdog-servicios.md) | 2026-09-22 | Guardián Anti-Drift y Watchdog de Servicios de romanOS: Auditoría y Remediación de Desvío Post-Windows Update | PENDIENTE |
 
 
 
