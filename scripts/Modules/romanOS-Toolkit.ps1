@@ -25,10 +25,11 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter")]
+    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback")]
     [string]$Module,
     [switch]$ShowDashboards,
-    [switch]$GUI
+    [switch]$GUI,
+    [switch]$Snapshot
 )
 
 # -----------------------------------------------------------------------------
@@ -290,6 +291,20 @@ function Invoke-LatencyTraceModule {
     }
 }
 
+function Invoke-SnapshotModule {
+    param([string]$Action = "List")
+    $scriptFile = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando romanOS Snapshot & Rollback Engine"
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptFile, '-Action', $Action)
+        if ($WhatIfPreference -or $PSBoundParameters.ContainsKey('WhatIf')) { $argList += '-WhatIf' }
+        & powershell.exe @argList
+    } else {
+        Write-ErrorMsg "No se encontro Manage-SystemSnapshots.ps1"
+        pause
+    }
+}
+
 function Invoke-GameDevSwitchModule {
     param(
         [string]$TargetMode = "Status",
@@ -514,7 +529,8 @@ function Show-QuickActionsMenu {
         "Poda Quirurgica de Memoria RAM en Reposo (psapi.dll EmptyWorkingSet)",
         "Auditor Universal de Optimizacion del Sistema (Multi-Hardware)",
         "Conmutador Modo Juego / Modo Dev (Cortar Devoradores de Recursos / Hyper-V)",
-        "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
+        "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)",
+        "Crear Instantanea de Seguridad (romanOS Snapshot Engine)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -665,6 +681,10 @@ function Show-QuickActionsMenu {
         17 {
             Invoke-ControlCenterGUI
         }
+        18 {
+            Invoke-SnapshotModule -Action "Create"
+            pause
+        }
         default { return }
     }
 
@@ -696,11 +716,19 @@ if ($Module) {
         "DevSwitch"     { Invoke-GameDevSwitchModule -TargetMode "Dev"; exit }
         "GUI"           { Invoke-ControlCenterGUI; exit }
         "ControlCenter" { Invoke-ControlCenterGUI; exit }
+        "Snapshot"      { Invoke-SnapshotModule -Action "List"; exit }
+        "Snapshots"     { Invoke-SnapshotModule -Action "List"; exit }
+        "Rollback"      { Invoke-SnapshotModule -Action "Restore"; exit }
         "QuickActions"    { Show-QuickActionsMenu; exit }
         "GamingApps"      { Invoke-GamingAndAppsModule; exit }
         "LatencyProfiler" { Invoke-LatencyTraceModule; exit }
         "TraceLatency"    { Invoke-LatencyTraceModule; exit }
     }
+}
+
+if ($Snapshot) {
+    Invoke-SnapshotModule -Action "Create"
+    exit
 }
 
 if ($GUI) {
@@ -743,6 +771,7 @@ $mainMenuOpts = @(
     "Optimizador de Juegos y Apps Electron (Steam VRAM, Discord, Shaders)",
     "Profiler Forense de Latencia DPC/ISR (Sub-Microsegundo, Invariant TSC, Drivers)",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)",
+    "romanOS Snapshot & Rollback Engine (Crear/Restaurar Instantaneas de Sistema)",
     "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
 )
 
@@ -768,7 +797,8 @@ while ($true) {
         15 { Invoke-GamingAndAppsModule; pause }
         16 { Invoke-LatencyTraceModule; pause }
         17 { Show-QuickActionsMenu; pause }
-        18 { Invoke-ControlCenterGUI; pause }
+        18 { Invoke-SnapshotModule -Action "List"; pause }
+        19 { Invoke-ControlCenterGUI; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

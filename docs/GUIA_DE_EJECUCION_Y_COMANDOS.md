@@ -21,7 +21,8 @@ Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros
 | **`Get-EssentialRuntimes.ps1`** | *(Ejecutar en PS Admin)* | Descarga de paquetes redistribuibles (VC++, DirectX, .NET) | `-DownloadDir`, `-SkipDirectX`, `-SkipDotNet` |
 | **`New-TestVM-HyperV.ps1`** | *(Ejecutar en PS Admin)* | Despliegue automatizado de VM de prueba en Hyper-V (Gen 2) | `-ISOPath`, `-MemoryGB`, `-CPUCount`, `-DiskSizeGB` |
 | **`Test-OptimizedISO-v2.ps1`** | *(Ejecutar en PS Admin)* | Suite de pruebas unitarias y validación del compilador | `-LogDir`, `-TargetScript` |
-| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (5 Fases) | `-Quick`, `-LogDir` |
+| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (9 Fases) | `-Quick`, `-LogDir` |
+| **`Manage-SystemSnapshots.ps1`** | `Manage-SystemSnapshots.cmd` | Motor de Instantáneas y Reversión Atómica (Snapshot & Rollback) | `-Action`, `-Name`, `-SnapshotId`, `-IncludeVSS`, `-Force` |
 | **`Setup-AntigravityWindows.ps1`** | `Setup-AntigravityWindows.cmd` | Inicializador de entorno, dependencias winget y skills de Antigravity | `-InstallPrerequisites`, `-EnableHyperV`, `-SetExecutionPolicy`, `-CheckOnly` |
 | **`Limpiar-ResiduosWinISO.ps1`** | *(Ejecutar en PS Admin)* | Limpieza profunda de montajes DISM bloqueados, temporales y colmenas | `-ScanOnly`, `-Force`, `-Silent` |
 
@@ -416,11 +417,34 @@ Ejecuta la suite integral de pruebas del proyecto en un solo paso, consolidando 
 
 ```powershell
 # 1. Ejecución completa con reporte Markdown consolidado:
-& "C:\OptimizedISO\scripts\Invoke-TestSuite.ps1"
-# O doble clic en: C:\OptimizedISO\scripts\Invoke-TestSuite.cmd
+& "C:\OptimizedISO\scripts\Testing\Invoke-TestSuite.ps1"
+# O doble clic en: C:\OptimizedISO\scripts\Testing\Invoke-TestSuite.cmd
 
-# 2. Modo Rápido (AST/BOM, XML, Entorno y Git en < 5 segundos):
-& "C:\OptimizedISO\scripts\Invoke-TestSuite.ps1" -Quick
+# 2. Modo Rápido (9 Fases de pruebas en ~30 segundos):
+& "C:\OptimizedISO\scripts\Testing\Invoke-TestSuite.ps1" -Quick
+```
+
+---
+
+## 14. Motor de Instantáneas y Reversión Atómica: `Manage-SystemSnapshots.ps1`
+
+Permite capturar estados íntegros de la configuración del sistema operativo (directivas de registro, telemetría de servicios, configuración de red y puntos VSS) con verificación criptográfica SHA-256 y reversión en caliente:
+
+```powershell
+# 1. Crear snapshot rápido antes de aplicar optimizaciones o debloat
+& "C:\OptimizedISO\scripts\Modules\Manage-SystemSnapshots.ps1" -Action Create -Name "Pre-Optimizacion" -IncludeVSS
+
+# 2. Listar todas las instantáneas disponibles
+& "C:\OptimizedISO\scripts\Modules\Manage-SystemSnapshots.ps1" -Action List
+
+# 3. Restaurar una instantánea atómicamente
+& "C:\OptimizedISO\scripts\Modules\Manage-SystemSnapshots.ps1" -Action Restore -SnapshotId "SNAP-20260922-001744-UnitTestSnapshot" -Force
+
+# 4. Exportar snapshot a archivo ZIP para respaldo externo
+& "C:\OptimizedISO\scripts\Modules\Manage-SystemSnapshots.ps1" -Action Export -SnapshotId "SNAP-20260922-001744"
+
+# 5. Crear solo Punto de Restauración VSS nativo
+& "C:\OptimizedISO\scripts\Modules\Manage-SystemSnapshots.ps1" -Action CreateVSS -Name "Punto-Seguro"
 ```
 
 ---

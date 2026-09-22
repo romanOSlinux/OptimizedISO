@@ -66,7 +66,7 @@ if (-not $uiLoaded) {
 Show-UnifiedBanner -Title "ORQUESTADOR MAESTRO DE PRUEBAS" -Subtitle "romanOS / OptimizedISO" -ShowSystemInfo
 
 $suiteResults = [System.Collections.Generic.List[PSCustomObject]]::new()
-$totalSteps = if ($Quick) { 8 } else { 9 }
+$totalSteps = if ($Quick) { 9 } else { 10 }
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot ".agents"))) {
     $repoCandidate = Split-Path $PSScriptRoot -Parent
@@ -233,11 +233,31 @@ if (Test-Path $storageNetScript) {
 $suiteResults.Add([PSCustomObject]@{ Phase = 8; Name = "Almacenamiento DirectStorage, Red NDIS y Memoria"; Status = if ($phase8Pass) { "PASS" } else { "FAIL" } })
 
 # -----------------------------------------------------------------------------
-# FASE 9: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# FASE 9: MOTOR DE INSTANTÁNEAS Y ROLLBACK (Manage-SystemSnapshots)
 # -----------------------------------------------------------------------------
-$phase9Pass = $true
+Write-StepHeader -StepNumber 9 -TotalSteps $totalSteps -Message "Auditoría de Instantáneas Criptográficas y Rollback Engine"
+$snapshotTestScript = Join-Path $repoRoot "scripts\Testing\Test-SnapshotEngine.ps1"
+$phase9Pass = $false
+if (Test-Path $snapshotTestScript) {
+    & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $snapshotTestScript
+    if ($LASTEXITCODE -eq 0) {
+        $phase9Pass = $true
+        Write-OK "Fase 9 Aprobada: Motor de Instantáneas, SHA-256 y Rollback certificados."
+    } else {
+        $phase9Pass = $false
+        Write-ErrorMsg "Fase 9 Fallida: Se detectaron fallos en la batería de Snapshot Engine."
+    }
+} else {
+    Write-Warn "Script de pruebas de Snapshot Engine no encontrado en '$snapshotTestScript'."
+}
+$suiteResults.Add([PSCustomObject]@{ Phase = 9; Name = "Instantáneas y Rollback Engine"; Status = if ($phase9Pass) { "PASS" } else { "FAIL" } })
+
+# -----------------------------------------------------------------------------
+# FASE 10: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# -----------------------------------------------------------------------------
+$phase10Pass = $true
 if (-not $Quick) {
-    Write-StepHeader -StepNumber 9 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
+    Write-StepHeader -StepNumber 10 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
     $harnessCandidates = @(
         (Join-Path $repoRoot "scripts\Testing\Test-OptimizedISO-v2.ps1"),
         (Join-Path $repoRoot "scripts\Test-OptimizedISO-v2.ps1")
@@ -246,24 +266,24 @@ if (-not $Quick) {
     if ($harnessScript) {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $harnessScript -LogDir $LogDir
         if ($LASTEXITCODE -eq 0) {
-            $phase9Pass = $true
-            Write-OK "Fase 9 Aprobada: 140/140 pruebas del Test Harness superadas."
+            $phase10Pass = $true
+            Write-OK "Fase 10 Aprobada: 140/140 pruebas del Test Harness superadas."
         } else {
-            $phase9Pass = $false
-            Write-ErrorMsg "Fase 9 Fallida: Se detectaron aserciones fallidas en el Test Harness."
+            $phase10Pass = $false
+            Write-ErrorMsg "Fase 10 Fallida: Se detectaron aserciones fallidas en el Test Harness."
         }
     } else {
         Write-Warn "Test Harness no encontrado en '$harnessScript'."
-        $phase9Pass = $false
+        $phase10Pass = $false
     }
-    $suiteResults.Add([PSCustomObject]@{ Phase = 9; Name = "Test Harness Integral ISO v2"; Status = if ($phase9Pass) { "PASS" } else { "FAIL" } })
+    $suiteResults.Add([PSCustomObject]@{ Phase = 10; Name = "Test Harness Integral ISO v2"; Status = if ($phase10Pass) { "PASS" } else { "FAIL" } })
 }
 
 # -----------------------------------------------------------------------------
 # REPORTE CONSOLIDADO Y EVALUACION FINAL
 # -----------------------------------------------------------------------------
 $totalDuration = [math]::Round(((Get-Date) - $testSuiteStart).TotalSeconds, 1)
-$allSuccess = ($phase1Pass -and $phase2Pass -and $phase3Pass -and $phase4Pass -and $phase5Pass -and $phase6Pass -and $phase7Pass -and $phase8Pass -and $phase9Pass)
+$allSuccess = ($phase1Pass -and $phase2Pass -and $phase3Pass -and $phase4Pass -and $phase5Pass -and $phase6Pass -and $phase7Pass -and $phase8Pass -and $phase9Pass -and $phase10Pass)
 $overallStatus = if ($allSuccess) { "SUCCESS" } else { "FAILED" }
 
 try {

@@ -1,7 +1,7 @@
 # PLAN-0099: romanOS State Snapshot & Rollback Engine
 
 **Fecha:** 2026-09-21  
-**Estado:** PENDIENTE  
+**Estado:** COMPLETADO  
 **Autor:** Antigravity / romanOS Software Engineering  
 **Alcance:** Ecosistema Completo (Modules, GUI Control Center, Toolkit Maestro, ISO Builder, $OEM$, Testing Harness)
 
@@ -106,11 +106,12 @@ El motor se estructurará bajo un diseño híbrido de **alta velocidad y dos niv
 
 ## 4. Criterios de Aceptación y Validación
 
-- [ ] Creación de snapshot completa en menos de 5 segundos.
-- [ ] Huella de almacenamiento de snapshot ligero menor a 20 MB.
-- [ ] Verificación de integridad SHA-256 certificada al 100%.
-- [ ] Rollback diferencial exitoso restaurando directivas y servicios modificados.
-- [ ] Codificación UTF-8 con BOM estricta en todos los `.ps1` y ANSI No-BOM en `.cmd`.
-- [ ] Validación en frío en Windows PowerShell 5.1 (`powershell.exe -STA -NoProfile`).
-- [ ] Cero fallos silenciosos (CWE-390): todo bloque `catch` emite telemetría visible detallada.
-- [ ] 100% de pruebas aprobadas en `Test-SnapshotEngine.ps1` e integración limpia en `Invoke-TestSuite.ps1`.
+- [x] Creación de snapshot completa en menos de 5 segundos.
+- [x] Huella de almacenamiento de snapshot ligero menor a 20 MB.
+- [x] Verificación de integridad SHA-256 certificada al 100%.
+- [x] Rollback diferencial exitoso restaurando directivas y servicios modificados.
+- [x] Codificación UTF-8 con BOM estricta en todos los `.ps1` y ANSI No-BOM en `.cmd`.
+- [x] Validación en frío en Windows PowerShell 5.1 (`powershell.exe -STA -NoProfile`).
+- [x] Cero fallos silenciosos (CWE-390): todo bloque `catch` emite telemetría visible detallada.
+- [x] 100% de pruebas aprobadas en `Test-SnapshotEngine.ps1` e integración limpia en `Invoke-TestSuite.ps1`.
+

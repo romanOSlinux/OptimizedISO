@@ -361,6 +361,7 @@ function Resolve-ToolScript {
                                     <Button x:Name="btnQuickLatency" Content="Test Latencia DPC (µs)" Width="190" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
                                     <Button x:Name="btnQuickStorageAudit" Content="Auditar BypassIO &amp; Storage" Width="200" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
                                     <Button x:Name="btnQuickNetAudit" Content="Auditar Red NDIS &amp; UDP RSC" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnQuickSnapshot" Content="Crear Snapshot de Seguridad" Width="220" Margin="0,0,10,10" Background="#1E3A2F" BorderBrush="#00E676"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -446,6 +447,30 @@ function Resolve-ToolScript {
                                 <CheckBox x:Name="chkMaintSfc" Content="Verificacion y reparacion de archivos corruptos (SFC /scannow + RestoreHealth)" Foreground="#E3E3E3" IsChecked="False" FontSize="12" Margin="0,0,0,14"/>
 
                                 <Button x:Name="btnRunMaintenanceBatch" Content="Iniciar Saneamiento Seleccionado" Width="260" HorizontalAlignment="Left" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tarjeta romanOS Snapshot & Rollback Engine -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
+                            <StackPanel>
+                                <TextBlock Text="Instantaneas de Configuracion y Rollback (romanOS Snapshot Engine)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Captura el estado integro de directivas de registro, servicios y red antes de aplicar modificaciones, permitiendo una reversion atomica en segundos." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="130"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="cbxSnapshotsList" Grid.Column="0" Height="28" Background="#1E1E1E" Foreground="#FFFFFF" BorderBrush="#454545" VerticalContentAlignment="Center" Margin="0,0,10,0"/>
+                                    <Button x:Name="btnRefreshSnapshots" Grid.Column="1" Content="Actualizar Lista" Height="28"/>
+                                </Grid>
+
+                                <WrapPanel>
+                                    <Button x:Name="btnCreateSnapshotGUI" Content="Crear Instantanea (1-Clic)" Width="210" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnCreateVssPoint" Content="Crear Punto VSS (Windows)" Width="200" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnRestoreSnapshotGUI" Content="Restaurar Instantanea Seleccionada" Width="250" Margin="0,0,10,10" Background="#3E2723" BorderBrush="#FF5252" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnListSnapshotsCLI" Content="Ver Catalogo Completo" Width="180" Margin="0,0,10,10"/>
+                                </WrapPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -913,6 +938,77 @@ $window.FindName('btnRunMaintenanceBatch').Add_Click({
         Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" $argsStr -Unattended" -TaskTitle "Saneamiento de Sistema y WinSxS"
     }
 })
+
+# Manejadores de Eventos: romanOS Snapshot & Rollback Engine
+function Refresh-CCSnapshotsComboBox {
+    $cbx = $window.FindName('cbxSnapshotsList')
+    if ($cbx) {
+        $cbx.Items.Clear()
+        $snapDir = "$env:SystemDrive\romanOS-Snapshots"
+        if (Test-Path $snapDir) {
+            $snaps = Get-ChildItem -Path $snapDir -Directory -Filter "SNAP-*" | Sort-Object Name -Descending
+            foreach ($s in $snaps) {
+                $cbx.Items.Add($s.Name) | Out-Null
+            }
+            if ($cbx.Items.Count -gt 0) { $cbx.SelectedIndex = 0 }
+            else { $cbx.Items.Add("(Sin snapshots creados)") | Out-Null; $cbx.SelectedIndex = 0 }
+        } else {
+            $cbx.Items.Add("(Directorio de snapshots no inicializado)") | Out-Null
+            $cbx.SelectedIndex = 0
+        }
+    }
+}
+
+$window.FindName('btnQuickSnapshot').Add_Click({
+    $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Create -Name `"QuickSnapshot`" -Unattended" -TaskTitle "Creacion de Instantanea de Seguridad"
+    }
+})
+
+$window.FindName('btnCreateSnapshotGUI').Add_Click({
+    $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Create -Name `"ControlCenterSnapshot`" -Unattended" -TaskTitle "Creacion de Instantanea de Seguridad"
+    }
+})
+
+$window.FindName('btnCreateVssPoint').Add_Click({
+    $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action CreateVSS -Name `"ControlCenterVSS`" -Unattended" -TaskTitle "Creacion de Punto de Restauracion VSS"
+    }
+})
+
+$window.FindName('btnRestoreSnapshotGUI').Add_Click({
+    $cbx = $window.FindName('cbxSnapshotsList')
+    $selectedSnap = if ($cbx) { $cbx.SelectedItem } else { $null }
+    if (-not $selectedSnap -or $selectedSnap -match '^\(') {
+        [System.Windows.MessageBox]::Show("Por favor seleccione un snapshot valido de la lista.", "romanOS Control Center", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+        return
+    }
+    $res = [System.Windows.MessageBox]::Show("¿Esta seguro de que desea restaurar la configuracion del snapshot '$selectedSnap'?`r`n`r`nEsto revertira el estado del registro, servicios y red.", "romanOS Control Center - Confirmar Reversion", [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Question)
+    if ($res -eq [System.Windows.MessageBoxResult]::Yes) {
+        $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
+        if ($tool) {
+            Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Restore -SnapshotId `"$selectedSnap`" -Force" -TaskTitle "Restauracion Atomica de Snapshot"
+        }
+    }
+})
+
+$window.FindName('btnRefreshSnapshots').Add_Click({
+    Refresh-CCSnapshotsComboBox
+})
+
+$window.FindName('btnListSnapshotsCLI').Add_Click({
+    $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action List" -TaskTitle "Catalogo de Snapshots romanOS"
+    }
+})
+
+# Inicializar combo de snapshots
+Refresh-CCSnapshotsComboBox
 
 # --- Pestaña 4: Red ---
 $window.FindName('btnRunDnsBench').Add_Click({

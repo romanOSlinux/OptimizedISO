@@ -4634,6 +4634,23 @@ if (Test-Path $latencyTraceSrc) {
     Add-AuditRecord -Resource "Trace-SystemLatency" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$snapshotEngineSrc    = Join-Path $ScriptsDir "Modules\Manage-SystemSnapshots.ps1"
+$snapshotEngineCmdSrc = Join-Path $ScriptsDir "Modules\Manage-SystemSnapshots.cmd"
+if (Test-Path $snapshotEngineSrc) {
+    Copy-Item -Path $snapshotEngineSrc -Destination (Join-Path $OEMScriptsDir "Manage-SystemSnapshots.ps1") -Force
+    Copy-Item -Path $snapshotEngineSrc -Destination (Join-Path $OEMScriptsDir1 "Manage-SystemSnapshots.ps1") -Force
+    Copy-Item -Path $snapshotEngineSrc -Destination (Join-Path $destModulesDir "Manage-SystemSnapshots.ps1") -Force
+    Copy-Item -Path $snapshotEngineSrc -Destination (Join-Path $destModulesDir1 "Manage-SystemSnapshots.ps1") -Force
+    if (Test-Path $snapshotEngineCmdSrc) {
+        Copy-Item -Path $snapshotEngineCmdSrc -Destination (Join-Path $OEMScriptsDir "Manage-SystemSnapshots.cmd") -Force
+        Copy-Item -Path $snapshotEngineCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Manage-SystemSnapshots.cmd") -Force
+        Copy-Item -Path $snapshotEngineCmdSrc -Destination (Join-Path $destModulesDir "Manage-SystemSnapshots.cmd") -Force
+        Copy-Item -Path $snapshotEngineCmdSrc -Destination (Join-Path $destModulesDir1 "Manage-SystemSnapshots.cmd") -Force
+    }
+    Write-OK "Motor de Instantaneas y Rollback (Manage-SystemSnapshots) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Manage-SystemSnapshots" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
 $ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
 $ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"
