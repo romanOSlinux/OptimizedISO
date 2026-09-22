@@ -25,9 +25,10 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps")]
+    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling")]
     [string]$Module,
     [string]$AppProfile,
+    [string]$ThermalAction = 'Status',
     [switch]$ShowDashboards,
     [switch]$GUI,
     [switch]$Snapshot
@@ -327,6 +328,24 @@ function Invoke-AppProfilesModule {
     }
 }
 
+function Invoke-ThermalModule {
+    param(
+        [string]$Action = "Status",
+        [string]$EnergyProfile = "Ultimate"
+    )
+    $scriptFile = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando romanOS Thermal & Energy Profiler"
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptFile, '-Action', $Action)
+        if ($Action -eq 'CalibrateEnergy') { $argList += @('-EnergyProfile', $EnergyProfile) }
+        if ($WhatIfPreference -or $PSBoundParameters.ContainsKey('WhatIf')) { $argList += '-WhatIf' }
+        & powershell.exe @argList
+    } else {
+        Write-ErrorMsg "No se encontro Monitor-ThermalEnergy.ps1"
+        pause
+    }
+}
+
 function Invoke-GameDevSwitchModule {
     param(
         [string]$TargetMode = "Status",
@@ -553,7 +572,8 @@ function Show-QuickActionsMenu {
         "Conmutador Modo Juego / Modo Dev (Cortar Devoradores de Recursos / Hyper-V)",
         "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)",
         "Crear Instantanea de Seguridad (romanOS Snapshot Engine)",
-        "Gestor de Perfiles de Software y Runtimes de IA (Deploy-AppProfiles)"
+        "Gestor de Perfiles de Software y Runtimes de IA (Deploy-AppProfiles)",
+        "Monitor de Throttling Termico y Calibrador Energetico (Monitor-ThermalEnergy)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -712,6 +732,10 @@ function Show-QuickActionsMenu {
             Invoke-AppProfilesModule -AutoDetectHardware
             pause
         }
+        20 {
+            Invoke-ThermalModule -Action "Status"
+            pause
+        }
         default { return }
     }
 
@@ -749,6 +773,9 @@ if ($Module) {
         "AppProfiles"   { Invoke-AppProfilesModule -ProfileName $AppProfile -AutoDetectHardware; exit }
         "AIProfiles"    { Invoke-AppProfilesModule -ProfileName "AIAndDeveloper" -AutoDetectHardware; exit }
         "Apps"          { Invoke-AppProfilesModule -ProfileName $AppProfile -AutoDetectHardware; exit }
+        "Thermal"       { Invoke-ThermalModule -Action $ThermalAction; exit }
+        "Energy"        { Invoke-ThermalModule -Action $ThermalAction; exit }
+        "Throttling"    { Invoke-ThermalModule -Action $ThermalAction; exit }
         "QuickActions"    { Show-QuickActionsMenu; exit }
         "GamingApps"      { Invoke-GamingAndAppsModule; exit }
         "LatencyProfiler" { Invoke-LatencyTraceModule; exit }
@@ -803,6 +830,7 @@ $mainMenuOpts = @(
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)",
     "romanOS Snapshot & Rollback Engine (Crear/Restaurar Instantaneas de Sistema)",
     "Gestor de Perfiles de Software y Runtimes de IA (Deploy-AppProfiles)",
+    "Monitor de Throttling Termico y Calibrador Energetico (Monitor-ThermalEnergy)",
     "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
 )
 
@@ -830,7 +858,8 @@ while ($true) {
         17 { Show-QuickActionsMenu; pause }
         18 { Invoke-SnapshotModule -Action "List"; pause }
         19 { Invoke-AppProfilesModule -AutoDetectHardware; pause }
-        20 { Invoke-ControlCenterGUI; pause }
+        20 { Invoke-ThermalModule -Action "Status"; pause }
+        21 { Invoke-ControlCenterGUI; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

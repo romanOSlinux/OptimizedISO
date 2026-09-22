@@ -1,7 +1,7 @@
 # PLAN-0101: romanOS Thermal Throttling Monitor & Energy Profiler
 
 **Fecha:** 2026-09-22  
-**Estado:** PENDIENTE  
+**Estado:** COMPLETADO  
 **Autor:** Antigravity / romanOS Software Engineering  
 **Alcance:** Ecosistema Completo (Core, Modules, GUI Control Center, Toolkit Maestro, ISO Builder, $OEM$, Testing Harness)
 
@@ -83,9 +83,9 @@ Construir una herramienta nativa, ligera (< 15 KB), desacoplada y 100% libre de 
 
 ## 4. Criterios de Aceptación y Validación
 
-- [ ] Sintaxis y codificación UTF-8 con BOM en todos los `.ps1` y ANSI No-BOM en `.cmd`.
-- [ ] Ejecución en frío verificada en Windows PowerShell 5.1 (`powershell.exe -STA -NoProfile`).
-- [ ] Cero fallos silenciosos (CWE-390): Detección resiliente con telemetría visible si los sensores ACPI del fabricante no exponen temperaturas por WMI genérico.
-- [ ] 100% de compatibilidad anti-cheat (cero drivers no firmados o kernel hooks invasivos).
-- [ ] 100% de aserciones aprobadas en `Test-ThermalEnergyMonitor.ps1`.
-- [ ] 11/11 fases aprobadas en `Invoke-TestSuite.ps1`.
+- [x] Sintaxis y codificación UTF-8 con BOM en todos los `.ps1` y ANSI No-BOM en `.cmd`.
+- [x] Ejecución en frío verificada en Windows PowerShell 5.1 (`powershell.exe -STA -NoProfile`).
+- [x] Cero fallos silenciosos (CWE-390): Detección resiliente con telemetría visible si los sensores ACPI del fabricante no exponen temperaturas por WMI genérico.
+- [x] 100% de compatibilidad anti-cheat (cero drivers no firmados o kernel hooks invasivos).
+- [x] 100% de aserciones aprobadas en `Test-ThermalEnergyMonitor.ps1` (12/12 PASS en 8.94s).
+- [x] 11/11 fases aprobadas en `Invoke-TestSuite.ps1` (47.7s, 0 errores, 0 advertencias).

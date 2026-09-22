@@ -21,9 +21,10 @@ Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros
 | **`Get-EssentialRuntimes.ps1`** | *(Ejecutar en PS Admin)* | Descarga de paquetes redistribuibles (VC++, DirectX, .NET) | `-DownloadDir`, `-SkipDirectX`, `-SkipDotNet` |
 | **`New-TestVM-HyperV.ps1`** | *(Ejecutar en PS Admin)* | Despliegue automatizado de VM de prueba en Hyper-V (Gen 2) | `-ISOPath`, `-MemoryGB`, `-CPUCount`, `-DiskSizeGB` |
 | **`Test-OptimizedISO-v2.ps1`** | *(Ejecutar en PS Admin)* | Suite de pruebas unitarias y validación del compilador | `-LogDir`, `-TargetScript` |
-| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (10 Fases) | `-Quick`, `-LogDir` |
+| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (11 Fases) | `-Quick`, `-LogDir` |
 | **`Manage-SystemSnapshots.ps1`** | `Manage-SystemSnapshots.cmd` | Motor de Instantáneas y Reversión Atómica (Snapshot & Rollback) | `-Action`, `-Name`, `-SnapshotId`, `-IncludeVSS`, `-Force` |
 | **`Deploy-AppProfiles.ps1`** | `Deploy-AppProfiles.cmd` | Gestor de Perfiles de Software, Winget y Runtimes de IA por Hardware | `-Profile`, `-InstallRuntimesOnly`, `-AutoDetectHardware`, `-Unattended`, `-WhatIf` |
+| **`Monitor-ThermalEnergy.ps1`** | `Monitor-ThermalEnergy.cmd` | Monitor de Throttling Térmico, Sensores y Calibración Energética | `-Action`, `-SampleDurationSec`, `-EnergyProfile`, `-Unattended`, `-WhatIf` |
 | **`Setup-AntigravityWindows.ps1`** | `Setup-AntigravityWindows.cmd` | Inicializador de entorno, dependencias winget y skills de Antigravity | `-InstallPrerequisites`, `-EnableHyperV`, `-SetExecutionPolicy`, `-CheckOnly` |
 | **`Limpiar-ResiduosWinISO.ps1`** | *(Ejecutar en PS Admin)* | Limpieza profunda de montajes DISM bloqueados, temporales y colmenas | `-ScanOnly`, `-Force`, `-Silent` |
 
@@ -466,6 +467,29 @@ Orquesta la instalación silenciosa de paquetes curados mediante `winget.exe`, r
 
 # 4. Simular instalación para auditoría previa (-WhatIf)
 & "C:\OptimizedISO\scripts\Modules\Deploy-AppProfiles.ps1" -Profile EsportsGamer -AutoDetectHardware -WhatIf
+```
+
+---
+
+## 16. Monitor Térmico, Detección de Throttling y Calibrador Energético: `Monitor-ThermalEnergy.ps1`
+
+Herramienta nativa y 100% segura contra anti-cheats (cero drivers invasivos) para auditar el estado térmico, detectar caídas de frecuencia por estrangulamiento térmico o límites de potencia, y calibrar el plan de energía *Ultimate Performance* con *Core Unparking* (des-estacionamiento de núcleos) para eliminar micro-stuttering.
+
+```powershell
+# 1. Auditoría forense rápida en una sola línea (ideal para scripts y telemetría)
+& "C:\OptimizedISO\scripts\Modules\Monitor-ThermalEnergy.ps1" -Action Audit
+
+# 2. Diagnóstico integral en pantalla (frecuencias CPU, sensores ACPI, plan activo)
+& "C:\OptimizedISO\scripts\Modules\Monitor-ThermalEnergy.ps1" -Action Status
+
+# 3. Muestreo dinámico en vivo durante 15 segundos con detección de Throttling
+& "C:\OptimizedISO\scripts\Modules\Monitor-ThermalEnergy.ps1" -Action Monitor -SampleDurationSec 15
+
+# 4. Calibrar energía a 'Ultimate Performance' y des-estacionar núcleos (Core Unparking)
+& "C:\OptimizedISO\scripts\Modules\Monitor-ThermalEnergy.ps1" -Action CalibrateEnergy -EnergyProfile Ultimate -Unattended
+
+# 5. Des-estacionar núcleos exclusivamente para reducir latencia de hilos de juego
+& "C:\OptimizedISO\scripts\Modules\Monitor-ThermalEnergy.ps1" -Action UnparkCores -Unattended
 ```
 
 ---

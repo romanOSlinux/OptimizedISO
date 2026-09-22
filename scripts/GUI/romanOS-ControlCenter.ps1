@@ -418,6 +418,19 @@ function Resolve-ToolScript {
                             </StackPanel>
                         </Border>
 
+                        <!-- Thermal & Energy Profiler -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="romanOS Thermal &amp; Energy Profiler (Throttling Shield &amp; Core Unparking)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Diagnostico forense de estrangulamiento termico/energetico (PROCHOT / Clock Stretching), calibracion de energia y des-estacionamiento de nucleos." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <Button x:Name="btnAuditThermal" Content="Auditar Estado Termico &amp; Throttling" Width="260" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnLiveThermalMonitor" Content="Monitoreo en Vivo (5s)" Width="190" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnCalibrateUltimateEnergy" Content="Calibrar Maximo Rendimiento (Core Unpark)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Optimizaciones Gaming Adicionales -->
                         <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
                             <StackPanel>
@@ -956,6 +969,22 @@ $window.FindName('btnRunGamingApps').Add_Click({
 $window.FindName('btnRunLatencyProfiler').Add_Click({
     $tool = Resolve-ToolScript "Trace-SystemLatency.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -DurationSeconds 5" -TaskTitle "Profiler Forense de Latencia DPC/ISR en Vivo" }
+})
+
+# Thermal & Energy Profiler Handlers
+$window.FindName('btnAuditThermal').Add_Click({
+    $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status -SkipElevation" -TaskTitle "Auditoria Termica y de Throttling" }
+})
+
+$window.FindName('btnLiveThermalMonitor').Add_Click({
+    $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Monitor -SampleDurationSec 5 -SkipElevation" -TaskTitle "Monitoreo Termico en Vivo (5s)" }
+})
+
+$window.FindName('btnCalibrateUltimateEnergy').Add_Click({
+    $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action CalibrateEnergy -EnergyProfile Ultimate -Unattended" -TaskTitle "Calibracion Energetica & Core Unparking" }
 })
 
 # --- Pestaña 3: Mantenimiento ---

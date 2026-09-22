@@ -41,6 +41,7 @@ Al arrancar un PC desde la ISO generada por este proyecto, ocurre lo siguiente *
 | `Switch-GameDevMode.cmd` | `scripts/Modules/` | Conmutador bimodal: alterna entre Modo Juego agresivo (libera RAM) y Modo Dev (Hyper-V/WSL2) |
 | `Manage-SystemSnapshots.cmd` | `scripts/Modules/` | Motor de Instantáneas y Rollback atómico de configuración (registro, servicios, red y VSS) |
 | `Deploy-AppProfiles.cmd` | `scripts/Modules/` | Gestor de Perfiles de Software, Winget desatendido y Runtimes de IA local por hardware |
+| `Monitor-ThermalEnergy.cmd` | `scripts/Modules/` | Monitor de throttling térmico en tiempo real, calibración energética (Core Unparking) y salud de CPU/GPU |
 | `Win11-Network-Diagnostics-Optimizer.ps1` | `scripts/Modules/` | Diagnóstico de latencia, benchmarks DNS y ajuste fino TCP/IP |
 
 ---

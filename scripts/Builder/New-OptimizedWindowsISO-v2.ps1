@@ -4668,6 +4668,23 @@ if (Test-Path $appProfilesSrc) {
     Add-AuditRecord -Resource "Deploy-AppProfiles" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$thermalEnergySrc    = Join-Path $ScriptsDir "Modules\Monitor-ThermalEnergy.ps1"
+$thermalEnergyCmdSrc = Join-Path $ScriptsDir "Modules\Monitor-ThermalEnergy.cmd"
+if (Test-Path $thermalEnergySrc) {
+    Copy-Item -Path $thermalEnergySrc -Destination (Join-Path $OEMScriptsDir "Monitor-ThermalEnergy.ps1") -Force
+    Copy-Item -Path $thermalEnergySrc -Destination (Join-Path $OEMScriptsDir1 "Monitor-ThermalEnergy.ps1") -Force
+    Copy-Item -Path $thermalEnergySrc -Destination (Join-Path $destModulesDir "Monitor-ThermalEnergy.ps1") -Force
+    Copy-Item -Path $thermalEnergySrc -Destination (Join-Path $destModulesDir1 "Monitor-ThermalEnergy.ps1") -Force
+    if (Test-Path $thermalEnergyCmdSrc) {
+        Copy-Item -Path $thermalEnergyCmdSrc -Destination (Join-Path $OEMScriptsDir "Monitor-ThermalEnergy.cmd") -Force
+        Copy-Item -Path $thermalEnergyCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Monitor-ThermalEnergy.cmd") -Force
+        Copy-Item -Path $thermalEnergyCmdSrc -Destination (Join-Path $destModulesDir "Monitor-ThermalEnergy.cmd") -Force
+        Copy-Item -Path $thermalEnergyCmdSrc -Destination (Join-Path $destModulesDir1 "Monitor-ThermalEnergy.cmd") -Force
+    }
+    Write-OK "Monitor de Throttling Termico y Calibrador Energetico (Monitor-ThermalEnergy) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Monitor-ThermalEnergy" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
 $ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
 $ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"
@@ -7249,6 +7266,19 @@ if ($wimFile) {
                           }
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Deploy-AppProfiles.ps1 y .cmd"
                           Add-AuditRecord -Resource "Deploy-AppProfiles" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
+                      }
+
+                      $thermalEnergySrc    = Join-Path $ScriptsDir "Modules\Monitor-ThermalEnergy.ps1"
+                      $thermalEnergyCmdSrc = Join-Path $ScriptsDir "Modules\Monitor-ThermalEnergy.cmd"
+                      if (Test-Path $thermalEnergySrc) {
+                          Copy-Item -Path $thermalEnergySrc -Destination (Join-Path $wimScriptsDir "Monitor-ThermalEnergy.ps1") -Force
+                          Copy-Item -Path $thermalEnergySrc -Destination (Join-Path $wimModulesDest "Monitor-ThermalEnergy.ps1") -Force
+                          if (Test-Path $thermalEnergyCmdSrc) {
+                              Copy-Item -Path $thermalEnergyCmdSrc -Destination (Join-Path $wimScriptsDir "Monitor-ThermalEnergy.cmd") -Force
+                              Copy-Item -Path $thermalEnergyCmdSrc -Destination (Join-Path $wimModulesDest "Monitor-ThermalEnergy.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Monitor-ThermalEnergy.ps1 y .cmd"
+                          Add-AuditRecord -Resource "Monitor-ThermalEnergy" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
                       }
 
                       $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
