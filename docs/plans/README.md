@@ -114,6 +114,8 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0096 | [PLAN-0096-20260921-auditoria-seguridad-anticheat-y-persistencia-registro.md](PLAN-0096-20260921-auditoria-seguridad-anticheat-y-persistencia-registro.md) | 2026-09-21 | Auditoría Forense de Ciberseguridad, Compatibilidad con Anti-Cheats y Persistencia Dinámica de Registro | COMPLETADO |
 | 0097 | [PLAN-0097-20260921-auditoria-latencia-kernel-dpc-isr-msi-timer.md](PLAN-0097-20260921-auditoria-latencia-kernel-dpc-isr-msi-timer.md) | 2026-09-21 | Auditoría Forense de Latencia de Kernel (DPC/ISR), Topología de Interrupciones MSI y Timer Resolution | COMPLETADO |
 | 0098 | [PLAN-0098-20260921-arquitectura-unificada-rendimiento-storage-red-cpu-memoria.md](PLAN-0098-20260921-arquitectura-unificada-rendimiento-storage-red-cpu-memoria.md) | 2026-09-21 | romanOS Unified Performance Architecture (RUPA 2026): Almacenamiento DirectStorage/BypassIO, Red NDIS URO, Scheduling CPU Heterogéneo y Memoria Escalonada | COMPLETADO |
+| 0099 | [PLAN-0099-20260921-snapshot-and-rollback-engine.md](PLAN-0099-20260921-snapshot-and-rollback-engine.md) | 2026-09-21 | romanOS State Snapshot & Rollback Engine: Motor de Instantáneas Transaccionales, Puntos de Restauración y Reversión Atómica | PENDIENTE |
+
 
 
 
