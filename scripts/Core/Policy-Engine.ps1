@@ -856,6 +856,49 @@ $global:RomanOS_Policies = @(
         OfficialDoc   = "https://learn.microsoft.com/windows/win32/fileio/maximum-file-path-limitation"
         UnattendDesc  = "Enable Win32 Long Paths Support (>260 characters)"
     },
+    @{
+        Id            = "POL_FS_DISABLE_LASTACCESS"
+        Module        = "Almacenamiento - NTFS"
+        Category      = "Rendimiento & Almacenamiento"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem"
+        ValueName     = "NtfsDisableLastAccessUpdate"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Deshabilitar actualizacion de marcas de tiempo de acceso NTFS para reducir escrituras innecesarias en NVMe/SSDs"
+        OfficialDoc   = "https://learn.microsoft.com/windows-server/administration/windows-commands/fsutil-behavior"
+        UnattendDesc  = "Disable NTFS Last Access Time Updates"
+    },
+    # --- MÓDULO F1.1: GESTIÓN DE MEMORIA Y SUBSISTEMA DE KERNEL ---
+    @{
+        Id            = "POL_MEM_DISABLE_PAGING_EXECUTIVE"
+        Module        = "Memoria - Kernel Management"
+        Category      = "Rendimiento & Latencia"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
+        ValueName     = "DisablePagingExecutive"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Forzar que el codigo del kernel y controladores residan en RAM fisica sin paginar a disco, eliminando micro-congelamientos"
+        OfficialDoc   = "https://learn.microsoft.com/windows-hardware/drivers/kernel/memory-management-registry-keys"
+        UnattendDesc  = "Disable Paging Executive (Lock Kernel Drivers in Physical RAM)"
+    },
+    @{
+        Id            = "POL_MEM_LARGE_SYSTEM_CACHE"
+        Module        = "Memoria - Kernel Management"
+        Category      = "Rendimiento & Latencia"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
+        ValueName     = "LargeSystemCache"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Optimizar tamano de cache del sistema de archivos para maximizar I/O en sistemas con abundante RAM (>16 GB)"
+        OfficialDoc   = "https://learn.microsoft.com/windows-hardware/drivers/kernel/memory-management-registry-keys"
+        UnattendDesc  = "Enable Large System Cache for High-Memory Systems"
+    },
     # --- MÓDULO F2: PERSONALIZACIÓN VISUAL Y MODO OSCURO (THEMES) ---
     @{
         Id            = "POL_THEME_INSTALL_THEME"
@@ -2534,6 +2577,16 @@ $global:RomanOS_NetworkPolicies = @(
         Description   = "Desactivar RSC (Receive Segment Coalescing) para menor jitter."
     },
     @{
+        Id            = "NET_NIC_ENABLE_UDPRSC"
+        Category      = "Hardware NIC"
+        ActionType    = "NetAdapter_AdvancedProp"
+        RegistryKeyword = "*UdpRsc"
+        RegistryValue   = "1"
+        DisplayMatch    = "UDP RSC|UDP Receive Segment Coalescing|URO"
+        DisplayValue    = "Enabled"
+        Description   = "UDP RSC / URO (Receive Segment Coalescing Offload) habilitado por hardware para reducir la sobrecarga de CPU en juegos competitivos y streaming (NDIS 6.85+)."
+    },
+    @{
         Id            = "NET_NIC_DISABLE_INTMOD"
         Category      = "Hardware NIC"
         ActionType    = "NetAdapter_AdvancedProp"
@@ -2941,5 +2994,131 @@ function Apply-RomanOSDriverPolicies {
         Failed  = $failCount
     }
 }
+
+function Get-RomanOSStoragePolicies {
+    <#
+    .SYNOPSIS
+        Retorna las directivas de almacenamiento del sistema (NTFS, TRIM, BypassIO).
+    #>
+    [CmdletBinding()]
+    param()
+
+    return @($global:RomanOS_Policies | Where-Object { 
+        $_.Module -like "*Almacenamiento*" -or $_.Category -like "*Almacenamiento*" 
+    })
+}
+
+function Get-RomanOSNetworkPolicies {
+    <#
+    .SYNOPSIS
+        Retorna las directivas oficiales de red, TCP y hardware NIC.
+    #>
+    [CmdletBinding()]
+    param()
+
+    return @($global:RomanOS_NetworkPolicies)
+}
+
+function Get-RomanOSMemoryPolicies {
+    <#
+    .SYNOPSIS
+        Retorna las directivas de memoria física, paginado de kernel y MMAgent.
+    #>
+    [CmdletBinding()]
+    param()
+
+    return @($global:RomanOS_Policies | Where-Object { 
+        $_.Module -like "*Memoria*" -or $_.Id -like "POL_MEM_*" 
+    })
+}
+
+function Get-RomanOSProcessorPolicies {
+    <#
+    .SYNOPSIS
+        Retorna las directivas de programación de procesador y separación Win32.
+    #>
+    [CmdletBinding()]
+    param()
+
+    return @($global:RomanOS_Policies | Where-Object { 
+        $_.Id -like "*SCHED*" -or $_.Id -like "*CPU*" -or $_.Id -like "*PRIORITY*" 
+    })
+}
+
+function Apply-RomanOSTieredMemoryPolicy {
+    <#
+    .SYNOPSIS
+        Aplica la directiva de memoria escalonada adaptativa según el nivel de RAM física.
+    .PARAMETER RamGigabytes
+        Cantidad de memoria RAM en GB. Si se omite, se detecta automáticamente.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [double]$RamGigabytes = 0,
+        [switch]$VerboseOutput
+    )
+
+    if ($RamGigabytes -le 0) {
+        try {
+            $cs = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop
+            $totalBytes = $cs.TotalPhysicalMemory
+            $RamGigabytes = [math]::Round($totalBytes / 1GB, 1)
+        } catch {
+            Write-Warning "No se pudo consultar Win32_ComputerSystem: $($_.Exception.Message). Asumiendo 16 GB."
+            $RamGigabytes = 16.0
+        }
+    }
+
+    $tier = if ($RamGigabytes -lt 8.0) { "Low" } elseif ($RamGigabytes -le 16.0) { "Balanced" } else { "Enthusiast" }
+    
+    if ($VerboseOutput) {
+        Write-Host "  [INFO] romanOS Memory Tiering: $tier ($RamGigabytes GB RAM)" -ForegroundColor Cyan
+    }
+
+    $applied = 0
+    $failed = 0
+
+    if ($PSCmdlet.ShouldProcess("Sistema (RAM: $RamGigabytes GB, Tier: $tier)", "Aplicar directiva escalonada de memoria")) {
+        try {
+            # 1. Paging Executive: Bloquear kernel en RAM para Balanced y Enthusiast
+            $disablePaging = if ($tier -eq "Low") { 0 } else { 1 }
+            & reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "DisablePagingExecutive" /t REG_DWORD /d $disablePaging /f 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) { $applied++ } else { $failed++ }
+
+            # 2. LargeSystemCache: Habilitar en Enthusiast (>16GB)
+            $largeCache = if ($tier -eq "Enthusiast") { 1 } else { 0 }
+            & reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "LargeSystemCache" /t REG_DWORD /d $largeCache /f 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) { $applied++ } else { $failed++ }
+
+            # 3. MMAgent: Memory Compression & Page Combining
+            if (Get-Command -Name "Get-MMAgent" -ErrorAction SilentlyContinue) {
+                try {
+                    if ($tier -eq "Low") {
+                        Enable-MMAgent -MemoryCompression -PageCombining -ErrorAction Stop | Out-Null
+                    } elseif ($tier -eq "Balanced") {
+                        Enable-MMAgent -MemoryCompression -ErrorAction Stop | Out-Null
+                    } else {
+                        Disable-MMAgent -MemoryCompression -PageCombining -ErrorAction Stop | Out-Null
+                    }
+                    $applied++
+                } catch {
+                    Write-Warning "Fallo al configurar MMAgent: $($_.Exception.Message)"
+                    $failed++
+                }
+            }
+        } catch {
+            Write-Warning "Fallo al aplicar política escalonada de memoria: $($_.Exception.Message)"
+            $failed++
+        }
+    }
+
+    return [PSCustomObject]@{
+        Tier         = $tier
+        RamGigabytes = $RamGigabytes
+        Applied      = $applied
+        Failed       = $failed
+    }
+}
+
 
 

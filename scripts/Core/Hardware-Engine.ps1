@@ -1044,3 +1044,209 @@ function Resolve-SystemBinary {
     return $BinaryName
 }
 
+# -----------------------------------------------------------------------------
+# FUNCIONES AVANZADAS RUPA 2026: BypassIO, Red NDIS y Memoria Escalonada
+# -----------------------------------------------------------------------------
+
+function Test-RomanOSBypassIoState {
+    <#
+    .SYNOPSIS
+        Evalua el estado de BypassIO para DirectStorage 1.2+ en el volumen especificado.
+    .PARAMETER VolumePath
+        Ruta o letra de unidad a evaluar (ej: "C:\"). Por defecto usa SystemDrive.
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$VolumePath
+    )
+
+    if (-not $VolumePath) {
+        $VolumePath = if ($env:SystemDrive) { "$($env:SystemDrive)\" } else { "C:\" }
+    }
+
+    $res = [PSCustomObject]@{
+        VolumePath           = $VolumePath
+        IsSupported          = $false
+        StatusReason         = "No evaluado"
+        BlockingMinifilters  = @()
+        BitLockerCompatible  = $true
+        RawOutput            = ""
+    }
+
+    $fsutilPath = Resolve-SystemBinary -BinaryName "fsutil.exe"
+    if (Test-Path $fsutilPath) {
+        try {
+            $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+            $pinfo.FileName = $fsutilPath
+            $pinfo.Arguments = "bypassIo state /v `"$VolumePath`""
+            $pinfo.RedirectStandardOutput = $true
+            $pinfo.RedirectStandardError = $true
+            $pinfo.UseShellExecute = $false
+            $pinfo.CreateNoWindow = $true
+
+            $proc = [System.Diagnostics.Process]::Start($pinfo)
+            $stdout = $proc.StandardOutput.ReadToEnd()
+            $stderr = $proc.StandardError.ReadToEnd()
+            $proc.WaitForExit(5000) | Out-Null
+
+            $combined = ($stdout + "`n" + $stderr).Trim()
+            $res.RawOutput = $combined
+
+            if ($combined -match 'BypassIo is supported' -or $combined -match 'BypassIo is enabled') {
+                $res.IsSupported = $true
+                $res.StatusReason = "BypassIO Soportado y Activo"
+            } elseif ($combined -match 'Acceso denegado' -or $combined -match 'Access is denied' -or $proc.ExitCode -eq 5) {
+                $res.StatusReason = "Requiere elevacion de Administrador para consultar fsutil"
+            } else {
+                if ($combined -match 'Reason:\s*(.+)') {
+                    $res.StatusReason = $matches[1].Trim()
+                } else {
+                    $res.StatusReason = "BypassIO no habilitado en el volumen"
+                }
+
+                $lines = $combined -split "`r?`n"
+                $filtersFound = [System.Collections.Generic.List[string]]::new()
+                foreach ($line in $lines) {
+                    if ($line -match 'Driver:\s*([a-zA-Z0-9_\-\.]+)') {
+                        $filtersFound.Add($matches[1].Trim())
+                    }
+                }
+                $res.BlockingMinifilters = @($filtersFound)
+            }
+        } catch {
+            Write-Warning "[Hardware-Engine] Error ejecutando fsutil bypassIo: $($_.Exception.Message)"
+            $res.StatusReason = "Excepcion al invocar fsutil: $($_.Exception.Message)"
+        }
+    } else {
+        $res.StatusReason = "fsutil.exe no encontrado en el sistema"
+    }
+
+    return $res
+}
+
+function Get-RomanOSNetworkOffloadCaps {
+    <#
+    .SYNOPSIS
+        Audita las capacidades de descarga por hardware (UDP RSC/URO, RSS, Checksums) de los adaptadores de red.
+    #>
+    [CmdletBinding()]
+    param()
+
+    $results = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    try {
+        $adapters = Get-NetAdapter -ErrorAction Stop | Where-Object { $_.HardwareInterface -eq $true -and $_.Status -ne 'Disabled' }
+        foreach ($nic in $adapters) {
+            $nicName = $nic.Name
+            $desc = $nic.InterfaceDescription
+            
+            $hasUdpRsc = $false
+            $udpRscVal = "N/A"
+            $hasRsc = $false
+            $hasRss = $false
+            $rssQueues = 0
+            $intMod = "N/A"
+            $flowCtrl = "N/A"
+
+            try {
+                $advProps = Get-NetAdapterAdvancedProperty -Name $nicName -ErrorAction SilentlyContinue
+                if ($advProps) {
+                    foreach ($prop in $advProps) {
+                        if ($prop.RegistryKeyword -eq "*UdpRsc") {
+                            $hasUdpRsc = $true
+                            $udpRscVal = if ($prop.RegistryValue -contains "1") { "Enabled" } else { "Disabled" }
+                        }
+                        if ($prop.RegistryKeyword -match '\*Rsc') {
+                            $hasRsc = $true
+                        }
+                        if ($prop.RegistryKeyword -eq "*InterruptModeration") {
+                            $intMod = if ($prop.RegistryValue -contains "0") { "Disabled" } else { "Enabled" }
+                        }
+                        if ($prop.RegistryKeyword -eq "*FlowControl") {
+                            $flowCtrl = if ($prop.RegistryValue -contains "0") { "Disabled" } else { "Enabled" }
+                        }
+                    }
+                }
+            } catch {
+                Write-Warning "[Hardware-Engine] No se pudieron leer propiedades avanzadas de '$nicName': $($_.Exception.Message)"
+            }
+
+            try {
+                $rss = Get-NetAdapterRss -Name $nicName -ErrorAction SilentlyContinue
+                if ($rss) {
+                    $hasRss = ($rss.Enabled -eq $true)
+                    $rssQueues = $rss.NumberOfReceiveQueues
+                }
+            } catch {
+                Write-Warning "[Hardware-Engine] No se pudo leer RSS de '$nicName': $($_.Exception.Message)"
+            }
+
+            $results.Add([PSCustomObject]@{
+                Name                = $nicName
+                InterfaceDesc       = $desc
+                Status              = $nic.Status
+                LinkSpeed           = $nic.LinkSpeed
+                SupportsUdpRsc      = $hasUdpRsc
+                UdpRscState         = $udpRscVal
+                SupportsRsc         = $hasRsc
+                SupportsRss         = $hasRss
+                RssQueues           = $rssQueues
+                InterruptModeration = $intMod
+                FlowControl         = $flowCtrl
+            })
+        }
+    } catch {
+        Write-Warning "[Hardware-Engine] Error obteniendo adaptadores de red: $($_.Exception.Message)"
+    }
+
+    return ,$results.ToArray()
+}
+
+function Get-RomanOSMemoryTier {
+    <#
+    .SYNOPSIS
+        Clasifica la memoria RAM fisica en tiers (Low, Balanced, Enthusiast) y prescribe ajustes optimos.
+    #>
+    [CmdletBinding()]
+    param(
+        [double]$RamGiB = 0
+    )
+
+    if ($RamGiB -le 0) {
+        try {
+            $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop
+            $RamGiB = [math]::Round($cs.TotalPhysicalMemory / 1GB, 1)
+        } catch {
+            Write-Warning "[Hardware-Engine] Error leyendo Win32_ComputerSystem: $($_.Exception.Message)"
+            $RamGiB = 16.0
+        }
+    }
+
+    $tier = if ($RamGiB -lt 8.0) {
+        "Low"
+    } elseif ($RamGiB -le 16.0) {
+        "Balanced"
+    } else {
+        "Enthusiast"
+    }
+
+    $recommended = [PSCustomObject]@{
+        Tier                   = $tier
+        TotalGiB               = $RamGiB
+        DisablePagingExecutive = if ($tier -eq "Low") { 0 } else { 1 }
+        LargeSystemCache       = if ($tier -eq "Enthusiast") { 1 } else { 0 }
+        MemoryCompression      = if ($tier -eq "Enthusiast") { $false } else { $true }
+        PageCombining          = if ($tier -eq "Low") { $true } else { $false }
+        Rationale              = if ($tier -eq "Low") {
+            "RAM reducida (<8GB): compresion y combinacion activas para prevenir fallos duros de pagina (OOM)"
+        } elseif ($tier -eq "Balanced") {
+            "RAM equilibrada (8-16GB): kernel bloqueado en RAM fisica sin paginado para eliminar micro-stutters"
+        } else {
+            "RAM abundante (>16GB): compresion de memoria desactivada para reducir latencia DPC y consumo de ciclos de CPU"
+        }
+    }
+
+    return $recommended
+}
+
+

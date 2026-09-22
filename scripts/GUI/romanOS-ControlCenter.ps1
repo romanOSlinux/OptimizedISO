@@ -169,7 +169,9 @@ if ($repoScriptsRoot -and (Test-Path $repoScriptsRoot)) {
         $script:searchDirs += @(
             (Join-Path $parentOfScripts "scripts\Modules"),
             (Join-Path $parentOfScripts "scripts\Drivers"),
-            (Join-Path $parentOfScripts "scripts\Builder")
+            (Join-Path $parentOfScripts "scripts\Builder"),
+            (Join-Path $parentOfScripts "scripts\Core"),
+            (Join-Path $parentOfScripts "scripts\Testing")
         )
     }
 }
@@ -179,10 +181,14 @@ if ($scriptRoot -and (Test-Path $scriptRoot)) {
 $script:searchDirs += @(
     "$env:WINDIR\Setup\Scripts",
     "$env:WINDIR\Setup\Scripts\Modules",
+    "$env:WINDIR\Setup\Scripts\Core",
     "C:\Windows\Setup\Scripts",
     "C:\Windows\Setup\Scripts\Modules",
+    "C:\Windows\Setup\Scripts\Core",
     "C:\OptimizedISO\scripts\Modules",
-    "C:\OptimizedISO\scripts\Drivers"
+    "C:\OptimizedISO\scripts\Drivers",
+    "C:\OptimizedISO\scripts\Core",
+    "C:\OptimizedISO\scripts\Testing"
 )
 
 function Resolve-ToolScript {
@@ -303,6 +309,7 @@ function Resolve-ToolScript {
                                         <RowDefinition Height="24"/>
                                         <RowDefinition Height="24"/>
                                         <RowDefinition Height="24"/>
+                                        <RowDefinition Height="24"/>
                                     </Grid.RowDefinitions>
 
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Procesador (CPU):" Foreground="#A0A0A0"/>
@@ -328,6 +335,12 @@ function Resolve-ToolScript {
 
                                     <TextBlock Grid.Row="3" Grid.Column="2" Text="Soporte HAGS:" Foreground="#A0A0A0"/>
                                     <TextBlock Grid.Row="3" Grid.Column="3" x:Name="lblHagsInfo" Text="Detectando..." Foreground="#00E676" FontWeight="SemiBold"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="DirectStorage / BypassIO:" Foreground="#A0A0A0"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" x:Name="lblBypassIoInfo" Text="Detectando..." Foreground="#00E676" FontWeight="SemiBold"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="2" Text="Red NDIS / UDP RSC:" Foreground="#A0A0A0"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="3" x:Name="lblNetOffloadInfo" Text="Detectando..." Foreground="#00E676" FontWeight="SemiBold"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -346,6 +359,8 @@ function Resolve-ToolScript {
                                     <Button x:Name="btnQuickTrimSSD" Content="Ejecutar SSD TRIM" Width="160" Margin="0,0,10,10"/>
                                     <Button x:Name="btnQuickAudit" Content="Auditar Salud Completa" Width="200" Margin="0,0,10,10" Background="#233544" BorderBrush="#00E5FF"/>
                                     <Button x:Name="btnQuickLatency" Content="Test Latencia DPC (µs)" Width="190" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnQuickStorageAudit" Content="Auditar BypassIO &amp; Storage" Width="200" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnQuickNetAudit" Content="Auditar Red NDIS &amp; UDP RSC" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -582,6 +597,41 @@ try {
         
         $aiPcText = if ($hw.NPU.IsAiPc) { "Si ($($hw.NPU.DeviceName))" } else { "No detectada" }
         $window.FindName('lblAiPcInfo').Text = $aiPcText
+
+        # BypassIO & DirectStorage
+        try {
+            if (Get-Command "Test-RomanOSBypassIoState" -ErrorAction SilentlyContinue) {
+                $bio = Test-RomanOSBypassIoState
+                $lblBypass = $window.FindName('lblBypassIoInfo')
+                if ($lblBypass) {
+                    $lblBypass.Text = if ($bio.IsSupported) { "Activo (Ruta Rapida)" } else { "$($bio.StatusReason)" }
+                    $lblBypass.Foreground = if ($bio.IsSupported) { [System.Windows.Media.Brushes]::LightGreen } else { [System.Windows.Media.Brushes]::Orange }
+                }
+            } else {
+                $lblBypass = $window.FindName('lblBypassIoInfo')
+                if ($lblBypass) { $lblBypass.Text = "$($hw.Disk.DirectStorageStatus)" }
+            }
+        } catch {
+            Write-CCLog "No se pudo consultar BypassIO: $($_.Exception.Message)" -Level "WARN"
+        }
+
+        # Red NDIS & UDP RSC
+        try {
+            if (Get-Command "Get-RomanOSNetworkOffloadCaps" -ErrorAction SilentlyContinue) {
+                $nics = Get-RomanOSNetworkOffloadCaps
+                $lblNet = $window.FindName('lblNetOffloadInfo')
+                if ($lblNet) {
+                    $pNic = if ($nics.Count -gt 0) { $nics[0] } else { $null }
+                    if ($pNic) {
+                        $lblNet.Text = "$($pNic.Name) (UDP RSC: $($pNic.UdpRscState))"
+                    } else {
+                        $lblNet.Text = "Sin adaptadores"
+                    }
+                }
+            }
+        } catch {
+            Write-CCLog "No se pudo consultar UDP RSC: $($_.Exception.Message)" -Level "WARN"
+        }
         
         Write-CCLog "Telemetria de hardware cargada exitosamente: $cpuName | $ramGib GB RAM"
     } else {
@@ -803,6 +853,16 @@ $window.FindName('btnQuickAudit').Add_Click({
 $window.FindName('btnQuickLatency').Add_Click({
     $tool = Resolve-ToolScript "Trace-SystemLatency.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -DurationSeconds 5" -TaskTitle "Test Forense de Latencia DPC/ISR (5 segundos)" }
+})
+
+$window.FindName('btnQuickStorageAudit').Add_Click({
+    $tool = Resolve-ToolScript "Test-StorageStackBypassIO.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Auditoria Forense de Storage y BypassIO" }
+})
+
+$window.FindName('btnQuickNetAudit').Add_Click({
+    $tool = Resolve-ToolScript "Test-NetworkOffloadsAndRSS.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Auditoria Forense de Red NDIS y UDP RSC" }
 })
 
 # --- Pestaña 2: Gaming & Bimodal ---

@@ -66,7 +66,7 @@ if (-not $uiLoaded) {
 Show-UnifiedBanner -Title "ORQUESTADOR MAESTRO DE PRUEBAS" -Subtitle "romanOS / OptimizedISO" -ShowSystemInfo
 
 $suiteResults = [System.Collections.Generic.List[PSCustomObject]]::new()
-$totalSteps = if ($Quick) { 7 } else { 8 }
+$totalSteps = if ($Quick) { 8 } else { 9 }
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot ".agents"))) {
     $repoCandidate = Split-Path $PSScriptRoot -Parent
@@ -214,11 +214,30 @@ if (Test-Path $latencyScript) {
 $suiteResults.Add([PSCustomObject]@{ Phase = 7; Name = "Latencia de Kernel y Topología MSI"; Status = if ($phase7Pass) { "PASS" } else { "FAIL" } })
 
 # -----------------------------------------------------------------------------
-# FASE 8: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# FASE 8: ARQUITECTURA DE ALMACENAMIENTO, RED NDIS Y MEMORIA (PLAN-0098)
 # -----------------------------------------------------------------------------
-$phase8Pass = $true
+Write-StepHeader -StepNumber 8 -TotalSteps $totalSteps -Message "Auditoría de Almacenamiento DirectStorage, Red NDIS y Memoria (RUPA)"
+$storageNetScript = Join-Path $repoRoot "scripts\Testing\Test-StorageAndNetworkArchitecture.ps1"
+$phase8Pass = $false
+if (Test-Path $storageNetScript) {
+    & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $storageNetScript -Quick
+    if ($LASTEXITCODE -eq 0) {
+        $phase8Pass = $true
+        Write-OK "Fase 8 Aprobada: Almacenamiento, Red NDIS y Memoria Escalonada certificadas."
+    } else {
+        Write-ErrorMsg "Fase 8 Fallida: Se detectaron anomalías en la arquitectura de almacenamiento, red o memoria."
+    }
+} else {
+    Write-Warn "Script de pruebas de almacenamiento y red no encontrado en '$storageNetScript'."
+}
+$suiteResults.Add([PSCustomObject]@{ Phase = 8; Name = "Almacenamiento DirectStorage, Red NDIS y Memoria"; Status = if ($phase8Pass) { "PASS" } else { "FAIL" } })
+
+# -----------------------------------------------------------------------------
+# FASE 9: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# -----------------------------------------------------------------------------
+$phase9Pass = $true
 if (-not $Quick) {
-    Write-StepHeader -StepNumber 8 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
+    Write-StepHeader -StepNumber 9 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
     $harnessCandidates = @(
         (Join-Path $repoRoot "scripts\Testing\Test-OptimizedISO-v2.ps1"),
         (Join-Path $repoRoot "scripts\Test-OptimizedISO-v2.ps1")
@@ -227,24 +246,24 @@ if (-not $Quick) {
     if ($harnessScript) {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $harnessScript -LogDir $LogDir
         if ($LASTEXITCODE -eq 0) {
-            $phase8Pass = $true
-            Write-OK "Fase 8 Aprobada: 140/140 pruebas del Test Harness superadas."
+            $phase9Pass = $true
+            Write-OK "Fase 9 Aprobada: 140/140 pruebas del Test Harness superadas."
         } else {
-            $phase8Pass = $false
-            Write-ErrorMsg "Fase 8 Fallida: Se detectaron aserciones fallidas en el Test Harness."
+            $phase9Pass = $false
+            Write-ErrorMsg "Fase 9 Fallida: Se detectaron aserciones fallidas en el Test Harness."
         }
     } else {
         Write-Warn "Test Harness no encontrado en '$harnessScript'."
-        $phase8Pass = $false
+        $phase9Pass = $false
     }
-    $suiteResults.Add([PSCustomObject]@{ Phase = 8; Name = "Test Harness Integral ISO v2"; Status = if ($phase8Pass) { "PASS" } else { "FAIL" } })
+    $suiteResults.Add([PSCustomObject]@{ Phase = 9; Name = "Test Harness Integral ISO v2"; Status = if ($phase9Pass) { "PASS" } else { "FAIL" } })
 }
 
 # -----------------------------------------------------------------------------
 # REPORTE CONSOLIDADO Y EVALUACION FINAL
 # -----------------------------------------------------------------------------
 $totalDuration = [math]::Round(((Get-Date) - $testSuiteStart).TotalSeconds, 1)
-$allSuccess = ($phase1Pass -and $phase2Pass -and $phase3Pass -and $phase4Pass -and $phase5Pass -and $phase6Pass -and $phase7Pass -and $phase8Pass)
+$allSuccess = ($phase1Pass -and $phase2Pass -and $phase3Pass -and $phase4Pass -and $phase5Pass -and $phase6Pass -and $phase7Pass -and $phase8Pass -and $phase9Pass)
 $overallStatus = if ($allSuccess) { "SUCCESS" } else { "FAILED" }
 
 try {
