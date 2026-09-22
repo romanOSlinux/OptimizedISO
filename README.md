@@ -44,6 +44,7 @@ Al arrancar un PC desde la ISO generada por este proyecto, ocurre lo siguiente *
 | `Monitor-ThermalEnergy.cmd` | `scripts/Modules/` | Monitor de throttling térmico en tiempo real, calibración energética (Core Unparking) y salud de CPU/GPU |
 | `Invoke-LiveSandbox.cmd` | `scripts/Modules/` | Orquestador de entornos Sandbox descartables (Air-Gap para análisis, vGPU para mods, navegación privada) |
 | `Watchdog-ServiceDrift.cmd` | `scripts/Modules/` | Guardián Anti-Drift: audita y remedia desvíos de servicios invasivos y telemetría tras Windows Update |
+| `Optimize-InterruptAffinity.cmd` | `scripts/Modules/` | Calibrador de Afinidad PCIe e Interrupciones IRQ: descongestiona Núcleo 0, eleva prioridad GPU/NVMe y DPC Steering |
 | `Win11-Network-Diagnostics-Optimizer.ps1` | `scripts/Modules/` | Diagnóstico de latencia, benchmarks DNS y ajuste fino TCP/IP |
 
 ---

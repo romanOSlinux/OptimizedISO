@@ -25,13 +25,15 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling", "Sandbox", "LiveSandbox", "Watchdog", "AntiDrift")]
+    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling", "Sandbox", "LiveSandbox", "Watchdog", "AntiDrift", "InterruptAffinity", "PCIeAffinity", "IRQSteering")]
     [string]$Module,
     [string]$AppProfile,
     [string]$ThermalAction = 'Status',
     [string]$SandboxPreset = 'SafeAnalysis',
     [string]$SharedFolder,
     [string]$WatchdogAction = 'Status',
+    [string]$AffinityAction = 'Status',
+    [switch]$OptimizeAffinity,
     [switch]$ShowDashboards,
     [switch]$GUI,
     [switch]$Snapshot
@@ -384,6 +386,22 @@ function Invoke-WatchdogModule {
     }
 }
 
+function Invoke-InterruptAffinityModule {
+    param(
+        [string]$Action = "Status"
+    )
+    $scriptFile = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Calibrador de Afinidad PCIe e Interrupciones IRQ (DPC Steering & MSI)"
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptFile, '-Action', $Action)
+        if ($WhatIfPreference -or $PSBoundParameters.ContainsKey('WhatIf')) { $argList += '-WhatIf' }
+        & powershell.exe @argList
+    } else {
+        Write-ErrorMsg "No se encontro Optimize-InterruptAffinity.ps1"
+        pause
+    }
+}
+
 function Invoke-GameDevSwitchModule {
     param(
         [string]$TargetMode = "Status",
@@ -611,7 +629,10 @@ function Show-QuickActionsMenu {
         "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)",
         "Crear Instantanea de Seguridad (romanOS Snapshot Engine)",
         "Gestor de Perfiles de Software y Runtimes de IA (Deploy-AppProfiles)",
-        "Monitor de Throttling Termico y Calibrador Energetico (Monitor-ThermalEnergy)"
+        "Monitor de Throttling Termico y Calibrador Energetico (Monitor-ThermalEnergy)",
+        "Entorno Sandbox Descartable en Vivo (Invoke-LiveSandbox)",
+        "Guardian Anti-Drift de Servicios y Tareas (Watchdog-ServiceDrift)",
+        "Calibrador de Afinidad PCIe e Interrupciones IRQ (DPC Steering & MSI Tuning)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -782,6 +803,10 @@ function Show-QuickActionsMenu {
             Invoke-WatchdogModule -Action "Status"
             pause
         }
+        23 {
+            Invoke-InterruptAffinityModule -Action "Status"
+            pause
+        }
         default { return }
     }
 
@@ -826,11 +851,19 @@ if ($Module) {
         "LiveSandbox"   { Invoke-SandboxModule -Action "Status" -Preset $SandboxPreset -SharedFolder $SharedFolder; exit }
         "Watchdog"      { Invoke-WatchdogModule -Action $WatchdogAction; exit }
         "AntiDrift"     { Invoke-WatchdogModule -Action $WatchdogAction; exit }
+        "InterruptAffinity" { Invoke-InterruptAffinityModule -Action $AffinityAction; exit }
+        "PCIeAffinity"      { Invoke-InterruptAffinityModule -Action $AffinityAction; exit }
+        "IRQSteering"       { Invoke-InterruptAffinityModule -Action $AffinityAction; exit }
         "QuickActions"    { Show-QuickActionsMenu; exit }
         "GamingApps"      { Invoke-GamingAndAppsModule; exit }
         "LatencyProfiler" { Invoke-LatencyTraceModule; exit }
         "TraceLatency"    { Invoke-LatencyTraceModule; exit }
     }
+}
+
+if ($OptimizeAffinity) {
+    Invoke-InterruptAffinityModule -Action "Optimize"
+    exit
 }
 
 if ($Snapshot) {
@@ -883,6 +916,7 @@ $mainMenuOpts = @(
     "Monitor de Throttling Termico y Calibrador Energetico (Monitor-ThermalEnergy)",
     "Entorno Sandbox Descartable en Vivo (Invoke-LiveSandbox)",
     "Guardian Anti-Drift de Servicios y Tareas (Watchdog-ServiceDrift)",
+    "Calibrador de Afinidad PCIe e Interrupciones IRQ (DPC Steering & MSI Tuning)",
     "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
 )
 
@@ -913,7 +947,8 @@ while ($true) {
         20 { Invoke-ThermalModule -Action "Status"; pause }
         21 { Invoke-SandboxModule -Action "Status"; pause }
         22 { Invoke-WatchdogModule -Action "Status"; pause }
-        23 { Invoke-ControlCenterGUI; pause }
+        23 { Invoke-InterruptAffinityModule -Action "Status"; pause }
+        24 { Invoke-ControlCenterGUI; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

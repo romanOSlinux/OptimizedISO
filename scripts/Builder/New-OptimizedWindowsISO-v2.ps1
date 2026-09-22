@@ -4719,6 +4719,23 @@ if (Test-Path $watchdogSrc) {
     Add-AuditRecord -Resource "Watchdog-ServiceDrift" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$affinitySrc    = Join-Path $ScriptsDir "Modules\Optimize-InterruptAffinity.ps1"
+$affinityCmdSrc = Join-Path $ScriptsDir "Modules\Optimize-InterruptAffinity.cmd"
+if (Test-Path $affinitySrc) {
+    Copy-Item -Path $affinitySrc -Destination (Join-Path $OEMScriptsDir "Optimize-InterruptAffinity.ps1") -Force
+    Copy-Item -Path $affinitySrc -Destination (Join-Path $OEMScriptsDir1 "Optimize-InterruptAffinity.ps1") -Force
+    Copy-Item -Path $affinitySrc -Destination (Join-Path $destModulesDir "Optimize-InterruptAffinity.ps1") -Force
+    Copy-Item -Path $affinitySrc -Destination (Join-Path $destModulesDir1 "Optimize-InterruptAffinity.ps1") -Force
+    if (Test-Path $affinityCmdSrc) {
+        Copy-Item -Path $affinityCmdSrc -Destination (Join-Path $OEMScriptsDir "Optimize-InterruptAffinity.cmd") -Force
+        Copy-Item -Path $affinityCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Optimize-InterruptAffinity.cmd") -Force
+        Copy-Item -Path $affinityCmdSrc -Destination (Join-Path $destModulesDir "Optimize-InterruptAffinity.cmd") -Force
+        Copy-Item -Path $affinityCmdSrc -Destination (Join-Path $destModulesDir1 "Optimize-InterruptAffinity.cmd") -Force
+    }
+    Write-OK "Calibrador de Afinidad PCIe e Interrupciones IRQ (Optimize-InterruptAffinity) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Optimize-InterruptAffinity" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
 $ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
 $ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"
@@ -7339,6 +7356,19 @@ if ($wimFile) {
                           }
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Watchdog-ServiceDrift.ps1 y .cmd"
                           Add-AuditRecord -Resource "Watchdog-ServiceDrift" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
+                      }
+
+                      $affinitySrc    = Join-Path $ScriptsDir "Modules\Optimize-InterruptAffinity.ps1"
+                      $affinityCmdSrc = Join-Path $ScriptsDir "Modules\Optimize-InterruptAffinity.cmd"
+                      if (Test-Path $affinitySrc) {
+                          Copy-Item -Path $affinitySrc -Destination (Join-Path $wimScriptsDir "Optimize-InterruptAffinity.ps1") -Force
+                          Copy-Item -Path $affinitySrc -Destination (Join-Path $wimModulesDest "Optimize-InterruptAffinity.ps1") -Force
+                          if (Test-Path $affinityCmdSrc) {
+                              Copy-Item -Path $affinityCmdSrc -Destination (Join-Path $wimScriptsDir "Optimize-InterruptAffinity.cmd") -Force
+                              Copy-Item -Path $affinityCmdSrc -Destination (Join-Path $wimModulesDest "Optimize-InterruptAffinity.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Optimize-InterruptAffinity.ps1 y .cmd"
+                          Add-AuditRecord -Resource "Optimize-InterruptAffinity" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
                       }
 
                       $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"

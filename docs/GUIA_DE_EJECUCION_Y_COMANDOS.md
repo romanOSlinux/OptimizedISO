@@ -545,7 +545,38 @@ Auditor en caliente y remediador de desvío de configuración (*Configuration Dr
 
 ---
 
+## 19. Calibrador de Afinidad PCIe, Prioridad IRQ y DPC Steering: `Optimize-InterruptAffinity.ps1`
+
+Módulo nativo, desacoplado y seguro contra sistemas anti-cheat (cero drivers vulnerables) para balancear la carga de interrupciones de hardware en la topología PCIe: descongestiona el Núcleo Lógico 0, eleva la prioridad IRQ de la GPU y unidades NVMe a `High (3)` y balancea las rutinas DPC (`DevicePolicy = 5 / SpreadAcrossCPUs` o `DevicePolicy = 4 / ExcludeCoreZero`):
+
+```powershell
+# 1. Diagnóstico e introspección en vivo de topología PCIe (GPU, NVMe, adaptadores de red)
+& "C:\OptimizedISO\scripts\Modules\Optimize-InterruptAffinity.ps1" -Action Status
+
+# 2. Auditoría forense rápida de métricas de interrupciones (resumen en terminal)
+& "C:\OptimizedISO\scripts\Modules\Optimize-InterruptAffinity.ps1" -Action Audit
+
+# 3. Calibrar afinidad y prioridad IRQ en 1-clic (aislar Core 0 y optimizar GPU/NVMe)
+& "C:\OptimizedISO\scripts\Modules\Optimize-InterruptAffinity.ps1" -Action Optimize -Unattended
+
+# 4. Calibrar aplicando estrategia específica de distribución
+& "C:\OptimizedISO\scripts\Modules\Optimize-InterruptAffinity.ps1" -Action Optimize -AffinityStrategy SpreadAcrossCPUs -Unattended
+
+# 5. Simular la optimización (-WhatIf) para inspección sin alterar el registro
+& "C:\OptimizedISO\scripts\Modules\Optimize-InterruptAffinity.ps1" -Action Optimize -WhatIf
+
+# 6. Revertir todas las directivas de hardware a valores de fábrica de Windows (Rollback HAL)
+& "C:\OptimizedISO\scripts\Modules\Optimize-InterruptAffinity.ps1" -Action Reset -Unattended
+```
+
+---
+
 ## 💡 Recetario de Casos de Uso Frecuentes (Cheatsheet)
+
+### ¿Siento micro-stuttering o caídas de 1% Low FPS en juegos por saturación de CPU?
+```powershell
+& "C:\OptimizedISO\scripts\Modules\Optimize-InterruptAffinity.ps1" -Action Optimize -Unattended
+```
 
 ### ¿Solo quiero acelerar videos y bajar la RAM de Chrome/Edge/Firefox sin tocar nada más?
 ```powershell

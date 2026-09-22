@@ -66,7 +66,7 @@ if (-not $uiLoaded) {
 Show-UnifiedBanner -Title "ORQUESTADOR MAESTRO DE PRUEBAS" -Subtitle "romanOS / OptimizedISO" -ShowSystemInfo
 
 $suiteResults = [System.Collections.Generic.List[PSCustomObject]]::new()
-$totalSteps = if ($Quick) { 13 } else { 14 }
+$totalSteps = if ($Quick) { 14 } else { 15 }
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot ".agents"))) {
     $repoCandidate = Split-Path $PSScriptRoot -Parent
@@ -333,11 +333,31 @@ if (Test-Path $watchdogTestScript) {
 $suiteResults.Add([PSCustomObject]@{ Phase = 13; Name = "Guardian Anti-Drift y Watchdog de Servicios"; Status = if ($phase13Pass) { "PASS" } else { "FAIL" } })
 
 # -----------------------------------------------------------------------------
-# FASE 14: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# FASE 14: AFINIDAD PCIE, IRQ Y DPC STEERING (PLAN-0104)
 # -----------------------------------------------------------------------------
-$phase14Pass = $true
+Write-StepHeader -StepNumber 14 -TotalSteps $totalSteps -Message "Auditoría de Afinidad PCIe, Prioridad IRQ y DPC Steering"
+$affinityTestScript = Join-Path $repoRoot "scripts\Testing\Test-InterruptAffinity.ps1"
+$phase14Pass = $false
+if (Test-Path $affinityTestScript) {
+    & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $affinityTestScript
+    if ($LASTEXITCODE -eq 0) {
+        $phase14Pass = $true
+        Write-OK "Fase 14 Aprobada: Introspección PCIe, máscaras binarias y DPC Steering certificados."
+    } else {
+        $phase14Pass = $false
+        Write-ErrorMsg "Fase 14 Fallida: Se detectaron fallos en la batería de Interrupt Affinity."
+    }
+} else {
+    Write-Warn "Script de pruebas de Interrupt Affinity no encontrado en '$affinityTestScript'."
+}
+$suiteResults.Add([PSCustomObject]@{ Phase = 14; Name = "Afinidad PCIe e Interrupciones IRQ (DPC Steering)"; Status = if ($phase14Pass) { "PASS" } else { "FAIL" } })
+
+# -----------------------------------------------------------------------------
+# FASE 15: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# -----------------------------------------------------------------------------
+$phase15Pass = $true
 if (-not $Quick) {
-    Write-StepHeader -StepNumber 14 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
+    Write-StepHeader -StepNumber 15 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
     $harnessCandidates = @(
         (Join-Path $repoRoot "scripts\Testing\Test-OptimizedISO-v2.ps1"),
         (Join-Path $repoRoot "scripts\Test-OptimizedISO-v2.ps1")
@@ -346,26 +366,26 @@ if (-not $Quick) {
     if ($harnessScript) {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $harnessScript -LogDir $LogDir
         if ($LASTEXITCODE -eq 0) {
-            $phase14Pass = $true
-            Write-OK "Fase 14 Aprobada: 140/140 pruebas del Test Harness superadas."
+            $phase15Pass = $true
+            Write-OK "Fase 15 Aprobada: 140/140 pruebas del Test Harness superadas."
         } else {
-            $phase14Pass = $false
-            Write-ErrorMsg "Fase 14 Fallida: Se detectaron aserciones fallidas en el Test Harness."
+            $phase15Pass = $false
+            Write-ErrorMsg "Fase 15 Fallida: Se detectaron aserciones fallidas en el Test Harness."
         }
     } else {
         Write-Warn "Test Harness no encontrado en '$harnessScript'."
-        $phase14Pass = $false
+        $phase15Pass = $false
     }
-    $suiteResults.Add([PSCustomObject]@{ Phase = 14; Name = "Test Harness Integral ISO v2"; Status = if ($phase14Pass) { "PASS" } else { "FAIL" } })
+    $suiteResults.Add([PSCustomObject]@{ Phase = 15; Name = "Test Harness Integral ISO v2"; Status = if ($phase15Pass) { "PASS" } else { "FAIL" } })
 }
 
 # -----------------------------------------------------------------------------
 # REPORTE CONSOLIDADO Y EVALUACION FINAL
 # -----------------------------------------------------------------------------
 $totalDuration = [math]::Round(((Get-Date) - $testSuiteStart).TotalSeconds, 1)
-$allSuccess = ($phase1Pass -and $phase2Pass -and $phase3Pass -and $phase4Pass -and $phase5Pass -and $phase6Pass -and $phase7Pass -and $phase8Pass -and $phase9Pass -and $phase10Pass -and $phase11Pass -and $phase12Pass -and $phase13Pass)
+$allSuccess = ($phase1Pass -and $phase2Pass -and $phase3Pass -and $phase4Pass -and $phase5Pass -and $phase6Pass -and $phase7Pass -and $phase8Pass -and $phase9Pass -and $phase10Pass -and $phase11Pass -and $phase12Pass -and $phase13Pass -and $phase14Pass)
 if (-not $Quick) {
-    $allSuccess = ($allSuccess -and $phase14Pass)
+    $allSuccess = ($allSuccess -and $phase15Pass)
 }
 $overallStatus = if ($allSuccess) { "SUCCESS" } else { "FAILED" }
 

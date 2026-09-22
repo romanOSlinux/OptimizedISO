@@ -362,6 +362,7 @@ function Resolve-ToolScript {
                                     <Button x:Name="btnQuickStorageAudit" Content="Auditar BypassIO &amp; Storage" Width="200" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
                                     <Button x:Name="btnQuickNetAudit" Content="Auditar Red NDIS &amp; UDP RSC" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
                                     <Button x:Name="btnQuickSnapshot" Content="Crear Snapshot de Seguridad" Width="220" Margin="0,0,10,10" Background="#1E3A2F" BorderBrush="#00E676"/>
+                                    <Button x:Name="btnQuickAffinity" Content="Auditar Afinidad IRQ / PCIe" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -427,6 +428,19 @@ function Resolve-ToolScript {
                                     <Button x:Name="btnAuditThermal" Content="Auditar Estado Termico &amp; Throttling" Width="260" Margin="0,0,10,10"/>
                                     <Button x:Name="btnLiveThermalMonitor" Content="Monitoreo en Vivo (5s)" Width="190" Margin="0,0,10,10"/>
                                     <Button x:Name="btnCalibrateUltimateEnergy" Content="Calibrar Maximo Rendimiento (Core Unpark)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tarjeta romanOS PCIe Interrupt Affinity & IRQ Priority (DPC Steering) -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Calibrador de Afinidad PCIe e Interrupciones IRQ (DPC Steering &amp; MSI Tuning)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Optimiza la distribucion de interrupciones de hardware en la topologia PCIe: eleva la prioridad IRQ de GPU/NVMe a Alta, aisla la GPU del Core 0 y mitiga DPC latency/micro-stuttering." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <Button x:Name="btnAuditAffinityGUI" Content="Auditar Topologia &amp; Afinidad IRQ" Width="260" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnOptimizeAffinityGUI" Content="Calibrar Afinidad y DPC Steering (1-Clic)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnResetAffinityGUI" Content="Restaurar Politicas IRQ por Defecto" Width="260" Margin="0,0,10,10" Background="#3E2723" BorderBrush="#FF5252"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -974,6 +988,11 @@ $window.FindName('btnQuickNetAudit').Add_Click({
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Auditoria Forense de Red NDIS y UDP RSC" }
 })
 
+$window.FindName('btnQuickAffinity').Add_Click({
+    $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" }
+})
+
 # --- Pestaña 2: Gaming & Bimodal ---
 $window.FindName('btnGameAggressive').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
@@ -1023,6 +1042,22 @@ $window.FindName('btnLiveThermalMonitor').Add_Click({
 $window.FindName('btnCalibrateUltimateEnergy').Add_Click({
     $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action CalibrateEnergy -EnergyProfile Ultimate -Unattended" -TaskTitle "Calibracion Energetica & Core Unparking" }
+})
+
+# PCIe Interrupt Affinity & IRQ Priority Handlers
+$window.FindName('btnAuditAffinityGUI').Add_Click({
+    $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" }
+})
+
+$window.FindName('btnOptimizeAffinityGUI').Add_Click({
+    $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Optimize" -TaskTitle "Calibracion de Afinidad PCIe y DPC Steering" }
+})
+
+$window.FindName('btnResetAffinityGUI').Add_Click({
+    $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Reset" -TaskTitle "Restauracion de Politicas IRQ de Hardware" }
 })
 
 # --- Pestaña 3: Mantenimiento ---

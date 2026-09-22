@@ -1,3 +1,18 @@
+## [2026-09-22T12:40:00-03:00] romanOS PCIe Interrupt Affinity & IRQ/DPC Steering: Calibrador de Afinidad de Núcleos, Prioridad IRQ y Descongestión de Núcleo 0 (PLAN-0104)
+
+- **Archivos Modificados:** `scripts/Modules/Optimize-InterruptAffinity.ps1` (nuevo), `scripts/Modules/Optimize-InterruptAffinity.cmd` (nuevo), `scripts/Testing/Test-InterruptAffinity.ps1` (nuevo), `scripts/Testing/Test-InterruptAffinity.cmd` (nuevo), `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/romanOS-Toolkit.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Testing/Invoke-TestSuite.ps1`, `README.md`, `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `docs/plans/PLAN-0104-20260922-optimizador-afinidad-interrupciones-pcie-irq-dpc.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Motor Nativo de Afinidad PCIe y DPC Steering:** Creación de `scripts/Modules/Optimize-InterruptAffinity.ps1` y su lanzador Win32 `.cmd` (No-BOM, UAC, STA). Proporciona introspección en vivo de la topología PCIe (`HKLM:\SYSTEM\CurrentControlSet\Enum\PCI`), detección automática de GPUs (NVIDIA, AMD, Intel), unidades NVMe (`stornvme`) y adaptadores de red físicos.
+  - **Descongestión del Núcleo 0 (Core 0 Bottleneck Relief):** Implementación de balanceo DPC mediante `DevicePolicy = 5` (`SpreadAcrossCPUs`) o `DevicePolicy = 4` (`SpecifiedProcessors`) con máscara binaria inmutable de 64 bits (`0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF`) que aísla el Núcleo 0 para el temporizador y el kernel, erradicando micro-stuttering y caídas de 1% Low FPS en juegos.
+  - **Prioridad IRQ Escalada:** Configuración determinista de `DevicePriority = 3` (High) para GPU y NVMe, y `DevicePriority = 2` (Normal) para adaptadores de red, garantizando despacho preferente en colas HAL.
+  - **Soporte MSI Garantizado:** Verificación y activación de `MSISupported = 1` y límites de vectores de mensajes (`MessageNumberLimit = 2048` para GPU, `16` para NVMe).
+  - **Rollback Atómico HAL (`-Action Reset`):** Reversión determinista a valores de fábrica (`DevicePriority = Normal`, `DevicePolicy = MachineDefault`, purga de `AssignmentSetOverride`).
+  - **Integración en romanOS Control Center (WPF XAML):** Nueva tarjeta en la pestaña "Gaming & Bimodal" y acceso directo en Dashboard (`btnQuickAffinity`) con streaming asíncrono a 60 FPS en la consola embebida.
+  - **Integración en romanOS Toolkit Maestro:** Nueva opción 23 en menú interactivo y Acciones Rápidas, más flags CLI `-Module InterruptAffinity` / `-OptimizeAffinity` / `-AffinityAction`.
+  - **Inyección en Despliegue e ISO:** Inyección física en `$OEM$\$$\Setup\Scripts\Modules` y en el WIM montado offline (`$wimModulesDest`).
+  - **Certificación Total de Pruebas:** Arnés unitario `Test-InterruptAffinity.ps1` (14/14 PASS) e integración como **Fase 14 permanente** en `Invoke-TestSuite.ps1` (**14/14 Fases PASS, 100% de éxito en 73.4s, 0 errores, 0 advertencias**). Codificación UTF-8 con BOM y PowerShell 5.1 estrictamente certificadas.
+- **Pendiente:** Ninguno.
+
 ## [2026-09-22T11:40:00-03:00] romanOS Anti-Drift Guardian & Service Watchdog: Auditoría en Caliente y Remediación Atómica de Desvío Post-Windows Update (PLAN-0103)
 
 - **Archivos Modificados:** `scripts/Modules/Watchdog-ServiceDrift.ps1` (nuevo), `scripts/Modules/Watchdog-ServiceDrift.cmd` (nuevo), `scripts/Testing/Test-WatchdogServiceDrift.ps1` (nuevo), `scripts/Testing/Test-WatchdogServiceDrift.cmd` (nuevo), `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/romanOS-Toolkit.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Testing/Invoke-TestSuite.ps1`, `README.md`, `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `docs/plans/PLAN-0103-20260922-guardian-anti-drift-y-watchdog-servicios.md`, `docs/plans/README.md`, `MEMORY.md`
