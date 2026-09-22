@@ -1,7 +1,7 @@
 # PLAN-0100: romanOS App & AI Runtimes Manager
 
 **Fecha:** 2026-09-22  
-**Estado:** EN PROGRESO  
+**Estado:** COMPLETADO  
 **Autor:** Antigravity / romanOS Software Engineering  
 **Alcance:** Ecosistema Completo (Core, Modules, GUI Control Center, Toolkit Maestro, ISO Builder, $OEM$, Testing Harness)
 
@@ -82,9 +82,9 @@ Actualmente, el repositorio cuenta con `Get-EssentialRuntimes.ps1` (limitado a V
 
 ## 4. Criterios de Aceptación y Validación
 
-- [ ] Sintaxis y codificación UTF-8 con BOM en todos los `.ps1` y ANSI No-BOM en `.cmd`.
-- [ ] Ejecución en frío verificada en Windows PowerShell 5.1 (`powershell.exe -STA -NoProfile`).
-- [ ] Detección y fallback seguro en caso de que `winget.exe` requiera inicialización de fuentes.
-- [ ] Cero fallos silenciosos (CWE-390): Telemetría visible ante errores de descarga o red.
-- [ ] 100% de aserciones aprobadas en `Test-AppProfilesManager.ps1`.
-- [ ] 10/10 fases aprobadas en `Invoke-TestSuite.ps1`.
+- [x] Sintaxis y codificación UTF-8 con BOM en todos los `.ps1` y ANSI No-BOM en `.cmd`.
+- [x] Ejecución en frío verificada en Windows PowerShell 5.1 (`powershell.exe -STA -NoProfile`).
+- [x] Detección y fallback seguro en caso de que `winget.exe` requiera inicialización de fuentes.
+- [x] Cero fallos silenciosos (CWE-390): Telemetría visible ante errores de descarga o red.
+- [x] 100% de aserciones aprobadas en `Test-AppProfilesManager.ps1` (13/13 PASS).
+- [x] 10/10 fases aprobadas en `Invoke-TestSuite.ps1` (0 errores, 0 advertencias).

@@ -21,8 +21,9 @@ Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros
 | **`Get-EssentialRuntimes.ps1`** | *(Ejecutar en PS Admin)* | Descarga de paquetes redistribuibles (VC++, DirectX, .NET) | `-DownloadDir`, `-SkipDirectX`, `-SkipDotNet` |
 | **`New-TestVM-HyperV.ps1`** | *(Ejecutar en PS Admin)* | Despliegue automatizado de VM de prueba en Hyper-V (Gen 2) | `-ISOPath`, `-MemoryGB`, `-CPUCount`, `-DiskSizeGB` |
 | **`Test-OptimizedISO-v2.ps1`** | *(Ejecutar en PS Admin)* | Suite de pruebas unitarias y validación del compilador | `-LogDir`, `-TargetScript` |
-| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (9 Fases) | `-Quick`, `-LogDir` |
+| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (10 Fases) | `-Quick`, `-LogDir` |
 | **`Manage-SystemSnapshots.ps1`** | `Manage-SystemSnapshots.cmd` | Motor de Instantáneas y Reversión Atómica (Snapshot & Rollback) | `-Action`, `-Name`, `-SnapshotId`, `-IncludeVSS`, `-Force` |
+| **`Deploy-AppProfiles.ps1`** | `Deploy-AppProfiles.cmd` | Gestor de Perfiles de Software, Winget y Runtimes de IA por Hardware | `-Profile`, `-InstallRuntimesOnly`, `-AutoDetectHardware`, `-Unattended`, `-WhatIf` |
 | **`Setup-AntigravityWindows.ps1`** | `Setup-AntigravityWindows.cmd` | Inicializador de entorno, dependencias winget y skills de Antigravity | `-InstallPrerequisites`, `-EnableHyperV`, `-SetExecutionPolicy`, `-CheckOnly` |
 | **`Limpiar-ResiduosWinISO.ps1`** | *(Ejecutar en PS Admin)* | Limpieza profunda de montajes DISM bloqueados, temporales y colmenas | `-ScanOnly`, `-Force`, `-Silent` |
 
@@ -445,6 +446,26 @@ Permite capturar estados íntegros de la configuración del sistema operativo (d
 
 # 5. Crear solo Punto de Restauración VSS nativo
 & "C:\OptimizedISO\scripts\Modules\Manage-SystemSnapshots.ps1" -Action CreateVSS -Name "Punto-Seguro"
+```
+
+---
+
+## 15. Gestor de Perfiles de Software y Runtimes de IA: `Deploy-AppProfiles.ps1`
+
+Orquesta la instalación silenciosa de paquetes curados mediante `winget.exe`, runtimes base del sistema (Visual C++ 2015-2022, DirectX, .NET 8/9 LTS) y aceleradores de IA local adaptados por hardware (Ollama, DirectML, NVIDIA App, AMD Adrenalin):
+
+```powershell
+# 1. Instalar perfil de eSports & Competitive Gamer con detección automática de GPU/NPU
+& "C:\OptimizedISO\scripts\Modules\Deploy-AppProfiles.ps1" -Profile EsportsGamer -AutoDetectHardware -Unattended
+
+# 2. Instalar perfil de Ingeniero de IA & Desarrollador (Ollama, VS Code, Git, Python 3.12, Terminal)
+& "C:\OptimizedISO\scripts\Modules\Deploy-AppProfiles.ps1" -Profile AIAndDeveloper -AutoDetectHardware -Unattended
+
+# 3. Instalar exclusivamente los runtimes base de Windows (.NET, Visual C++, DirectX)
+& "C:\OptimizedISO\scripts\Modules\Deploy-AppProfiles.ps1" -InstallRuntimesOnly -Unattended
+
+# 4. Simular instalación para auditoría previa (-WhatIf)
+& "C:\OptimizedISO\scripts\Modules\Deploy-AppProfiles.ps1" -Profile EsportsGamer -AutoDetectHardware -WhatIf
 ```
 
 ---

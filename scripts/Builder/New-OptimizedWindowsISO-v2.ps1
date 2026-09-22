@@ -4651,6 +4651,23 @@ if (Test-Path $snapshotEngineSrc) {
     Add-AuditRecord -Resource "Manage-SystemSnapshots" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$appProfilesSrc    = Join-Path $ScriptsDir "Modules\Deploy-AppProfiles.ps1"
+$appProfilesCmdSrc = Join-Path $ScriptsDir "Modules\Deploy-AppProfiles.cmd"
+if (Test-Path $appProfilesSrc) {
+    Copy-Item -Path $appProfilesSrc -Destination (Join-Path $OEMScriptsDir "Deploy-AppProfiles.ps1") -Force
+    Copy-Item -Path $appProfilesSrc -Destination (Join-Path $OEMScriptsDir1 "Deploy-AppProfiles.ps1") -Force
+    Copy-Item -Path $appProfilesSrc -Destination (Join-Path $destModulesDir "Deploy-AppProfiles.ps1") -Force
+    Copy-Item -Path $appProfilesSrc -Destination (Join-Path $destModulesDir1 "Deploy-AppProfiles.ps1") -Force
+    if (Test-Path $appProfilesCmdSrc) {
+        Copy-Item -Path $appProfilesCmdSrc -Destination (Join-Path $OEMScriptsDir "Deploy-AppProfiles.cmd") -Force
+        Copy-Item -Path $appProfilesCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Deploy-AppProfiles.cmd") -Force
+        Copy-Item -Path $appProfilesCmdSrc -Destination (Join-Path $destModulesDir "Deploy-AppProfiles.cmd") -Force
+        Copy-Item -Path $appProfilesCmdSrc -Destination (Join-Path $destModulesDir1 "Deploy-AppProfiles.cmd") -Force
+    }
+    Write-OK "Gestor de Perfiles de Software y Runtimes de IA (Deploy-AppProfiles) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Deploy-AppProfiles" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
 $ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
 $ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"
@@ -7206,6 +7223,32 @@ if ($wimFile) {
                           }
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Switch-GameDevMode.ps1 y .cmd"
                           Add-AuditRecord -Resource "Switch-GameDevMode" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
+                      }
+
+                      $snapshotEngineSrc    = Join-Path $ScriptsDir "Modules\Manage-SystemSnapshots.ps1"
+                      $snapshotEngineCmdSrc = Join-Path $ScriptsDir "Modules\Manage-SystemSnapshots.cmd"
+                      if (Test-Path $snapshotEngineSrc) {
+                          Copy-Item -Path $snapshotEngineSrc -Destination (Join-Path $wimScriptsDir "Manage-SystemSnapshots.ps1") -Force
+                          Copy-Item -Path $snapshotEngineSrc -Destination (Join-Path $wimModulesDest "Manage-SystemSnapshots.ps1") -Force
+                          if (Test-Path $snapshotEngineCmdSrc) {
+                              Copy-Item -Path $snapshotEngineCmdSrc -Destination (Join-Path $wimScriptsDir "Manage-SystemSnapshots.cmd") -Force
+                              Copy-Item -Path $snapshotEngineCmdSrc -Destination (Join-Path $wimModulesDest "Manage-SystemSnapshots.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Manage-SystemSnapshots.ps1 y .cmd"
+                          Add-AuditRecord -Resource "Manage-SystemSnapshots" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
+                      }
+
+                      $appProfilesSrc    = Join-Path $ScriptsDir "Modules\Deploy-AppProfiles.ps1"
+                      $appProfilesCmdSrc = Join-Path $ScriptsDir "Modules\Deploy-AppProfiles.cmd"
+                      if (Test-Path $appProfilesSrc) {
+                          Copy-Item -Path $appProfilesSrc -Destination (Join-Path $wimScriptsDir "Deploy-AppProfiles.ps1") -Force
+                          Copy-Item -Path $appProfilesSrc -Destination (Join-Path $wimModulesDest "Deploy-AppProfiles.ps1") -Force
+                          if (Test-Path $appProfilesCmdSrc) {
+                              Copy-Item -Path $appProfilesCmdSrc -Destination (Join-Path $wimScriptsDir "Deploy-AppProfiles.cmd") -Force
+                              Copy-Item -Path $appProfilesCmdSrc -Destination (Join-Path $wimModulesDest "Deploy-AppProfiles.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Deploy-AppProfiles.ps1 y .cmd"
+                          Add-AuditRecord -Resource "Deploy-AppProfiles" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
                       }
 
                       $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"

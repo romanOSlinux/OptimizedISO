@@ -66,7 +66,7 @@ if (-not $uiLoaded) {
 Show-UnifiedBanner -Title "ORQUESTADOR MAESTRO DE PRUEBAS" -Subtitle "romanOS / OptimizedISO" -ShowSystemInfo
 
 $suiteResults = [System.Collections.Generic.List[PSCustomObject]]::new()
-$totalSteps = if ($Quick) { 9 } else { 10 }
+$totalSteps = if ($Quick) { 10 } else { 11 }
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot ".agents"))) {
     $repoCandidate = Split-Path $PSScriptRoot -Parent
@@ -253,11 +253,31 @@ if (Test-Path $snapshotTestScript) {
 $suiteResults.Add([PSCustomObject]@{ Phase = 9; Name = "Instantáneas y Rollback Engine"; Status = if ($phase9Pass) { "PASS" } else { "FAIL" } })
 
 # -----------------------------------------------------------------------------
-# FASE 10: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# FASE 10: GESTOR DE PERFILES DE SOFTWARE Y RUNTIMES DE IA (PLAN-0100)
 # -----------------------------------------------------------------------------
-$phase10Pass = $true
+Write-StepHeader -StepNumber 10 -TotalSteps $totalSteps -Message "Auditoría de Perfiles de Software y Runtimes de IA"
+$appProfilesTestScript = Join-Path $repoRoot "scripts\Testing\Test-AppProfilesManager.ps1"
+$phase10Pass = $false
+if (Test-Path $appProfilesTestScript) {
+    & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $appProfilesTestScript
+    if ($LASTEXITCODE -eq 0) {
+        $phase10Pass = $true
+        Write-OK "Fase 10 Aprobada: Catálogo SSOT, Runtimes de IA y Perfiles de Software certificados."
+    } else {
+        $phase10Pass = $false
+        Write-ErrorMsg "Fase 10 Fallida: Se detectaron fallos en la batería de App & AI Profiles Manager."
+    }
+} else {
+    Write-Warn "Script de pruebas de App Profiles no encontrado en '$appProfilesTestScript'."
+}
+$suiteResults.Add([PSCustomObject]@{ Phase = 10; Name = "Perfiles de Software y Runtimes de IA"; Status = if ($phase10Pass) { "PASS" } else { "FAIL" } })
+
+# -----------------------------------------------------------------------------
+# FASE 11: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# -----------------------------------------------------------------------------
+$phase11Pass = $true
 if (-not $Quick) {
-    Write-StepHeader -StepNumber 10 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
+    Write-StepHeader -StepNumber 11 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
     $harnessCandidates = @(
         (Join-Path $repoRoot "scripts\Testing\Test-OptimizedISO-v2.ps1"),
         (Join-Path $repoRoot "scripts\Test-OptimizedISO-v2.ps1")
@@ -266,17 +286,17 @@ if (-not $Quick) {
     if ($harnessScript) {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $harnessScript -LogDir $LogDir
         if ($LASTEXITCODE -eq 0) {
-            $phase10Pass = $true
-            Write-OK "Fase 10 Aprobada: 140/140 pruebas del Test Harness superadas."
+            $phase11Pass = $true
+            Write-OK "Fase 11 Aprobada: 140/140 pruebas del Test Harness superadas."
         } else {
-            $phase10Pass = $false
-            Write-ErrorMsg "Fase 10 Fallida: Se detectaron aserciones fallidas en el Test Harness."
+            $phase11Pass = $false
+            Write-ErrorMsg "Fase 11 Fallida: Se detectaron aserciones fallidas en el Test Harness."
         }
     } else {
         Write-Warn "Test Harness no encontrado en '$harnessScript'."
-        $phase10Pass = $false
+        $phase11Pass = $false
     }
-    $suiteResults.Add([PSCustomObject]@{ Phase = 10; Name = "Test Harness Integral ISO v2"; Status = if ($phase10Pass) { "PASS" } else { "FAIL" } })
+    $suiteResults.Add([PSCustomObject]@{ Phase = 11; Name = "Test Harness Integral ISO v2"; Status = if ($phase11Pass) { "PASS" } else { "FAIL" } })
 }
 
 # -----------------------------------------------------------------------------

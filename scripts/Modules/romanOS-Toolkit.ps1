@@ -25,8 +25,9 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback")]
+    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps")]
     [string]$Module,
+    [string]$AppProfile,
     [switch]$ShowDashboards,
     [switch]$GUI,
     [switch]$Snapshot
@@ -305,6 +306,27 @@ function Invoke-SnapshotModule {
     }
 }
 
+function Invoke-AppProfilesModule {
+    param(
+        [string]$ProfileName = 'None',
+        [switch]$InstallRuntimesOnly,
+        [switch]$AutoDetectHardware
+    )
+    $scriptFile = Resolve-ToolScript "Deploy-AppProfiles.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando romanOS App & AI Runtimes Manager"
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptFile)
+        if ($ProfileName -and $ProfileName -ne 'None') { $argList += @('-Profile', $ProfileName) }
+        if ($InstallRuntimesOnly) { $argList += '-InstallRuntimesOnly' }
+        if ($AutoDetectHardware) { $argList += '-AutoDetectHardware' }
+        if ($WhatIfPreference -or $PSBoundParameters.ContainsKey('WhatIf')) { $argList += '-WhatIf' }
+        & powershell.exe @argList
+    } else {
+        Write-ErrorMsg "No se encontro Deploy-AppProfiles.ps1"
+        pause
+    }
+}
+
 function Invoke-GameDevSwitchModule {
     param(
         [string]$TargetMode = "Status",
@@ -530,7 +552,8 @@ function Show-QuickActionsMenu {
         "Auditor Universal de Optimizacion del Sistema (Multi-Hardware)",
         "Conmutador Modo Juego / Modo Dev (Cortar Devoradores de Recursos / Hyper-V)",
         "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)",
-        "Crear Instantanea de Seguridad (romanOS Snapshot Engine)"
+        "Crear Instantanea de Seguridad (romanOS Snapshot Engine)",
+        "Gestor de Perfiles de Software y Runtimes de IA (Deploy-AppProfiles)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -685,6 +708,10 @@ function Show-QuickActionsMenu {
             Invoke-SnapshotModule -Action "Create"
             pause
         }
+        19 {
+            Invoke-AppProfilesModule -AutoDetectHardware
+            pause
+        }
         default { return }
     }
 
@@ -719,6 +746,9 @@ if ($Module) {
         "Snapshot"      { Invoke-SnapshotModule -Action "List"; exit }
         "Snapshots"     { Invoke-SnapshotModule -Action "List"; exit }
         "Rollback"      { Invoke-SnapshotModule -Action "Restore"; exit }
+        "AppProfiles"   { Invoke-AppProfilesModule -ProfileName $AppProfile -AutoDetectHardware; exit }
+        "AIProfiles"    { Invoke-AppProfilesModule -ProfileName "AIAndDeveloper" -AutoDetectHardware; exit }
+        "Apps"          { Invoke-AppProfilesModule -ProfileName $AppProfile -AutoDetectHardware; exit }
         "QuickActions"    { Show-QuickActionsMenu; exit }
         "GamingApps"      { Invoke-GamingAndAppsModule; exit }
         "LatencyProfiler" { Invoke-LatencyTraceModule; exit }
@@ -772,6 +802,7 @@ $mainMenuOpts = @(
     "Profiler Forense de Latencia DPC/ISR (Sub-Microsegundo, Invariant TSC, Drivers)",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)",
     "romanOS Snapshot & Rollback Engine (Crear/Restaurar Instantaneas de Sistema)",
+    "Gestor de Perfiles de Software y Runtimes de IA (Deploy-AppProfiles)",
     "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
 )
 
@@ -798,7 +829,8 @@ while ($true) {
         16 { Invoke-LatencyTraceModule; pause }
         17 { Show-QuickActionsMenu; pause }
         18 { Invoke-SnapshotModule -Action "List"; pause }
-        19 { Invoke-ControlCenterGUI; pause }
+        19 { Invoke-AppProfilesModule -AutoDetectHardware; pause }
+        20 { Invoke-ControlCenterGUI; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit

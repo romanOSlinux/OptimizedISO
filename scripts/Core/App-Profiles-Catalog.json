@@ -1,0 +1,273 @@
+{
+  "$schema": "https://raw.githubusercontent.com/romanOSlinux/OptimizedISO/main/schemas/app-profiles.json",
+  "version": "1.0.0",
+  "lastUpdated": "2026-09-22",
+  "description": "Catálogo Canónico de Perfiles de Software, Runtimes de IA y Aceleración por Hardware para romanOS / OptimizedISO",
+  "runtimes": [
+    {
+      "id": "Microsoft.VCRedist.2015+.x64",
+      "name": "Visual C++ 2015-2022 Redistributable (x64)",
+      "category": "Runtimes",
+      "required": true,
+      "description": "Bibliotecas de tiempo de ejecución C/C++ esenciales para software de 64 bits",
+      "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "id": "Microsoft.VCRedist.2015+.x86",
+      "name": "Visual C++ 2015-2022 Redistributable (x86)",
+      "category": "Runtimes",
+      "required": true,
+      "description": "Bibliotecas de tiempo de ejecución C/C++ esenciales para software de 32 bits",
+      "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "id": "Microsoft.DirectX",
+      "name": "DirectX End-User Runtimes (June 2010)",
+      "category": "Runtimes",
+      "required": true,
+      "description": "Bibliotecas multimedia heredadas D3DX9, D3DX10 y XInput requeridas por motores de juegos clásicos",
+      "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "id": "Microsoft.DotNet.DesktopRuntime.8",
+      "name": ".NET Desktop Runtime 8.0 (LTS)",
+      "category": "Runtimes",
+      "required": false,
+      "description": "Entorno de ejecución moderno de escritorio de Microsoft con soporte a largo plazo",
+      "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "id": "Microsoft.DotNet.DesktopRuntime.9",
+      "name": ".NET Desktop Runtime 9.0",
+      "category": "Runtimes",
+      "required": false,
+      "description": "Entorno de ejecución de última generación con optimizaciones de latencia y JIT para 2026",
+      "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+    }
+  ],
+  "profiles": {
+    "EsportsGamer": {
+      "name": "eSports & Competitive Gamer",
+      "description": "Optimizado para latencia mínima, plataformas de juegos, monitorización de hardware y chat",
+      "packages": [
+        {
+          "id": "Valve.Steam",
+          "name": "Valve Steam Client",
+          "category": "Gaming",
+          "description": "Plataforma de videojuegos y distribución digital",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "Discord.Discord",
+          "name": "Discord",
+          "category": "Communication",
+          "description": "Comunicación por voz, video y texto de alto rendimiento para gaming",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "7zip.7zip",
+          "name": "7-Zip (64-bit)",
+          "category": "Utilities",
+          "description": "Compresor y descompresor ultra rápido de archivos de código abierto",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "Guru3D.RTSS",
+          "name": "RivaTuner Statistics Server",
+          "category": "Performance",
+          "description": "Limitador de framerate y servidor de telemetría OSD de latencia ultra baja",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "KhronosGroup.Vulkan.Runtime",
+          "name": "Khronos Vulkan Runtime",
+          "category": "Graphics",
+          "description": "Bibliotecas de API gráfica moderna de bajo overhead para juegos competitivos",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "OBSProject.OBSStudio",
+          "name": "OBS Studio",
+          "category": "Streaming",
+          "description": "Grabación de partidas y transmisión en directo con aceleración por hardware",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        }
+      ]
+    },
+    "CreatorStreamer": {
+      "name": "Content Creator & Streamer",
+      "description": "Herramientas de producción multimedia, codificación de video AV1/HEVC y streaming",
+      "packages": [
+        {
+          "id": "OBSProject.OBSStudio",
+          "name": "OBS Studio",
+          "category": "Streaming",
+          "description": "Software líder de transmisión en vivo y grabación de pantalla",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "HandBrake.HandBrake",
+          "name": "HandBrake Video Transcoder",
+          "category": "Media",
+          "description": "Conversor de video de código abierto con soporte AV1, NVENC, VCE y QuickSync",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "VideoLAN.VLC",
+          "name": "VLC Media Player",
+          "category": "Media",
+          "description": "Reproductor multimedia universal multiplataforma con soporte para todos los códecs",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "Audacity.Audacity",
+          "name": "Audacity Audio Editor",
+          "category": "Audio",
+          "description": "Editor y grabador de audio multipista de nivel profesional",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "CodecGuide.K-LiteCodecPack.Standard",
+          "name": "K-Lite Codec Pack Standard",
+          "category": "Codecs",
+          "description": "Colección completa de filtros DirectShow y códecs de video/audio",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "dotPDN.PaintDotNet",
+          "name": "Paint.NET",
+          "category": "Graphics",
+          "description": "Editor fotográfico e imagen con soporte de capas y aceleración por GPU",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "7zip.7zip",
+          "name": "7-Zip (64-bit)",
+          "category": "Utilities",
+          "description": "Gestor de archivos comprimidos de alta compresión",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        }
+      ]
+    },
+    "AIAndDeveloper": {
+      "name": "AI Engineer & Developer",
+      "description": "Pila completa de Inteligencia Artificial local, modelos LLM, desarrollo de software y terminal",
+      "packages": [
+        {
+          "id": "Ollama.Ollama",
+          "name": "Ollama Local AI Runner",
+          "category": "AI",
+          "description": "Motor de ejecución local de modelos LLM (Llama 3, DeepSeek, Mistral) con aceleración GPU",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "Microsoft.VisualStudioCode",
+          "name": "Visual Studio Code",
+          "category": "Development",
+          "description": "Editor de código fuente extensible y optimizado para desarrollo moderno e IA",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "Git.Git",
+          "name": "Git for Windows",
+          "category": "Development",
+          "description": "Sistema de control de versiones distribuido con Git Bash y soporte Credential Manager",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "Python.Python.3.12",
+          "name": "Python 3.12 (64-bit)",
+          "category": "Development",
+          "description": "Lenguaje de programación y entorno de ejecución estándar para machine learning y scripts",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "Microsoft.WindowsTerminal",
+          "name": "Windows Terminal",
+          "category": "Terminal",
+          "description": "Terminal moderna con pestañas, renderizado DirectX por GPU y soporte UTF-8",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "7zip.7zip",
+          "name": "7-Zip (64-bit)",
+          "category": "Utilities",
+          "description": "Compresión y descompresión de código y datasets masivos",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        }
+      ]
+    },
+    "Essential": {
+      "name": "Essential Daily Utilities",
+      "description": "Utilidades mínimas de alta eficiencia, navegador ligero, visor de documentos y compresión",
+      "packages": [
+        {
+          "id": "7zip.7zip",
+          "name": "7-Zip (64-bit)",
+          "category": "Utilities",
+          "description": "Gestor universal de archivos comprimidos",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "Mozilla.Firefox",
+          "name": "Mozilla Firefox",
+          "category": "Browser",
+          "description": "Navegador web independiente, seguro y con protección contra rastreo",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "SumatraPDF.SumatraPDF",
+          "name": "SumatraPDF",
+          "category": "Productivity",
+          "description": "Visor de PDF, ePub y cómics ultra rápido de arranque instantáneo",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        },
+        {
+          "id": "Notepad++.Notepad++",
+          "name": "Notepad++",
+          "category": "Productivity",
+          "description": "Editor de texto ligero y potente con soporte de sintaxis múltiple",
+          "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+        }
+      ]
+    }
+  },
+  "hardwareAddons": {
+    "Nvidia": [
+      {
+        "id": "Nvidia.NvidiaApp",
+        "name": "NVIDIA App",
+        "category": "Drivers & Control",
+        "description": "Panel de control moderno y unificado para GPUs GeForce con optimizaciones RTX e IA",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      }
+    ],
+    "Amd": [
+      {
+        "id": "AdvancedMicroDevices.AMDSoftwareAdrenalinEdition",
+        "name": "AMD Software: Adrenalin Edition",
+        "category": "Drivers & Control",
+        "description": "Suite de configuración gráfica Radeon con HYPR-RX, Fluid Motion Frames y Anti-Lag",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      }
+    ],
+    "Intel": [
+      {
+        "id": "Intel.ArcGraphicsDriver",
+        "name": "Intel Arc & Iris Xe Graphics Driver",
+        "category": "Drivers & Control",
+        "description": "Controlador y suite Intel Arc Control con aceleración XeSS y telemetría de GPU",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      }
+    ],
+    "Npu": [
+      {
+        "id": "Microsoft.DirectML",
+        "name": "DirectML Machine Learning API",
+        "category": "AI Acceleration",
+        "description": "Aceleración de inferencia para NPUs (AMD XDNA, Intel AI Boost, Qualcomm) y GPUs DirectX 12",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      }
+    ]
+  }
+}

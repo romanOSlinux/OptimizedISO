@@ -549,6 +549,39 @@ function Resolve-ToolScript {
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
+                        <!-- Tarjeta romanOS App & AI Runtimes Manager -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="romanOS App &amp; AI Runtimes Manager (Winget &amp; IA 2026)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                <TextBlock Text="Instalacion automatizada y silenciosa de perfiles de software curados, aceleradores de IA local (Ollama, DirectML) y runtimes de sistema." Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,10"/>
+                                
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Perfil de Software:" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <ComboBox x:Name="cbxAppProfiles" Grid.Column="1" Height="26" SelectedIndex="0" Background="#1E1E1E" Foreground="#FFFFFF">
+                                        <ComboBoxItem Content="eSports &amp; Competitive Gamer (Steam, Discord, RTSS, Vulkan, OBS)" Tag="EsportsGamer"/>
+                                        <ComboBoxItem Content="AI Engineer &amp; Developer (Ollama, VS Code, Git, Python 3.12, Terminal)" Tag="AIAndDeveloper"/>
+                                        <ComboBoxItem Content="Content Creator &amp; Streamer (OBS, HandBrake, VLC, Audacity, Codecs)" Tag="CreatorStreamer"/>
+                                        <ComboBoxItem Content="Essential Daily Utilities (7-Zip, Firefox, SumatraPDF, Notepad++)" Tag="Essential"/>
+                                        <ComboBoxItem Content="Todos los Perfiles Completos" Tag="All"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <WrapPanel Margin="0,0,0,10">
+                                    <CheckBox x:Name="chkAutoDetectHw" Content="Auto-detectar GPU/NPU y anadir suite oficial de fabricante" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,5"/>
+                                    <CheckBox x:Name="chkIncludeRuntimes" Content="Incluir Runtimes Base (.NET 8/9, Visual C++ 2015-2022, DirectX)" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,5"/>
+                                </WrapPanel>
+
+                                <WrapPanel>
+                                    <Button x:Name="btnDeployProfileGUI" Content="Instalar Perfil Seleccionado" Width="210" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnSimulateProfileGUI" Content="Simular Instalacion (-WhatIf)" Width="200" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnInstallRuntimesGUI" Content="Instalar Solo Runtimes Base" Width="210" Margin="0,0,10,10"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -1114,6 +1147,44 @@ $window.FindName('btnCleanDriverStore').Add_Click({
 $window.FindName('btnMigrateUser').Add_Click({
     $tool = Resolve-ToolScript "Migrar-Usuario-W11.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Migracion de Perfiles de Usuario" }
+})
+
+# App & AI Runtimes Manager Handlers
+$window.FindName('btnDeployProfileGUI').Add_Click({
+    $cbx = $window.FindName('cbxAppProfiles')
+    $selectedItem = if ($cbx) { $cbx.SelectedItem } else { $null }
+    $profileTag = if ($selectedItem -and $selectedItem.Tag) { $selectedItem.Tag } else { 'EsportsGamer' }
+    $autoHw = $window.FindName('chkAutoDetectHw').IsChecked
+    $incRt = $window.FindName('chkIncludeRuntimes').IsChecked
+
+    $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
+    if ($tool) {
+        $cmd = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Profile $profileTag -Unattended"
+        if ($autoHw) { $cmd += " -AutoDetectHardware" }
+        if (-not $incRt) { $cmd += " -IncludeRuntimes:`$false" }
+        Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Despliegue de Perfil: $profileTag"
+    }
+})
+
+$window.FindName('btnSimulateProfileGUI').Add_Click({
+    $cbx = $window.FindName('cbxAppProfiles')
+    $selectedItem = if ($cbx) { $cbx.SelectedItem } else { $null }
+    $profileTag = if ($selectedItem -and $selectedItem.Tag) { $selectedItem.Tag } else { 'EsportsGamer' }
+    $autoHw = $window.FindName('chkAutoDetectHw').IsChecked
+
+    $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
+    if ($tool) {
+        $cmd = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Profile $profileTag -WhatIf -SkipElevation"
+        if ($autoHw) { $cmd += " -AutoDetectHardware" }
+        Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Simulacion de Perfil: $profileTag"
+    }
+})
+
+$window.FindName('btnInstallRuntimesGUI').Add_Click({
+    $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -InstallRuntimesOnly -Unattended" -TaskTitle "Instalacion de Runtimes del Sistema"
+    }
 })
 
 # -----------------------------------------------------------------------------
