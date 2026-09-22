@@ -1,0 +1,2012 @@
+﻿[
+    {
+        "RelativePath":  "Runtimes\\DirectX\\DSETUP.dll",
+        "FileName":  "DSETUP.dll",
+        "Category":  "Microsoft Redistributable",
+        "SizeBytes":  95576,
+        "SHA256":  "2A61679EEEDABF7D0D0AC14E5447486575622D6B7CFA56F136C1576FF96DA21F",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha1RSA",
+        "SignerSubject":  "CN=Microsoft Corporation, OU=MOPR, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Runtimes\\DirectX\\dsetup32.dll",
+        "FileName":  "dsetup32.dll",
+        "Category":  "Microsoft Redistributable",
+        "SizeBytes":  1566040,
+        "SHA256":  "FB0E534F9B0926E518F1C2980640DFD29F14217CDFA37CF3A0C13349127ED9A8",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha1RSA",
+        "SignerSubject":  "CN=Microsoft Corporation, OU=MOPR, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Runtimes\\DirectX\\DXSETUP.exe",
+        "FileName":  "DXSETUP.exe",
+        "Category":  "Microsoft Redistributable",
+        "SizeBytes":  517976,
+        "SHA256":  "8F47D7121EF6532AD9AD9901E44E237F5C30448B752028C58A9D19521414E40D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha1RSA",
+        "SignerSubject":  "CN=Microsoft Corporation, OU=MOPR, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Runtimes\\vcredist_2012_x64.exe",
+        "FileName":  "vcredist_2012_x64.exe",
+        "Category":  "Microsoft Redistributable",
+        "SizeBytes":  7186992,
+        "SHA256":  "681BE3E5BA9FD3DA02C09D7E565ADFA078640ED66A0D58583EFAD2C1E3CC4064",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha1RSA",
+        "SignerSubject":  "CN=Microsoft Corporation, OU=MOPR, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Runtimes\\vcredist_2012_x86.exe",
+        "FileName":  "vcredist_2012_x86.exe",
+        "Category":  "Microsoft Redistributable",
+        "SizeBytes":  6554576,
+        "SHA256":  "B924AD8062EAF4E70437C8BE50FA612162795FF0839479546CE907FFA8D6E386",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha1RSA",
+        "SignerSubject":  "CN=Microsoft Corporation, OU=MOPR, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Runtimes\\vcredist_2013_x64.exe",
+        "FileName":  "vcredist_2013_x64.exe",
+        "Category":  "Microsoft Redistributable",
+        "SizeBytes":  7200744,
+        "SHA256":  "A4BBA7701E355AE29C403431F871A537897C363E215CAFE706615E270984F17C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha1RSA",
+        "SignerSubject":  "CN=Microsoft Corporation, OU=MOPR, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Runtimes\\vcredist_2013_x86.exe",
+        "FileName":  "vcredist_2013_x86.exe",
+        "Category":  "Microsoft Redistributable",
+        "SizeBytes":  6510136,
+        "SHA256":  "53B605D1100AB0A88B867447BBF9274B5938125024BA01F5105A9E178A3DCDBD",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha1RSA",
+        "SignerSubject":  "CN=Microsoft Corporation, OU=MOPR, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Runtimes\\vc_redist.x64.exe",
+        "FileName":  "vc_redist.x64.exe",
+        "Category":  "Microsoft Redistributable",
+        "SizeBytes":  25635768,
+        "SHA256":  "CC0FF0EB1DC3F5188AE6300FAEF32BF5BEEBA4BDD6E8E445A9184072096B713B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Runtimes\\vc_redist.x86.exe",
+        "FileName":  "vc_redist.x86.exe",
+        "Category":  "Microsoft Redistributable",
+        "SizeBytes":  13953392,
+        "SHA256":  "0C09F2611660441084CE0DF425C51C11E147E6447963C3690F97E0B25C55ED64",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdcamera.inf_amd64_5af8f5bf0e263d7a\\amdcamera.sys",
+        "FileName":  "amdcamera.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  849816,
+        "SHA256":  "C4AF9F8B864AF616493DA2677ED80B83E4A6EDAECDF81ED52245F3CF762E856C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdcamera.inf_amd64_5af8f5bf0e263d7a\\AmdIspDeviceMft.dll",
+        "FileName":  "AmdIspDeviceMft.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1829784,
+        "SHA256":  "6D7049CBF15C867A510F4D415AE8179B1C5F73A09FE9AFD92981D2CD148550A6",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfdans.inf_amd64_ed467e604b9aac93\\AMDNoiseSuppression.exe",
+        "FileName":  "AMDNoiseSuppression.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  418344,
+        "SHA256":  "4ECEC1B76D9EF18C7F2A26DA823E71124DB627E3ACD3C178C89B80B3AEAC20EE",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfdans.inf_amd64_ed467e604b9aac93\\ANR-bgproc-Lib.dll",
+        "FileName":  "ANR-bgproc-Lib.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  314408,
+        "SHA256":  "D07610C76593E2CFB4D73644D879B87F5C2FDC6F7F0A0223C37D093B122B21D8",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfdans.inf_amd64_ed467e604b9aac93\\anronnxlib.dll",
+        "FileName":  "anronnxlib.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  584224,
+        "SHA256":  "A34A6590A14A34D4A4B4155B63BC6357ED5654414AE3C04AF0F791849179AC26",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfdans.inf_amd64_ed467e604b9aac93\\anrsvc.dll",
+        "FileName":  "anrsvc.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  23080,
+        "SHA256":  "A438BF984A2FCF94A861BFC1F31B5D79BF6980A26034569D7FDBD5C12F335502",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfdans.inf_amd64_ed467e604b9aac93\\DirectML.dll",
+        "FileName":  "DirectML.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  12182080,
+        "SHA256":  "E85FEFE5B858072CB8FCFF625F7A6EBEE8FF4051768064C4BD36AEDC2ECF825B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfdans.inf_amd64_ed467e604b9aac93\\ippANS.dll",
+        "FileName":  "ippANS.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  3751976,
+        "SHA256":  "1B9087C429997FB8D5D780A1B5EA2E189BE43E93FA10196224C04106C1795FF8",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfdans.inf_amd64_ed467e604b9aac93\\mdfaec.dll",
+        "FileName":  "mdfaec.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  253040,
+        "SHA256":  "98D6108557523C18EE812A96CEB5E4F99204185B339EB3FCE36D72EB83903773",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfdans.inf_amd64_ed467e604b9aac93\\onnxruntime.dll",
+        "FileName":  "onnxruntime.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  13011536,
+        "SHA256":  "F98BB0BB989F0DA87FF9D29F0042F64353CB590EE8828C4AADEB99EDB350AE0F",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfendr.inf_amd64_b08edd5e3fe7eded\\amdfendr.sys",
+        "FileName":  "amdfendr.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  417688,
+        "SHA256":  "B9CD5FC5C03F3F01031EBF328AED5834A44B3135A74E3B87B6670CDA14D100A2",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfendr.inf_amd64_b08edd5e3fe7eded\\amdfendrmgr.sys",
+        "FileName":  "amdfendrmgr.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  37272,
+        "SHA256":  "320F583F5EF0FED5FA68650A08E68F229700659A43A7FCC420FE409224398FA8",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdfendr.inf_amd64_b08edd5e3fe7eded\\amdfendrsr.exe",
+        "FileName":  "amdfendrsr.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  3549080,
+        "SHA256":  "5A97E305ED1E820498D573E9476112E7BB6C1D9BC4077E9425AFC436B7E376BA",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdgpio2.inf_amd64_487ee5525dcee517\\amdgpio2.sys",
+        "FileName":  "amdgpio2.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  60264,
+        "SHA256":  "BC5E9F8EA42D02E505F8C8AE518D3C34D999F16F68DA4B0C909765EADBB1445C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdgpio3.inf_amd64_893f7355b0a16289\\amdgpio3.sys",
+        "FileName":  "amdgpio3.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  33664,
+        "SHA256":  "8E6D91B8CA754799BBF3AB775F81309E3DBC1B5149FEF4BB435AE050208CA16D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\amdhip64_6.dll",
+        "FileName":  "amdhip64_6.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  17761800,
+        "SHA256":  "7921A0CEB01E7BAB720907727C59E30DC8F7243CA0FF37F36A8C777CA522169D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\amdhip64_7.dll",
+        "FileName":  "amdhip64_7.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  17512464,
+        "SHA256":  "A613ACD4B88B63963932517BA5B471B15BBE03C0AE7A8B258A94DB97E1561C17",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\amdmmcl.dll",
+        "FileName":  "amdmmcl.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  145936,
+        "SHA256":  "9038FF72C0F8D2BB26B82FDB34B3F0CBC0D839D94ACE4DAEAE4C9EF13072FFBA",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\amdmmcl6.dll",
+        "FileName":  "amdmmcl6.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  177168,
+        "SHA256":  "8714809DAEA5A33D147C47C3D8B8061B10F7444CE47C8E7919AC2F7F9DD04F2F",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\amdocl32.dll",
+        "FileName":  "amdocl32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  11962384,
+        "SHA256":  "8FE5B9FEEAB82C97D0958A48B175D8A05E8F13492F51D18BE4EEE114253ACA18",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\amdocl64.dll",
+        "FileName":  "amdocl64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  13228560,
+        "SHA256":  "E4A3C7160742543CD16A0067097D296F01871B94C6D914B7B781C526AF731A9D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\amd_comgr32.dll",
+        "FileName":  "amd_comgr32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  97336328,
+        "SHA256":  "5467D153BB476B46A9FBC54A58AD99DF4A7215CE1F05D4F5F787344AAD9E80D0",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\amd_comgr_2.dll",
+        "FileName":  "amd_comgr_2.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  121180688,
+        "SHA256":  "CEC34CBDF177FBC0819DDC14C83D892E8F25CB751B9B24EE8AD2AF54DA416B2B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\amd_comgr_3.dll",
+        "FileName":  "amd_comgr_3.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  113910288,
+        "SHA256":  "BAA9A25DD70F768B5A6F2E8EE6E70EC2F31F7B336099B7226EA3EAAA6B209F1D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\AMD_OpenCL32.dll",
+        "FileName":  "AMD_OpenCL32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  214032,
+        "SHA256":  "8002ED1339F26C4D29D32F80DDDC6F4E40DD7FD878F588D5256F9EAB6CF7D64B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\AMD_OpenCL64.dll",
+        "FileName":  "AMD_OpenCL64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  244752,
+        "SHA256":  "52D202E70FA61DE6CFCE902CF0BEB6BD0A279E8205F747F723F416EA24268816",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\clinfo.exe",
+        "FileName":  "clinfo.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  356880,
+        "SHA256":  "4D8DC4D1266D71BF4DFEA3D7A7C88B7CACF69950C6C568CA26B028D011237C7A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdocl.inf_amd64_235be6419ea86cde\\regamdcomp.exe",
+        "FileName":  "regamdcomp.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  301576,
+        "SHA256":  "F9843A8676601D4A379A2F28B07D09CB483A2BDDD7626C292AC304AC279404E2",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdogl.inf_amd64_a596f52b2a919134\\atio6axx.dll",
+        "FileName":  "atio6axx.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  64270864,
+        "SHA256":  "C34A102D4124EEAD0B71B8C94B4B666D299C1DF59CE3D18D5783FB69514F8029",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdogl.inf_amd64_a596f52b2a919134\\atioglxx.dll",
+        "FileName":  "atioglxx.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  52943376,
+        "SHA256":  "63E4A8D8290EC8593F9DE21DD5686C065E63EE7C3BD7D7AD9101F5B179634635",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdogl.inf_amd64_a596f52b2a919134\\regamdcomp.exe",
+        "FileName":  "regamdcomp.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  301584,
+        "SHA256":  "7B9663CBD719934D842FE89E1B49B9CCA09E16159E63BD2B99E02EB136289110",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdppkg.inf_amd64_560eeb9a923ac8eb\\AmdPpkg.sys",
+        "FileName":  "AmdPpkg.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  35224,
+        "SHA256":  "C1F0D3CC7C85D97D3D133777D795E064DB2B7CD16C3F5D6722E70B74C72C16E2",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdppkg.inf_amd64_560eeb9a923ac8eb\\AmdPpkgSvc.exe",
+        "FileName":  "AmdPpkgSvc.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  513944,
+        "SHA256":  "B7C9180D38DB51DAAB702517B63F5B3C13A09CDFE412CB634891D53101278431",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdpsp.inf_amd64_4f95ff0e846db652\\amdpsp.sys",
+        "FileName":  "amdpsp.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  62872,
+        "SHA256":  "D58C4C28357853C8F3531991BEA7E9D8A25D9A503D8846D05FF8FB507CA3ED62",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdpsp.inf_amd64_4f95ff0e846db652\\amdtee_api32.dll",
+        "FileName":  "amdtee_api32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  397720,
+        "SHA256":  "78E3D3F8A1879426B421319CE25334BEBCB62BF0B42888B9E0E42B34E9AD09F1",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdpsp.inf_amd64_4f95ff0e846db652\\amdtee_api64.dll",
+        "FileName":  "amdtee_api64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  526232,
+        "SHA256":  "20250EB57B6B9A323C9CBF140A6C08B6EC44BFA4E43B48A45F6813C12C309EB1",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdsafd.inf_amd64_d4de13a10f2586d0\\amdsafd.sys",
+        "FileName":  "amdsafd.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  119192,
+        "SHA256":  "89D7FFA6C8CBED12E2F11877A0118CFE141E0D071AE34D320459DEDF53679FF6",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdsdwc.inf_amd64_9aebb4aa485b599f\\amdsdwc.sys",
+        "FileName":  "amdsdwc.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1065368,
+        "SHA256":  "A57513787588EC2EC899BB4409E5832C94E461043059FCAB8F1C0A9C314E0F66",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdsdws.inf_amd64_39f785bfa3a6385f\\AmdMvaOem.dll",
+        "FileName":  "AmdMvaOem.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  5664152,
+        "SHA256":  "F57C4DB3919B5F3BC7E1FEEE1ACB5F7D9C6CDC8311D681F294043FE1F11CED73",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdsdws.inf_amd64_39f785bfa3a6385f\\amdsdws.sys",
+        "FileName":  "amdsdws.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  962968,
+        "SHA256":  "A336AB3FFBC98F6D1CEE91D1D9DB4E5267244E48126B164AB473B2235D440730",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdvlk.inf_amd64_66bec696d04ac441\\amdvlk32.dll",
+        "FileName":  "amdvlk32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  89605640,
+        "SHA256":  "22E505DF46130D0346B04EE412B615905F5E794D574F1B14D4FAF200C8A8C763",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdvlk.inf_amd64_66bec696d04ac441\\amdvlk64.dll",
+        "FileName":  "amdvlk64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  103212560,
+        "SHA256":  "95B2E9455951A44CBA095E326354D885952AE9A34FC5BE3923BF6BBC30C47850",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdvlk.inf_amd64_66bec696d04ac441\\regamdcomp.exe",
+        "FileName":  "regamdcomp.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  301584,
+        "SHA256":  "3BCE76FED43FC5A85BA2BE68E79A52730565499E6219E843E77AC75C941EF9A6",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdvlk.inf_amd64_66bec696d04ac441\\vulkan32.dll",
+        "FileName":  "vulkan32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1531504,
+        "SHA256":  "0374C491CAFC2C475176B3875372AFF79BDE490C2B68CA1FF382228CBBE9DF03",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdvlk.inf_amd64_66bec696d04ac441\\vulkan64.dll",
+        "FileName":  "vulkan64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1719408,
+        "SHA256":  "3055875D8F49AE16E4B4C50A7299DD1F0286A4857D50601874D874FADFADDA6B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdvlk.inf_amd64_66bec696d04ac441\\vulkaninfo32.exe",
+        "FileName":  "vulkaninfo32.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2637328,
+        "SHA256":  "CC1ECDF5044D5181D655220E81C2A889157EBD8A5031EDD6A0905D8EF27712DF",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdvlk.inf_amd64_66bec696d04ac441\\vulkaninfo64.exe",
+        "FileName":  "vulkaninfo64.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  3093520,
+        "SHA256":  "6640690FACBDF12EA4FB919DB306AB4498E335B0DA745A9B8AE46C8B1907BEDD",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdwin-u0203731.inf_amd64_8e1656678755aee8\\amdlogum.exe",
+        "FileName":  "amdlogum.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  471568,
+        "SHA256":  "F1DEE6F14EAB137231D8F0F93F51E9042CFB24FE89E2389CECC40A4D110B0BD6",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdwin-u0203731.inf_amd64_8e1656678755aee8\\dgtrayicon.exe",
+        "FileName":  "dgtrayicon.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  554000,
+        "SHA256":  "07A7F9EF9B69C352F624074BCC27191A777DFB232AEBBB4C9385B6824812768A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdwin-u0203731.inf_amd64_8e1656678755aee8\\Rapidfire.dll",
+        "FileName":  "Rapidfire.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  678928,
+        "SHA256":  "69BAF750FC3A9FCAA0BD324FD0B213E0041703A7F15DBFC7288B6E99C49E4050",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdwin-u0203731.inf_amd64_8e1656678755aee8\\Rapidfire64.dll",
+        "FileName":  "Rapidfire64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  801808,
+        "SHA256":  "46F6C2E348ABAE39E0CD77CC5E0AC04AABACA1704908E3BFE03471320576FCFC",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdwin-u0203731.inf_amd64_8e1656678755aee8\\RapidFireServer.dll",
+        "FileName":  "RapidFireServer.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  48656,
+        "SHA256":  "B10532C5E8EF6175F2A1DBA18F47044F622BD0B298C72684F27949C67B19C10F",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdwin-u0203731.inf_amd64_8e1656678755aee8\\RapidFireServer64.dll",
+        "FileName":  "RapidFireServer64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  51728,
+        "SHA256":  "F9B94F2F759F08EF0A7D2EF3824ADCA687D02F25A3538DE15C00607F0E525072",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\amdxe.inf_amd64_eb965e576c6254f5\\amdxe.sys",
+        "FileName":  "amdxe.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  64920,
+        "SHA256":  "F49F808ECF32CA8699E2FB6E2EE360C30251C1C3A1E9AEE7801873BE89CDC60E",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\atihdwt6.inf_amd64_7a7031d15c801b8c\\AtihdWT6.sys",
+        "FileName":  "AtihdWT6.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  261528,
+        "SHA256":  "23648C8B147B15F4CA0C574639C6CC51D2F3DBF1E6BE1B267D76C7E0B1A070D9",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\dtsapo4x64.inf_amd64_24037cbeffd38c45\\dtsapo64.dll",
+        "FileName":  "dtsapo64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2153896,
+        "SHA256":  "7D240E8969DC65110B137246D832FBE567EEB77825BA7E216E0135D2F4617304",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\dtsapo4x64.inf_amd64_24037cbeffd38c45\\dtscnt64.dll",
+        "FileName":  "dtscnt64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2506192,
+        "SHA256":  "25B51B87ED56D3140ACF10E196CA1ED1CE6B506115DBCFB9ADF495880735CDD9",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\dtsapo4x64.inf_amd64_24037cbeffd38c45\\dtstech51_64.dll",
+        "FileName":  "dtstech51_64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  489664,
+        "SHA256":  "38ECE98D8B5CD9A9955EF17334491B560A945F3D71E4C50EF63022A4514ECD3F",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\dtsapo4x64.inf_amd64_24037cbeffd38c45\\dtstech64.dll",
+        "FileName":  "dtstech64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1555280,
+        "SHA256":  "A7B435107A139447C0DC3779FC645C24DDBD22B0A8883B746BE4EA5D36FCF0BA",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\dtsapo4xservice.inf_amd64_01d8fa4ab0b67a7f\\DtsApo4Service.exe",
+        "FileName":  "DtsApo4Service.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  505712,
+        "SHA256":  "9E65E93643D04FA033BCF26BBF27E8945EA342F73DA5209A8C3AA95ACCF873C6",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\dtsapo4xservice.inf_amd64_01d8fa4ab0b67a7f\\DtsServiceUtility.exe",
+        "FileName":  "DtsServiceUtility.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  43848,
+        "SHA256":  "A1894559BB96406802907A3EB38D0720FDF76F2DE7F21685E3BF8433578C4112",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\hdxasus.inf_amd64_4a701b927f33bcf8\\RTKVHD64.sys",
+        "FileName":  "RTKVHD64.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  6803480,
+        "SHA256":  "13E41D075CCC7E9DB5ECE574535A42DA81FE4549EDFE1A8C493DEF55FB3CAEDB",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\iteucmcxclient.inf_amd64_99e63b5ecfbd0048\\ITEUcmCxClient.sys",
+        "FileName":  "ITEUcmCxClient.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  79248,
+        "SHA256":  "D365CF9E80A1F3A03CE8E9AACF315E13D73CE18D945F5A271A8E4695AAF93F62",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\aks.dll",
+        "FileName":  "aks.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1355112,
+        "SHA256":  "DD6C22615360691BBF0C71ECB40A43A059BDBB8DA4210DFF02FCAECCB3FAD1D8",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\akskernels.dll",
+        "FileName":  "akskernels.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2446192,
+        "SHA256":  "E5430F65CE38DB5D48A6B7BAB84BFF8A6907C386CB2BA2C91B4A712EBA35D866",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\amd_taau_ops.rml_plugin.dll",
+        "FileName":  "amd_taau_ops.rml_plugin.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  521576,
+        "SHA256":  "D4BF3FD1EE33EDF3AB84A86548E2830CCF876D2A7F64BDD4AEDB33CDBF7FE85A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\ipustack.sys",
+        "FileName":  "ipustack.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  500840,
+        "SHA256":  "8C70917FDBF7883FD3C4E494063B190BA871760FC12AB07BF44945556C49884A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\RadeonML.dll",
+        "FileName":  "RadeonML.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  633712,
+        "SHA256":  "A7B3F10656164BFB8ACDBF8BFD942E8B36631C1EBA0A7CFA4C15D80480D8833C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\RadeonML_aks.dll",
+        "FileName":  "RadeonML_aks.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  3729264,
+        "SHA256":  "5DCF2BEC572B6EBBAAA0C59BFADFFDBB77A5B1601E3156BE3ABD23D002A9959A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\RadeonML_DirectML.dll",
+        "FileName":  "RadeonML_DirectML.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  4798312,
+        "SHA256":  "816DA4184F90FEECB14EFAB9C305FA76EBD706EEBCD708C42ADD082F2D5DCCAF",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\RadeonML_ipu.dll",
+        "FileName":  "RadeonML_ipu.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  3733864,
+        "SHA256":  "E683A4CB5728F00071E2487D0FCC70559E04F2200B9420070460E2D3723DBE2D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\trace-logging-aks.dll",
+        "FileName":  "trace-logging-aks.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  229232,
+        "SHA256":  "CD3612580EC62C6D678C9A80830C660E37994B327D8DD51548F2486E8C487C5A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\vitis-ai-runtime.dll",
+        "FileName":  "vitis-ai-runtime.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  7373168,
+        "SHA256":  "26F8E961A0A392EBECDCEB574114ABF6F2298C4AEBC7323400BF060E9336FE9D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\vitis-ai-runtime2.dll",
+        "FileName":  "vitis-ai-runtime2.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  12029800,
+        "SHA256":  "D084E8B1BFC52EB97FB46FC62990C2DAE0744AECD0FF2C55E3D7948862A8E47A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\xdp_core.dll",
+        "FileName":  "xdp_core.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  979312,
+        "SHA256":  "66A645EFD42F75DC9F5B55AC4821B0EA9EEC793AF117DA67676B42825053C8B2",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\xdp_ml_timeline_plugin.dll",
+        "FileName":  "xdp_ml_timeline_plugin.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  260456,
+        "SHA256":  "5C7ABE01201B736A9BB351CA0636B60F6FDB09C448DA8055513B6728A0CDF44F",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\xdp_user_plugin.dll",
+        "FileName":  "xdp_user_plugin.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  111464,
+        "SHA256":  "BDA3F90B4C9C7F21BBBE138D3046C711147B5DDA753CF897989E4DE6250B9147",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\xrt-smi.exe",
+        "FileName":  "xrt-smi.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2292072,
+        "SHA256":  "4A3DDFC16FF21BB2B125488554E36025FF89D56B741A41C22962B4D9D1E558B0",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\xrt_core.dll",
+        "FileName":  "xrt_core.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  592232,
+        "SHA256":  "56AED916E03DD2407BC1CD7BEA5E5DCE2370195F348CB800DDBE155B0DB56125",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\kipudrv.inf_amd64_7b0051e064968f34\\xrt_coreutil.dll",
+        "FileName":  "xrt_coreutil.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2010984,
+        "SHA256":  "04A26D37C6E0C713491AD0BFAE74CE74EA94C74136D2AA056333616DAC6C3A44",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\mtkbtfilter.inf_amd64_2f01d4df5fa8b197\\mtkbtfilterx.sys",
+        "FileName":  "mtkbtfilterx.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  612288,
+        "SHA256":  "8F979FA93C3EA011743BFC397075FA2C6A1A5D9506A5DAEA9151B9AF264FB967",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\mtkbtfilter.inf_amd64_2f01d4df5fa8b197\\mtkbtsvc.exe",
+        "FileName":  "mtkbtsvc.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  545216,
+        "SHA256":  "F5B35FC6ADC9880F1CC3D62A5C5F3B33C4A250B12A9EECEDE63C5023C71762FE",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\mtkwl6ex.inf_amd64_b25b3398348de696\\mtkihvx.dll",
+        "FileName":  "mtkihvx.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  586032,
+        "SHA256":  "0A9F5680604EF9CB0FB8C61A01DDF79D1ACE27E2D7272D9374936C4AFCB5AC47",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\mtkwl6ex.inf_amd64_b25b3398348de696\\mtkwl6ex.sys",
+        "FileName":  "mtkwl6ex.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2117568,
+        "SHA256":  "E9AFA007A3CB8EC522927735A27FC0177E636B478F4C1C11ED61A3D251CA7D1A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\Network\\VirtIO-Net\\netkvm.sys",
+        "FileName":  "netkvm.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  198296,
+        "SHA256":  "1B6F8892D39EFE28C1A6B20DCC92B76F7DEDE567D9628FA8D6CEBB62D33DAF4C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\Network\\VirtIO-Net\\netkvmco.exe",
+        "FileName":  "netkvmco.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1055840,
+        "SHA256":  "BE2E6D39FE729A32AE179D76C8EE22BE93EA3C897A1B6ED71375062C3FAB5C9A",
+        "AuthenticodeStatus":  "UnknownError",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Red Hat Inc., OU=Dev, O=virtio-win"
+    },
+    {
+        "RelativePath":  "Drivers\\Network\\VirtIO-Net\\netkvmp.exe",
+        "FileName":  "netkvmp.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  203416,
+        "SHA256":  "D0188E6ABC35693776930A757C377067B3738D049A51EC317DBFE5214F5FEF74",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekapo.inf_amd64_17098f132c929189\\RltkAPOU64.dll",
+        "FileName":  "RltkAPOU64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  10803768,
+        "SHA256":  "96D39589DD0E1FCF5DA8B208E54965EB36811E9851EF09C8049047D9554CC5B1",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekasio.inf_amd64_03c8a3842bd3222b\\RTHDASIO.dll",
+        "FileName":  "RTHDASIO.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  268248,
+        "SHA256":  "1A28A7E9EE10C88FCC427E3CA463CC505CFE525D1D7CF1A1DF2E1B9B1901168C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekasio.inf_amd64_03c8a3842bd3222b\\RTHDASIO64.dll",
+        "FileName":  "RTHDASIO64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  313304,
+        "SHA256":  "E746AE31E70E54D203B13B51055CBB3727FBC555041C0D0ABDEAA39048C72168",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekservice.inf_amd64_ac680e5c6c566c10\\MonoSeparationEnrollDll.dll",
+        "FileName":  "MonoSeparationEnrollDll.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  964560,
+        "SHA256":  "7C508AB3B0D3B063822AA46FB6A77B32006ED6C9D973809F0D71D0CAF1749425",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekservice.inf_amd64_ac680e5c6c566c10\\PTTdll.dll",
+        "FileName":  "PTTdll.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  225240,
+        "SHA256":  "A08CAE4FADF1EA270E9D8559D6E2ADD04C24BA643E8CF0FAB42B2039EA7A3CC3",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekservice.inf_amd64_ac680e5c6c566c10\\RtCOM64.dll",
+        "FileName":  "RtCOM64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1136872,
+        "SHA256":  "902E8CCB4638B9AB5D5CF5AE7063BD65046447B3D9AB04EA0C62502E9C08EA2C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekservice.inf_amd64_ac680e5c6c566c10\\RtDataProc64.dll",
+        "FileName":  "RtDataProc64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  523240,
+        "SHA256":  "12C635067DD2FC21839D542EBDAB969A37B813BC6BA9DD5667E575C45FC20550",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekservice.inf_amd64_ac680e5c6c566c10\\RtkApi64U.dll",
+        "FileName":  "RtkApi64U.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  902104,
+        "SHA256":  "B9F01C6BE93DE47CCC1CB1A02F46DE5F9D25809A413B426BFF0D464DD5F364E3",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekservice.inf_amd64_ac680e5c6c566c10\\RtkAudUService64.exe",
+        "FileName":  "RtkAudUService64.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  3153424,
+        "SHA256":  "58298036F9D67A406454ADFEFAD2523E9929DFE1D6FC5B19A4477E4243DC3C37",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekservice.inf_amd64_ac680e5c6c566c10\\RtkAudUServiceConf64.dll",
+        "FileName":  "RtkAudUServiceConf64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  57872,
+        "SHA256":  "ADDADE3221D585A57B72AA57A844CEC0FBA4B3F8CD6882BFAED17DD3E968BC80",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekservice.inf_amd64_ac680e5c6c566c10\\RtkAudUServiceRes64.dll",
+        "FileName":  "RtkAudUServiceRes64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2798608,
+        "SHA256":  "4D3E0FA247F78F2CE4916DC3D4BF5378A0671402A95CF876C13470CE33ABE73D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekservice.inf_amd64_ac680e5c6c566c10\\RtkCfg64.dll",
+        "FileName":  "RtkCfg64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  199128,
+        "SHA256":  "90B22335CA13BCAE162F44B418C7F498FB66E6D63DF6D74D2F942ACD1F7D3ECD",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\realtekservice.inf_amd64_ac680e5c6c566c10\\SpeakerVerfDll.dll",
+        "FileName":  "SpeakerVerfDll.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1394128,
+        "SHA256":  "34499A3C9AB3B834D03E091E21F4945B3AB899E5DE0B5275DCDD5327FDBB925E",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\rt25cx21x64.inf_amd64_75e3c608eb97ffe7\\rt25cx21x64.sys",
+        "FileName":  "rt25cx21x64.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  921088,
+        "SHA256":  "357588ED86885987C8A92D61CBCCA1945C740CDD047A7AA9FF0779B7CB261EB4",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\rt25dcx21x64.inf_amd64_098eeb6328b25f8a\\rt25dcx21x64.sys",
+        "FileName":  "rt25dcx21x64.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  921088,
+        "SHA256":  "3C5FDAA1EB38F483DF5BDA94FE0ACBA273AA0D59D464CE7E1DE0F82E6F54FB5D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\rt26cx21x64.inf_amd64_3535f1fb3993ff16\\rt26cx21x64.sys",
+        "FileName":  "rt26cx21x64.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  921128,
+        "SHA256":  "2CC5D08485EC405C83DF0F8327362CDD24C5EF9EFDFB0A4ED01E3D4E11341A4F",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\rt27cx21x64.inf_amd64_38ecd8805340f64d\\rt27cx21x64.sys",
+        "FileName":  "rt27cx21x64.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  921088,
+        "SHA256":  "10CDF32A4C7EAEBA0D5165D87A6B4D021BE2FFFC465044E593C1D8DD475301A0",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\rt27dcx21x64.inf_amd64_d6b8ef59b89ceabe\\rt27dcx21x64.sys",
+        "FileName":  "rt27dcx21x64.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  921088,
+        "SHA256":  "167471A395262FF16677889A48E3F5DB095C84989A343CC69815D69427C529CF",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\rt68cx21x64.inf_amd64_52296ae27e2c1372\\rt68cx21x64.sys",
+        "FileName":  "rt68cx21x64.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  921088,
+        "SHA256":  "2427AE029CAD1F6021487B88D09380A44960DB789130A7F9646DE5CF0897E068",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\rt68dcx21x64.inf_amd64_4db4e8097c775459\\rt68dcx21x64.sys",
+        "FileName":  "rt68dcx21x64.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  921088,
+        "SHA256":  "0390DD796D006996D56F623477DA5997B71849BB9DF95A6733839FB70EBEB96C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\rtots640x64.inf_amd64_30b1c378e8b34f85\\rtots640x64.sys",
+        "FileName":  "rtots640x64.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1460736,
+        "SHA256":  "F62D9F3E8DA87C45605FE8B8D2F365BC005F4784B49DCF40C5E87E5593AEDB5B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\Storage\\VirtIO-Storage\\viostor.sys",
+        "FileName":  "viostor.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  66200,
+        "SHA256":  "8820CC432207D7A8EDB6F6097C6AF0E42729671B973CD196D37C3D8A791D1749",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdadlx32.dll",
+        "FileName":  "amdadlx32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  4801040,
+        "SHA256":  "A06490D100022D82C594B6D4D7DC52B90AEBB7E018CC67D44FDC87FAA8E2737A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdadlx64.dll",
+        "FileName":  "amdadlx64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  5224976,
+        "SHA256":  "A040F699C1F28F1BA75FC835A81F8B3E73B42589BD5EA81F2DE60FF55AD02436",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\AMDADLXServ.exe",
+        "FileName":  "AMDADLXServ.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  438288,
+        "SHA256":  "15B3E2E6D8F06D35852ECAE9AF0A29114655B87A6C08D273B1F15E457F5BBA5E",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\AMDADLXServPS.dll",
+        "FileName":  "AMDADLXServPS.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  236560,
+        "SHA256":  "3C00021CE9A4E4DB41AD8B8F3B204DD8BFFD39F0BDEC2CAA75C348CCD33D61EE",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\AMDADLXServPS32.dll",
+        "FileName":  "AMDADLXServPS32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  120336,
+        "SHA256":  "176DD82B4FE781B9C6C2E8C266006B7231EF029D99C27DFA786AB65EDBEFCFCF",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\AMDav1Enc32.dll",
+        "FileName":  "AMDav1Enc32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2285584,
+        "SHA256":  "982FB10CE60ABAAE04DD4650CFD1D76700E4D0A49C6E249B1B0827DDEB44697E",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\AMDav1Enc64.dll",
+        "FileName":  "AMDav1Enc64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2370576,
+        "SHA256":  "B4232AB3B4B00721D8AA54F343D53B1376BE29D2E7458F6AAEAB88D78EBCFCD4",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdave32.dll",
+        "FileName":  "amdave32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  146832,
+        "SHA256":  "3F75F29C5F156164E0F205D4B9B14F4796E99A952E7C341F11100A1DB296A58A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdave64.dll",
+        "FileName":  "amdave64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  167152,
+        "SHA256":  "6501F1FCBF0563EE1E43AC538B12883AB42ECEFCEF40CCC8BCC231C052E95C69",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdcc.dll",
+        "FileName":  "amdcc.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  4448792,
+        "SHA256":  "C894FFCB684B0B2FA5105256F261B357C436DD29529B70D46A39EC218C4EA08B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdenc32.dll",
+        "FileName":  "amdenc32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1255440,
+        "SHA256":  "6F53624C095C296D385F5FAABABC8384F324C784E2864D55B4DB00FF0291F0AB",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdenc64.dll",
+        "FileName":  "amdenc64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1424424,
+        "SHA256":  "102B1647E67DC1D1A98870F77DE3E139B7114BE1F368002B3E9D129D789069DD",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdgfxinfo32.dll",
+        "FileName":  "amdgfxinfo32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  457232,
+        "SHA256":  "A9F04A63EA3FEA9303DDCDF98A9B1E2573BC0B631BAE512C499758252C1CE164",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdgfxinfo64.dll",
+        "FileName":  "amdgfxinfo64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  597520,
+        "SHA256":  "4E8BEC193FF76AD49570366D4BE8FFC98EAA479830B84040215731F754699A3D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\AMDh264Enc32.dll",
+        "FileName":  "AMDh264Enc32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2288160,
+        "SHA256":  "E47BE5FB615CF8116869BFCAD1718EC9D5A24B202F89C9E6CE25689D6FAFB4D9",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\AMDh264Enc64.dll",
+        "FileName":  "AMDh264Enc64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2365304,
+        "SHA256":  "F2505E9625CBC3BF00CAFD178E18F7EA75CB22722DDE9E893D520A73D38A24B0",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\AMDh265Enc32.dll",
+        "FileName":  "AMDh265Enc32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2271488,
+        "SHA256":  "E878265C10727B90703FD339E0393C46508696243906DD4C7893F328AC35C588",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\AMDh265Enc64.dll",
+        "FileName":  "AMDh265Enc64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2352288,
+        "SHA256":  "567683155D1EA9BD8903E01E997DEB69F1DA1CD3AE36C5F4B081A98AAB7EAF98",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdhdl32.dll",
+        "FileName":  "amdhdl32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  125472,
+        "SHA256":  "E225A0F66358C3684A9AD747E5069683BD056C397704F2947EDBBF6D70E21B42",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdhdl64.dll",
+        "FileName":  "amdhdl64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  146384,
+        "SHA256":  "BF81F679C9384E8841FB9ECFAC0CC5A0BF00A40B3C39A3B0DA452C9A55482D02",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdihk32.dll",
+        "FileName":  "amdihk32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  216592,
+        "SHA256":  "803119E93A08FAAF65DFD54F726F201002295A5C22E4F715243D2FBF910CC234",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdihk64.dll",
+        "FileName":  "amdihk64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  269240,
+        "SHA256":  "FDDE42BCA6D83F1C5993559E6D2A9196C74272CBCB5DBE8E31619B022B1C425D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdkmdag.sys",
+        "FileName":  "amdkmdag.sys",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  84455952,
+        "SHA256":  "F7B1D6E4CB62D55B0E247E4729E67313AD9FBC94BD3B3EC2E93805C33727BCB7",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdlvr32.dll",
+        "FileName":  "amdlvr32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  998416,
+        "SHA256":  "10791B680808550EE6AF3803D3BD105694E04A672DB1C9F7D914190A8D9C2981",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdlvr64.dll",
+        "FileName":  "amdlvr64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1184784,
+        "SHA256":  "EE5F0282AF40E6AEEAB85035D5F38B534CDDCFA8E742B5CD014D7F96579D2929",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdmiracast.dll",
+        "FileName":  "amdmiracast.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  180248,
+        "SHA256":  "10CB74060A434CC194A204A7AA54D59AEBD8E3867AEE1F1C8F520F4E15D1D9B2",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdmmpal32.dll",
+        "FileName":  "amdmmpal32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2100744,
+        "SHA256":  "C30B826B3A93ABD37920370861DFEAEE544C91A478EF411FA59B38721A96EA22",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdmmpal64.dll",
+        "FileName":  "amdmmpal64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2379792,
+        "SHA256":  "A907661B5A202803BBBB758C97E45D08A276500526326B32318C97A75E879C5A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdpcom32.dll",
+        "FileName":  "amdpcom32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  132864,
+        "SHA256":  "3407DF2697CD10CB73E86947B1A88BF720C3892DC8EF082A9B9A6CA09BFF5B4A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdpcom64.dll",
+        "FileName":  "amdpcom64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  156848,
+        "SHA256":  "1F7E0269B3B5D0F3A7803EE4B41B2DC464DFB0106730CDE7B1857109B2BCC4BE",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdsacli32.dll",
+        "FileName":  "amdsacli32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  552976,
+        "SHA256":  "9CE9CCFB81F5F3AC018DDE500EA7AD613362F027C31F57EE41FEA4AEC4367465",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdsacli64.dll",
+        "FileName":  "amdsacli64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  620520,
+        "SHA256":  "1630B4B830C92CACD4D2FD47CA9DDAA4947942431049923B31BAFA020073D45B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdsasrv64.dll",
+        "FileName":  "amdsasrv64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1334288,
+        "SHA256":  "E364764D087034BFAA356612CD7A4DD542F40FA8ED5E7A60118C98554B3B3360",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amduve32.dll",
+        "FileName":  "amduve32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  170888,
+        "SHA256":  "F5095AEF56BDB83D803A4BE3392150611031BDADC22F362DBE3B3DFFD35FD26E",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amduve64.dll",
+        "FileName":  "amduve64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  199472,
+        "SHA256":  "838AFFE57B726A784568E5E9E780DAF6749E24D94FB4AAA9E01AFF9855EC2DCD",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdxc32.dll",
+        "FileName":  "amdxc32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  69719848,
+        "SHA256":  "52DBA55CD3D2A824B914CDCFCC30AC60A9A0298B4FBB58339C130AB5E4B75071",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdxc64.dll",
+        "FileName":  "amdxc64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  78210504,
+        "SHA256":  "E4C1B3F86D9054675F21747BEED0508D6E2FBFBEF67FB77A5F442001F7768BE2",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdxcffx64.dll",
+        "FileName":  "amdxcffx64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  66831280,
+        "SHA256":  "170C96A1889980D5858652C74A9B599F59725EAE5E0A346805F3138AA1F20881",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdxcstub32.dll",
+        "FileName":  "amdxcstub32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  121816,
+        "SHA256":  "B4DDF5568296D48FA3276694A941FC4856B37957789724A01A8A04B163DA6528",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdxcstub64.dll",
+        "FileName":  "amdxcstub64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  141640,
+        "SHA256":  "65F1727DB7052831D0FE3D4F05EF116222DED65B8D86D20D6E0DC8E0158C9A0C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdxn32.dll",
+        "FileName":  "amdxn32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  34453520,
+        "SHA256":  "5CA344FE1E6A463F7105B2415B8F441329A3815E8A2DDE04EEC4D3073289697C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdxn64.dll",
+        "FileName":  "amdxn64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  40476688,
+        "SHA256":  "D52D0695F2A04BE2973B4F1728AC6D7B5CC0B9C67D4A9478C792BE62CD5A1E2B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdxx32.dll",
+        "FileName":  "amdxx32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  41893624,
+        "SHA256":  "00168D6B54212C63D29F68735A88A198F95E5480BCB4D863FF7D23DFA9579C26",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amdxx64.dll",
+        "FileName":  "amdxx64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  47385072,
+        "SHA256":  "2A5E5712583EE98526DEAC708E00AD523A76C8D39E0E3D963EFF3DEE7816017F",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amd_fidelityfx_dx12.dll",
+        "FileName":  "amd_fidelityfx_dx12.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  6667280,
+        "SHA256":  "D525C7B02347D2951398D87E04D80908A7E037B5F0EE981B12496316EF730B87",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amd_opencl32.dll",
+        "FileName":  "amd_opencl32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  214032,
+        "SHA256":  "5326260869899ADF42AA7D4151DFE1ED9996E0D4C41896963F70841A0E93FC82",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amd_opencl64.dll",
+        "FileName":  "amd_opencl64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  244752,
+        "SHA256":  "97464B890CA8CD2F755437EF088780DA865C96FB34B36129AC816506C388B3CD",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amf-mft-mjpeg-decoder32.dll",
+        "FileName":  "amf-mft-mjpeg-decoder32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1402048,
+        "SHA256":  "D7C67C742927D09DBA5458A72B9E87022151FB59AB00A3FB52687B1FAF805802",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amf-mft-mjpeg-decoder64.dll",
+        "FileName":  "amf-mft-mjpeg-decoder64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1724592,
+        "SHA256":  "4EE925194C57FBD3B818443D78E060B03641047B71BF610310840A64CD1A410C",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amf-pa-ml32.dll",
+        "FileName":  "amf-pa-ml32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  344592,
+        "SHA256":  "D32BC212337EBC5368FB9B3044FC4407CD23A40BD15D7B057B29E4B294B38DBB",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amf-pa-ml64.dll",
+        "FileName":  "amf-pa-ml64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  377872,
+        "SHA256":  "EAD594AFEB09D8DD0E707A9C66E121015273DFD7B292B7286C71420DF2814A59",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amfrt32.dll",
+        "FileName":  "amfrt32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  129552,
+        "SHA256":  "1C72AC1E7A49F4E5B527E039959D6CE8387A280639E30EF6E40332800105527B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amfrt64.dll",
+        "FileName":  "amfrt64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  160784,
+        "SHA256":  "97CC8B34F8B4BF48C79AF1494D2BF5A596C441DEDDB49D44B2022B84CB6CA94D",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amfrtdrv32.dll",
+        "FileName":  "amfrtdrv32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  19404808,
+        "SHA256":  "75C48C667500882C1AA646DDA4BE2EC9BFD51D991266FEEE8B671EF293879310",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\amfrtdrv64.dll",
+        "FileName":  "amfrtdrv64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  20524048,
+        "SHA256":  "9381E08BF57CC0106E183B8551BD4C7B0D4944A0C5534742DAAE627B013D233E",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atiadlxx.dll",
+        "FileName":  "atiadlxx.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2508304,
+        "SHA256":  "EC3565013C620A703C7065337A03C2BC8053E6E95E218942FDB672558A63F827",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atiadlxy.dll",
+        "FileName":  "atiadlxy.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  2062344,
+        "SHA256":  "48086864F339C96C249AC1548E498D1D021C507E64A2085232B88BB55E332329",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atidemgy.dll",
+        "FileName":  "atidemgy.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  473616,
+        "SHA256":  "5EB5D5A5DE3371908FC126D4A1BB5E42AA6E55FFABA8B42319C6C9C25B55BBD3",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atidx9loader32.dll",
+        "FileName":  "atidx9loader32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  119824,
+        "SHA256":  "302EE59EC95D7F1C6C2F5ED5594691C2CD6CC4AD6E417F20008B25CCE5E70093",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atidx9loader64.dll",
+        "FileName":  "atidx9loader64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  138768,
+        "SHA256":  "917C2885F38E110EF38114AF26EEA2D35F74FB5C07C9C2AC76A95C3FA38EE7F6",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atidxxstub32.dll",
+        "FileName":  "atidxxstub32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  106176,
+        "SHA256":  "BBA0B379B5249F5ABB37AD0F9342F1FE55DB1BE71516411D854F357F9411A0A7",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atidxxstub64.dll",
+        "FileName":  "atidxxstub64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  128408,
+        "SHA256":  "92AF1C65ABA093DF5F0E93A7F347A8E7A8A503CB84085B5EAEB3B663E9EC7983",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atieah32.exe",
+        "FileName":  "atieah32.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  429584,
+        "SHA256":  "42E88005026F2FDA855880E53722C61C7CF55E8D488E0951C2C791D0AB3A731B",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atieah64.exe",
+        "FileName":  "atieah64.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  565264,
+        "SHA256":  "4A3A3DB70EB3B78203FEFF593CC75FF1D210DD7E45505C8888DAC5C07A2E2D3F",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atieclxx.exe",
+        "FileName":  "atieclxx.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1067536,
+        "SHA256":  "CB0508E14C3499F71F2749846EF5A4B9A01AC61A03EDF02CD071AF29EB5E5B61",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atiesrxx.exe",
+        "FileName":  "atiesrxx.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  679440,
+        "SHA256":  "74DAD3D5BB2C0D41FA8B47B9499EA88E79A9641C9FAD1A4E84D30A3BE948CD7E",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atig6pxx.dll",
+        "FileName":  "atig6pxx.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  187920,
+        "SHA256":  "64E6D4BA923180A9E4E41DF7D24F5334979D6AA9A8A7D8BBED38017C7310204A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atiglpxx.dll",
+        "FileName":  "atiglpxx.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  160776,
+        "SHA256":  "496D02B19D8867AFB52F4C3D3449ABB23C184D4D18E389D0539568F5EA8708CA",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atimpc32.dll",
+        "FileName":  "atimpc32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  132856,
+        "SHA256":  "1A49AE9DF57DF3AE7A798B1EB5DCFEA3CC533CDF59AFFBA6D8ECA645104A8753",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atimpc64.dll",
+        "FileName":  "atimpc64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  156848,
+        "SHA256":  "8A625886931201C31885B3E484A24EA479A82B5F33871079836CFDF48F61E710",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atimuixx.dll",
+        "FileName":  "atimuixx.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  200712,
+        "SHA256":  "FE76039623170E5973774DA59B0C013C5DAA4ED553AC388D52E4E7761D0CB618",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atisamu32.dll",
+        "FileName":  "atisamu32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  152080,
+        "SHA256":  "5A8B5B377693575C373F34DB1E4317279ED5BA8A6FCF9939E5F0A53A1B78D29A",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\atisamu64.dll",
+        "FileName":  "atisamu64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  187920,
+        "SHA256":  "03571D2A6C5509F7053AA0E277D229DF744B38348C1A7F79FEFEFEFFDF1016F6",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\detoured32.dll",
+        "FileName":  "detoured32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  14208,
+        "SHA256":  "1CAEFB6B01FCF60ED3CB3F68B7B4040853B0F8462D7A5DC325CC0367F70D2E96",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\detoured64.dll",
+        "FileName":  "detoured64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  14208,
+        "SHA256":  "4759279B70BA2DCFEC24AA608D4792A01DE45F118233FCA724F06CFE3A4D6497",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\EEURestart.exe",
+        "FileName":  "EEURestart.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  531984,
+        "SHA256":  "5F8E29EF821D7F132AE24EB5270BDD1D772BB1FE41CEA4F0D576FEE8F1132568",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\featuresync.dll",
+        "FileName":  "featuresync.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  1138192,
+        "SHA256":  "F75A92CEAC948E1572096EABF3F6D293E8D724E7E2F872B29500B5604AD1CE17",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\GameManager32.dll",
+        "FileName":  "GameManager32.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  488976,
+        "SHA256":  "AD1845086DF4987D7070B9192F08CE279A0A2CB092B6EDFA34544D5759DCEA28",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\GameManager64.dll",
+        "FileName":  "GameManager64.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  641040,
+        "SHA256":  "10C0AA8B66367D92AA8F02205C6E03324FC8D0DFC8EC99C79073E3F528B29DBF",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\u0203731.inf_amd64_05ec0aa74f68ef13\\B026470\\regamdcomp.exe",
+        "FileName":  "regamdcomp.exe",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  301584,
+        "SHA256":  "1F61FC3FB8A5F10C82F1DE05E4823336496EB2B63B23B372B128E4D7939FDB10",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\viper380.inf_amd64_55f64922f501f3de\\x64\\CMCPLEXT_VIPER380.dll",
+        "FileName":  "CMCPLEXT_VIPER380.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  840640,
+        "SHA256":  "118550073146F29440E44A5EBE1FED114208DCD96566005394DB9B20E2032EFB",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\viper380.inf_amd64_55f64922f501f3de\\x64\\CMEFFECTAPO_VIPER380.dll",
+        "FileName":  "CMEFFECTAPO_VIPER380.dll",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  5456488,
+        "SHA256":  "2BE346FFF42BFC9EE6FB692828E9F502031765529E2335985EAB3E8547BE4FC9",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+        "RelativePath":  "Drivers\\viper380.inf_amd64_55f64922f501f3de\\x64\\VIPER380.SYS",
+        "FileName":  "VIPER380.SYS",
+        "Category":  "Hardware OEM Driver",
+        "SizeBytes":  3843400,
+        "SHA256":  "33663D049B7CB455119CD966C4515A7221CA14B092D13139533FE225E8A73D80",
+        "AuthenticodeStatus":  "Valid",
+        "SignatureAlgorithm":  "sha256RSA",
+        "SignerSubject":  "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    }
+]

@@ -1283,6 +1283,36 @@ $global:RomanOS_Policies = @(
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows/security/application-security/application-control/windows-defender-application-control/design/microsoft-recommended-driver-block-rules"
         UnattendDesc  = "Enable Microsoft Recommended Vulnerable Driver Blocklist"
     },
+    @{
+        Id            = "POL_SEC_DISABLE_SMB1"
+        Module        = "Modulo G - Hardening Seguro"
+        Category      = "Seguridad y Kernel"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
+        ValueName     = "SMB1"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar protocolo legado vulnerable SMBv1 (Mitigacion EternalBlue / WannaCry)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows-server/storage/file-server/troubleshoot/detect-enable-and-disable-smbv1-v2-v3"
+        UnattendDesc  = "Disable Insecure Legacy SMBv1 Protocol"
+    },
+    @{
+        Id            = "POL_SEC_DISABLE_LLMNR"
+        Module        = "Modulo G - Hardening Seguro"
+        Category      = "Seguridad y Red"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient"
+        ValueName     = "EnableMulticast"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar LLMNR Multicast para prevenir envenenamiento de credenciales NTLM en LAN"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/reducing-the-active-directory-attack-surface"
+        UnattendDesc  = "Disable LLMNR Multicast Protocol"
+    },
     # --- MÓDULO H: GAMING WDDM 3.x Y FLIP MODEL ---
     @{
         Id            = "POL_GAME_WINDOWED_OPTIMIZATION"
