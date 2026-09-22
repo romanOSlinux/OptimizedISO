@@ -20,8 +20,8 @@ Log/*.log
 Log/*_transcript.log
 *.tmp
 *.log
-logpostintall.md
-romanOS_Footprint_Audit.md
+/logpostintall.md
+/romanOS_Footprint_Audit.md
 
 # Presets generados localmente por el usuario o builder
 Preset_*.json

@@ -11,7 +11,7 @@
 ## 1. Contexto y Diagnóstico Empírico
 
 ### 1.1 El Hallazgo en la Máquina Virtual (Auditoría PLAN-0056)
-En la prueba empírica realizada en una máquina virtual limpia con Windows 11 Build 26200 (reporte [romanOS_Footprint_Audit.md](file:///C:/OptimizedISO/romanOS_Footprint_Audit.md)), se constató el éxito absoluto de la neutralización de Microsoft Edge (`0.0 MB`), OneDrive (`0.0 MB`), Teams (`0.0 MB`), GameDVR (`0.0 MB`), WER (`0.0 MB`) y el saneamiento de `LimitBlankPasswordUse = 1`.
+En la prueba empírica realizada en una máquina virtual limpia con Windows 11 Build 26200 (reporte [romanOS_Footprint_Audit.md](file:///C:/OptimizedISO/docs/auditorias/romanOS_Footprint_Audit.md)), se constató el éxito absoluto de la neutralización de Microsoft Edge (`0.0 MB`), OneDrive (`0.0 MB`), Teams (`0.0 MB`), GameDVR (`0.0 MB`), WER (`0.0 MB`) y el saneamiento de `LimitBlankPasswordUse = 1`.
 
 Sin embargo, se identificaron **2 procesos vampiro activos** consumiendo **443.49 MB de RAM**:
 1. **`msedgewebview2.exe`:** 6 instancias en segundo plano consumiendo **317.25 MB de RAM** (PIDs: 3980, 6388, 6612, 6624, 6872, 6976).
@@ -63,6 +63,6 @@ Sin embargo, se identificaron **2 procesos vampiro activos** consumiendo **443.4
      - Validar que el Builder inyecte `AllowWidgets = 0` en `SOFTWARE hive`.
      - Validar que `Audit-FreshInstallFootprint.ps1` no contenga errores de interpolación.
 3. **Validación en Máquina Virtual:**
-   - Ejecutar la auditoría en la VM y contrastar contra el log anterior ([romanOS_Footprint_Audit.md](file:///C:/OptimizedISO/romanOS_Footprint_Audit.md)):
+   - Ejecutar la auditoría en la VM y contrastar contra el log anterior ([romanOS_Footprint_Audit.md](file:///C:/OptimizedISO/docs/auditorias/romanOS_Footprint_Audit.md)):
      - Las 6 instancias de `msedgewebview2.exe` deben reducirse a **0 instancias (0.0 MB)**.
      - Ahorro inmediato de **~317 MB de RAM** en reposo.
