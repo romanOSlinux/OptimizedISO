@@ -117,6 +117,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0099 | [PLAN-0099-20260921-snapshot-and-rollback-engine.md](PLAN-0099-20260921-snapshot-and-rollback-engine.md) | 2026-09-21 | romanOS State Snapshot & Rollback Engine: Motor de Instantáneas Transaccionales, Puntos de Restauración y Reversión Atómica | COMPLETADO |
 | 0100 | [PLAN-0100-20260922-app-profiles-and-ai-runtimes-manager.md](PLAN-0100-20260922-app-profiles-and-ai-runtimes-manager.md) | 2026-09-22 | romanOS App & AI Runtimes Manager: Gestor Modular de Perfiles de Software, Winget Desatendido y Librerías de IA por Hardware | COMPLETADO |
 | 0101 | [PLAN-0101-20260922-thermal-throttling-and-energy-profiler.md](PLAN-0101-20260922-thermal-throttling-and-energy-profiler.md) | 2026-09-22 | romanOS Thermal Throttling Monitor & Energy Profiler: Diagnóstico Térmico, Detección de Estrangulamiento y Calibración Energética | COMPLETADO |
+| 0102 | [PLAN-0102-20260922-live-sandbox-environment.md](PLAN-0102-20260922-live-sandbox-environment.md) | 2026-09-22 | romanOS Live Sandbox Environment: Orquestador de Aislamiento Efímero, Generador Dinámico .wsb y Perfiles Desatendidos | PENDIENTE |
 
 
 
