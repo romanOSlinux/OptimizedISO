@@ -21,10 +21,11 @@ Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros
 | **`Get-EssentialRuntimes.ps1`** | *(Ejecutar en PS Admin)* | Descarga de paquetes redistribuibles (VC++, DirectX, .NET) | `-DownloadDir`, `-SkipDirectX`, `-SkipDotNet` |
 | **`New-TestVM-HyperV.ps1`** | *(Ejecutar en PS Admin)* | Despliegue automatizado de VM de prueba en Hyper-V (Gen 2) | `-ISOPath`, `-MemoryGB`, `-CPUCount`, `-DiskSizeGB` |
 | **`Test-OptimizedISO-v2.ps1`** | *(Ejecutar en PS Admin)* | Suite de pruebas unitarias y validación del compilador | `-LogDir`, `-TargetScript` |
-| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (11 Fases) | `-Quick`, `-LogDir` |
+| **`Invoke-TestSuite.ps1`** | `Invoke-TestSuite.cmd` | Orquestador Maestro y Batería Integral de Pruebas (12 Fases) | `-Quick`, `-LogDir` |
 | **`Manage-SystemSnapshots.ps1`** | `Manage-SystemSnapshots.cmd` | Motor de Instantáneas y Reversión Atómica (Snapshot & Rollback) | `-Action`, `-Name`, `-SnapshotId`, `-IncludeVSS`, `-Force` |
 | **`Deploy-AppProfiles.ps1`** | `Deploy-AppProfiles.cmd` | Gestor de Perfiles de Software, Winget y Runtimes de IA por Hardware | `-Profile`, `-InstallRuntimesOnly`, `-AutoDetectHardware`, `-Unattended`, `-WhatIf` |
 | **`Monitor-ThermalEnergy.ps1`** | `Monitor-ThermalEnergy.cmd` | Monitor de Throttling Térmico, Sensores y Calibración Energética | `-Action`, `-SampleDurationSec`, `-EnergyProfile`, `-Unattended`, `-WhatIf` |
+| **`Invoke-LiveSandbox.ps1`** | `Invoke-LiveSandbox.cmd` | Orquestador de Entornos Sandbox Descartables (.wsb, Air-Gap, vGPU) | `-Action`, `-Preset`, `-SharedFolder`, `-Unattended`, `-WhatIf` |
 | **`Setup-AntigravityWindows.ps1`** | `Setup-AntigravityWindows.cmd` | Inicializador de entorno, dependencias winget y skills de Antigravity | `-InstallPrerequisites`, `-EnableHyperV`, `-SetExecutionPolicy`, `-CheckOnly` |
 | **`Limpiar-ResiduosWinISO.ps1`** | *(Ejecutar en PS Admin)* | Limpieza profunda de montajes DISM bloqueados, temporales y colmenas | `-ScanOnly`, `-Force`, `-Silent` |
 
@@ -490,6 +491,32 @@ Herramienta nativa y 100% segura contra anti-cheats (cero drivers invasivos) par
 
 # 5. Des-estacionar núcleos exclusivamente para reducir latencia de hilos de juego
 & "C:\OptimizedISO\scripts\Modules\Monitor-ThermalEnergy.ps1" -Action UnparkCores -Unattended
+```
+
+---
+
+## 17. Entorno Sandbox Descartable en Vivo: `Invoke-LiveSandbox.ps1`
+
+Orquestador nativo y desacoplado para ejecutar utilidades de terceros, mods de juegos, parches no oficiales o navegación de máxima privacidad en un contenedor efímero aislado (*Windows Sandbox*), sin riesgo de contaminar el registro ni disparar alertas en sistemas anti-cheat.
+
+```powershell
+# 1. Diagnosticar soporte de virtualización CPU (SLAT / AMD-V / VT-x) y estado de Sandbox
+& "C:\OptimizedISO\scripts\Modules\Invoke-LiveSandbox.ps1" -Action Status
+
+# 2. Lanzar Sandbox en modo Air-Gap estricto (sin red, sin vGPU, carpeta sólo lectura)
+& "C:\OptimizedISO\scripts\Modules\Invoke-LiveSandbox.ps1" -Action Launch -Preset SafeAnalysis -SharedFolder "C:\DescargasSospechosas"
+
+# 3. Lanzar Sandbox para pruebas de Mods y Juegos (vGPU Direct3D activa, red y lectura/escritura)
+& "C:\OptimizedISO\scripts\Modules\Invoke-LiveSandbox.ps1" -Action Launch -Preset GameModding -SharedFolder "C:\Juegos\Mods"
+
+# 4. Lanzar Sandbox de Navegación Privada Efímera (destruye cualquier rastro al cerrar)
+& "C:\OptimizedISO\scripts\Modules\Invoke-LiveSandbox.ps1" -Action Launch -Preset DisposableBrowser
+
+# 5. Generar archivo de configuración XML (.wsb) para inspección previa o uso manual
+& "C:\OptimizedISO\scripts\Modules\Invoke-LiveSandbox.ps1" -Action GenerateConfig -Preset SafeAnalysis
+
+# 6. Simular el lanzamiento (-WhatIf) para auditoría sin invocar el proceso
+& "C:\OptimizedISO\scripts\Modules\Invoke-LiveSandbox.ps1" -Action Launch -Preset SafeAnalysis -WhatIf
 ```
 
 ---

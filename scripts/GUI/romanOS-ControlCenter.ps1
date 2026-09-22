@@ -535,6 +535,30 @@ function Resolve-ToolScript {
                             </StackPanel>
                         </Border>
 
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Entorno Sandbox Descartable en Vivo (romanOS Live Sandbox)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Ejecuta mods, parches no oficiales o navegacion privada en un contenedor efimero aislado sin tocar el sistema principal." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Perfil de Aislamiento:" Foreground="#E0E0E0" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <ComboBox x:Name="cmbSandboxPreset" Grid.Column="1" Height="26" SelectedIndex="0" Background="#1E1E1E" Foreground="#FFFFFF" BorderBrush="#3D3D3D">
+                                        <ComboBoxItem Content="SafeAnalysis (Air-Gap aislado, sin red, solo lectura)"/>
+                                        <ComboBoxItem Content="GameModding (vGPU Direct3D, red activa, lectura/escritura)"/>
+                                        <ComboBoxItem Content="DisposableBrowser (Navegacion efimera privada)"/>
+                                    </ComboBox>
+                                </Grid>
+                                <WrapPanel>
+                                    <Button x:Name="btnCheckSandbox" Content="Verificar Diagnostico Sandbox" Width="210" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnLaunchSandbox" Content="Lanzar Sandbox 1-Clic" Width="180" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676"/>
+                                    <Button x:Name="btnGenerateSandboxWsb" Content="Generar Archivo .wsb" Width="170" Margin="0,0,10,10"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
                         <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
                             <StackPanel>
                                 <TextBlock Text="Auditoria de Seguridad y Dashboards Visuales" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
@@ -1160,6 +1184,29 @@ $window.FindName('btnOpenHtmlDashboards').Add_Click({
     $secHtml  = Join-Path $desktopPath "INFORME_SEGURIDAD.html"
     if (Test-Path $diagHtml) { Start-Process -FilePath $diagHtml }
     if (Test-Path $secHtml)  { Start-Process -FilePath $secHtml }
+})
+
+$window.FindName('btnCheckSandbox').Add_Click({
+    $tool = Resolve-ToolScript "Invoke-LiveSandbox.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status" -TaskTitle "Diagnostico romanOS Live Sandbox" }
+})
+
+$window.FindName('btnLaunchSandbox').Add_Click({
+    $tool = Resolve-ToolScript "Invoke-LiveSandbox.ps1"
+    if ($tool) {
+        $presetIdx = $window.FindName('cmbSandboxPreset').SelectedIndex
+        $preset = switch ($presetIdx) { 1 { "GameModding" } 2 { "DisposableBrowser" } default { "SafeAnalysis" } }
+        Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Launch -Preset $preset" -TaskTitle "Lanzar Live Sandbox ($preset)"
+    }
+})
+
+$window.FindName('btnGenerateSandboxWsb').Add_Click({
+    $tool = Resolve-ToolScript "Invoke-LiveSandbox.ps1"
+    if ($tool) {
+        $presetIdx = $window.FindName('cmbSandboxPreset').SelectedIndex
+        $preset = switch ($presetIdx) { 1 { "GameModding" } 2 { "DisposableBrowser" } default { "SafeAnalysis" } }
+        Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action GenerateConfig -Preset $preset" -TaskTitle "Generar Perfil WSB ($preset)"
+    }
 })
 
 # --- Pestaña 6: Drivers & Herramientas ---

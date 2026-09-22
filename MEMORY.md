@@ -1,3 +1,20 @@
+## [2026-09-22T09:45:00-03:00] romanOS Live Sandbox Environment: Orquestador de Aislamiento Efímero, Generador Dinámico .wsb y Perfiles Desatendidos (PLAN-0102)
+
+- **Archivos Modificados:** `scripts/Modules/Invoke-LiveSandbox.ps1` (nuevo), `scripts/Modules/Invoke-LiveSandbox.cmd` (nuevo), `scripts/Testing/Test-LiveSandbox.ps1` (nuevo), `scripts/Testing/Test-LiveSandbox.cmd` (nuevo), `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/romanOS-Toolkit.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Testing/Invoke-TestSuite.ps1`, `README.md`, `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `docs/plans/PLAN-0102-20260922-live-sandbox-environment.md`, `docs/plans/README.md`, `MEMORY.md`
+- **Hitos Logrados:**
+  - **Motor Nativo de Aislamiento Efímero:** Creación de `scripts/Modules/Invoke-LiveSandbox.ps1` y su lanzador Win32 `.cmd` (No-BOM, UAC, STA). Proporciona aislamiento para probar parches de juegos, mods, herramientas sospechosas o navegación efímera sin riesgo de corrupción de registro ni activación de banderas en anti-cheats (Vanguard, EAC, BattlEye).
+  - **Generador Dinámico de Archivos XML `.wsb`:** Generación en tiempo real de perfiles de configuración oficiales de Microsoft (`<Configuration>`, `<VGpu>`, `<Networking>`, `<MappedFolders>`, `<LogonCommand>`) validados contra `System.Xml.XmlDocument`.
+  - **Presets Canónicos:**
+    - `SafeAnalysis`: Aislado en *Air-Gap* estricto (red deshabilitada, vGPU deshabilitada, carpeta compartida en sólo lectura).
+    - `GameModding`: Con aceleración gráfica Direct3D (vGPU activa), red habilitada y carpeta compartida en lectura/escritura.
+    - `DisposableBrowser`: Navegación privada efímera con comandos de inicio desatendidos.
+  - **Diagnóstico y Resiliencia (CWE-390 / Fail-Visible):** Introspección de CPU (SLAT / SVM / VT-x), detección de edición de Windows y binario `WindowsSandbox.exe` sin fallos silenciosos.
+  - **Integración en romanOS Control Center (WPF XAML):** Nueva tarjeta en la pestaña "Seguridad & Navegadores" con selector de Presets, botones de diagnóstico, lanzamiento 1-clic y exportación de archivos `.wsb` con streaming en consola a 60 FPS.
+  - **Integración en romanOS Toolkit Maestro:** Opción 21 en menú principal interactivo, opción en Acciones Rápidas y soporte CLI `-Module Sandbox` / `-SandboxPreset` / `-SharedFolder`.
+  - **Inyección en Despliegue e ISO:** Inyección física de `Invoke-LiveSandbox.ps1` y `.cmd` en `$OEM$\$$\Setup\Scripts\Modules` y en el WIM montado offline (`$wimModulesDest`).
+  - **Certificación Total de Pruebas:** Arnés unitario `Test-LiveSandbox.ps1` (13/13 PASS) e integración como **Fase 12 permanente** en `Invoke-TestSuite.ps1` (**12/12 Fases PASS, 100% de éxito en 67.3s, 0 errores, 0 advertencias**). Codificación UTF-8 con BOM y PowerShell 5.1 estrictamente certificadas.
+- **Pendiente:** Módulo 5 (Guardián Anti-Drift y Watchdog de Servicios).
+
 ## [2026-09-22T00:50:00-03:00] romanOS Thermal Throttling Monitor & Energy Profiler: Diagnóstico Térmico, Detección de Estrangulamiento y Calibración Energética (PLAN-0101)
 
 - **Archivos Modificados:** `scripts/Modules/Monitor-ThermalEnergy.ps1` (nuevo), `scripts/Modules/Monitor-ThermalEnergy.cmd` (nuevo), `scripts/Testing/Test-ThermalEnergyMonitor.ps1` (nuevo), `scripts/Testing/Test-ThermalEnergyMonitor.cmd` (nuevo), `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/romanOS-Toolkit.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Testing/Invoke-TestSuite.ps1`, `README.md`, `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `docs/plans/PLAN-0101-20260922-thermal-throttling-and-energy-profiler.md`, `docs/plans/README.md`, `MEMORY.md`

@@ -4685,6 +4685,23 @@ if (Test-Path $thermalEnergySrc) {
     Add-AuditRecord -Resource "Monitor-ThermalEnergy" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$liveSandboxSrc    = Join-Path $ScriptsDir "Modules\Invoke-LiveSandbox.ps1"
+$liveSandboxCmdSrc = Join-Path $ScriptsDir "Modules\Invoke-LiveSandbox.cmd"
+if (Test-Path $liveSandboxSrc) {
+    Copy-Item -Path $liveSandboxSrc -Destination (Join-Path $OEMScriptsDir "Invoke-LiveSandbox.ps1") -Force
+    Copy-Item -Path $liveSandboxSrc -Destination (Join-Path $OEMScriptsDir1 "Invoke-LiveSandbox.ps1") -Force
+    Copy-Item -Path $liveSandboxSrc -Destination (Join-Path $destModulesDir "Invoke-LiveSandbox.ps1") -Force
+    Copy-Item -Path $liveSandboxSrc -Destination (Join-Path $destModulesDir1 "Invoke-LiveSandbox.ps1") -Force
+    if (Test-Path $liveSandboxCmdSrc) {
+        Copy-Item -Path $liveSandboxCmdSrc -Destination (Join-Path $OEMScriptsDir "Invoke-LiveSandbox.cmd") -Force
+        Copy-Item -Path $liveSandboxCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Invoke-LiveSandbox.cmd") -Force
+        Copy-Item -Path $liveSandboxCmdSrc -Destination (Join-Path $destModulesDir "Invoke-LiveSandbox.cmd") -Force
+        Copy-Item -Path $liveSandboxCmdSrc -Destination (Join-Path $destModulesDir1 "Invoke-LiveSandbox.cmd") -Force
+    }
+    Write-OK "Entorno Sandbox Descartable en Vivo (Invoke-LiveSandbox) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Invoke-LiveSandbox" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
 $ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
 $ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"
@@ -7279,6 +7296,19 @@ if ($wimFile) {
                           }
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Monitor-ThermalEnergy.ps1 y .cmd"
                           Add-AuditRecord -Resource "Monitor-ThermalEnergy" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
+                      }
+
+                      $liveSandboxSrc    = Join-Path $ScriptsDir "Modules\Invoke-LiveSandbox.ps1"
+                      $liveSandboxCmdSrc = Join-Path $ScriptsDir "Modules\Invoke-LiveSandbox.cmd"
+                      if (Test-Path $liveSandboxSrc) {
+                          Copy-Item -Path $liveSandboxSrc -Destination (Join-Path $wimScriptsDir "Invoke-LiveSandbox.ps1") -Force
+                          Copy-Item -Path $liveSandboxSrc -Destination (Join-Path $wimModulesDest "Invoke-LiveSandbox.ps1") -Force
+                          if (Test-Path $liveSandboxCmdSrc) {
+                              Copy-Item -Path $liveSandboxCmdSrc -Destination (Join-Path $wimScriptsDir "Invoke-LiveSandbox.cmd") -Force
+                              Copy-Item -Path $liveSandboxCmdSrc -Destination (Join-Path $wimModulesDest "Invoke-LiveSandbox.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Invoke-LiveSandbox.ps1 y .cmd"
+                          Add-AuditRecord -Resource "Invoke-LiveSandbox" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
                       }
 
                       $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"

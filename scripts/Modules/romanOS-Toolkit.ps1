@@ -25,10 +25,12 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling")]
+    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling", "Sandbox", "LiveSandbox")]
     [string]$Module,
     [string]$AppProfile,
     [string]$ThermalAction = 'Status',
+    [string]$SandboxPreset = 'SafeAnalysis',
+    [string]$SharedFolder,
     [switch]$ShowDashboards,
     [switch]$GUI,
     [switch]$Snapshot
@@ -342,6 +344,25 @@ function Invoke-ThermalModule {
         & powershell.exe @argList
     } else {
         Write-ErrorMsg "No se encontro Monitor-ThermalEnergy.ps1"
+        pause
+    }
+}
+
+function Invoke-SandboxModule {
+    param(
+        [string]$Action = "Status",
+        [string]$Preset = "SafeAnalysis",
+        [string]$SharedFolder = ""
+    )
+    $scriptFile = Resolve-ToolScript "Invoke-LiveSandbox.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando romanOS Live Sandbox Environment"
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptFile, '-Action', $Action, '-Preset', $Preset)
+        if ($SharedFolder) { $argList += @('-SharedFolder', $SharedFolder) }
+        if ($WhatIfPreference -or $PSBoundParameters.ContainsKey('WhatIf')) { $argList += '-WhatIf' }
+        & powershell.exe @argList
+    } else {
+        Write-ErrorMsg "No se encontro Invoke-LiveSandbox.ps1"
         pause
     }
 }
@@ -736,6 +757,10 @@ function Show-QuickActionsMenu {
             Invoke-ThermalModule -Action "Status"
             pause
         }
+        21 {
+            Invoke-SandboxModule -Action "Status"
+            pause
+        }
         default { return }
     }
 
@@ -776,6 +801,8 @@ if ($Module) {
         "Thermal"       { Invoke-ThermalModule -Action $ThermalAction; exit }
         "Energy"        { Invoke-ThermalModule -Action $ThermalAction; exit }
         "Throttling"    { Invoke-ThermalModule -Action $ThermalAction; exit }
+        "Sandbox"       { Invoke-SandboxModule -Action "Status" -Preset $SandboxPreset -SharedFolder $SharedFolder; exit }
+        "LiveSandbox"   { Invoke-SandboxModule -Action "Status" -Preset $SandboxPreset -SharedFolder $SharedFolder; exit }
         "QuickActions"    { Show-QuickActionsMenu; exit }
         "GamingApps"      { Invoke-GamingAndAppsModule; exit }
         "LatencyProfiler" { Invoke-LatencyTraceModule; exit }
@@ -831,6 +858,7 @@ $mainMenuOpts = @(
     "romanOS Snapshot & Rollback Engine (Crear/Restaurar Instantaneas de Sistema)",
     "Gestor de Perfiles de Software y Runtimes de IA (Deploy-AppProfiles)",
     "Monitor de Throttling Termico y Calibrador Energetico (Monitor-ThermalEnergy)",
+    "Entorno Sandbox Descartable en Vivo (Invoke-LiveSandbox)",
     "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
 )
 
@@ -859,7 +887,8 @@ while ($true) {
         18 { Invoke-SnapshotModule -Action "List"; pause }
         19 { Invoke-AppProfilesModule -AutoDetectHardware; pause }
         20 { Invoke-ThermalModule -Action "Status"; pause }
-        21 { Invoke-ControlCenterGUI; pause }
+        21 { Invoke-SandboxModule -Action "Status"; pause }
+        22 { Invoke-ControlCenterGUI; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit
