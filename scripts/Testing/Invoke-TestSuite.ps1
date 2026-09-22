@@ -66,7 +66,7 @@ if (-not $uiLoaded) {
 Show-UnifiedBanner -Title "ORQUESTADOR MAESTRO DE PRUEBAS" -Subtitle "romanOS / OptimizedISO" -ShowSystemInfo
 
 $suiteResults = [System.Collections.Generic.List[PSCustomObject]]::new()
-$totalSteps = if ($Quick) { 6 } else { 7 }
+$totalSteps = if ($Quick) { 7 } else { 8 }
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot ".agents"))) {
     $repoCandidate = Split-Path $PSScriptRoot -Parent
@@ -195,11 +195,30 @@ if (Test-Path $secScript) {
 $suiteResults.Add([PSCustomObject]@{ Phase = 6; Name = "Ciberseguridad y Compatibilidad Anti-Cheat"; Status = if ($phase6Pass) { "PASS" } else { "FAIL" } })
 
 # -----------------------------------------------------------------------------
-# FASE 7: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# FASE 7: LATENCIA DE KERNEL Y TOPOLOGÍA MSI (PLAN-0097)
 # -----------------------------------------------------------------------------
-$phase7Pass = $true
+Write-StepHeader -StepNumber 7 -TotalSteps $totalSteps -Message "Auditoría de Latencia de Kernel, Topología MSI y Temporización"
+$latencyScript = Join-Path $repoRoot "scripts\Testing\Test-KernelLatencyAndTopology.ps1"
+$phase7Pass = $false
+if (Test-Path $latencyScript) {
+    & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $latencyScript -Quick
+    if ($LASTEXITCODE -eq 0) {
+        $phase7Pass = $true
+        Write-OK "Fase 7 Aprobada: Latencia DPC/ISR y Topología MSI certificadas."
+    } else {
+        Write-ErrorMsg "Fase 7 Fallida: Se detectaron anomalías en la latencia o topología de interrupciones."
+    }
+} else {
+    Write-Warn "Script de pruebas de latencia no encontrado en '$latencyScript'."
+}
+$suiteResults.Add([PSCustomObject]@{ Phase = 7; Name = "Latencia de Kernel y Topología MSI"; Status = if ($phase7Pass) { "PASS" } else { "FAIL" } })
+
+# -----------------------------------------------------------------------------
+# FASE 8: TEST HARNESS INTEGRAL (SI NO ES QUICK)
+# -----------------------------------------------------------------------------
+$phase8Pass = $true
 if (-not $Quick) {
-    Write-StepHeader -StepNumber 7 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
+    Write-StepHeader -StepNumber 8 -TotalSteps $totalSteps -Message "Test Harness Integral del Generador de ISOs (140+ Tests)"
     $harnessCandidates = @(
         (Join-Path $repoRoot "scripts\Testing\Test-OptimizedISO-v2.ps1"),
         (Join-Path $repoRoot "scripts\Test-OptimizedISO-v2.ps1")
@@ -208,24 +227,24 @@ if (-not $Quick) {
     if ($harnessScript) {
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $harnessScript -LogDir $LogDir
         if ($LASTEXITCODE -eq 0) {
-            $phase7Pass = $true
-            Write-OK "Fase 7 Aprobada: 140/140 pruebas del Test Harness superadas."
+            $phase8Pass = $true
+            Write-OK "Fase 8 Aprobada: 140/140 pruebas del Test Harness superadas."
         } else {
-            $phase7Pass = $false
-            Write-ErrorMsg "Fase 7 Fallida: Se detectaron aserciones fallidas en el Test Harness."
+            $phase8Pass = $false
+            Write-ErrorMsg "Fase 8 Fallida: Se detectaron aserciones fallidas en el Test Harness."
         }
     } else {
         Write-Warn "Test Harness no encontrado en '$harnessScript'."
-        $phase7Pass = $false
+        $phase8Pass = $false
     }
-    $suiteResults.Add([PSCustomObject]@{ Phase = 7; Name = "Test Harness Integral ISO v2"; Status = if ($phase7Pass) { "PASS" } else { "FAIL" } })
+    $suiteResults.Add([PSCustomObject]@{ Phase = 8; Name = "Test Harness Integral ISO v2"; Status = if ($phase8Pass) { "PASS" } else { "FAIL" } })
 }
 
 # -----------------------------------------------------------------------------
 # REPORTE CONSOLIDADO Y EVALUACION FINAL
 # -----------------------------------------------------------------------------
 $totalDuration = [math]::Round(((Get-Date) - $testSuiteStart).TotalSeconds, 1)
-$allSuccess = ($phase1Pass -and $phase2Pass -and $phase3Pass -and $phase4Pass -and $phase5Pass -and $phase6Pass -and $phase7Pass)
+$allSuccess = ($phase1Pass -and $phase2Pass -and $phase3Pass -and $phase4Pass -and $phase5Pass -and $phase6Pass -and $phase7Pass -and $phase8Pass)
 $overallStatus = if ($allSuccess) { "SUCCESS" } else { "FAILED" }
 
 try {
