@@ -458,8 +458,8 @@ function Resolve-ToolScript {
                                 <TextBlock Text="Ajustes de Latencia y Debloat Adaptativo" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
                                     <Button x:Name="btnToggleHypervisor" Content="Alternar Hipervisor (VBS / Ring 0)" Width="250" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnRunDebloat" Content="Lanzar Debloat Adaptativo (Win11)" Width="240" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
-                                    <Button x:Name="btnRunDebloatTerminal" Content="Debloat Interactivo (Terminal Externa)" Width="270" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnAuditDebloat" Content="🔍 Auditar Bloatware (Solo Lectura)" Width="260" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold" ToolTip="Analiza e inventaria paquetes AppX, Win32 y servicios de telemetria sin modificar ni desinstalar nada."/>
+                                    <Button x:Name="btnRunDebloatInteractive" Content="🛠️ Debloat Asistido (Selección Manual)" Width="270" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Abre el asistente interactivo con seleccion visual (Out-GridView) para elegir manualmente que eliminar."/>
                                     <Button x:Name="btnRunGamingApps" Content="Optimizar Juegos y Apps (VRAM / Electron)" Width="280" Margin="0,0,10,10"/>
                                     <Button x:Name="btnRunLatencyProfiler" Content="Profiler Forense Latencia DPC (Microsegundos)" Width="310" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
                                 </WrapPanel>
@@ -643,7 +643,8 @@ function Resolve-ToolScript {
                                 <TextBlock Text="Ecosistema de Controladores (Drivers)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
                                     <Button x:Name="btnBackupDrivers" Content="Respaldar Controladores del Host" Width="240" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnCleanDriverStore" Content="Limpiar DriverStore (Recuperar Espacio)" Width="270" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnAuditDriverStore" Content="🔍 Auditar DriverStore (WhatIf)" Width="230" Margin="0,0,10,10" ToolTip="Muestra que controladores obsoletos/duplicados existen sin eliminarlos."/>
+                                    <Button x:Name="btnCleanDriverStore" Content="🗑️ Depurar DriverStore (Interactivo)" Width="250" Margin="0,0,10,10" ToolTip="Abre el asistente con confirmacion explicita [S/N] antes de eliminar controladores."/>
                                     <Button x:Name="btnGetCriticalDrivers" Content="Descargar Drivers Criticos (VMD / VirtIO)" Width="280" Margin="0,0,10,10"/>
                                     <Button x:Name="btnMigrateUser" Content="Asistente de Migracion de Usuario" Width="250" Margin="0,0,10,10"/>
                                 </WrapPanel>
@@ -1057,16 +1058,24 @@ $window.FindName('btnToggleHypervisor').Add_Click({
     Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$c = & bcdedit /enum '{current}'; if (`$c -match 'hypervisorlaunchtype\s+off') { & bcdedit /set hypervisorlaunchtype auto; Write-Host '[OK] Hipervisor activado (auto). Reinicie el PC.' } else { & bcdedit /set hypervisorlaunchtype off; Write-Host '[OK] Hipervisor desactivado (off / Ring 0). Reinicie el PC.' } } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Alternar Estado del Hipervisor"
 })
 
-$window.FindName('btnRunDebloat').Add_Click({
+$window.FindName('btnAuditDebloat').Add_Click({
     $tool = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Debloat Adaptativo de Windows 11 (Desatendido)" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -AuditOnly" -TaskTitle "Auditoría de Bloatware (Solo Lectura - Cero Modificaciones)" }
 })
 
-$window.FindName('btnRunDebloatTerminal').Add_Click({
+$window.FindName('btnRunDebloatInteractive').Add_Click({
     $tool = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
     if ($tool) {
-        Write-CCLog "Iniciando Debloat Adaptativo en ventana interactiva..."
-        Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`""
+        $res = [System.Windows.MessageBox]::Show(
+            "Se abrirá el asistente interactivo de Debloat en una ventana independiente.`n`nPodrás revisar el hardware y se te presentarán ventanas de selección visual (Out-GridView) para marcar y desmarcar qué aplicaciones y servicios deseas desinstalar.`n`nNingún componente será modificado o desinstalado sin tu selección explícita.`n`n¿Deseas abrir el asistente ahora?",
+            "romanOS Control Center — Debloat Interactivo Guiado",
+            [System.Windows.MessageBoxButton]::YesNo,
+            [System.Windows.MessageBoxImage]::Question
+        )
+        if ($res -eq [System.Windows.MessageBoxResult]::Yes) {
+            Write-CCLog "Iniciando Debloat Adaptativo en ventana interactiva con selección visual..."
+            Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`""
+        }
     }
 })
 
@@ -1375,9 +1384,25 @@ $window.FindName('btnBackupDrivers').Add_Click({
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Respaldo de Controladores del Host" }
 })
 
+$window.FindName('btnAuditDriverStore').Add_Click({
+    $tool = Resolve-ToolScript "Clean-DriverStore.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -WhatIf" -TaskTitle "Auditoría de DriverStore (Solo Lectura - WhatIf)" }
+})
+
 $window.FindName('btnCleanDriverStore').Add_Click({
     $tool = Resolve-ToolScript "Clean-DriverStore.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Force" -TaskTitle "Limpieza de DriverStore (Desatendido)" }
+    if ($tool) {
+        $res = [System.Windows.MessageBox]::Show(
+            "Se abrirá la consola de mantenimiento de controladores con solicitud de confirmación explícita [S/N] antes de borrar cualquier controlador obsoleto.`n`n¿Deseas continuar?",
+            "romanOS Control Center — Mantenimiento DriverStore",
+            [System.Windows.MessageBoxButton]::YesNo,
+            [System.Windows.MessageBoxImage]::Question
+        )
+        if ($res -eq [System.Windows.MessageBoxResult]::Yes) {
+            Write-CCLog "Iniciando depuración interactiva de DriverStore..."
+            Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`""
+        }
+    }
 })
 
 $window.FindName('btnGetCriticalDrivers').Add_Click({

@@ -61,7 +61,8 @@
 #>
 
 param(
-    [switch]$Unattended
+    [switch]$Unattended,
+    [switch]$AuditOnly
 )
 
 # ============================================================
@@ -92,14 +93,23 @@ try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAc
 }
 
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Warning "Este script debe ejecutarse como Administrador. Reiniciando con privilegios elevados..."
-    $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-    $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
-    # FIX-PS51-2: Pasar argumentos como ARRAY en lugar de string plano, incluyendo -STA para WPF
-    $argArray = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
-    if ($Unattended) { $argArray += '-Unattended' }
-        Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs
-    Exit
+    if ($AuditOnly) {
+        Write-Warning "[Win11-Debloat] Modo Auditoria (Solo Lectura): ejecutando inspeccion con credenciales actuales..."
+    } else {
+        Write-Warning "Este script debe ejecutarse como Administrador. Reiniciando con privilegios elevados..."
+        $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+        $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
+        # FIX-PS51-2: Pasar argumentos como ARRAY en lugar de string plano, incluyendo -STA para WPF
+        $argArray = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
+        if ($Unattended) { $argArray += '-Unattended' }
+        if ($AuditOnly)  { $argArray += '-AuditOnly' }
+        try {
+            Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs
+            Exit
+        } catch {
+            Write-Warning "No se pudo auto-elevar via RunAs: $($_.Exception.Message)"
+        }
+    }
 }
 
 $ErrorActionPreference = 'Continue'
@@ -305,7 +315,8 @@ function Write-LogSummary {
     if ($script:TranscriptFile) { $logMap["Transcript"]       = $script:TranscriptFile }
 
     $st = if ($script:LogErrors.Count -eq 0) { "SUCCESS" } else { "FAILED" }
-    Show-UnifiedSummary -Title "DEBLOAT Y OPTIMIZACION DE WINDOWS" -Status $st -DurationSeconds $totalDuration -ErrorsCount $script:LogErrors.Count -WarnsCount $script:LogWarns.Count -Logs $logMap
+    $title = if ($AuditOnly) { "AUDITORIA DE BLOATWARE Y TELEMETRIA" } else { "DEBLOAT Y OPTIMIZACION DE WINDOWS" }
+    Show-UnifiedSummary -Title $title -Status $st -DurationSeconds $totalDuration -ErrorsCount $script:LogErrors.Count -WarnsCount $script:LogWarns.Count -Logs $logMap
 }
 
 # Abrir transcript
@@ -387,26 +398,30 @@ function Set-Reg {
 # ============================================================
 #region Pre-flight: System Restore point
 # ============================================================
-Write-Host "`n[*] Creating a system restore point..." -ForegroundColor Cyan
-try {
-    New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore' `
-        -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
-    Enable-ComputerRestore -Drive 'C:\' -ErrorAction SilentlyContinue
-    Set-Service -Name VSS -StartupType Manual  -ErrorAction SilentlyContinue
-    Start-Service -Name VSS -ErrorAction SilentlyContinue
+if (-not $AuditOnly) {
+    Write-Host "`n[*] Creating a system restore point..." -ForegroundColor Cyan
+    try {
+        New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore' `
+            -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
+        Enable-ComputerRestore -Drive 'C:\' -ErrorAction SilentlyContinue
+        Set-Service -Name VSS -StartupType Manual  -ErrorAction SilentlyContinue
+        Start-Service -Name VSS -ErrorAction SilentlyContinue
 
-    if (Get-Command -Name 'Checkpoint-Computer' -ErrorAction SilentlyContinue) {
-        Checkpoint-Computer -Description 'Before Windows setup script' -RestorePointType 'MODIFY_SETTINGS' -ErrorAction Stop
-    } else {
-        # Fallback WMI para PS7 donde Checkpoint-Computer fue removido
-        $wmi    = [wmiclass]'\\.\root\default:SystemRestore'
-        $result = $wmi.CreateRestorePoint('Before Windows setup script', 12, 100)
-        if ($result.ReturnValue -ne 0) { throw "WMI CreateRestorePoint returned $($result.ReturnValue)" }
+        if (Get-Command -Name 'Checkpoint-Computer' -ErrorAction SilentlyContinue) {
+            Checkpoint-Computer -Description 'Before Windows setup script' -RestorePointType 'MODIFY_SETTINGS' -ErrorAction Stop
+        } else {
+            # Fallback WMI para PS7 donde Checkpoint-Computer fue removido
+            $wmi    = [wmiclass]'\\.\root\default:SystemRestore'
+            $result = $wmi.CreateRestorePoint('Before Windows setup script', 12, 100)
+            if ($result.ReturnValue -ne 0) { throw "WMI CreateRestorePoint returned $($result.ReturnValue)" }
+        }
+        Write-Host "  - Restore point created." -ForegroundColor Green
+    } catch {
+        Write-Host "  ! Could not create restore point: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "    Continuando. Crealo manualmente en Proteccion del Sistema si lo necesitas." -ForegroundColor Yellow
     }
-    Write-Host "  - Restore point created." -ForegroundColor Green
-} catch {
-    Write-Host "  ! Could not create restore point: $($_.Exception.Message)" -ForegroundColor Yellow
-    Write-Host "    Continuando. Crealo manualmente en Proteccion del Sistema si lo necesitas." -ForegroundColor Yellow
+} else {
+    Write-Host "`n[*] Modo Auditoria activado (Solo Lectura): Se omite la creacion de punto de restauracion." -ForegroundColor Cyan
 }
 #endregion
 
@@ -965,8 +980,147 @@ Write-Host "" -ForegroundColor Gray
 #endregion
 
 # ============================================================
-#region Pre-flight: Pausa para revision del dashboard
+# Catálogo Maestro SSOT de Aplicaciones AppX Bloatware
 # ============================================================
+$bloatwareCatalog = @(
+    [PSCustomObject]@{ Name='Clipchamp.Clipchamp';                    Note='Editor de video de Microsoft' },
+    [PSCustomObject]@{ Name='Microsoft.BingNews';                     Note='Noticias Bing' },
+    [PSCustomObject]@{ Name='Microsoft.BingSearch';                   Note='Busqueda Bing integrada' },
+    [PSCustomObject]@{ Name='Microsoft.BingWeather';                  Note='Widget del tiempo Bing' },
+    [PSCustomObject]@{ Name='Microsoft.GamingApp';                    Note='Xbox Game Pass / Gaming overlay' },
+    [PSCustomObject]@{ Name='Microsoft.GetHelp';                      Note='App de soporte de Microsoft' },
+    [PSCustomObject]@{ Name='Microsoft.MicrosoftOfficeHub';           Note='Hub de Office / publicidad' },
+    [PSCustomObject]@{ Name='Microsoft.MicrosoftSolitaireCollection'; Note='Solitario y juegos de cartas' },
+    [PSCustomObject]@{ Name='Microsoft.MicrosoftStickyNotes';         Note='Notas adhesivas' },
+    [PSCustomObject]@{ Name='Microsoft.Paint';                        Note='Paint clasico [omitir si lo usas]' },
+    [PSCustomObject]@{ Name='Microsoft.PowerAutomateDesktop';         Note='Automatizacion de flujos de trabajo' },
+    [PSCustomObject]@{ Name='Microsoft.ScreenSketch';                 Note='Recorte y anotacion (Snip & Sketch)' },
+    [PSCustomObject]@{ Name='Microsoft.StorePurchaseApp';             Note='Componente de compras de la Store' },
+    [PSCustomObject]@{ Name='Microsoft.Todos';                        Note='Microsoft To Do' },
+    [PSCustomObject]@{ Name='Microsoft.Windows.DevHome';              Note='Dev Home dashboard' },
+    [PSCustomObject]@{ Name='Microsoft.Windows.Photos';               Note='Visor de fotos moderno' },
+    [PSCustomObject]@{ Name='Microsoft.WindowsAlarms';                Note='Alarmas y reloj' },
+    [PSCustomObject]@{ Name='Microsoft.WindowsCamera';                Note='App de camara' },
+    [PSCustomObject]@{ Name='Microsoft.WindowsFeedbackHub';           Note='Hub de comentarios a Microsoft' },
+    [PSCustomObject]@{ Name='Microsoft.WindowsSoundRecorder';         Note='Grabadora de sonidos' },
+    [PSCustomObject]@{ Name='Microsoft.WindowsStore';                 Note='[!] Store -- rompe actualizacion de drivers si la eliminas' },
+    [PSCustomObject]@{ Name='Microsoft.Xbox.TCUI';                    Note='UI de Xbox Live' },
+    [PSCustomObject]@{ Name='Microsoft.XboxGameOverlay';              Note='Game overlay de Xbox' },
+    [PSCustomObject]@{ Name='Microsoft.XboxGamingOverlay';            Note='Xbox Game Bar' },
+    [PSCustomObject]@{ Name='Microsoft.XboxIdentityProvider';         Note='Proveedor de identidad Xbox' },
+    [PSCustomObject]@{ Name='Microsoft.XboxSpeechToTextOverlay';      Note='Reconocimiento de voz Xbox' },
+    [PSCustomObject]@{ Name='Microsoft.YourPhone';                    Note='Phone Link (antes Your Phone)' },
+    [PSCustomObject]@{ Name='Microsoft.ZuneMusic';                    Note='Groove Music / Media Player moderno' },
+    [PSCustomObject]@{ Name='Microsoft.ZuneVideo';                    Note='Movies & TV' },
+    [PSCustomObject]@{ Name='MicrosoftCorporationII.QuickAssist';     Note='Asistencia remota de Microsoft' },
+    [PSCustomObject]@{ Name='MicrosoftWindows.CrossDevice';           Note='Continuidad entre dispositivos' },
+    [PSCustomObject]@{ Name='Microsoft.549981C3F5F10';                Note='Cortana' },
+    [PSCustomObject]@{ Name='Microsoft.People';                       Note='App Contactos' },
+    [PSCustomObject]@{ Name='Microsoft.WindowsMaps';                  Note='Mapas de Windows' },
+    [PSCustomObject]@{ Name='microsoft.windowscommunicationsapps';    Note='Correo y Calendario clasicos' },
+    [PSCustomObject]@{ Name='Microsoft.OutlookForWindows';            Note='Nuevo Outlook (app)' },
+    [PSCustomObject]@{ Name='Microsoft.MicrosoftJournal';             Note='Journal (notas con lapiz)' },
+    [PSCustomObject]@{ Name='MSTeams';                                Note='Microsoft Teams (version moderna)' },
+    [PSCustomObject]@{ Name='MicrosoftTeams';                         Note='Microsoft Teams (version clasica)' },
+    [PSCustomObject]@{ Name='Microsoft.Copilot';                      Note='Copilot (asistente IA)' },
+    [PSCustomObject]@{ Name='Microsoft.Windows.Ai.Copilot.Provider';   Note='Copilot AI backend provider (25H2)' },
+    [PSCustomObject]@{ Name='MicrosoftWindows.Client.WebExperience';   Note='Widgets backend (consume RAM en background)' }
+)
+
+# ============================================================
+#region Pre-flight: Pausa para revision del dashboard / Modo Auditoria
+# ============================================================
+if ($AuditOnly) {
+    Write-Host ""
+    Write-Host "  ================================================================" -ForegroundColor Cyan
+    Write-Host "     INVENTARIO DE AUDITORIA: BLOATWARE Y TELEMETRIA (SOLO LECTURA)" -ForegroundColor Cyan
+    Write-Host "  ================================================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  Consultando estado del sistema sin realizar ninguna modificacion..." -ForegroundColor Gray
+    Write-Host ""
+
+    # 1. Apps AppX Bloatware
+    Write-Host "  [1/3] Evaluando Aplicaciones AppX / Bloatware en el sistema..." -ForegroundColor Yellow
+    $installedPkgs = @()
+    try {
+        $installedPkgs = @(Get-AppxPackage -AllUsers -ErrorAction Stop)
+    } catch {
+        try { $installedPkgs = @(Get-AppxPackage -ErrorAction SilentlyContinue) } catch { $installedPkgs = @() }
+    }
+    if ($installedPkgs.Count -eq 0) {
+        try { $installedPkgs = @(Get-AppxPackage -ErrorAction SilentlyContinue) } catch { $installedPkgs = @() }
+    }
+
+    $installedNames = @($installedPkgs | ForEach-Object { $_.Name })
+    $provisionedPackages = @()
+    try {
+        $dismProvOutput = & DISM.exe /Online /Get-ProvisionedAppxPackages 2>&1
+        $provisionedPackages = @($dismProvOutput |
+            Where-Object { $_ -match '^\s*PackageName\s*:' } |
+            ForEach-Object { ($_ -split ':', 2)[1].Trim() })
+    } catch {
+        $provisionedPackages = @()
+    }
+
+    $presentBloat = $bloatwareCatalog | Where-Object {
+        $appName = $_.Name
+        ($installedNames -like "*$appName*") -or ($provisionedPackages -like "*$appName*")
+    }
+
+    if ($presentBloat.Count -gt 0) {
+        Write-Host "        Paquetes bloatware detectados instalados/provisionados: $($presentBloat.Count)" -ForegroundColor Yellow
+        foreach ($b in $presentBloat) {
+            Write-Host "          - $($b.Name) ($($b.Note))" -ForegroundColor Gray
+        }
+    } else {
+        Write-Host "        [OK] Sistema limpio: 0 paquetes bloatware AppX residuales detectados." -ForegroundColor Green
+    }
+
+    # 2. Apps Win32
+    Write-Host "`n  [2/3] Evaluando Aplicaciones Win32 de Consumo..." -ForegroundColor Yellow
+    $win32Targets = @(
+        @{ Name = "Microsoft Teams"; Path = "$env:LOCALAPPDATA\Microsoft\Teams" },
+        @{ Name = "Microsoft OneDrive"; Path = "$env:LOCALAPPDATA\Microsoft\OneDrive" },
+        @{ Name = "Skype"; Path = "$env:ProgramFiles\Microsoft\Skype" }
+    )
+    $foundWin32 = 0
+    foreach ($w in $win32Targets) {
+        if (Test-Path $w.Path) {
+            $foundWin32++
+            Write-Host "          - $($w.Name): Detectado en $($w.Path)" -ForegroundColor Yellow
+        }
+    }
+    if ($foundWin32 -eq 0) {
+        Write-Host "        [OK] No se detectaron aplicaciones Win32 residuales en rutas de usuario." -ForegroundColor Green
+    }
+
+    # 3. Servicios de Telemetría
+    Write-Host "`n  [3/3] Evaluando Servicios de Telemetria y Diagnostico..." -ForegroundColor Yellow
+    $telemetrySvcs = @('DiagTrack', 'dmwappushservice', 'diagnosticshub.standardcollector.service', 'WerSvc')
+    $runningTelem = 0
+    foreach ($s in $telemetrySvcs) {
+        $svc = Get-Service -Name $s -ErrorAction SilentlyContinue
+        if ($svc) {
+            $statusColor = if ($svc.Status -eq 'Running') { "Yellow" } else { "DarkGray" }
+            Write-Host "          - $($svc.Name) ($($svc.DisplayName)): Estado = $($svc.Status)" -ForegroundColor $statusColor
+            if ($svc.Status -eq 'Running') { $runningTelem++ }
+        }
+    }
+    if ($runningTelem -eq 0) {
+        Write-Host "        [OK] Todos los servicios de telemetria monitoreados estan detenidos o deshabilitados." -ForegroundColor Green
+    }
+
+    # Conclusión
+    Write-Host ""
+    Write-Host "  ================================================================" -ForegroundColor Cyan
+    Write-Host "  [AUDIT COMPLETO] Inventario finalizado satisfactoriamente." -ForegroundColor Green
+    Write-Host "                   NINGUN ARCHIVO, SERVICIO NI AJUSTE FUE MODIFICADO." -ForegroundColor White
+    Write-Host "                   Usa 'Debloat Asistido (Seleccion Manual)' para elegir que eliminar." -ForegroundColor Gray
+    Write-Host "  ================================================================" -ForegroundColor Cyan
+    Write-Host ""
+    return
+}
+
 if (-not $Unattended) {
     Write-Host "  Revisa la informacion de hardware y prerrequisitos arriba." -ForegroundColor Yellow
     Write-Host "  Perfil detectado: $hwProfile" -ForegroundColor Yellow
@@ -1118,50 +1272,7 @@ if ($selectedApps) {
 # ============================================================
 Write-Host "`n[1] Analizando aplicaciones AppX / Bloatware..." -ForegroundColor Cyan
 
-$bloatwareList = @(
-    [PSCustomObject]@{ Name='Clipchamp.Clipchamp';                    Note='Editor de video de Microsoft' },
-    [PSCustomObject]@{ Name='Microsoft.BingNews';                     Note='Noticias Bing' },
-    [PSCustomObject]@{ Name='Microsoft.BingSearch';                   Note='Busqueda Bing integrada' },
-    [PSCustomObject]@{ Name='Microsoft.BingWeather';                  Note='Widget del tiempo Bing' },
-    [PSCustomObject]@{ Name='Microsoft.GamingApp';                    Note='Xbox Game Pass / Gaming overlay' },
-    [PSCustomObject]@{ Name='Microsoft.GetHelp';                      Note='App de soporte de Microsoft' },
-    [PSCustomObject]@{ Name='Microsoft.MicrosoftOfficeHub';           Note='Hub de Office / publicidad' },
-    [PSCustomObject]@{ Name='Microsoft.MicrosoftSolitaireCollection'; Note='Solitario y juegos de cartas' },
-    [PSCustomObject]@{ Name='Microsoft.MicrosoftStickyNotes';         Note='Notas adhesivas' },
-    [PSCustomObject]@{ Name='Microsoft.Paint';                        Note='Paint clasico [omitir si lo usas]' },
-    [PSCustomObject]@{ Name='Microsoft.PowerAutomateDesktop';         Note='Automatizacion de flujos de trabajo' },
-    [PSCustomObject]@{ Name='Microsoft.ScreenSketch';                 Note='Recorte y anotacion (Snip & Sketch)' },
-    [PSCustomObject]@{ Name='Microsoft.StorePurchaseApp';             Note='Componente de compras de la Store' },
-    [PSCustomObject]@{ Name='Microsoft.Todos';                        Note='Microsoft To Do' },
-    [PSCustomObject]@{ Name='Microsoft.Windows.DevHome';              Note='Dev Home dashboard' },
-    [PSCustomObject]@{ Name='Microsoft.Windows.Photos';               Note='Visor de fotos moderno' },
-    [PSCustomObject]@{ Name='Microsoft.WindowsAlarms';                Note='Alarmas y reloj' },
-    [PSCustomObject]@{ Name='Microsoft.WindowsCamera';                Note='App de camara' },
-    [PSCustomObject]@{ Name='Microsoft.WindowsFeedbackHub';           Note='Hub de comentarios a Microsoft' },
-    [PSCustomObject]@{ Name='Microsoft.WindowsSoundRecorder';         Note='Grabadora de sonidos' },
-    [PSCustomObject]@{ Name='Microsoft.WindowsStore';                 Note='[!] Store -- rompe actualizacion de drivers si la eliminas' },
-    [PSCustomObject]@{ Name='Microsoft.Xbox.TCUI';                    Note='UI de Xbox Live' },
-    [PSCustomObject]@{ Name='Microsoft.XboxGameOverlay';              Note='Game overlay de Xbox' },
-    [PSCustomObject]@{ Name='Microsoft.XboxGamingOverlay';            Note='Xbox Game Bar' },
-    [PSCustomObject]@{ Name='Microsoft.XboxIdentityProvider';         Note='Proveedor de identidad Xbox' },
-    [PSCustomObject]@{ Name='Microsoft.XboxSpeechToTextOverlay';      Note='Reconocimiento de voz Xbox' },
-    [PSCustomObject]@{ Name='Microsoft.YourPhone';                    Note='Phone Link (antes Your Phone)' },
-    [PSCustomObject]@{ Name='Microsoft.ZuneMusic';                    Note='Groove Music / Media Player moderno' },
-    [PSCustomObject]@{ Name='Microsoft.ZuneVideo';                    Note='Movies & TV' },
-    [PSCustomObject]@{ Name='MicrosoftCorporationII.QuickAssist';     Note='Asistencia remota de Microsoft' },
-    [PSCustomObject]@{ Name='MicrosoftWindows.CrossDevice';           Note='Continuidad entre dispositivos' },
-    [PSCustomObject]@{ Name='Microsoft.549981C3F5F10';                Note='Cortana' },
-    [PSCustomObject]@{ Name='Microsoft.People';                       Note='App Contactos' },
-    [PSCustomObject]@{ Name='Microsoft.WindowsMaps';                  Note='Mapas de Windows' },
-    [PSCustomObject]@{ Name='microsoft.windowscommunicationsapps';    Note='Correo y Calendario clasicos' },
-    [PSCustomObject]@{ Name='Microsoft.OutlookForWindows';            Note='Nuevo Outlook (app)' },
-    [PSCustomObject]@{ Name='Microsoft.MicrosoftJournal';             Note='Journal (notas con lapiz)' },
-    [PSCustomObject]@{ Name='MSTeams';                                Note='Microsoft Teams (version moderna)' },
-    [PSCustomObject]@{ Name='MicrosoftTeams';                         Note='Microsoft Teams (version clasica)' },
-    [PSCustomObject]@{ Name='Microsoft.Copilot';                      Note='Copilot (asistente IA)' },
-    [PSCustomObject]@{ Name='Microsoft.Windows.Ai.Copilot.Provider';   Note='Copilot AI backend provider (25H2)' },
-    [PSCustomObject]@{ Name='MicrosoftWindows.Client.WebExperience';   Note='Widgets backend (consume RAM en background)' }
-)
+$bloatwareList = $bloatwareCatalog
 
 # -----------------------------------------------------------------------
 # Verificación Rápida y Diferencial en Memoria:

@@ -122,6 +122,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0104 | [PLAN-0104-20260922-optimizador-afinidad-interrupciones-pcie-irq-dpc.md](PLAN-0104-20260922-optimizador-afinidad-interrupciones-pcie-irq-dpc.md) | 2026-09-22 | romanOS PCIe Interrupt Affinity & IRQ/DPC Steering: Calibrador de Afinidad de Núcleos, Prioridad IRQ y Descongestión de Núcleo 0 | COMPLETADO |
 | 0105 | [PLAN-0105-20260922-auditoria-paridad-funcional-toolkit-vs-control-center.md](PLAN-0105-20260922-auditoria-paridad-funcional-toolkit-vs-control-center.md) | 2026-09-22 | Auditoría Integral de Paridad Funcional romanOS Toolkit vs romanOS Control Center (Resolución de Bloqueos por Interactividad y Expansión de Herramientas) | COMPLETADO |
 | 0106 | [PLAN-0106-20260922-refinamiento-asincrono-wim-discovery-y-enlace-iso-testvm-studio.md](PLAN-0106-20260922-refinamiento-asincrono-wim-discovery-y-enlace-iso-testvm-studio.md) | 2026-09-22 | Refinamiento Asíncrono de WIM Discovery y Enlace Inteligente de ISO en VM Test (romanOS Studio) | COMPLETADO |
+| 0107 | [PLAN-0107-20260922-debloat-soberania-usuario-auditoria-y-seleccion-manual.md](PLAN-0107-20260922-debloat-soberania-usuario-auditoria-y-seleccion-manual.md) | 2026-09-22 | Soberanía del Usuario en Debloat: Erradicación de Acciones Automáticas, Auditoría de Solo Lectura y Selección Manual Guiada | COMPLETADO |
 
 
 
