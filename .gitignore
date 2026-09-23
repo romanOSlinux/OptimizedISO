@@ -45,3 +45,7 @@ pruebadeblot/
 /Runtimes/
 Runtimes/
 **/Runtimes/
+
+# Herramientas y utilidades locales portables (wimlib, parsers)
+tools/
+bin/

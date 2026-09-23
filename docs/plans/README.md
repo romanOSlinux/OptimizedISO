@@ -123,6 +123,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0105 | [PLAN-0105-20260922-auditoria-paridad-funcional-toolkit-vs-control-center.md](PLAN-0105-20260922-auditoria-paridad-funcional-toolkit-vs-control-center.md) | 2026-09-22 | Auditoría Integral de Paridad Funcional romanOS Toolkit vs romanOS Control Center (Resolución de Bloqueos por Interactividad y Expansión de Herramientas) | COMPLETADO |
 | 0106 | [PLAN-0106-20260922-refinamiento-asincrono-wim-discovery-y-enlace-iso-testvm-studio.md](PLAN-0106-20260922-refinamiento-asincrono-wim-discovery-y-enlace-iso-testvm-studio.md) | 2026-09-22 | Refinamiento Asíncrono de WIM Discovery y Enlace Inteligente de ISO en VM Test (romanOS Studio) | COMPLETADO |
 | 0107 | [PLAN-0107-20260922-debloat-soberania-usuario-auditoria-y-seleccion-manual.md](PLAN-0107-20260922-debloat-soberania-usuario-auditoria-y-seleccion-manual.md) | 2026-09-22 | Soberanía del Usuario en Debloat: Erradicación de Acciones Automáticas, Auditoría de Solo Lectura y Selección Manual Guiada | COMPLETADO |
+| 0108 | [PLAN-0108-20260923-integracion-herramientas-externas-mcp-y-cli.md](PLAN-0108-20260923-integracion-herramientas-externas-mcp-y-cli.md) | 2026-09-23 | Integración de Ecosistema de Herramientas Externas (Servidores MCP, wimlib, regipy y PSScriptAnalyzer) | COMPLETADO |
 
 
 
