@@ -384,7 +384,7 @@ function Invoke-WimDiscoveryAsync {
     $ps.Runspace = $rs
 
     [void]$ps.AddScript({
-        param($IsoPath)
+        param($IsoPath, $LogPath)
         $images  = @()
         $mounted = $null
         try {
@@ -404,7 +404,13 @@ function Invoke-WimDiscoveryAsync {
                 })
             }
         } catch {
-            Write-StudioLog "No se pudieron obtener imágenes WIM/ESD desde ($IsoPath) - $($_.Exception.Message)" "WARN"
+            if (-not [string]::IsNullOrWhiteSpace($LogPath)) {
+                try {
+                    $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+                    $line = "[$ts] [WARN] [WimDiscovery] No se pudieron obtener imagenes WIM/ESD desde ($IsoPath) - $($_.Exception.Message)`r`n"
+                    [System.IO.File]::AppendAllText($LogPath, $line, [System.Text.Encoding]::UTF8)
+                } catch { }
+            }
         }
         finally {
             if ($null -ne $mounted) {
@@ -414,8 +420,9 @@ function Invoke-WimDiscoveryAsync {
         return $images
     })
     [void]$ps.AddArgument($IsoPath)
+    [void]$ps.AddArgument($script:StudioLogPath)
     $handle  = $ps.BeginInvoke()
-    $msgData = @{ PS = $ps; RS = $rs; Win = $Window; Lbx = $lbxEditions; Lbl = $lblStatus; Handle = $handle }
+    $msgData = @{ PS = $ps; RS = $rs; Win = $Window; Lbx = $lbxEditions; Lbl = $lblStatus; Handle = $handle; Iso = $IsoPath }
 
     $timer          = New-Object System.Windows.Threading.DispatcherTimer
     $timer.Interval = [TimeSpan]::FromMilliseconds(500)
@@ -449,6 +456,7 @@ function Invoke-WimDiscoveryAsync {
                     }
                 })
             } catch {
+                Write-StudioLog "Aviso al procesar ediciones WIM desde ($($d.Iso)): $($_.Exception.Message)" "WARN"
                 $d.Win.Dispatcher.Invoke([action]{
                     $d.Lbl.Text = "Error al analizar WIM. Se usaran todos los indices."
                 })
@@ -890,9 +898,37 @@ $btnExportPreset.Add_Click({
 $btnTestVM = $window.FindName('btnTestVM')
 $btnTestVM.Add_Click({
     Write-StudioLog "El usuario hizo clic en 'Levantar Máquina Virtual de Prueba'."
+
+    $desktopPath = [Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+    if (-not $desktopPath) { $desktopPath = Join-Path $HOME 'Desktop' }
+    $optWinIso = Join-Path $desktopPath 'WinISO_Optimizado'
+
+    $targetIso = $null
+    if (Test-Path $optWinIso) {
+        $latestCompiled = Get-ChildItem -Path $optWinIso -Filter "*.iso" -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if ($latestCompiled) { $targetIso = $latestCompiled.FullName }
+    }
+
+    if (-not $targetIso) {
+        $sourceIso = $window.FindName('txtSourceISO').Text
+        if (-not [string]::IsNullOrWhiteSpace($sourceIso) -and (Test-Path $sourceIso -PathType Leaf) -and $sourceIso.EndsWith('.iso', [System.StringComparison]::OrdinalIgnoreCase)) {
+            $targetIso = (Resolve-Path $sourceIso).Path
+        }
+    }
+
+    $isoArg = if ($targetIso) {
+        $escapedTarget = $targetIso -replace "'", "''"
+        Write-StudioLog "Enlazando ISO identificada para VM Test: $targetIso"
+        " -ISOPath '$escapedTarget'"
+    } else {
+        Write-StudioLog "No se detecto ISO en WinISO_Optimizado ni en txtSourceISO; usando deteccion global de Hyper-V script." "WARN"
+        ""
+    }
+
     $scriptEngine = Join-Path $PSScriptRoot "..\Testing\New-TestVM-HyperV.ps1"
     $escapedEngine = $scriptEngine -replace "'", "''"
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' *>&1 }`""
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine'$isoArg *>&1 }`""
     Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Despliegue VM Hyper-V"
 })
 

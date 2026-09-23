@@ -121,6 +121,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0103 | [PLAN-0103-20260922-guardian-anti-drift-y-watchdog-servicios.md](PLAN-0103-20260922-guardian-anti-drift-y-watchdog-servicios.md) | 2026-09-22 | Guardián Anti-Drift y Watchdog de Servicios de romanOS: Auditoría y Remediación de Desvío Post-Windows Update | COMPLETADO |
 | 0104 | [PLAN-0104-20260922-optimizador-afinidad-interrupciones-pcie-irq-dpc.md](PLAN-0104-20260922-optimizador-afinidad-interrupciones-pcie-irq-dpc.md) | 2026-09-22 | romanOS PCIe Interrupt Affinity & IRQ/DPC Steering: Calibrador de Afinidad de Núcleos, Prioridad IRQ y Descongestión de Núcleo 0 | COMPLETADO |
 | 0105 | [PLAN-0105-20260922-auditoria-paridad-funcional-toolkit-vs-control-center.md](PLAN-0105-20260922-auditoria-paridad-funcional-toolkit-vs-control-center.md) | 2026-09-22 | Auditoría Integral de Paridad Funcional romanOS Toolkit vs romanOS Control Center (Resolución de Bloqueos por Interactividad y Expansión de Herramientas) | COMPLETADO |
+| 0106 | [PLAN-0106-20260922-refinamiento-asincrono-wim-discovery-y-enlace-iso-testvm-studio.md](PLAN-0106-20260922-refinamiento-asincrono-wim-discovery-y-enlace-iso-testvm-studio.md) | 2026-09-22 | Refinamiento Asíncrono de WIM Discovery y Enlace Inteligente de ISO en VM Test (romanOS Studio) | COMPLETADO |
 
 
 
