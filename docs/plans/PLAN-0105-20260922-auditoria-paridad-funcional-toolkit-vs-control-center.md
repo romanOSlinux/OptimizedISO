@@ -1,8 +1,7 @@
 # PLAN-0105: Auditoría Integral de Paridad Funcional romanOS Toolkit vs romanOS Control Center
-
 **Número de Plan:** PLAN-0105  
 **Fecha:** 2026-09-22  
-**Estado:** EN PROGRESO  
+**Estado:** COMPLETADO  
 **Módulos Impactados:** `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/romanOS-Toolkit.ps1`, `docs/plans/README.md`  
 
 ---
@@ -73,7 +72,7 @@ Para subsanar las deficiencias detectadas y lograr una paridad del 100% funciona
      ```powershell
      Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Debloat Adaptativo de Windows 11"
      ```
-   - Añadir botón secundario visible `btnRunDebloatInteractive` ("Asistente Interactivo en Terminal Externa") que ejecute `Start-Process powershell.exe` para usuarios que deseen seleccionar componentes manualmente mediante `Out-GridView`.
+   - Añadir botón secundario visible `btnRunDebloatTerminal` ("Asistente Interactivo en Terminal Externa") que ejecute `Start-Process powershell.exe` para usuarios que deseen seleccionar componentes manualmente mediante `Out-GridView`.
 2. **`btnCleanDriverStore`:**
    - Añadir el parámetro `-Force` para evitar la detención en el prompt `Read-Host` de la línea 151:
      ```powershell
@@ -88,7 +87,9 @@ Para subsanar las deficiencias detectadas y lograr una paridad del 100% funciona
 ### Fase 2: Integración de Acciones Faltantes en la UI (XAML + Handlers)
 1. **Pestaña "Red & Latencia":**
    - Incorporar botón para optimización de latencia TCP y desactivación de Nagle:
-     `btnOptimizeNetwork`: invoca `Win11-Network-Diagnostics-Optimizer.ps1 -NagleOnly -Unattended`.
+     `btnOptimizeNetworkNagle`: invoca `Win11-Network-Diagnostics-Optimizer.ps1 -NagleOnly -Unattended`.
+   - Incorporar botón para diagnóstico completo:
+     `btnFullNetworkDiag`: invoca `Win11-Network-Diagnostics-Optimizer.ps1 -Unattended`.
 2. **Pestaña "Seguridad & Navegadores":**
    - Incorporar botón para aplicar hardening seguro gaming-safe:
      `btnApplySafeHardening`: invoca `Invoke-WindowsSecurityHardening.ps1 -ApplySafeHardening -NonInteractive`.
@@ -119,5 +120,6 @@ Para subsanar las deficiencias detectadas y lograr una paridad del 100% funciona
 - [x] Auditoría comparativa del 100% de las herramientas realizada y cuantificada.
 - [x] 3 bloqueos críticos aislados a nivel de línea de código (`Read-Host` y falta de flags).
 - [x] Mapeo de módulos faltantes e inconsistencias de UX documentado.
-- [ ] Implementación de cambios en `romanOS-ControlCenter.ps1` (Pendiente de aprobación del usuario).
-- [ ] Pruebas empíricas de ejecución desatendida y de ventanas interactivas.
+- [x] Implementación de cambios en `romanOS-ControlCenter.ps1` (bloqueos resueltos, menús contextuales, optimización de red TCP, hardening seguro, drivers críticos, dashboard footprint y servicios básicos).
+- [x] Pruebas empíricas de ejecución desatendida y de ventanas interactivas validadas con Windows PowerShell 5.1 (-WhatIf).
+

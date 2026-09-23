@@ -182,13 +182,18 @@ $script:searchDirs += @(
     "$env:WINDIR\Setup\Scripts",
     "$env:WINDIR\Setup\Scripts\Modules",
     "$env:WINDIR\Setup\Scripts\Core",
+    "$env:WINDIR\Setup\Scripts\Drivers",
+    "$env:WINDIR\Setup\Scripts\Builder",
     "C:\Windows\Setup\Scripts",
     "C:\Windows\Setup\Scripts\Modules",
     "C:\Windows\Setup\Scripts\Core",
+    "C:\Windows\Setup\Scripts\Drivers",
+    "C:\Windows\Setup\Scripts\Builder",
     "C:\OptimizedISO\scripts\Modules",
     "C:\OptimizedISO\scripts\Drivers",
     "C:\OptimizedISO\scripts\Core",
-    "C:\OptimizedISO\scripts\Testing"
+    "C:\OptimizedISO\scripts\Testing",
+    "C:\OptimizedISO\scripts\Builder"
 )
 
 function Resolve-ToolScript {
@@ -363,6 +368,8 @@ function Resolve-ToolScript {
                                     <Button x:Name="btnQuickNetAudit" Content="Auditar Red NDIS &amp; UDP RSC" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
                                     <Button x:Name="btnQuickSnapshot" Content="Crear Snapshot de Seguridad" Width="220" Margin="0,0,10,10" Background="#1E3A2F" BorderBrush="#00E676"/>
                                     <Button x:Name="btnQuickAffinity" Content="Auditar Afinidad IRQ / PCIe" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnQuickFootprint" Content="Auditar Huella RAM / Procesos" Width="230" Margin="0,0,10,10" Background="#233544" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnQuickRestoreServices" Content="Restaurar Servicios (Wi-Fi/BT)" Width="230" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -446,14 +453,27 @@ function Resolve-ToolScript {
                         </Border>
 
                         <!-- Optimizaciones Gaming Adicionales -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Ajustes de Latencia y Debloat Adaptativo" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
                                     <Button x:Name="btnToggleHypervisor" Content="Alternar Hipervisor (VBS / Ring 0)" Width="250" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnRunDebloat" Content="Lanzar Debloat Adaptativo (Win11)" Width="240" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnRunDebloat" Content="Lanzar Debloat Adaptativo (Win11)" Width="240" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnRunDebloatTerminal" Content="Debloat Interactivo (Terminal Externa)" Width="270" Margin="0,0,10,10"/>
                                     <Button x:Name="btnRunGamingApps" Content="Optimizar Juegos y Apps (VRAM / Electron)" Width="280" Margin="0,0,10,10"/>
                                     <Button x:Name="btnRunLatencyProfiler" Content="Profiler Forense Latencia DPC (Microsegundos)" Width="310" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Menus Contextuales Optimizados -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
+                            <StackPanel>
+                                <TextBlock Text="Menus Contextuales (Gamer &amp; Power-User)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <Button x:Name="btnEnableClassicMenu" Content="Habilitar Menu Clasico (1-Clic)" Width="240" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnApplyFullContextMenu" Content="Suite Completa Gamer &amp; Power-User" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnRestoreModernMenu" Content="Restaurar Menu Moderno Win11" Width="240" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -541,6 +561,18 @@ function Resolve-ToolScript {
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
+
+                        <!-- Optimizacion de Pila TCP / Latencia de Red -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
+                            <StackPanel>
+                                <TextBlock Text="Optimizacion de Pila de Red y Latencia TCP" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Desactiva el algoritmo de Nagle (TcpNoDelay/TcpAckFrequency) para reducir latencia en partidas online y audita sockets." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <Button x:Name="btnOptimizeNetworkNagle" Content="Optimizar Latencia TCP / Nagle (1-Clic)" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnFullNetworkDiag" Content="Diagnostico Completo de Red &amp; Sockets" Width="280" Margin="0,0,10,10"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -592,6 +624,8 @@ function Resolve-ToolScript {
                                 <TextBlock Text="Auditoria de Seguridad y Dashboards Visuales" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
                                     <Button x:Name="btnSecurityAudit" Content="Ejecutar Auditoria de Seguridad (ASR / VBS)" Width="270" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnApplySafeHardening" Content="Aplicar Hardening Seguro (Gaming-Safe)" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnGenerateDiagReport" Content="Generar Informe Post-Instalacion (HTML)" Width="270" Margin="0,0,10,10"/>
                                     <Button x:Name="btnOpenHtmlDashboards" Content="Abrir Dashboards HTML en Navegador" Width="260" Margin="0,0,10,10" Background="#233544" BorderBrush="#00E5FF"/>
                                 </WrapPanel>
                             </StackPanel>
@@ -610,6 +644,7 @@ function Resolve-ToolScript {
                                 <WrapPanel>
                                     <Button x:Name="btnBackupDrivers" Content="Respaldar Controladores del Host" Width="240" Margin="0,0,10,10"/>
                                     <Button x:Name="btnCleanDriverStore" Content="Limpiar DriverStore (Recuperar Espacio)" Width="270" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnGetCriticalDrivers" Content="Descargar Drivers Criticos (VMD / VirtIO)" Width="280" Margin="0,0,10,10"/>
                                     <Button x:Name="btnMigrateUser" Content="Asistente de Migracion de Usuario" Width="250" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
@@ -993,6 +1028,15 @@ $window.FindName('btnQuickAffinity').Add_Click({
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" }
 })
 
+$window.FindName('btnQuickFootprint').Add_Click({
+    $tool = Resolve-ToolScript "Audit-FreshInstallFootprint.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Auditoria Forense de Huella en Reposo (RAM / Procesos)" }
+})
+
+$window.FindName('btnQuickRestoreServices').Add_Click({
+    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { Set-Service -Name WlanSvc -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config WlanSvc start= auto | Out-Null; Start-Service WlanSvc -ErrorAction SilentlyContinue; Set-Service -Name bthserv -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config bthserv start= auto | Out-Null; Start-Service bthserv -ErrorAction SilentlyContinue; Set-Service -Name Spooler -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config Spooler start= auto | Out-Null; Start-Service Spooler -ErrorAction SilentlyContinue; Set-Service -Name WSearch -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config WSearch start= delayed-auto | Out-Null; Start-Service WSearch -ErrorAction SilentlyContinue; Write-Host '[OK] Servicios basicos restaurados a inicio automatico (Wi-Fi, Bluetooth, Spooler, WSearch).' } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Restaurar Servicios Basicos de Sistema"
+})
+
 # --- Pestaña 2: Gaming & Bimodal ---
 $window.FindName('btnGameAggressive').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
@@ -1015,7 +1059,15 @@ $window.FindName('btnToggleHypervisor').Add_Click({
 
 $window.FindName('btnRunDebloat').Add_Click({
     $tool = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Debloat Adaptativo de Windows 11" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Debloat Adaptativo de Windows 11 (Desatendido)" }
+})
+
+$window.FindName('btnRunDebloatTerminal').Add_Click({
+    $tool = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
+    if ($tool) {
+        Write-CCLog "Iniciando Debloat Adaptativo en ventana interactiva..."
+        Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`""
+    }
 })
 
 $window.FindName('btnRunGamingApps').Add_Click({
@@ -1058,6 +1110,22 @@ $window.FindName('btnOptimizeAffinityGUI').Add_Click({
 $window.FindName('btnResetAffinityGUI').Add_Click({
     $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Reset" -TaskTitle "Restauracion de Politicas IRQ de Hardware" }
+})
+
+# Handlers: Menus Contextuales Optimizados
+$window.FindName('btnEnableClassicMenu').Add_Click({
+    $tool = Resolve-ToolScript "Add-OptimizedContextMenus.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -EnableClassicMenu -RestartExplorer" -TaskTitle "Habilitar Menu Contextual Clasico (1-Clic)" }
+})
+
+$window.FindName('btnApplyFullContextMenu').Add_Click({
+    $tool = Resolve-ToolScript "Add-OptimizedContextMenus.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Apply -RestartExplorer" -TaskTitle "Aplicar Suite Completa Gamer & Power-User" }
+})
+
+$window.FindName('btnRestoreModernMenu').Add_Click({
+    $tool = Resolve-ToolScript "Add-OptimizedContextMenus.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -RestoreModernMenu -RestartExplorer" -TaskTitle "Restaurar Menu Moderno Windows 11" }
 })
 
 # --- Pestaña 3: Mantenimiento ---
@@ -1215,6 +1283,17 @@ $window.FindName('btnResetDnsDhcp').Add_Click({
     Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$r = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1; `$w = if (`$r) { Get-NetAdapter -InterfaceIndex `$r.InterfaceIndex -ErrorAction SilentlyContinue } else { `$null }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' -and `$_.HardwareInterface -eq `$true } | Select-Object -First 1 }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ResetServerAddresses; Write-Host ('[OK] DNS restaurado a DHCP automatico en ' + `$w.Name + ' (' + `$w.InterfaceDescription + ')') } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Restaurar DNS DHCP"
 })
 
+# Handlers: Optimizacion de Pila de Red y Latencia TCP
+$window.FindName('btnOptimizeNetworkNagle').Add_Click({
+    $tool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -NagleOnly -Unattended" -TaskTitle "Optimizacion de Latencia TCP / Nagle (TCP No-Delay)" }
+})
+
+$window.FindName('btnFullNetworkDiag').Add_Click({
+    $tool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Diagnostico Completo de Red y Latencia" }
+})
+
 # --- Pestaña 5: Seguridad & Navegadores ---
 $window.FindName('btnOptAllBrowsers').Add_Click({
     $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
@@ -1244,6 +1323,16 @@ $window.FindName('btnOptFirefox').Add_Click({
 $window.FindName('btnSecurityAudit').Add_Click({
     $tool = Resolve-ToolScript "Invoke-WindowsSecurityHardening.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ShowReport" -TaskTitle "Auditoria de Seguridad y Hardening" }
+})
+
+$window.FindName('btnApplySafeHardening').Add_Click({
+    $tool = Resolve-ToolScript "Invoke-WindowsSecurityHardening.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ApplySafeHardening -NonInteractive" -TaskTitle "Hardening de Seguridad Seguro (Gaming-Safe)" }
+})
+
+$window.FindName('btnGenerateDiagReport').Add_Click({
+    $tool = Resolve-ToolScript "PostInstall-Diagnostics.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -DesktopOutput" -TaskTitle "Generar Informe Post-Instalacion (HTML)" }
 })
 
 $window.FindName('btnOpenHtmlDashboards').Add_Click({
@@ -1288,12 +1377,20 @@ $window.FindName('btnBackupDrivers').Add_Click({
 
 $window.FindName('btnCleanDriverStore').Add_Click({
     $tool = Resolve-ToolScript "Clean-DriverStore.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Limpieza de DriverStore" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Force" -TaskTitle "Limpieza de DriverStore (Desatendido)" }
+})
+
+$window.FindName('btnGetCriticalDrivers').Add_Click({
+    $tool = Resolve-ToolScript "Get-CriticalDrivers.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Descarga de Drivers Criticos (VMD / VirtIO)" }
 })
 
 $window.FindName('btnMigrateUser').Add_Click({
     $tool = Resolve-ToolScript "Migrar-Usuario-W11.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Migracion de Perfiles de Usuario" }
+    if ($tool) {
+        Write-CCLog "Iniciando Asistente de Migracion de Usuario en ventana interactiva..."
+        Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`""
+    }
 })
 
 # App & AI Runtimes Manager Handlers

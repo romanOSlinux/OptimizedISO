@@ -120,7 +120,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0102 | [PLAN-0102-20260922-live-sandbox-environment.md](PLAN-0102-20260922-live-sandbox-environment.md) | 2026-09-22 | romanOS Live Sandbox Environment: Orquestador de Aislamiento Efímero, Generador Dinámico .wsb y Perfiles Desatendidos | COMPLETADO |
 | 0103 | [PLAN-0103-20260922-guardian-anti-drift-y-watchdog-servicios.md](PLAN-0103-20260922-guardian-anti-drift-y-watchdog-servicios.md) | 2026-09-22 | Guardián Anti-Drift y Watchdog de Servicios de romanOS: Auditoría y Remediación de Desvío Post-Windows Update | COMPLETADO |
 | 0104 | [PLAN-0104-20260922-optimizador-afinidad-interrupciones-pcie-irq-dpc.md](PLAN-0104-20260922-optimizador-afinidad-interrupciones-pcie-irq-dpc.md) | 2026-09-22 | romanOS PCIe Interrupt Affinity & IRQ/DPC Steering: Calibrador de Afinidad de Núcleos, Prioridad IRQ y Descongestión de Núcleo 0 | COMPLETADO |
-| 0105 | [PLAN-0105-20260922-auditoria-paridad-funcional-toolkit-vs-control-center.md](PLAN-0105-20260922-auditoria-paridad-funcional-toolkit-vs-control-center.md) | 2026-09-22 | Auditoría Integral de Paridad Funcional romanOS Toolkit vs romanOS Control Center (Resolución de Bloqueos por Interactividad y Expansión de Herramientas) | EN PROGRESO |
+| 0105 | [PLAN-0105-20260922-auditoria-paridad-funcional-toolkit-vs-control-center.md](PLAN-0105-20260922-auditoria-paridad-funcional-toolkit-vs-control-center.md) | 2026-09-22 | Auditoría Integral de Paridad Funcional romanOS Toolkit vs romanOS Control Center (Resolución de Bloqueos por Interactividad y Expansión de Herramientas) | COMPLETADO |
 
 
 
