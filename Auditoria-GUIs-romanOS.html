@@ -149,7 +149,7 @@
             </div>
             <div style="text-align: right; font-size: 13px; color: var(--text-muted);">
                 <div>Host: <strong>USEROPT-8R7UBJR</strong></div>
-                <div>Fecha: <strong>2026-09-24 00:36:14</strong></div>
+                <div>Fecha: <strong>2026-09-24 20:50:30</strong></div>
             </div>
         </header>
 
@@ -157,12 +157,12 @@
         <section class="metrics-grid">
             <div class="card">
                 <div class="card-label">Total Botones Auditados</div>
-                <div class="card-value" style="color: #38bdf8;">80</div>
+                <div class="card-value" style="color: #38bdf8;">81</div>
                 <div class="card-sub">Control Center: 70 | Studio: 10</div>
             </div>
             <div class="card">
                 <div class="card-label">Botones Muertos (Dead)</div>
-                <div class="card-value" style="color: #34d399;">0</div>
+                <div class="card-value" style="color: #34d399;">1</div>
                 <div class="card-sub">100% tienen handler Add_Click</div>
             </div>
             <div class="card">
@@ -202,7 +202,7 @@
         <!-- BARRA DE HERRAMIENTAS Y FILTRADO INTERACTIVO -->
         <div class="toolbar">
             <div class="filter-group">
-                <button class="filter-btn active" onclick="setAppFilter('all', this)">Todos (80)</button>
+                <button class="filter-btn active" onclick="setAppFilter('all', this)">Todos (81)</button>
                 <button class="filter-btn" onclick="setAppFilter('romanOS Control Center', this)">Control Center (70)</button>
                 <button class="filter-btn" onclick="setAppFilter('romanOS Studio', this)">romanOS Studio (10)</button>
                 <button class="filter-btn" onclick="setStatusFilter('PROBADO_OK', this)">Probados en Frío [PASS] (6)</button>
@@ -210,7 +210,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <input type="text" id="searchInput" class="search-box" placeholder="Buscar botón, script o acción..." oninput="applyFilters()">
-                <span id="counterBadge" style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">Mostrando <strong id="visibleCount">80</strong> de 80</span>
+                <span id="counterBadge" style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">Mostrando <strong id="visibleCount">81</strong> de 81</span>
             </div>
         </div>
 
@@ -842,8 +842,17 @@
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Deploy-AppProfiles.ps1</code></td>
         <td><small>Acción de optimización parametrizada (aplica cambios en el sistema o registro)</small></td>
         <td><span class="badge badge-info">OPTIMIZACIÓN VÁLIDA</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO_LOCAL">
+    </tr>    <tr data-app="romanOS Control Center" data-status="APTO_PRUEBA">
         <td>69</td>
+        <td><strong>romanOS Control Center</strong></td>
+        <td><code>btnExportProfile</code></td>
+        <td>💾 Exportar Perfil JSON</td>
+        <td><span class="badge badge-fail">DEAD BUTTON</span></td>
+        <td><code>Accion de UI interna</code></td>
+        <td><small>Operación de auditoría segura / solo lectura. Apta para prueba empírica en frío</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO_LOCAL">
+        <td>70</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnClearConsole</code></td>
         <td>Limpiar Consola</td>
@@ -852,7 +861,7 @@
         <td><small>Operación local inmediata en ventana o diálogo interactivo estándar</small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO_LOCAL">
-        <td>70</td>
+        <td>71</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnCancelProcess</code></td>
         <td>Detener Tarea</td>
@@ -861,7 +870,7 @@
         <td><small>Operación local inmediata en ventana o diálogo interactivo estándar</small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="VERIFICADO_LOCAL">
-        <td>71</td>
+        <td>72</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnBrowseISO</code></td>
         <td>Examinar</td>
@@ -870,7 +879,7 @@
         <td><small>Operación local inmediata en ventana o diálogo interactivo estándar</small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="SIMULABLE">
-        <td>72</td>
+        <td>73</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnDownloadUpdates</code></td>
         <td>📥 Descargar Updates</td>
@@ -879,7 +888,7 @@
         <td><small>Acción de optimización parametrizada (aplica cambios en el sistema o registro)</small></td>
         <td><span class="badge badge-info">OPTIMIZACIÓN VÁLIDA</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="SIMULABLE">
-        <td>73</td>
+        <td>74</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnBackupDrivers</code></td>
         <td>💾 Respaldar Drivers Host</td>
@@ -888,7 +897,7 @@
         <td><small>Acción de optimización parametrizada (aplica cambios en el sistema o registro)</small></td>
         <td><span class="badge badge-info">OPTIMIZACIÓN VÁLIDA</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="SIMULABLE">
-        <td>74</td>
+        <td>75</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnDownloadCritical</code></td>
         <td>📦 Drivers Críticos (VMD/VirtIO)</td>
@@ -897,7 +906,7 @@
         <td><small>Acción de optimización parametrizada (aplica cambios en el sistema o registro)</small></td>
         <td><span class="badge badge-info">OPTIMIZACIÓN VÁLIDA</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="SIMULABLE">
-        <td>75</td>
+        <td>76</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnDownloadRuntimes</code></td>
         <td>⚙️ Runtimes C++/DirectX</td>
@@ -906,7 +915,7 @@
         <td><small>Acción de optimización parametrizada (aplica cambios en el sistema o registro)</small></td>
         <td><span class="badge badge-info">OPTIMIZACIÓN VÁLIDA</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="EXENTO_RIESGO">
-        <td>76</td>
+        <td>77</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnTestVM</code></td>
         <td>Levantar Máquina Virtual de Prueba</td>
@@ -915,7 +924,7 @@
         <td><small>Exento de ejecución automática: Acción crítica del sistema (reinicio de shell/kernel, compilación pesada de 8 GB o inicio de VM)</small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO DE KERNEL)</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="SIMULABLE">
-        <td>77</td>
+        <td>78</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnCleanHost</code></td>
         <td>Limpiar Residuos (Carpetas, Montajes)</td>
@@ -924,7 +933,7 @@
         <td><small>Acción de optimización parametrizada (aplica cambios en el sistema o registro)</small></td>
         <td><span class="badge badge-info">OPTIMIZACIÓN VÁLIDA</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="APTO_PRUEBA">
-        <td>78</td>
+        <td>79</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnExportPreset</code></td>
         <td>Solo JSON</td>
@@ -933,7 +942,7 @@
         <td><small>Operación de auditoría segura / solo lectura. Apta para prueba empírica en frío</small></td>
         <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="VERIFICADO_LOCAL">
-        <td>79</td>
+        <td>80</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnCancel</code></td>
         <td>Cancelar</td>
@@ -942,7 +951,7 @@
         <td><small>Operación local inmediata en ventana o diálogo interactivo estándar</small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="EXENTO_RIESGO">
-        <td>80</td>
+        <td>81</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnBuild</code></td>
         <td>Compilar ISO</td>

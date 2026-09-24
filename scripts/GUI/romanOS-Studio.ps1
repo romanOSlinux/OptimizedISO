@@ -345,7 +345,7 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
             <Grid>
                 <!-- StatusBar Info -->
                 <TextBlock x:Name="txtStatus" Text="Estado: Listo para compilar" Foreground="#A0A0A0" Margin="15,16,0,0" FontSize="13" HorizontalAlignment="Left" />
-                <ProgressBar x:Name="progBar" IsIndeterminate="True" Visibility="Hidden" HorizontalAlignment="Left" Height="10" Margin="200,20,0,0" Width="100" Foreground="#0078D4" Background="#333333" BorderThickness="0" />
+                <ProgressBar x:Name="progBar" IsIndeterminate="True" Visibility="Hidden" HorizontalAlignment="Left" Height="10" Margin="210,20,0,0" Width="180" Foreground="#00E5FF" Background="#222222" BorderThickness="0" Minimum="0" Maximum="100" />
                 
                 <!-- Buttons -->
                 <Button x:Name="btnExportPreset" Content="Solo JSON" Margin="0,0,230,0" Height="30" Width="100" HorizontalAlignment="Right" Background="#333333" Foreground="#E3E3E3" BorderThickness="1" BorderBrush="#454545" ToolTip="Exporta el archivo de configuración sin ejecutar el proceso" />
@@ -408,8 +408,9 @@ function Invoke-WimDiscoveryAsync {
                 try {
                     $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                     $line = "[$ts] [WARN] [WimDiscovery] No se pudieron obtener imagenes WIM/ESD desde ($IsoPath) - $($_.Exception.Message)`r`n"
-                    [System.IO.File]::AppendAllText($LogPath, $line, [System.Text.Encoding]::UTF8)
-                } catch { }
+                } catch {
+                    [Console]::WriteLine("[WimDiscovery Log Error] $($_.Exception.Message)")
+                }
             }
         }
         finally {
@@ -591,6 +592,7 @@ function Start-StudioSubProcess {
         RS        = $rs
         Handle    = $handle
         TaskTitle = $TaskTitle
+        ProgBar   = $window.FindName('progBar')
     }
 
     $timer.Add_Tick({
@@ -600,6 +602,24 @@ function Start-StudioSubProcess {
             $t.Txt.AppendText("$line`r`n")
             $t.Txt.ScrollToEnd()
             Write-StudioLog $line
+
+            # Telemetría heurística de progreso porcentual
+            if ($t.ProgBar -and $line) {
+                if ($line -match '(\d{1,3}(?:\.\d+)?)\s*%') {
+                    $pctVal = [double]$matches[1]
+                    if ($pctVal -ge 0 -and $pctVal -le 100) {
+                        $t.ProgBar.IsIndeterminate = $false
+                        $t.ProgBar.Value = $pctVal
+                    }
+                } elseif ($line -match '\[(\d{1,2})/(\d{1,2})\]') {
+                    $cur = [double]$matches[1]
+                    $tot = [double]$matches[2]
+                    if ($tot -gt 0) {
+                        $t.ProgBar.IsIndeterminate = $false
+                        $t.ProgBar.Value = [math]::Round(($cur / $tot) * 100, 1)
+                    }
+                }
+            }
         }
 
         if (-not $t.State.IsRunning) {
@@ -617,9 +637,20 @@ function Start-StudioSubProcess {
             Write-StudioLog "Tarea finalizada: $($t.TaskTitle) con codigo de salida $exitCode"
             if ($exitCode -eq 0) {
                 $t.Txt.AppendText("`r`n[EXITO] $($t.TaskTitle) finalizado satisfactoriamente.`r`n")
+                if ($t.ProgBar) {
+                    $t.ProgBar.IsIndeterminate = $false
+                    $t.ProgBar.Value = 100
+                }
                 Set-StudioUIState -IsRunning $false -TaskName "$($t.TaskTitle) completado con éxito"
             } else {
                 $t.Txt.AppendText("`r`n[FALLO] $($t.TaskTitle) finalizo con codigo de error $exitCode.`r`n")
+                if ($t.Txt) {
+                    $t.Txt.BorderBrush = [System.Windows.Media.Brushes]::Red
+                }
+                if ($t.ProgBar) {
+                    $t.ProgBar.IsIndeterminate = $false
+                    $t.ProgBar.Foreground = [System.Windows.Media.Brushes]::Red
+                }
                 Set-StudioUIState -IsRunning $false -TaskName "Error en $($t.TaskTitle) (Codigo $exitCode)"
             }
             $t.Txt.ScrollToEnd()
@@ -934,10 +965,18 @@ $btnTestVM.Add_Click({
 
 $btnCleanHost = $window.FindName('btnCleanHost')
 $btnCleanHost.Add_Click({
-    $scriptEngine = Join-Path $PSScriptRoot "..\Host-Tools\Limpiar-ResiduosWinISO.ps1"
-    $escapedEngine = $scriptEngine -replace "'", "''"
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -Unattended *>&1 }`""
-    Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Limpieza de Residuos del Host"
+    $res = [System.Windows.MessageBox]::Show(
+        "Se eliminarán los archivos y directorios temporales generados durante compilaciones previas de la ISO.`n`n¿Deseas purgar los residuos del host ahora?",
+        "romanOS Studio — Limpieza de Residuos",
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Question
+    )
+    if ($res -eq [System.Windows.MessageBoxResult]::Yes) {
+        $scriptEngine = Join-Path $PSScriptRoot "..\Host-Tools\Limpiar-ResiduosWinISO.ps1"
+        $escapedEngine = $scriptEngine -replace "'", "''"
+        $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -Unattended *>&1 }`""
+        Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Limpieza de Residuos del Host"
+    }
 })
 
 $btnDownloadUpdates = $window.FindName('btnDownloadUpdates')

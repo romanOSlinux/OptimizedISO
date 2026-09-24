@@ -702,9 +702,11 @@ function Resolve-ToolScript {
             <Grid Margin="15,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
                     <Ellipse x:Name="statusIndicator" Width="10" Height="10" Fill="#00E676" Margin="0,0,8,0"/>
-                    <TextBlock x:Name="lblStatus" Text="Listo para operar" Foreground="#E3E3E3" FontSize="12"/>
+                    <TextBlock x:Name="lblStatus" Text="Listo para operar" Foreground="#E3E3E3" FontSize="12" VerticalAlignment="Center"/>
+                    <ProgressBar x:Name="taskProgressBar" Height="8" Width="180" Margin="15,0,0,0" VerticalAlignment="Center" Background="#1E1E1E" Foreground="#00E5FF" BorderThickness="0" Visibility="Collapsed" Minimum="0" Maximum="100"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <Button x:Name="btnExportProfile" Content="💾 Exportar Perfil JSON" Margin="0,0,10,0" Height="30" Padding="8,2" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold" ToolTip="Exporta el inventario de telemetría y directivas activas a un archivo JSON portable."/>
                     <Button x:Name="btnClearConsole" Content="Limpiar Consola" Margin="0,0,10,0" Height="30" Padding="8,2"/>
                     <Button x:Name="btnCancelProcess" Content="Detener Tarea" Height="30" Padding="8,2" Background="#4A1E1E" BorderBrush="#FF5252" IsEnabled="False"/>
                 </StackPanel>
@@ -819,6 +821,7 @@ function Start-ControlCenterTask {
     $btnCancel = $window.FindName('btnCancelProcess')
     $lblStatus = $window.FindName('lblStatus')
     $indicator = $window.FindName('statusIndicator')
+    $progBar   = $window.FindName('taskProgressBar')
     $tabControl = $window.FindName('tabControlMain')
     $tabLogs = $window.FindName('tabItemLogs')
     $txtConsole = $window.FindName('txtConsole')
@@ -826,6 +829,16 @@ function Start-ControlCenterTask {
     $btnCancel.IsEnabled = $true
     $indicator.Fill = [System.Windows.Media.Brushes]::Yellow
     $lblStatus.Text = "Ejecutando: $TaskTitle..."
+    if ($txtConsole) {
+        $txtConsole.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#333333")
+    }
+
+    if ($progBar) {
+        $progBar.Visibility = [System.Windows.Visibility]::Visible
+        $progBar.IsIndeterminate = $true
+        $progBar.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00E5FF")
+        $progBar.Value = 0
+    }
 
     if ($tabLogs -and $tabControl) {
         $tabControl.SelectedItem = $tabLogs
@@ -900,6 +913,7 @@ function Start-ControlCenterTask {
         BtnCancel = $btnCancel
         StatusLbl = $lblStatus
         Indicator = $indicator
+        ProgBar   = $progBar
     }
 
     $timer.Add_Tick({
@@ -909,6 +923,24 @@ function Start-ControlCenterTask {
             $t.Txt.AppendText("$line`r`n")
             $t.Txt.ScrollToEnd()
             Write-CCLog $line
+
+            # Telemetría heurística de progreso porcentual
+            if ($t.ProgBar -and $line) {
+                if ($line -match '(\d{1,3}(?:\.\d+)?)\s*%') {
+                    $pctVal = [double]$matches[1]
+                    if ($pctVal -ge 0 -and $pctVal -le 100) {
+                        $t.ProgBar.IsIndeterminate = $false
+                        $t.ProgBar.Value = $pctVal
+                    }
+                } elseif ($line -match '\[(\d{1,2})/(\d{1,2})\]') {
+                    $cur = [double]$matches[1]
+                    $tot = [double]$matches[2]
+                    if ($tot -gt 0) {
+                        $t.ProgBar.IsIndeterminate = $false
+                        $t.ProgBar.Value = [math]::Round(($cur / $tot) * 100, 1)
+                    }
+                }
+            }
         }
 
         if (-not $t.State.IsRunning) {
@@ -928,10 +960,21 @@ function Start-ControlCenterTask {
                 $t.Txt.AppendText("`r`n[EXITO] $($t.TaskTitle) finalizado satisfactoriamente.`r`n")
                 $t.Indicator.Fill = [System.Windows.Media.Brushes]::LightGreen
                 $t.StatusLbl.Text = "$($t.TaskTitle) completado con exito"
+                if ($t.ProgBar) {
+                    $t.ProgBar.IsIndeterminate = $false
+                    $t.ProgBar.Value = 100
+                }
             } else {
-                $t.Txt.AppendText("`r`n[AVISO] $($t.TaskTitle) concluyo con codigo de salida $exitCode.`r`n")
-                $t.Indicator.Fill = [System.Windows.Media.Brushes]::Orange
-                $t.StatusLbl.Text = "$($t.TaskTitle) finalizo con avisos"
+                $t.Txt.AppendText("`r`n[FALLO DE SUBPROCESO] $($t.TaskTitle) concluyo con codigo de salida $exitCode.`r`n")
+                $t.Indicator.Fill = [System.Windows.Media.Brushes]::Red
+                if ($t.Txt) {
+                    $t.Txt.BorderBrush = [System.Windows.Media.Brushes]::Red
+                }
+                $t.StatusLbl.Text = "[ERROR $exitCode] $($t.TaskTitle) finalizo con incidencias"
+                if ($t.ProgBar) {
+                    $t.ProgBar.IsIndeterminate = $false
+                    $t.ProgBar.Foreground = [System.Windows.Media.Brushes]::Red
+                }
             }
             $t.BtnCancel.IsEnabled = $false
         }
@@ -972,6 +1015,54 @@ $window.FindName('btnClearConsole').Add_Click({
     $window.FindName('txtConsole').Clear()
 })
 
+# Boton Exportar Perfil JSON
+$btnExportProf = $window.FindName('btnExportProfile')
+if ($btnExportProf) {
+    $btnExportProf.Add_Click({
+        try {
+            $saveDialog = New-Object Microsoft.Win32.SaveFileDialog
+            $saveDialog.Filter = "Perfil romanOS (*.json)|*.json"
+            $saveDialog.FileName = "romanOS-Profile-$env:COMPUTERNAME-$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
+            $saveDialog.InitialDirectory = "C:\OptimizedISO"
+            if ($saveDialog.ShowDialog() -eq $true) {
+                $targetJson = $saveDialog.FileName
+                $osInfo = Get-CimInstance Win32_OperatingSystem
+                $cpuInfo = Get-CimInstance Win32_Processor
+                $csInfo = Get-CimInstance Win32_ComputerSystem
+                $profileData = [ordered]@{
+                    Timestamp = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+                    Host      = $env:COMPUTERNAME
+                    OS        = $osInfo.Caption
+                    Build     = $osInfo.BuildNumber
+                    CPU       = $cpuInfo.Name
+                    RAM_GB    = [math]::Round($csInfo.TotalPhysicalMemory / 1GB, 1)
+                    Policies  = @()
+                }
+                if (Get-Command 'Get-RomanOSPolicies' -ErrorAction SilentlyContinue) {
+                    $profileData.Policies = Get-RomanOSPolicies
+                }
+                $jsonContent = $profileData | ConvertTo-Json -Depth 5
+                [System.IO.File]::WriteAllText($targetJson, $jsonContent, (New-Object System.Text.UTF8Encoding($true)))
+                [System.Windows.MessageBox]::Show(
+                    "Perfil de optimización exportado exitosamente en:`n$targetJson",
+                    "romanOS Control Center — Exportar Perfil",
+                    [System.Windows.MessageBoxButton]::OK,
+                    [System.Windows.MessageBoxImage]::Information
+                )
+                Write-CCLog "Perfil de sistema exportado a: $targetJson"
+            }
+        } catch {
+            Write-CCLog "Error al exportar perfil: $($_.Exception.Message)" "WARN"
+            [System.Windows.MessageBox]::Show(
+                "Error al exportar perfil: $($_.Exception.Message)",
+                "romanOS Control Center — Error",
+                [System.Windows.MessageBoxButton]::OK,
+                [System.Windows.MessageBoxImage]::Error
+            )
+        }
+    })
+}
+
 # --- Pestaña 1: Acciones Rapidas ---
 $window.FindName('btnQuickTrim').Add_Click({
     $tool = Resolve-ToolScript "Optimize-ProcessMemory.ps1"
@@ -983,7 +1074,15 @@ $window.FindName('btnQuickFlushDns').Add_Click({
 })
 
 $window.FindName('btnQuickRestartExplorer').Add_Click({
-    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"Stop-Process -Name explorer -Force; Start-Sleep -Milliseconds 500; Start-Process explorer.exe; Write-Host '[OK] Explorador reiniciado.'`"" -TaskTitle "Reinicio de Explorer"
+    $res = [System.Windows.MessageBox]::Show(
+        "Se cerrará y reiniciará el explorador de Windows (explorer.exe).`n`nLas ventanas abiertas de carpetas y la barra de tareas parpadearán y se recargarán momentáneamente.`n`n¿Deseas reiniciar explorer.exe ahora?",
+        "romanOS Control Center — Reinicio de Shell",
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Question
+    )
+    if ($res -eq [System.Windows.MessageBoxResult]::Yes) {
+        Start-ControlCenterTask -CommandLine "-NoProfile -Command `"Stop-Process -Name explorer -Force; Start-Sleep -Milliseconds 500; Start-Process explorer.exe; Write-Host '[OK] Explorador reiniciado.'`"" -TaskTitle "Reinicio de Explorer"
+    }
 })
 
 $window.FindName('btnQuickGodMode').Add_Click({
@@ -1055,7 +1154,15 @@ $window.FindName('btnDevMode').Add_Click({
 })
 
 $window.FindName('btnToggleHypervisor').Add_Click({
-    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$c = & bcdedit /enum '{current}'; if (`$c -match 'hypervisorlaunchtype\s+off') { & bcdedit /set hypervisorlaunchtype auto; Write-Host '[OK] Hipervisor activado (auto). Reinicie el PC.' } else { & bcdedit /set hypervisorlaunchtype off; Write-Host '[OK] Hipervisor desactivado (off / Ring 0). Reinicie el PC.' } } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Alternar Estado del Hipervisor"
+    $res = [System.Windows.MessageBox]::Show(
+        "Esta acción modificará la directiva del cargador de arranque de Windows (BCD - hypervisorlaunchtype) para alternar el estado del hipervisor de virtualización.`n`nPara que los cambios surtan efecto será indispensable reiniciar el equipo.`n`n¿Deseas continuar?",
+        "romanOS Control Center — Alternar Hipervisor",
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Question
+    )
+    if ($res -eq [System.Windows.MessageBoxResult]::Yes) {
+        Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$c = & bcdedit /enum '{current}'; if (`$c -match 'hypervisorlaunchtype\s+off') { & bcdedit /set hypervisorlaunchtype auto; Write-Host '[OK] Hipervisor activado (auto). Reinicie el PC.' } else { & bcdedit /set hypervisorlaunchtype off; Write-Host '[OK] Hipervisor desactivado (off / Ring 0). Reinicie el PC.' } } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Alternar Estado del Hipervisor"
+    }
 })
 
 $window.FindName('btnAuditDebloat').Add_Click({
