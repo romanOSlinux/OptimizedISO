@@ -248,10 +248,12 @@ function Invoke-RomanOSMemoryTrim {
 # -----------------------------------------------------------------------------
 $res = Invoke-RomanOSMemoryTrim -Targets $ProcessNames -Silent:$Quiet -ReturnObjects:$PassThru
 
-if (-not $Unattended -and -not $Quiet -and -not [System.Console]::IsInputRedirected) {
-    Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
-    try { [void][System.Console]::ReadKey($true) } catch {
-        Write-Host ""
+if (-not $Unattended -and -not $Quiet -and [System.Environment]::UserInteractive -and -not [System.Console]::IsInputRedirected) {
+    try {
+        Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
+        $null = [System.Console]::ReadKey($true)
+    } catch {
+        Write-Verbose "No se pudo leer entrada de consola interactiva: $($_.Exception.Message)"
     }
 }
 

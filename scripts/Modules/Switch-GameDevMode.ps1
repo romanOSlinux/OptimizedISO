@@ -410,10 +410,12 @@ if ($Mode -eq "Status") {
     }
     Write-Host ""
     
-    if (-not $Unattended -and -not [System.Console]::IsInputRedirected) {
-        Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
-        try { [void][System.Console]::ReadKey($true) } catch {
-            Write-Host ""
+    if (-not $Unattended -and [System.Environment]::UserInteractive -and -not [System.Console]::IsInputRedirected) {
+        try {
+            Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
+            $null = [System.Console]::ReadKey($true)
+        } catch {
+            Write-Verbose "No se pudo leer entrada de consola interactiva: $($_.Exception.Message)"
         }
     }
     return
@@ -614,10 +616,12 @@ if ($Mode -eq "Game") {
         Write-Host "  ===============================================================" -ForegroundColor Green
         Write-Host ""
         
-        if (-not $Unattended -and -not [System.Console]::IsInputRedirected) {
-            Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
-            try { [void][System.Console]::ReadKey($true) } catch {
-                Write-Host ""
+        if (-not $Unattended -and [System.Environment]::UserInteractive -and -not [System.Console]::IsInputRedirected) {
+            try {
+                Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
+                $null = [System.Console]::ReadKey($true)
+            } catch {
+                Write-Verbose "No se pudo leer entrada de consola interactiva: $($_.Exception.Message)"
             }
         }
     }
@@ -730,10 +734,12 @@ if ($Mode -eq "Dev") {
         Write-Host "  ===============================================================" -ForegroundColor Cyan
         Write-Host ""
         
-        if (-not $Unattended -and -not [System.Console]::IsInputRedirected) {
-            Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
-            try { [void][System.Console]::ReadKey($true) } catch {
-                Write-Host ""
+        if (-not $Unattended -and [System.Environment]::UserInteractive -and -not [System.Console]::IsInputRedirected) {
+            try {
+                Write-Host "Presione cualquier tecla para continuar..." -ForegroundColor Gray
+                $null = [System.Console]::ReadKey($true)
+            } catch {
+                Write-Verbose "No se pudo leer entrada de consola interactiva: $($_.Exception.Message)"
             }
         }
     }

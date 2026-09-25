@@ -867,15 +867,17 @@ function Start-ControlCenterTask {
         try {
             $pinfo = New-Object System.Diagnostics.ProcessStartInfo
             $pinfo.FileName = "cmd.exe"
-            $pinfo.Arguments = "/c powershell.exe $cmdArgs 2>&1"
+            $pinfo.Arguments = "/c powershell.exe -NonInteractive $cmdArgs 2>&1"
             $pinfo.UseShellExecute = $false
             $pinfo.CreateNoWindow = $true
             $pinfo.RedirectStandardOutput = $true
+            $pinfo.RedirectStandardInput = $true
 
             $proc = New-Object System.Diagnostics.Process
             $proc.StartInfo = $pinfo
             $proc.Start() | Out-Null
             $procState.Process = $proc
+            try { $proc.StandardInput.Close() } catch { Write-Warning "No se pudo cerrar StandardInput: $($_.Exception.Message)" }
 
             while (-not $proc.StandardOutput.EndOfStream) {
                 $line = $proc.StandardOutput.ReadLine()
@@ -1066,7 +1068,7 @@ if ($btnExportProf) {
 # --- Pestaña 1: Acciones Rapidas ---
 $window.FindName('btnQuickTrim').Add_Click({
     $tool = Resolve-ToolScript "Optimize-ProcessMemory.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Poda de Memoria RAM (Working Set)" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Poda de Memoria RAM (Working Set)" }
 })
 
 $window.FindName('btnQuickFlushDns').Add_Click({
@@ -1125,7 +1127,7 @@ $window.FindName('btnQuickNetAudit').Add_Click({
 
 $window.FindName('btnQuickAffinity').Add_Click({
     $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status -Unattended" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" }
 })
 
 $window.FindName('btnQuickFootprint').Add_Click({
@@ -1140,17 +1142,17 @@ $window.FindName('btnQuickRestoreServices').Add_Click({
 # --- Pestaña 2: Gaming & Bimodal ---
 $window.FindName('btnGameAggressive').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Profile Aggressive" -TaskTitle "Conmutador: Modo Juego Agresivo (Poda RAM APU)" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Profile Aggressive -Unattended" -TaskTitle "Conmutador: Modo Juego Agresivo (Poda RAM APU)" }
 })
 
 $window.FindName('btnGameLight').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Profile Light" -TaskTitle "Conmutador: Modo Juego Ligero" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Profile Light -Unattended" -TaskTitle "Conmutador: Modo Juego Ligero" }
 })
 
 $window.FindName('btnDevMode').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Dev" -TaskTitle "Conmutador: Modo Desarrollo (Hyper-V / Docker)" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Dev -Unattended" -TaskTitle "Conmutador: Modo Desarrollo (Hyper-V / Docker)" }
 })
 
 $window.FindName('btnToggleHypervisor').Add_Click({
@@ -1215,17 +1217,17 @@ $window.FindName('btnCalibrateUltimateEnergy').Add_Click({
 # PCIe Interrupt Affinity & IRQ Priority Handlers
 $window.FindName('btnAuditAffinityGUI').Add_Click({
     $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status -Unattended" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" }
 })
 
 $window.FindName('btnOptimizeAffinityGUI').Add_Click({
     $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Optimize" -TaskTitle "Calibracion de Afinidad PCIe y DPC Steering" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Optimize -Unattended" -TaskTitle "Calibracion de Afinidad PCIe y DPC Steering" }
 })
 
 $window.FindName('btnResetAffinityGUI').Add_Click({
     $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Reset" -TaskTitle "Restauracion de Politicas IRQ de Hardware" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Reset -Unattended" -TaskTitle "Restauracion de Politicas IRQ de Hardware" }
 })
 
 # Handlers: Menus Contextuales Optimizados
@@ -1413,32 +1415,32 @@ $window.FindName('btnFullNetworkDiag').Add_Click({
 # --- Pestaña 5: Seguridad & Navegadores ---
 $window.FindName('btnOptAllBrowsers').Add_Click({
     $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser All" -TaskTitle "Optimizacion Oficial de Navegadores" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser All -Unattended" -TaskTitle "Optimizacion Oficial de Navegadores" }
 })
 
 $window.FindName('btnOptEdge').Add_Click({
     $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Edge" -TaskTitle "Optimizar Microsoft Edge" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Edge -Unattended" -TaskTitle "Optimizar Microsoft Edge" }
 })
 
 $window.FindName('btnOptChrome').Add_Click({
     $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Chrome" -TaskTitle "Optimizar Google Chrome" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Chrome -Unattended" -TaskTitle "Optimizar Google Chrome" }
 })
 
 $window.FindName('btnOptBrave').Add_Click({
     $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Brave" -TaskTitle "Optimizar Brave Browser" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Brave -Unattended" -TaskTitle "Optimizar Brave Browser" }
 })
 
 $window.FindName('btnOptFirefox').Add_Click({
     $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Firefox" -TaskTitle "Optimizar Mozilla Firefox" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Firefox -Unattended" -TaskTitle "Optimizar Mozilla Firefox" }
 })
 
 $window.FindName('btnSecurityAudit').Add_Click({
     $tool = Resolve-ToolScript "Invoke-WindowsSecurityHardening.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ShowReport" -TaskTitle "Auditoria de Seguridad y Hardening" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ShowReport -NonInteractive" -TaskTitle "Auditoria de Seguridad y Hardening" }
 })
 
 $window.FindName('btnApplySafeHardening').Add_Click({

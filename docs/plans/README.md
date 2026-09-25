@@ -128,6 +128,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0110 | [PLAN-0110-20260923-orquestador-cadena-auditoria-integral-y-reporte-html.md](PLAN-0110-20260923-orquestador-cadena-auditoria-integral-y-reporte-html.md) | 2026-09-23 | Orquestador de Cadena de Auditoría Integral del Ecosistema y Generador de Reporte HTML Ejecutivo | COMPLETADO |
 | 0111 | [PLAN-0111-20260923-auditoria-forense-completa-de-guis-y-reporte-html.md](PLAN-0111-20260923-auditoria-forense-completa-de-guis-y-reporte-html.md) | 2026-09-23 | Auditoría Forense Exhaustiva de GUIs (romanOS Control Center y romanOS Studio) y Generación de Reporte HTML | COMPLETADO |
 | 0112 | [PLAN-0112-20260924-mejoras-arquitectura-ux-guis-controlcenter-studio.md](PLAN-0112-20260924-mejoras-arquitectura-ux-guis-controlcenter-studio.md) | 2026-09-24 | Mejoras Arquitectónicas y de Experiencia de Usuario (UX) en romanOS Control Center y romanOS Studio | COMPLETADO |
+| 0113 | [PLAN-0113-20260924-erradicacion-bloqueos-consola-gui-stdin-unattended.md](PLAN-0113-20260924-erradicacion-bloqueos-consola-gui-stdin-unattended.md) | 2026-09-24 | Erradicación Integral de Bloqueos de Consola en GUIs (StandardInput Redirection, Cierre Inmediato y Modo Desatendido Transversal) | COMPLETADO |
 
 
 

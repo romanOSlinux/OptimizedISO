@@ -549,15 +549,17 @@ function Start-StudioSubProcess {
         try {
             $pinfo = New-Object System.Diagnostics.ProcessStartInfo
             $pinfo.FileName = "cmd.exe"
-            $pinfo.Arguments = "/c powershell.exe $cmdArgs 2>&1"
+            $pinfo.Arguments = "/c powershell.exe -NonInteractive $cmdArgs 2>&1"
             $pinfo.UseShellExecute = $false
             $pinfo.CreateNoWindow = $true
             $pinfo.RedirectStandardOutput = $true
+            $pinfo.RedirectStandardInput = $true
 
             $proc = New-Object System.Diagnostics.Process
             $proc.StartInfo = $pinfo
             $proc.Start() | Out-Null
             $procState.Process = $proc
+            try { $proc.StandardInput.Close() } catch { Write-Warning "No se pudo cerrar StandardInput: $($_.Exception.Message)" }
 
             while (-not $proc.StandardOutput.EndOfStream) {
                 $line = $proc.StandardOutput.ReadLine()
