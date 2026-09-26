@@ -14,6 +14,12 @@
 .PARAMETER Profile
     Perfil de software a desplegar: 'EsportsGamer', 'CreatorStreamer', 'AIAndDeveloper', 'Essential', 'All', 'None'.
 
+.PARAMETER Categories
+    Lista de nombres de categorías curadas a desplegar (ej. 'Browsers', 'Gaming', 'Development', 'Utilities').
+
+.PARAMETER ListCatalog
+    Muestra en consola las categorías y paquetes disponibles en el catálogo sin requerir elevación ni instalar nada.
+
 .PARAMETER InstallRuntimesOnly
     Instala exclusivamente las bibliotecas de sistema base (Visual C++, DirectX, .NET).
 
@@ -40,14 +46,19 @@
 
 .EXAMPLE
     .\Deploy-AppProfiles.ps1 -Profile EsportsGamer -AutoDetectHardware
+    .\Deploy-AppProfiles.ps1 -Categories Browsers,Utilities -WhatIf
+    .\Deploy-AppProfiles.ps1 -ListCatalog
     .\Deploy-AppProfiles.ps1 -InstallRuntimesOnly
-    .\Deploy-AppProfiles.ps1 -Profile AIAndDeveloper -WhatIf
 #>
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [ValidateSet('EsportsGamer', 'CreatorStreamer', 'AIAndDeveloper', 'Essential', 'All', 'Custom', 'None')]
     [string]$Profile = 'None',
+
+    [string[]]$Categories = @(),
+
+    [switch]$ListCatalog,
 
     [switch]$InstallRuntimesOnly,
 
@@ -69,43 +80,7 @@ param(
 )
 
 # -----------------------------------------------------------------------------
-# 1. VERIFICACION DE PRIVILEGIOS DE ADMINISTRADOR
-# -----------------------------------------------------------------------------
-function Test-IsAdministrator {
-    try {
-        $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-        $principal = [Security.Principal.WindowsPrincipal]$identity
-        return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    }
-    catch {
-        Write-Warning "[ADVERTENCIA] No se pudo verificar el estado de elevacion: $($_.Exception.Message)"
-        return $false
-    }
-}
-
-if (-not $SkipElevation -and -not (Test-IsAdministrator) -and -not $WhatIfPreference) {
-    Write-Host "[INFO] Se requieren privilegios de Administrador. Elevando proceso..." -ForegroundColor Yellow
-    try {
-        $argList = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
-        if ($Profile -ne 'None') { $argList += " -Profile $Profile" }
-        if ($InstallRuntimesOnly) { $argList += " -InstallRuntimesOnly" }
-        if ($AutoDetectHardware) { $argList += " -AutoDetectHardware" }
-        if ($Unattended) { $argList += " -Unattended" }
-        if ($CatalogPath) { $argList += " -CatalogPath `"$CatalogPath`"" }
-        if ($LogPath) { $argList += " -LogPath `"$LogPath`"" }
-        if ($Force) { $argList += " -Force" }
-        
-        Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
-        exit 0
-    }
-    catch {
-        Write-Error "[ERROR] Fallo critico al intentar elevar privilegios: $($_.Exception.Message)"
-        exit 1
-    }
-}
-
-# -----------------------------------------------------------------------------
-# 2. CONFIGURACION DE RUTAS Y LOGGING
+# 1. CONFIGURACION DE RUTAS BASE Y LOGGING
 # -----------------------------------------------------------------------------
 $scriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 
@@ -154,8 +129,20 @@ function Write-DeployLog {
 }
 
 # -----------------------------------------------------------------------------
-# 3. LOCALIZACION DE WINGET (WINDOWS PACKAGE MANAGER)
+# 2. FUNCIONES MODULARES Y MOTOR DE CATALOGO
 # -----------------------------------------------------------------------------
+function Test-IsAdministrator {
+    try {
+        $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = [Security.Principal.WindowsPrincipal]$identity
+        return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    }
+    catch {
+        Write-Warning "[ADVERTENCIA] No se pudo verificar el estado de elevacion: $($_.Exception.Message)"
+        return $false
+    }
+}
+
 function Find-WingetExecutable {
     # 1. Comprobar PATH
     $cmd = Get-Command -Name "winget.exe" -ErrorAction SilentlyContinue
@@ -178,27 +165,237 @@ function Find-WingetExecutable {
     return $null
 }
 
+function Get-RomanOSAppCatalog {
+    <#
+    .SYNOPSIS
+        Carga y deserializa el catalogo canonico de software y perfiles JSON.
+    #>
+    [CmdletBinding()]
+    param([string]$Path = '')
+
+    $targetPath = if ($Path) { $Path } else { $script:CatalogPath }
+    if (-not $targetPath -or -not (Test-Path -Path $targetPath)) {
+        $candidatePaths = @(
+            (Join-Path -Path (Split-Path -Parent $PSCommandPath) -ChildPath "..\Core\App-Profiles-Catalog.json"),
+            "C:\OptimizedISO\scripts\Core\App-Profiles-Catalog.json",
+            "C:\Windows\Setup\Scripts\Core\App-Profiles-Catalog.json"
+        )
+        foreach ($c in $candidatePaths) {
+            if (Test-Path -Path $c) { $targetPath = (Resolve-Path -Path $c).Path; break }
+        }
+    }
+
+    if ($targetPath -and (Test-Path -Path $targetPath)) {
+        try {
+            $raw = Get-Content -Path $targetPath -Raw -Encoding UTF8
+            return (ConvertFrom-Json -InputObject $raw)
+        } catch {
+            Write-Warning "Fallo al deserializar App-Profiles-Catalog.json ($targetPath): $($_.Exception.Message)"
+            return $null
+        }
+    }
+
+    return $null
+}
+
+function Get-RomanOSAppsByCategory {
+    <#
+    .SYNOPSIS
+        Obtiene los paquetes asociados a una categoria o perfil del catalogo.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CategoryName,
+        [string]$Path = ''
+    )
+
+    $cat = Get-RomanOSAppCatalog -Path $Path
+    if (-not $cat) { return @() }
+
+    # 1. Categoria curada (Browsers, Gaming, Development, Utilities)
+    if ($cat.categories -and $cat.categories.$CategoryName) {
+        return @($cat.categories.$CategoryName)
+    }
+
+    # 2. Perfil de instalacion (EsportsGamer, CreatorStreamer, AIAndDeveloper, Essential)
+    if ($cat.profiles -and $cat.profiles.$CategoryName) {
+        return @($cat.profiles.$CategoryName.packages)
+    }
+
+    # 3. Runtimes de sistema
+    if ($CategoryName -eq 'Runtimes' -and $cat.runtimes) {
+        return @($cat.runtimes)
+    }
+
+    return @()
+}
+
+function Install-RomanOSAppsBatch {
+    <#
+    .SYNOPSIS
+        Instala una coleccion de paquetes de forma desatendida mediante winget.exe.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [PSObject[]]$Packages,
+
+        [string]$WingetPath = '',
+
+        [string]$LogPath = '',
+
+        [switch]$Unattended,
+
+        [switch]$Force
+    )
+
+    if (-not $WingetPath) {
+        $WingetPath = Find-WingetExecutable
+    }
+
+    if (-not $WingetPath) {
+        Write-Warning "[WARN] winget.exe no disponible. No es posible ejecutar instalaciones fisicas."
+        return @{ SuccessCount = 0; FailCount = @($Packages).Count; AlreadyInstalledCount = 0; Success = $false }
+    }
+
+    $successCount = 0
+    $failCount = 0
+    $alreadyInstalledCount = 0
+    $total = @($Packages).Count
+    $i = 1
+
+    foreach ($item in $Packages) {
+        if ($PSCmdlet.ShouldProcess($item.Name, "Instalar paquete winget con ID '$($item.Id)'")) {
+            Write-Host "`n--------------------------------------------------------------------------" -ForegroundColor DarkGray
+            Write-DeployLog ">>> [$i/$total] Instalando: $($item.Name) (ID: $($item.Id))..." 'TITLE'
+
+            $wingetArgs = "install --exact --id `"$($item.Id)`" --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
+            
+            try {
+                $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+                $pinfo.FileName = $WingetPath
+                $pinfo.Arguments = $wingetArgs
+                $pinfo.UseShellExecute = $false
+                $pinfo.RedirectStandardOutput = $true
+                $pinfo.RedirectStandardError = $true
+                $pinfo.CreateNoWindow = $true
+
+                $process = [System.Diagnostics.Process]::Start($pinfo)
+                $stdout = $process.StandardOutput.ReadToEnd()
+                $stderr = $process.StandardError.ReadToEnd()
+                $process.WaitForExit()
+                $exitCode = $process.ExitCode
+
+                if ($exitCode -eq 0) {
+                    Write-DeployLog "  [OK] $($item.Name) instalado correctamente." 'OK'
+                    $successCount++
+                }
+                elseif ($exitCode -eq -1978335189 -or $stdout -match "ya está instalada|already installed|No applicable update found") {
+                    Write-DeployLog "  [INFO] $($item.Name) ya se encuentra instalado o actualizado en el sistema." 'INFO'
+                    $alreadyInstalledCount++
+                }
+                else {
+                    Write-DeployLog "  [WARN] Fallo al instalar $($item.Name) (ExitCode: $exitCode)." 'WARN'
+                    if ($stderr) { Write-DeployLog "         Detalle: $stderr" 'WARN' }
+                    $failCount++
+                }
+            }
+            catch {
+                Write-DeployLog "  [ERROR] Excepcion al invocar proceso de instalacion para $($item.Name): $($_.Exception.Message)" 'ERROR'
+                $failCount++
+            }
+        }
+        $i++
+    }
+
+    return @{
+        SuccessCount          = $successCount
+        FailCount             = $failCount
+        AlreadyInstalledCount = $alreadyInstalledCount
+        Success               = ($failCount -eq 0)
+    }
+}
+
 # -----------------------------------------------------------------------------
-# 4. CARGA DE CATALOGO Y TOPOLOGIA DE HARDWARE
+# 3. ACCIONES NO ELEVADAS TEMPRANAS Y GUARDIA DE IMPORTACION
+# -----------------------------------------------------------------------------
+
+# Listado del catalogo en consola sin requerir elevacion de privilegios
+if ($ListCatalog) {
+    $cat = Get-RomanOSAppCatalog -Path $CatalogPath
+    if (-not $cat) {
+        Write-Error "No se pudo localizar o cargar el catalogo de software."
+        exit 1
+    }
+
+    Write-Host "`n==========================================================================" -ForegroundColor Magenta
+    Write-Host "   romanOS: CATALOGO DE SOFTWARE CURADO (WinGet Engine)                   " -ForegroundColor Cyan
+    Write-Host "==========================================================================" -ForegroundColor Magenta
+
+    if ($cat.categories) {
+        Write-Host "`n[CATEGORIAS DE SOFTWARE DISPONIBLES]:" -ForegroundColor Yellow
+        foreach ($prop in $cat.categories.psobject.properties) {
+            Write-Host "`n--- Categoria: $($prop.Name) ---" -ForegroundColor Green
+            foreach ($pkg in $prop.Value) {
+                Write-Host ("  [{0,-28}] {1,-26} | {2}" -f $pkg.id, $pkg.name, $pkg.description) -ForegroundColor Gray
+            }
+        }
+    }
+
+    if ($cat.profiles) {
+        Write-Host "`n[PERFILES DE INSTALACION RAPIDA]:" -ForegroundColor Yellow
+        foreach ($prop in $cat.profiles.psobject.properties) {
+            Write-Host ("  - {0,-20} : {1}" -f $prop.Name, $prop.Value.name) -ForegroundColor Cyan
+        }
+    }
+
+    exit 0
+}
+
+# Si fue invocado mediante dot-sourcing (como modulo de funciones), finalizar aqui exportando las funciones
+if ($MyInvocation.InvocationName -eq '.') {
+    return
+}
+
+# -----------------------------------------------------------------------------
+# 4. VERIFICACION DE PRIVILEGIOS DE ADMINISTRADOR Y AUTO-ELEVACION
+# -----------------------------------------------------------------------------
+if (-not $SkipElevation -and -not (Test-IsAdministrator) -and -not $WhatIfPreference) {
+    Write-Host "[INFO] Se requieren privilegios de Administrador. Elevando proceso..." -ForegroundColor Yellow
+    try {
+        $argList = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+        if ($Profile -ne 'None') { $argList += " -Profile $Profile" }
+        if ($Categories -and $Categories.Count -gt 0) { $argList += " -Categories $($Categories -join ',')" }
+        if ($InstallRuntimesOnly) { $argList += " -InstallRuntimesOnly" }
+        if ($AutoDetectHardware) { $argList += " -AutoDetectHardware" }
+        if ($Unattended) { $argList += " -Unattended" }
+        if ($CatalogPath) { $argList += " -CatalogPath `"$CatalogPath`"" }
+        if ($LogPath) { $argList += " -LogPath `"$LogPath`"" }
+        if ($Force) { $argList += " -Force" }
+        
+        Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
+        exit 0
+    }
+    catch {
+        Write-Error "[ERROR] Fallo critico al intentar elevar privilegios: $($_.Exception.Message)"
+        exit 1
+    }
+}
+
+# -----------------------------------------------------------------------------
+# 5. CARGA DE CATALOGO Y TOPOLOGIA DE HARDWARE
 # -----------------------------------------------------------------------------
 Write-DeployLog "==========================================================================" 'TITLE'
 Write-DeployLog " romanOS App & AI Runtimes Manager (v1.0 - 2026)" 'TITLE'
 Write-DeployLog "==========================================================================" 'TITLE'
 
-if (-not (Test-Path -Path $CatalogPath)) {
-    Write-DeployLog "[ERROR] No se localizo el catalogo canónico de paquetes en: $CatalogPath" 'ERROR'
+$catalog = Get-RomanOSAppCatalog -Path $CatalogPath
+if (-not $catalog) {
+    Write-DeployLog "[ERROR] No se localizo o no se pudo cargar el catalogo canónico de paquetes en: $CatalogPath" 'ERROR'
     exit 1
 }
-
-try {
-    $catalogRaw = Get-Content -Path $CatalogPath -Raw -Encoding UTF8
-    $catalog = ConvertFrom-Json -InputObject $catalogRaw
-    Write-DeployLog "[OK] Catalogo cargado exitosamente: $($catalog.description) (v$($catalog.version))" 'OK'
-}
-catch {
-    Write-DeployLog "[ERROR] Error critico al deserializar el archivo JSON del catalogo: $($_.Exception.Message)" 'ERROR'
-    exit 1
-}
+Write-DeployLog "[OK] Catalogo cargado exitosamente: $($catalog.description) (v$($catalog.version))" 'OK'
 
 # Introspeccion de hardware mediante Hardware-Engine.ps1 si esta solicitado
 $hwProfile = $null
@@ -285,7 +482,31 @@ if (-not $InstallRuntimesOnly -and $Profile -ne 'None') {
     }
 }
 
-# C) Deteccion Adaptativa de Hardware (NVIDIA / AMD / Intel Arc / NPU)
+# C) Categorias de Software Curado (Inspirado en WinUtil)
+if ($Categories -and $Categories.Count -gt 0) {
+    foreach ($catName in $Categories) {
+        $catPkgs = Get-RomanOSAppsByCategory -CategoryName $catName -Path $CatalogPath
+        if ($catPkgs -and @($catPkgs).Count -gt 0) {
+            Write-DeployLog "[INFO] Agregando categoria '$catName' ($(@($catPkgs).Count) paquetes)..." 'INFO'
+            foreach ($pkg in $catPkgs) {
+                if (-not ($installQueue | Where-Object { $_.Id -eq $pkg.id })) {
+                    $installQueue.Add([PSCustomObject]@{
+                        Id          = $pkg.id
+                        Name        = $pkg.name
+                        Category    = $pkg.category
+                        Description = $pkg.description
+                        SilentArgs  = $pkg.silentArgs
+                        Source      = "Category:$catName"
+                    })
+                }
+            }
+        } else {
+            Write-DeployLog "[WARN] Categoria o perfil '$catName' no contiene paquetes o no existe en el catalogo." 'WARN'
+        }
+    }
+}
+
+# D) Deteccion Adaptativa de Hardware (NVIDIA / AMD / Intel Arc / NPU)
 if ($AutoDetectHardware -and $catalog.hardwareAddons) {
     # 1. NVIDIA
     $isNvidia = $false
@@ -380,7 +601,7 @@ if ($AutoDetectHardware -and $catalog.hardwareAddons) {
     }
 }
 
-# D) Paquetes Personalizados
+# E) Paquetes Personalizados
 if ($CustomPackages -and $CustomPackages.Count -gt 0) {
     foreach ($customId in $CustomPackages) {
         if (-not ($installQueue | Where-Object { $_.Id -eq $customId })) {
@@ -407,7 +628,7 @@ foreach ($item in $installQueue) {
 }
 
 if ($installQueue.Count -eq 0) {
-    Write-DeployLog "[INFO] No se seleccionaron paquetes para instalar. Especifique -Profile, -InstallRuntimesOnly o -AutoDetectHardware." 'INFO'
+    Write-DeployLog "[INFO] No se seleccionaron paquetes para instalar. Especifique -Profile, -Categories, -InstallRuntimesOnly o -AutoDetectHardware." 'INFO'
     exit 0
 }
 
@@ -450,74 +671,19 @@ if (-not $Unattended -and -not $Force) {
     }
 }
 
-$successCount = 0
-$failCount = 0
-$alreadyInstalledCount = 0
-
 Write-DeployLog "`nIniciando despliegue de paquetes..." 'TITLE'
-
-$i = 1
-$total = $installQueue.Count
-
-foreach ($item in $installQueue) {
-    Write-Host "`n--------------------------------------------------------------------------" -ForegroundColor DarkGray
-    Write-DeployLog ">>> [$i/$total] Instalando: $($item.Name) (ID: $($item.Id))..." 'TITLE'
-
-    $wingetArgs = "install --exact --id `"$($item.Id)`" --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
-    
-    try {
-        $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-        $pinfo.FileName = $wingetPath
-        $pinfo.Arguments = $wingetArgs
-        $pinfo.UseShellExecute = $false
-        $pinfo.RedirectStandardOutput = $true
-        $pinfo.RedirectStandardError = $true
-        $pinfo.CreateNoWindow = $true
-
-        $process = [System.Diagnostics.Process]::Start($pinfo)
-        $stdout = $process.StandardOutput.ReadToEnd()
-        $stderr = $process.StandardError.ReadToEnd()
-        $process.WaitForExit()
-        $exitCode = $process.ExitCode
-
-        # Códigos de salida de Winget:
-        # 0 = Éxito
-        # -1978335189 (0x8A15002B) = Ya instalado / No updates found
-        # -1978335216 (0x8A150010) = Cancelado por usuario
-        # -1978335215 (0x8A150011) = No se encontró paquete
-        
-        if ($exitCode -eq 0) {
-            Write-DeployLog "  [OK] $($item.Name) instalado correctamente." 'OK'
-            $successCount++
-        }
-        elseif ($exitCode -eq -1978335189 -or $stdout -match "ya está instalada|already installed|No applicable update found") {
-            Write-DeployLog "  [INFO] $($item.Name) ya se encuentra instalado o actualizado en el sistema." 'INFO'
-            $alreadyInstalledCount++
-        }
-        else {
-            Write-DeployLog "  [WARN] Fallo al instalar $($item.Name) (ExitCode: $exitCode)." 'WARN'
-            if ($stderr) { Write-DeployLog "         Detalle: $stderr" 'WARN' }
-            $failCount++
-        }
-    }
-    catch {
-        Write-DeployLog "  [ERROR] Excepcion al invocar proceso de instalacion para $($item.Name): $($_.Exception.Message)" 'ERROR'
-        $failCount++
-    }
-
-    $i++
-}
+$deployResult = Install-RomanOSAppsBatch -Packages $installQueue -WingetPath $wingetPath -LogPath $LogPath -Unattended:$Unattended -Force:$Force
 
 Write-DeployLog "==========================================================================" 'TITLE'
 Write-DeployLog " RESUMEN DE DESPLIEGUE DE PAQUETES" 'TITLE'
 Write-DeployLog "==========================================================================" 'TITLE'
-Write-DeployLog " Paquetes Instalados con Éxito : $successCount" 'OK'
-Write-DeployLog " Paquetes Ya Existentes         : $alreadyInstalledCount" 'INFO'
-Write-DeployLog " Paquetes con Incidencias       : $failCount" $(if ($failCount -gt 0) { 'WARN' } else { 'OK' })
+Write-DeployLog " Paquetes Instalados con Éxito : $($deployResult.SuccessCount)" 'OK'
+Write-DeployLog " Paquetes Ya Existentes         : $($deployResult.AlreadyInstalledCount)" 'INFO'
+Write-DeployLog " Paquetes con Incidencias       : $($deployResult.FailCount)" $(if ($deployResult.FailCount -gt 0) { 'WARN' } else { 'OK' })
 Write-DeployLog " Registro detallado guardado en : $LogPath" 'INFO'
 Write-DeployLog "==========================================================================" 'TITLE'
 
-if ($failCount -gt 0) {
+if ($deployResult.FailCount -gt 0) {
     exit 1
 }
 exit 0

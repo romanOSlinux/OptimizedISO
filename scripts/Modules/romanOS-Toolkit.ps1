@@ -25,9 +25,12 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling", "Sandbox", "LiveSandbox", "Watchdog", "AntiDrift", "InterruptAffinity", "PCIeAffinity", "IRQSteering")]
+    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling", "Sandbox", "LiveSandbox", "Watchdog", "AntiDrift", "InterruptAffinity", "PCIeAffinity", "IRQSteering", "TestDNS", "DNSBenchmark")]
     [string]$Module,
     [string]$AppProfile,
+    [string[]]$AppCategories = @(),
+    [switch]$ListAppCatalog,
+    [string]$DNSProfile,
     [string]$ThermalAction = 'Status',
     [string]$SandboxPreset = 'SafeAnalysis',
     [string]$SharedFolder,
@@ -315,6 +318,8 @@ function Invoke-SnapshotModule {
 function Invoke-AppProfilesModule {
     param(
         [string]$ProfileName = 'None',
+        [string[]]$Categories = @(),
+        [switch]$ListCatalog,
         [switch]$InstallRuntimesOnly,
         [switch]$AutoDetectHardware
     )
@@ -323,6 +328,8 @@ function Invoke-AppProfilesModule {
         Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando romanOS App & AI Runtimes Manager"
         $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptFile)
         if ($ProfileName -and $ProfileName -ne 'None') { $argList += @('-Profile', $ProfileName) }
+        if ($Categories -and $Categories.Count -gt 0) { $argList += @('-Categories', ($Categories -join ',')) }
+        if ($ListCatalog) { $argList += '-ListCatalog' }
         if ($InstallRuntimesOnly) { $argList += '-InstallRuntimesOnly' }
         if ($AutoDetectHardware) { $argList += '-AutoDetectHardware' }
         if ($WhatIfPreference -or $PSBoundParameters.ContainsKey('WhatIf')) { $argList += '-WhatIf' }
@@ -632,7 +639,9 @@ function Show-QuickActionsMenu {
         "Monitor de Throttling Termico y Calibrador Energetico (Monitor-ThermalEnergy)",
         "Entorno Sandbox Descartable en Vivo (Invoke-LiveSandbox)",
         "Guardian Anti-Drift de Servicios y Tareas (Watchdog-ServiceDrift)",
-        "Calibrador de Afinidad PCIe e Interrupciones IRQ (DPC Steering & MSI Tuning)"
+        "Calibrador de Afinidad PCIe e Interrupciones IRQ (DPC Steering & MSI Tuning)",
+        "Benchmark de Latencia y Resolvers DNS en Tiempo Real (Cloudflare, Quad9, Google, AdGuard)",
+        "Explorador de Software Curado y Runtimes de IA (Listar Catalogo WinGet)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -807,6 +816,21 @@ function Show-QuickActionsMenu {
             Invoke-InterruptAffinityModule -Action "Status"
             pause
         }
+        24 {
+            Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Benchmark de Latencia DNS (RTT Engine en Vivo)"
+            $netScript = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+            if ($netScript) {
+                & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $netScript -TestDNS
+            } else {
+                Write-ErrorMsg "No se encontro Win11-Network-Diagnostics-Optimizer.ps1"
+            }
+            pause
+        }
+        25 {
+            Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Catalogo Canonico de Software Curado (WinGet Engine)"
+            Invoke-AppProfilesModule -ListCatalog
+            pause
+        }
         default { return }
     }
 
@@ -841,9 +865,11 @@ if ($Module) {
         "Snapshot"      { Invoke-SnapshotModule -Action "List"; exit }
         "Snapshots"     { Invoke-SnapshotModule -Action "List"; exit }
         "Rollback"      { Invoke-SnapshotModule -Action "Restore"; exit }
-        "AppProfiles"   { Invoke-AppProfilesModule -ProfileName $AppProfile -AutoDetectHardware; exit }
-        "AIProfiles"    { Invoke-AppProfilesModule -ProfileName "AIAndDeveloper" -AutoDetectHardware; exit }
-        "Apps"          { Invoke-AppProfilesModule -ProfileName $AppProfile -AutoDetectHardware; exit }
+        "AppProfiles"   { Invoke-AppProfilesModule -ProfileName $AppProfile -Categories $AppCategories -ListCatalog:$ListAppCatalog -AutoDetectHardware; exit }
+        "AIProfiles"    { Invoke-AppProfilesModule -ProfileName "AIAndDeveloper" -Categories $AppCategories -AutoDetectHardware; exit }
+        "Apps"          { Invoke-AppProfilesModule -ProfileName $AppProfile -Categories $AppCategories -ListCatalog:$ListAppCatalog -AutoDetectHardware; exit }
+        "TestDNS"       { $ns = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"; if ($ns) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ns -TestDNS } else { Write-ErrorMsg "No se encontro Win11-Network-Diagnostics-Optimizer.ps1" }; exit }
+        "DNSBenchmark"  { $ns = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"; if ($ns) { & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $ns -TestDNS } else { Write-ErrorMsg "No se encontro Win11-Network-Diagnostics-Optimizer.ps1" }; exit }
         "Thermal"       { Invoke-ThermalModule -Action $ThermalAction; exit }
         "Energy"        { Invoke-ThermalModule -Action $ThermalAction; exit }
         "Throttling"    { Invoke-ThermalModule -Action $ThermalAction; exit }

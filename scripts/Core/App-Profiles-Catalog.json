@@ -269,5 +269,148 @@
         "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
       }
     ]
+  },
+  "categories": {
+    "Browsers": [
+      {
+        "id": "Brave.Brave",
+        "name": "Brave Browser",
+        "category": "Browsers",
+        "description": "Navegador web con bloqueo nativo de anuncios y privacidad",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "Mozilla.Firefox",
+        "name": "Mozilla Firefox",
+        "category": "Browsers",
+        "description": "Navegador de código abierto independiente y personalizable",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "Google.Chrome",
+        "name": "Google Chrome",
+        "category": "Browsers",
+        "description": "Navegador estándar de Google con sincronización de cuenta",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "Librewolf.Librewolf",
+        "name": "LibreWolf",
+        "category": "Browsers",
+        "description": "Fork de Firefox endurecido para máxima privacidad y seguridad",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      }
+    ],
+    "Gaming": [
+      {
+        "id": "Valve.Steam",
+        "name": "Steam",
+        "category": "Gaming",
+        "description": "Plataforma de videojuegos y distribución digital de Valve",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "EpicGames.EpicGamesLauncher",
+        "name": "Epic Games Launcher",
+        "category": "Gaming",
+        "description": "Tienda de juegos de Epic Games y motor Unreal",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "Discord.Discord",
+        "name": "Discord",
+        "category": "Gaming",
+        "description": "Comunicación por voz, video y texto para comunidades y juegos",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "OBSProject.OBSStudio",
+        "name": "OBS Studio",
+        "category": "Gaming",
+        "description": "Software líder de grabación y streaming en vivo",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "PrismLauncher.PrismLauncher",
+        "name": "Prism Launcher",
+        "category": "Gaming",
+        "description": "Lanzador de Minecraft modular y de código abierto",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      }
+    ],
+    "Development": [
+      {
+        "id": "Git.Git",
+        "name": "Git for Windows",
+        "category": "Development",
+        "description": "Sistema de control de versiones distribuido",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "Microsoft.VisualStudioCode",
+        "name": "Visual Studio Code",
+        "category": "Development",
+        "description": "Editor de código ligero y extensible de Microsoft",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "OpenJS.NodeJS.LTS",
+        "name": "Node.js (LTS)",
+        "category": "Development",
+        "description": "Entorno de ejecución de JavaScript del lado del servidor",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "Python.Python.3.12",
+        "name": "Python 3.12",
+        "category": "Development",
+        "description": "Lenguaje de programación para scripting y machine learning",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "Microsoft.WindowsTerminal",
+        "name": "Windows Terminal",
+        "category": "Development",
+        "description": "Terminal moderna con soporte de pestañas y aceleración GPU",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      }
+    ],
+    "Utilities": [
+      {
+        "id": "7zip.7zip",
+        "name": "7-Zip",
+        "category": "Utilities",
+        "description": "Compresor y descompresor de archivos de alto rendimiento",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "Notepad++.Notepad++",
+        "name": "Notepad++",
+        "category": "Utilities",
+        "description": "Editor de texto avanzado y ligero para Windows",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "voidtools.Everything",
+        "name": "Everything Search",
+        "category": "Utilities",
+        "description": "Búsqueda instantánea de archivos y carpetas en discos NTFS",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "CPUID.CPU-Z",
+        "name": "CPU-Z",
+        "category": "Utilities",
+        "description": "Monitor de hardware de microarquitectura, reloj y memoria",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      },
+      {
+        "id": "FastStone.Viewer",
+        "name": "FastStone Image Viewer",
+        "category": "Utilities",
+        "description": "Visor y conversor de imágenes rápido y ligero",
+        "silentArgs": "--silent --accept-package-agreements --accept-source-agreements"
+      }
+    ]
   }
 }

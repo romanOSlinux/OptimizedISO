@@ -56,16 +56,19 @@ El proyecto `romanOS / OptimizedISO` cuenta con un motor de creación y servicin
   * Implementar `Set-RomanOSDnsServer`: Aplica el proveedor seleccionado al adaptador activo (IPv4 y plantilla DoH de Windows 11 `netsh dns add encryption`).
   * Implementar `Reset-RomanOSDnsServer`: Restablece la configuración a DHCP automático.
 
-### Fase 2: Gestor de Software Desatendido y Catálogo Curado (WinGet Engine)
+### Fase 2: Gestor de Software Desatendido y Catálogo Curado (WinGet Engine) [COMPLETADA]
+* **`scripts/Core/App-Profiles-Catalog.json`:**
+  * Enriquecido el catálogo maestro con bloque `"categories"` oficial con WinGet IDs, nombres y descripciones (`Browsers`, `Gaming`, `Development`, `Utilities`).
 * **`scripts/Modules/Deploy-AppProfiles.ps1`:**
-  * Enriquecer catálogo de software en `Get-SoftwareCatalog` con IDs oficiales de WinGet divididos en categorías claras:
-    * *Navegadores:* Brave, Mozilla Firefox, Google Chrome, Librewolf.
-    * *Gaming:* Steam, Epic Games, Discord, OBS Studio, Prism Launcher.
-    * *Desarrollo:* Git, VS Code, Node.js, Python 3, Windows Terminal.
-    * *Utilidades:* 7-Zip, Notepad++, Everything, CPU-Z, FastStone Image Viewer.
-  * Implementar `Install-RomanOSAppsBatch`: Orquestador de instalación desatendida vía WinGet con flags silenciosos, barra de progreso y log detallado.
+  * Implementados parámetros `[string[]]$Categories = @()` y `[switch]$ListCatalog`.
+  * Funciones modulares exportables: `Get-RomanOSAppCatalog`, `Get-RomanOSAppsByCategory`, `Install-RomanOSAppsBatch`.
+  * Guardia dot-sourcing temprana `if ($MyInvocation.InvocationName -eq '.') { return }` para exportar funciones sin elevación UAC.
+  * Delegación de instalación desacoplada con manejo robusto de códigos de error de WinGet.
 * **`scripts/Modules/romanOS-Toolkit.ps1`:**
-  * Agregar opción de menú interactivo CLI para conmutar DNS y seleccionar apps para instalación desatendida.
+  * Incorporadas opciones interactivas 24 (Benchmark DNS en Tiempo Real) y 25 (Explorador de Software Curado WinGet) en `Show-QuickActionsMenu`.
+  * Soporte de CLI desatendido: `-Module Apps -ListAppCatalog` y `-Module TestDNS`.
+* **`scripts/Testing/Test-WinUtilIntegration.ps1`:**
+  * Suite ampliada con 28 aserciones (100% PASS en PS 5.1).
 
 ### Fase 3: Micro-Mejoras de Servicing en ISO Builder (MicroWin Core Evaluado)
 * **`scripts/Builder/New-OptimizedWindowsISO-v2.ps1`:**
