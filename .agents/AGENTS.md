@@ -48,12 +48,13 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **Higiene Automática de `.gitignore`:** Ante cualquier nueva herramienta o script que descargue artefactos pesados en tiempo de ejecución, el agente DEBE asegurar que las rutas de descarga queden explícitamente ignoradas en `.gitignore`.
 - **Commits y Push Periódicos:** Mantener sincronizado el repositorio con el remoto (`origin`) mediante commits atómicos y limpios exclusivamente de código fuente (`.ps1`, `.cmd`, `.xml`), documentación (`.md`) y configuración.
 
-## 7. Transparencia y Notificación Obligatoria de Pruebas y Tareas en Segundo Plano
+## 7. Transparencia, Notificación y Timer Anti-Bloqueo Obligatorio (Watchdog de Tareas)
 - **Aviso de Inicio Obligatorio:** Antes de lanzar cualquier prueba unitaria, suite de pruebas (`Invoke-TestSuite.ps1`, `Test-OptimizedISO-v2.ps1`), comando de larga duración o tarea en segundo plano, el agente DEBE emitir un mensaje breve y visible al usuario indicando:
   `⏳ Iniciando prueba / tarea: [Nombre del test o script]...`
 - **Aviso de Finalización Obligatorio:** Tan pronto como la prueba o comando concluya, el agente DEBE notificar su finalización y el resultado obtenido:
   `✅ Prueba finalizada: [Nombre del test o script] — Resultado: [PASS / FAIL / Métricas].`
-- **Cero Tareas Fantasma:** Está prohibido dejar tareas en segundo plano corriendo sin supervisión o sin que el usuario esté informado de su ejecución y término.
+- **Timer Anti-Bloqueo Obligatorio (Watchdog del Agente):** Para toda tarea que se ejecute en segundo plano, clonado de repositorios, descargas masivas o comandos prolongados que puedan quedar atrapados en un bucle o fallo de entrada/salida (I/O), el agente DEBE obligatoriamente programar un temporizador de supervisión activa (`schedule` con `DurationSeconds` acotado, ej. 60-120 segundos) condicionado al TaskId. Si el comando no concluye antes de ese plazo, el timer despertará al agente para forzar la inspección de logs (`manage_task status`), diagnosticar anomalías y erradicar cualquier espera pasiva indefinida.
+- **Cero Tareas Fantasma y Cero Esperas Pasivas:** Está terminantemente prohibido dejar tareas en segundo plano corriendo sin supervisión periódica ni timer de control, o cerrar turnos asumiendo que un comando finalizará sin incidencias.
 
 ## 8. Ejecución Autónoma y Continua de Planes (Modo Autorizado)
 - **Autorización de Avance Continuo:** Por instrucción expresa del usuario, el agente queda autorizado para avanzar de forma continua y autónoma en la ejecución completa de las fases de los planes de implementación aprobados (`PLAN-*.md`), sin detenerse a solicitar aprobaciones intermedias paso a paso, hasta completar el hito o hasta que el usuario emita una contraorden en el chat.
