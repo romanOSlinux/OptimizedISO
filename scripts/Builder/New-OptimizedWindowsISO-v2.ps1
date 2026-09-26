@@ -5014,6 +5014,8 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v DisablePagingExecutive /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v LargeSystemCache /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v Win32PrioritySeparation /t REG_DWORD /d 38 /f >> "%LOG%" 2>&1
+REM Adaptabilidad topologica: en CPUs asimetricas (Intel Hybrid / AMD Dual-CCD X3D) preservar default 2 para Thread Director y CPPC (PLAN-0116)
+"%PS%" -NoProfile -ExecutionPolicy Bypass -Command "& { try { if (Test-Path '%WINDIR%\Setup\Scripts\Core\Hardware-Engine.ps1') { . '%WINDIR%\Setup\Scripts\Core\Hardware-Engine.ps1'; `$rec = Get-RomanOSSchedulerRecommendation; if (-not `$rec.ShouldModifyPrioritySeparation) { Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl' -Name 'Win32PrioritySeparation' -Value `$rec.RecommendedValue -Type DWord -Force } } } catch { } }" >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v NoLazyMode /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 

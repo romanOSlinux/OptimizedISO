@@ -64,7 +64,7 @@ Por mandato constitucional de la Regla 15, cada script debe generar una ficha t�
 * [x] **Lote 1: Core 1** (`Hardware-Engine.ps1`, `Policy-Engine.ps1`, `Sysinternals-Helper.ps1`, `Test-AntiCheatCompatibility.ps1`) — COMPLETADO 2026-09-26
 * [x] **Lote 2: Core 2** (`UI-Engine.ps1`, `WimLib-Helper.ps1`, `Test-KernelTimerResolution.ps1`, `Test-MsiInterruptTopology.ps1`) — COMPLETADO 2026-09-26
 * [x] **Lote 3: Core 3** (`Test-NetworkOffloadsAndRSS.ps1`, `Test-RegistryHiveDrift.ps1`, `Test-StorageStackBypassIO.ps1`, `Test-SupplyChainIntegrity.ps1`) — COMPLETADO 2026-09-26
-* [ ] **Lote 4: Builder** (`New-OptimizedWindowsISO-v2.ps1`, `Get-WindowsUpdates.ps1`, `Get-EssentialRuntimes.ps1`)
+* [x] **Lote 4: Builder** (`New-OptimizedWindowsISO-v2.ps1`, `Get-WindowsUpdates.ps1`, `Get-EssentialRuntimes.ps1`) — COMPLETADO 2026-09-26
 * [ ] **Lote 5: Modules 1** (`Win11-Debloat-v3-Adaptive.ps1`, `Audit-FreshInstallFootprint.ps1`, `Audit-SystemOptimization.ps1`)
 * [ ] **Lote 6: Modules 2** (`Win11-Network-Diagnostics-Optimizer.ps1`, `Optimize-GamingAndApps.ps1`, `Optimize-ProcessMemory.ps1`)
 * [ ] **Lote 7: Modules 3** (`Invoke-WindowsSecurityHardening.ps1`, `Invoke-WindowsMaintenance.ps1`, `Desktop-Helpers.ps1`)
