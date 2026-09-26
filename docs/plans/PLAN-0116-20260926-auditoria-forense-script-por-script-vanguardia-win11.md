@@ -26,8 +26,8 @@ Para evitar la saturación de contexto (*lost in the middle*) y la pérdida de a
 ```
 ├── BLOQUE 1: Motores del Núcleo (scripts/Core/) - 12 scripts
 │   ├── Lote 1: Hardware-Engine, Policy-Engine, Sysinternals-Helper, Test-AntiCheatCompatibility
-│   ├── Lote 2: Process-Memory-Engine, UI-Engine, SystemSnapshots-Engine, LatencyTrace-Engine
-│   └── Lote 3: PcieInterruptTopology-Engine, ThermalEnergy-Engine, ServiceDriftWatchdog-Engine, LiveSandbox-Engine
+│   ├── Lote 2: UI-Engine, WimLib-Helper, Test-KernelTimerResolution, Test-MsiInterruptTopology
+│   └── Lote 3: Test-NetworkOffloadsAndRSS, Test-RegistryHiveDrift, Test-StorageStackBypassIO, Test-SupplyChainIntegrity
 ├── BLOQUE 2: Generador de ISO y Servicing (scripts/Builder/) - 3 scripts
 │   └── Lote 4: New-OptimizedWindowsISO-v2, Get-WindowsUpdates, Get-EssentialRuntimes
 ├── BLOQUE 3: Módulos del Sistema y Optimización (scripts/Modules/) - 22 scripts
@@ -62,8 +62,8 @@ Por mandato constitucional de la Regla 15, cada script debe generar una ficha t�
 ## 4. Estado de Avance por Lotes
 
 * [x] **Lote 1: Core 1** (`Hardware-Engine.ps1`, `Policy-Engine.ps1`, `Sysinternals-Helper.ps1`, `Test-AntiCheatCompatibility.ps1`) — COMPLETADO 2026-09-26
-* [ ] **Lote 2: Core 2** (`Process-Memory-Engine.ps1`, `UI-Engine.ps1`, `SystemSnapshots-Engine.ps1`, `LatencyTrace-Engine.ps1`)
-* [ ] **Lote 3: Core 3** (`PcieInterruptTopology-Engine.ps1`, `ThermalEnergy-Engine.ps1`, `ServiceDriftWatchdog-Engine.ps1`, `LiveSandbox-Engine.ps1`)
+* [x] **Lote 2: Core 2** (`UI-Engine.ps1`, `WimLib-Helper.ps1`, `Test-KernelTimerResolution.ps1`, `Test-MsiInterruptTopology.ps1`) — COMPLETADO 2026-09-26
+* [ ] **Lote 3: Core 3** (`Test-NetworkOffloadsAndRSS.ps1`, `Test-RegistryHiveDrift.ps1`, `Test-StorageStackBypassIO.ps1`, `Test-SupplyChainIntegrity.ps1`)
 * [ ] **Lote 4: Builder** (`New-OptimizedWindowsISO-v2.ps1`, `Get-WindowsUpdates.ps1`, `Get-EssentialRuntimes.ps1`)
 * [ ] **Lote 5: Modules 1** (`Win11-Debloat-v3-Adaptive.ps1`, `Audit-FreshInstallFootprint.ps1`, `Audit-SystemOptimization.ps1`)
 * [ ] **Lote 6: Modules 2** (`Win11-Network-Diagnostics-Optimizer.ps1`, `Optimize-GamingAndApps.ps1`, `Optimize-ProcessMemory.ps1`)
