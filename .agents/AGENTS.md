@@ -55,10 +55,15 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
   `✅ Prueba finalizada: [Nombre del test o script] — Resultado: [PASS / FAIL / Métricas].`
 - **Cero Tareas Fantasma:** Está prohibido dejar tareas en segundo plano corriendo sin supervisión o sin que el usuario esté informado de su ejecución y término.
 
-## 8. Prohibición Estricta de Auto-Run / Ejecución Prematura de Planes
-- **Consentimiento Explícito e Incondicional:** Está terminantemente prohibido ejecutar acciones modificatorias, ediciones de código o comandos destructivos tras la redacción o actualización de un plan de implementación (`PLAN-*.md` o `implementation_plan.md`), incluso si el sistema de la plataforma emite eventos de aprobación automática de artefactos (`always-proceed`).
-- **Parada Obligatoria y Espera de Confirmación:** Tras generar o actualizar un plan, el agente DEBE detenerse inmediatamente, presentar un resumen al usuario y esperar una orden expresa y afirmativa en el chat (ej. *"procede"*, *"adelante"*, *"aprobado"*) antes de ejecutar cualquier cambio en el código fuente.
-- **Configuración Preventiva de Metadatos:** Al generar artefactos de tipo plan (`implementation_plan.md`), el agente no debe asumir que el hook del sistema sustituye la decisión del usuario; la confirmación humana en el chat prevalece sobre cualquier política automática de la plataforma.
+## 8. Ejecución Autónoma y Continua de Planes (Modo Autorizado)
+- **Autorización de Avance Continuo:** Por instrucción expresa del usuario, el agente queda autorizado para avanzar de forma continua y autónoma en la ejecución completa de las fases de los planes de implementación aprobados (`PLAN-*.md`), sin detenerse a solicitar aprobaciones intermedias paso a paso, hasta completar el hito o hasta que el usuario emita una contraorden en el chat.
+- **Preservación Incondicional de Calidad:** La autonomía no exime el cumplimiento estricto de las demás reglas de ingeniería:
+  1. Verificación previa de Git y trazabilidad matemática (Regla 0).
+  2. Codificación estricta UTF-8 con BOM y pruebas en frío contra Windows PowerShell 5.1 (Regla 4).
+  3. Notificación visible y transparente del inicio y fin de cada prueba o tarea relevante (Regla 7).
+  4. Sincronización en cascada (SSOT), cero directivas huérfanas y documentación simultánea (Reglas 9 y 10).
+  5. Erradicación absoluta de fallos silenciosos y pruebas de pre-commit antes de cada commit atómico (Regla 13).
+- **Suspensión de Emergencia:** Ante cualquier fallo irrecuperable en una suite de pruebas o regresión crítica no resuelta, el agente debe detenerse inmediatamente, reportar la anomalía y consultar al usuario.
 
 ## 9. Arquitectura Unificada y Ecosistema Integral (SSOT)
 - **Fuente Única de Verdad (Single Source of Truth):** Toda directiva de optimización, clave de registro de GPO, bypass o política de sistema compartida entre la ISO, el Debloat, el Toolkit y los diagnósticos DEBE residir canónicamente en `scripts/Core/Policy-Engine.ps1`.
