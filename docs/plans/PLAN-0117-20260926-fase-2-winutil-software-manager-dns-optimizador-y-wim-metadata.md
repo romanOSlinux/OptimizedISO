@@ -70,10 +70,15 @@ El proyecto `romanOS / OptimizedISO` cuenta con un motor de creación y servicin
 * **`scripts/Testing/Test-WinUtilIntegration.ps1`:**
   * Suite ampliada con 28 aserciones (100% PASS en PS 5.1).
 
-### Fase 3: Micro-Mejoras de Servicing en ISO Builder (MicroWin Core Evaluado)
+### Fase 3: Micro-Mejoras de Servicing en ISO Builder (MicroWin Core Evaluado) [COMPLETADA]
 * **`scripts/Builder/New-OptimizedWindowsISO-v2.ps1`:**
-  * Implementar `Write-RomanOSEiCfg`: Generar `sources\ei.cfg` canónico en la raíz del medio de instalación para fijar el canal por defecto y evitar detenciones en el instalador.
-  * Implementar `Assert-RomanOSWimMetadata`: Función de salvaguarda que capture los metadatos WIM pre-servicing y compare tras la inyección de drivers y actualizaciones para asegurar cero corrupción.
+  * Implementado `Write-RomanOSEiCfg`: Genera `sources\ei.cfg` canónico en la raíz del medio de instalación para fijar el canal por defecto y evitar detenciones en el instalador.
+  * Implementado `Get-RomanOSWimMetadata` y `Assert-RomanOSWimMetadata`: Funciones de salvaguarda que capturan los metadatos WIM pre-servicing y comparan tras el desmontaje/commit para asegurar cero corrupción.
+  * Invocaciones integradas en línea 4239 (`Write-RomanOSEiCfg`) y líneas 6195/7780 (captura y aserción de integridad WIM).
+* **`scripts/Testing/Test-OptimizedISO-v2.ps1`:**
+  * Actualizado `$EXPECTED_FUNCS = 70` e incorporada FASE 2.19 (589/589 tests PASS).
+* **`scripts/Testing/Test-WinUtilIntegration.ps1`:**
+  * Incorporada Sección 5 con 10 nuevas aserciones para ei.cfg y metadatos WIM (38/38 tests PASS).
 
 ### Fase 4: Paridad e Integración Gráfica (romanOS Control Center)
 * **`scripts/GUI/romanOS-ControlCenter.ps1`:**

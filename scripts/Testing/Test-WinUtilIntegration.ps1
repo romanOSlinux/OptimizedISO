@@ -161,6 +161,52 @@ $listSuccess = ($LASTEXITCODE -eq 0 -and $listCatalogOutput -match "CATEGORIAS D
 Assert-Test -Description "Deploy-AppProfiles.ps1 -ListCatalog lista catálogo sin elevación" -Condition $listSuccess
 
 # ----------------------------------------------------------------------
+# 5. MICRO-MEJORAS DE SERVICING EN ISO BUILDER (FASE 3: EI.CFG Y WIM METADATA)
+# ----------------------------------------------------------------------
+Write-Host "`n>>> [5/5] Verificando Micro-Mejoras de Servicing en ISO Builder (Fase 3)..." -ForegroundColor Yellow
+
+$builderFile = "$PSScriptRoot\..\Builder\New-OptimizedWindowsISO-v2.ps1"
+Assert-Test -Description "Existencia de New-OptimizedWindowsISO-v2.ps1" -Condition (Test-Path $builderFile)
+
+$bBytes = [System.IO.File]::ReadAllBytes((Resolve-Path $builderFile).Path)
+$hasBBOM = ($bBytes.Count -ge 3 -and $bBytes[0] -eq 0xEF -and $bBytes[1] -eq 0xBB -and $bBytes[2] -eq 0xBF)
+Assert-Test -Description "New-OptimizedWindowsISO-v2.ps1 codificado en UTF-8 con BOM (Regla 4)" -Condition $hasBBOM
+
+$tokens = $null; $errors = $null
+$builderAst = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $builderFile).Path, [ref]$tokens, [ref]$errors)
+Assert-Test -Description "Parser AST de New-OptimizedWindowsISO-v2.ps1 sin errores sintácticos" -Condition ($errors.Count -eq 0) -Details "Errores: $($errors.Count)"
+
+# Carga de funciones del Builder mediante AST
+$builderFuncs = $builderAst.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -in @('Write-RomanOSEiCfg', 'Assert-RomanOSWimMetadata') }, $true)
+foreach ($f in $builderFuncs) {
+    . ([scriptblock]::Create($f.Extent.Text))
+}
+
+Assert-Test -Description "Función Write-RomanOSEiCfg cargada en scope" -Condition ($null -ne (Get-Command "Write-RomanOSEiCfg" -ErrorAction SilentlyContinue))
+Assert-Test -Description "Función Assert-RomanOSWimMetadata cargada en scope" -Condition ($null -ne (Get-Command "Assert-RomanOSWimMetadata" -ErrorAction SilentlyContinue))
+
+# Prueba de Write-RomanOSEiCfg
+$testTmp = Join-Path $env:TEMP "TestWinUtil_$(Get-Random)"
+New-Item -ItemType Directory -Path $testTmp -Force | Out-Null
+$eiRes = Write-RomanOSEiCfg -SourcesPath $testTmp -Channel "_Default" -VolumeLicense 0
+Assert-Test -Description "Write-RomanOSEiCfg escribe archivo sources\ei.cfg" -Condition $eiRes
+
+$eiTxt = Get-Content (Join-Path $testTmp "ei.cfg") -Raw
+Assert-Test -Description "sources\ei.cfg contiene sección [Channel] _Default" -Condition ($eiTxt -match '\[Channel\]\s+_Default')
+Assert-Test -Description "sources\ei.cfg contiene sección [VL] 0" -Condition ($eiTxt -match '\[VL\]\s+0')
+Remove-Item -Path $testTmp -Recurse -Force -ErrorAction SilentlyContinue
+
+# Prueba de Assert-RomanOSWimMetadata con Mocks
+$mPre = [PSCustomObject]@{ Edition = "Professional"; Architecture = "9"; Languages = @("es-ES"); Version = "10.0.26100.1" }
+$mPostOK = [PSCustomObject]@{ Edition = "Professional"; Architecture = "9"; Languages = @("es-ES"); Version = "10.0.26100.1742" }
+$assertOK = Assert-RomanOSWimMetadata -PreMetadata $mPre -PostMetadata $mPostOK
+Assert-Test -Description "Assert-RomanOSWimMetadata valida metadatos idénticos/actualizados" -Condition $assertOK.IsValid
+
+$mPostBad = [PSCustomObject]@{ Edition = "Core"; Architecture = "9"; Languages = @(); Version = "10.0.26100.1" }
+$assertBad = Assert-RomanOSWimMetadata -PreMetadata $mPre -PostMetadata $mPostBad
+Assert-Test -Description "Assert-RomanOSWimMetadata detecta corrupción de edición o idiomas" -Condition (-not $assertBad.IsValid -and $assertBad.Issues.Count -ge 2)
+
+# ----------------------------------------------------------------------
 # RESUMEN DE PRUEBAS
 # ----------------------------------------------------------------------
 Write-Host "`n==========================================================================" -ForegroundColor Magenta

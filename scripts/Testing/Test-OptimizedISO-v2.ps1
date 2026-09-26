@@ -48,7 +48,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 67
+$EXPECTED_FUNCS  = 70
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -329,7 +329,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "67 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "70 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -347,7 +347,8 @@ $expectedList = @(
     "Invoke-DeploymentChoices", "Invoke-MonitoredProcess", "Invoke-SafeWimDismount",
     "Test-MsuIsPsfFormat", "Get-WimPatchLevel", "Resolve-RuntimesDirectory",
     "Set-BuildDefenderExclusions", "Import-BuildPreset", "Export-BuildPreset",
-    "Test-IsRomanizedISO", "Invoke-WimAiHardening"
+    "Test-IsRomanizedISO", "Invoke-WimAiHardening",
+    "Write-RomanOSEiCfg", "Get-RomanOSWimMetadata", "Assert-RomanOSWimMetadata"
 )
 foreach ($fn in $expectedList) {
     Assert-True "Funcion '$fn' disponible" ($null -ne (Get-Command $fn -ErrorAction SilentlyContinue))
@@ -1748,6 +1749,26 @@ Assert-True "Integracion: Resumen incluye bloque de errores" ($mdInt -match "Err
 
 $resIntIso = Resolve-SourceISO -SourceISO $TEMP_ISO
 Assert-Equal "Integracion: Resolve-SourceISO resuelve correctamente la ISO temporal" $resIntIso (Resolve-Path $TEMP_ISO).Path
+
+# --- FASE 2.19: Micro-Mejoras de Servicing WIM y ei.cfg (PLAN-0117) ---
+Write-HarnessHeader2 "FASE 2.19: Micro-Mejoras de Servicing WIM y ei.cfg (PLAN-0117)"
+$testSourcesDir = Join-Path $TEMP_ROOT "sources"
+New-Item -ItemType Directory -Path $testSourcesDir -Force | Out-Null
+$eiResult = Write-RomanOSEiCfg -SourcesPath $testSourcesDir -Channel "_Default" -VolumeLicense 0
+Assert-True "PLAN-0117: Write-RomanOSEiCfg escribe ei.cfg exitosamente" $eiResult
+$eiText = Get-Content (Join-Path $testSourcesDir "ei.cfg") -Raw
+Assert-True "PLAN-0117: ei.cfg contiene [Channel] _Default" ($eiText -match '\[Channel\]\s+_Default')
+Assert-True "PLAN-0117: ei.cfg contiene [VL] 0" ($eiText -match '\[VL\]\s+0')
+
+# Validación de Assert-RomanOSWimMetadata con Mocks
+$mockPre = [PSCustomObject]@{ Edition = "Professional"; Architecture = "9"; Languages = @("es-ES"); Version = "10.0.26100.1" }
+$mockPost = [PSCustomObject]@{ Edition = "Professional"; Architecture = "9"; Languages = @("es-ES"); Version = "10.0.26100.1742" }
+$mockAssertOK = Assert-RomanOSWimMetadata -PreMetadata $mockPre -PostMetadata $mockPost
+Assert-True "PLAN-0117: Assert-RomanOSWimMetadata valida metadatos íntegros" $mockAssertOK.IsValid
+
+$mockPostCorrupt = [PSCustomObject]@{ Edition = "Core"; Architecture = "9"; Languages = @(); Version = "10.0.26100.1" }
+$mockAssertBad = Assert-RomanOSWimMetadata -PreMetadata $mockPre -PostMetadata $mockPostCorrupt
+Assert-True "PLAN-0117: Assert-RomanOSWimMetadata detecta desvío de edición y pérdida de idiomas" (-not $mockAssertBad.IsValid -and $mockAssertBad.Issues.Count -ge 2)
 
 # --- LIMPIEZA TEMPORAL ---
 try {

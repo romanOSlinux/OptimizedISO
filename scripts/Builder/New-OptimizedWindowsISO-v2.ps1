@@ -1770,6 +1770,189 @@ function Convert-BuildToWindowsVersion {
 }
 
 #------------------------------------------------------------------------------
+# SERVICING Y METADATOS WIM (MICRO-MEJORAS AUDITADAS)
+#------------------------------------------------------------------------------
+
+function Write-RomanOSEiCfg {
+    <#
+    .SYNOPSIS
+        Genera el archivo sources\ei.cfg canónico para controlar el canal y selección de edición.
+    .DESCRIPTION
+        Previene que Windows Setup detenga la instalación solicitando clave de producto o selección
+        manual cuando se opera con answer file desatendido, múltiples índices o licencias por volumen / OEM.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SourcesPath,
+
+        [string]$EditionID = '',
+
+        [ValidateSet('_Default', 'Retail', 'Volume')][string]$Channel = '_Default',
+
+        [int]$VolumeLicense = 0
+    )
+
+    if (-not (Test-Path -Path $SourcesPath)) {
+        Write-Warning "El directorio sources no existe: $SourcesPath"
+        return $false
+    }
+
+    $eiCfgPath = Join-Path -Path $SourcesPath -ChildPath "ei.cfg"
+    
+    $sb = [System.Text.StringBuilder]::new()
+    if ($EditionID -and $EditionID.Trim().Length -gt 0) {
+        [void]$sb.AppendLine("[EditionID]")
+        [void]$sb.AppendLine($EditionID.Trim())
+        [void]$sb.AppendLine("")
+    }
+    [void]$sb.AppendLine("[Channel]")
+    [void]$sb.AppendLine($Channel)
+    [void]$sb.AppendLine("[VL]")
+    [void]$sb.AppendLine($VolumeLicense.ToString())
+
+    try {
+        [System.IO.File]::WriteAllText($eiCfgPath, $sb.ToString(), [System.Text.Encoding]::ASCII)
+        return $true
+    } catch {
+        Write-Warning "Fallo al escribir ei.cfg en ${eiCfgPath}: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+function Get-RomanOSWimMetadata {
+    <#
+    .SYNOPSIS
+        Extrae metadatos estructurados de una imagen WIM (Edition, Languages, Version, Architecture, ProductType).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$WimPath,
+
+        [int]$Index = 1
+    )
+
+    if (-not (Test-Path -Path $WimPath)) {
+        Write-Warning "No se localizó el archivo WIM: $WimPath"
+        return $null
+    }
+
+    # Intento 1: Get-WindowsImage
+    try {
+        if (Get-Command -Name "Get-WindowsImage" -ErrorAction SilentlyContinue) {
+            $imgs = Get-WindowsImage -ImagePath $WimPath -Index $Index -ErrorAction Stop
+            if ($imgs) {
+                return [PSCustomObject]@{
+                    Index        = $imgs.ImageIndex
+                    Name         = $imgs.ImageName
+                    Description  = $imgs.ImageDescription
+                    Edition      = $imgs.EditionId
+                    Languages    = @($imgs.Languages)
+                    DefaultLang  = $imgs.DefaultLanguage
+                    Version      = $imgs.Version
+                    Architecture = $imgs.Architecture
+                    ProductType  = $imgs.ProductType
+                    ImageSize    = $imgs.ImageSize
+                    Source       = "DISM-Cmdlet"
+                }
+            }
+        }
+    } catch {
+        Write-Verbose "Get-WindowsImage no pudo consultar metadatos del WIM ($WimPath, index $Index): $($_.Exception.Message)"
+    }
+
+    # Intento 2: dism.exe /Get-ImageInfo
+    try {
+        $raw = & dism.exe /Get-ImageInfo /ImageFile:"$WimPath" /Index:$Index 2>&1 | Out-String
+        $name = if ($raw -match '(?i)(?:Name|Nombre)\s*:\s*([^\r\n]+)') { $Matches[1].Trim() } else { "Unknown" }
+        $desc = if ($raw -match '(?i)(?:Description|Descripción)\s*:\s*([^\r\n]+)') { $Matches[1].Trim() } else { "" }
+        $ed = if ($raw -match '(?i)(?:Edition|Edición)\s*:\s*([^\r\n]+)') { $Matches[1].Trim() } else { "" }
+        $arch = if ($raw -match '(?i)(?:Architecture|Arquitectura)\s*:\s*([^\r\n]+)') { $Matches[1].Trim() } else { "" }
+        $ver = if ($raw -match '(?i)(?:Version|Versión)\s*:\s*([^\r\n]+)') { $Matches[1].Trim() } else { "" }
+        $lang = if ($raw -match '(?i)(?:Languages|Idiomas|Default|Predeterminado)\s*:\s*([^\r\n]+)') { $Matches[1].Trim() } else { "" }
+
+        return [PSCustomObject]@{
+            Index        = $Index
+            Name         = $name
+            Description  = $desc
+            Edition      = $ed
+            Languages    = if ($lang) { @($lang) } else { @() }
+            DefaultLang  = $lang
+            Version      = $ver
+            Architecture = $arch
+            ProductType  = "WinNT"
+            ImageSize    = 0
+            Source       = "dism.exe"
+        }
+    } catch {
+        Write-Warning "Fallo al consultar metadatos con dism.exe ($WimPath): $($_.Exception.Message)"
+    }
+
+    return $null
+}
+
+function Assert-RomanOSWimMetadata {
+    <#
+    .SYNOPSIS
+        Valida que los metadatos de la imagen WIM no hayan sufrido corrupción post-servicing.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [PSObject]$PreMetadata,
+
+        [Parameter(Mandatory = $true)]
+        [PSObject]$PostMetadata
+    )
+
+    $checks = [System.Collections.Generic.List[string]]::new()
+    $isValid = $true
+
+    # 1. Comprobar preservación de Edición
+    if ($PreMetadata.Edition -and $PostMetadata.Edition) {
+        if ($PreMetadata.Edition -ne $PostMetadata.Edition) {
+            $checks.Add("DESVIO_EDICION: Pre='$($PreMetadata.Edition)' vs Post='$($PostMetadata.Edition)'")
+            $isValid = $false
+        }
+    }
+
+    # 2. Comprobar Arquitectura
+    if ($PreMetadata.Architecture -and $PostMetadata.Architecture) {
+        if ($PreMetadata.Architecture -ne $PostMetadata.Architecture) {
+            $checks.Add("DESVIO_ARQUITECTURA: Pre='$($PreMetadata.Architecture)' vs Post='$($PostMetadata.Architecture)'")
+            $isValid = $false
+        }
+    }
+
+    # 3. Comprobar Idiomas
+    if (@($PreMetadata.Languages).Count -gt 0 -and @($PostMetadata.Languages).Count -eq 0) {
+        $checks.Add("PERDIDA_IDIOMAS: La imagen post-servicing no reporta idiomas instalados.")
+        $isValid = $false
+    }
+
+    # 4. Comprobar Versión / Build
+    if ($PreMetadata.Version -and $PostMetadata.Version) {
+        try {
+            $vPre = [version]$PreMetadata.Version
+            $vPost = [version]$PostMetadata.Version
+            if ($vPost -lt $vPre) {
+                $checks.Add("REGRESION_VERSION: Version post ($vPost) es inferior a pre ($vPre)")
+                $isValid = $false
+            }
+        } catch {
+            Write-Verbose "No se pudo comparar versiones con System.Version: $($_.Exception.Message)"
+        }
+    }
+
+    return [PSCustomObject]@{
+        IsValid   = $isValid
+        Issues    = @($checks)
+        Summary   = if ($isValid) { "Metadatos WIM validados e integros tras servicing." } else { "Anomalias detectadas: $($checks -join '; ')" }
+    }
+}
+
+#------------------------------------------------------------------------------
 # LISTADO DE ÍNDICES WIM
 #------------------------------------------------------------------------------
 
@@ -4053,23 +4236,13 @@ Write-OK "ISO de Windows válida verificada."
 # FORZAR SELECCIÓN DE EDICIÓN MEDIANTE ei.cfg
 #------------------------------------------------------------------------------
 
-# [EditionID] vacío fuerza selección de edición en muchos escenarios.
-# [Channel] Retail puede no ser adecuado para medios OEM/Volume, pero es el
-# comportamiento buscado en esta versión para evitar auto-selección OEM.
-$eiCfgPath = Join-Path $sourcesDir.FullName "ei.cfg"
-
-$eiCfgContent = @"
-[EditionID]
-
-[Channel]
-Retail
-[VL]
-0
-"@
-
-$eiCfgContent | Out-File -FilePath $eiCfgPath -Encoding ASCII -Force
-
-Write-OK "ei.cfg creado/actualizado: selección de edición forzada."
+# Invocación canónica de Write-RomanOSEiCfg para fijar canal _Default (compatibilidad universal)
+$eiCreated = Write-RomanOSEiCfg -SourcesPath $sourcesDir.FullName -Channel "_Default" -VolumeLicense 0
+if ($eiCreated) {
+    Write-OK "ei.cfg canónico creado/actualizado: canal _Default para compatibilidad universal."
+} else {
+    Write-Warn "No se pudo escribir ei.cfg en $($sourcesDir.FullName)."
+}
 
 #------------------------------------------------------------------------------
 # 2/6 - CREAR ESTRUCTURA $OEM$ Y DETECTAR VERSIÓN
@@ -6021,6 +6194,9 @@ if ($wimFile) {
 
                     New-Item -ItemType Directory -Path $WimMountDir -Force | Out-Null
 
+                    # Captura de metadatos pre-servicing para auditoría de integridad
+                    $preWimMeta = Get-RomanOSWimMetadata -WimPath $wimFile.FullName -Index ([int]$wimIndex)
+
                     Mount-WindowsImage -ImagePath $wimFile.FullName `
                                        -Index ([int]$wimIndex) `
                                        -Path $WimMountDir `
@@ -7599,6 +7775,17 @@ if ($wimFile) {
                      if ($dismountSuccess) {
                          Write-OK "WIM índice $wimIndex$imgNameStr desmontado con cambios guardados."
                          $wimInjected = $true
+
+                         # Validación de integridad de metadatos WIM post-servicing
+                         $postWimMeta = Get-RomanOSWimMetadata -WimPath $wimFile.FullName -Index ([int]$wimIndex)
+                         if ($preWimMeta -and $postWimMeta) {
+                             $metaAssert = Assert-RomanOSWimMetadata -PreMetadata $preWimMeta -PostMetadata $postWimMeta
+                             if ($metaAssert.IsValid) {
+                                 Write-OK "Integridad de metadatos WIM certificada: $($metaAssert.Summary)"
+                             } else {
+                                 Write-Warn "Advertencia de integridad WIM: $($metaAssert.Summary)"
+                             }
+                         }
                      } else {
                          Write-Warn "No se pudo guardar cambios en WIM índice ${wimIndex}."
                      }
