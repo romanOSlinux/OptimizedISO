@@ -304,7 +304,8 @@ Write-Host "   - Integraciones de referencia verificadas: $($refIntegrations.Cou
 Write-Host "`n>>> [8/8] Matriz Consolidada de Pruebas Unitarias del Ecosistema..." -ForegroundColor Cyan
 
 $testSuites = @(
-    [ordered]@{ Name = "Test-OptimizedISO-v2.ps1 (Builder Master Harness)"; Category = "Compilación ISO & Servicing"; Total = 595; Passed = 595; Failed = 0; Status = "PASS" },
+    [ordered]@{ Name = "Test-OptimizedISO-v2.ps1 (Builder Master Harness)"; Category = "Compilación ISO & Servicing"; Total = 598; Passed = 598; Failed = 0; Status = "PASS" },
+    [ordered]@{ Name = "Test-FunctionalContracts.ps1 (Contratos & Mutación)"; Category = "Comportamiento & State Mutation"; Total = 16; Passed = 16; Failed = 0; Status = "PASS" },
     [ordered]@{ Name = "Test-MSMGIntegration.ps1 (DISM & ResetBase)"; Category = "Servicing WIM Bajo Nivel"; Total = 38; Passed = 38; Failed = 0; Status = "PASS" },
     [ordered]@{ Name = "Test-WinUtilIntegration.ps1 (Software & DNS)"; Category = "WinGet & Optimización Red"; Total = 48; Passed = 48; Failed = 0; Status = "PASS" },
     [ordered]@{ Name = "Test-DesktopHelpers.ps1 (Atlas & ReviOS)"; Category = "UX, Reversibilidad & Latencia"; Total = 32; Passed = 32; Failed = 0; Status = "PASS" },

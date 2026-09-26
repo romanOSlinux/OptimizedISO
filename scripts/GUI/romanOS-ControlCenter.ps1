@@ -1444,7 +1444,7 @@ $window.FindName('btnRunDebloatInteractive').Add_Click({
 
 $window.FindName('btnRunGamingApps').Add_Click({
     $tool = Resolve-ToolScript "Optimize-GamingAndApps.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Optimizacion de Juegos, Apps Electron y VRAM" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended -SkipElevation" -TaskTitle "Optimizacion de Juegos, Apps Electron y VRAM" }
 })
 
 $window.FindName('btnRunLatencyProfiler').Add_Click({

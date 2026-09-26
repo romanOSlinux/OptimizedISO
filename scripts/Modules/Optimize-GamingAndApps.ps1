@@ -24,28 +24,29 @@
 param(
     [switch]$Unattended,
     [switch]$PurgeShadersOnly,
-    [switch]$SteamOnly
+    [switch]$SteamOnly,
+    [switch]$SkipElevation
 )
 
 # ============================================================
-# Auto-elevacion UAC
+# Auto-elevacion UAC con Fallback Seguro (Resiliente)
 # ============================================================
 $isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
-if (-not $isAdmin) {
-    if ($isSimulated) {
-        Write-Warning "Ejecutando en modo simulado (-WhatIf) sin elevacion UAC."
-    } else {
-        Write-Warning "Se requieren privilegios de Administrador para aplicar directivas del sistema. Elevando..."
+if (-not $isAdmin -and -not $SkipElevation -and -not $isSimulated) {
+    try {
+        Write-Warning "Se requieren privilegios de Administrador para aplicar directivas del sistema (HKLM). Elevando..."
         $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
         $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
         $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
         if ($Unattended) { $argList += '-Unattended' }
         if ($PurgeShadersOnly) { $argList += '-PurgeShadersOnly' }
         if ($SteamOnly) { $argList += '-SteamOnly' }
-        Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
+        Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs -ErrorAction Stop
         Exit
+    } catch {
+        Write-Warning "No se pudo realizar la auto-elevacion UAC ($($_.Exception.Message)). Continuando con optimizaciones de ámbito de usuario (HKCU/AppData)..."
     }
 }
 
