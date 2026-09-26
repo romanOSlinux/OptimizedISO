@@ -65,3 +65,69 @@ Toda intervención bajo esta metodología debe culminar con una tabla métrica v
 - Scripts totales escaneados.
 - Ocurrencias del defecto iniciales vs. finales (debe ser 0).
 - Estado de verificación en frío con Windows PowerShell 5.1 AST.
+
+---
+
+## 5. Matriz de Mocks de Topología de Hardware para Pruebas Agnósticas
+
+Para certificar que un script o módulo de optimización funcione en **cualquier hardware** sin depender de una máquina virtual pesada ni requerir permisos elevados de Hyper-V, se debe inyectar la siguiente matriz de objetos simulados (Mocks en memoria) en las pruebas unitarias:
+
+### A. Mock: Topología Híbrida Intel (P-Cores + E-Cores / big.LITTLE)
+```powershell
+$mockIntelHybrid = [PSCustomObject]@{
+    Manufacturer               = "GenuineIntel"
+    Name                       = "13th Gen Intel(R) Core(TM) i7-13700K"
+    NumberOfCores              = 16
+    NumberOfLogicalProcessors  = 24
+    ArchitectureType           = "Hybrid_BigLittle"
+    HasHeterogeneousCores      = $true
+    Has3DVCache                = $false
+}
+# Aseveración: El script DEBE abstenerse de modificar Win32PrioritySeparation
+# para no interferir con Intel Thread Director.
+```
+
+### B. Mock: Topología AMD con 3D V-Cache (Dual-CCD Asimétrico)
+```powershell
+$mockAmdX3D = [PSCustomObject]@{
+    Manufacturer               = "AuthenticAMD"
+    Name                       = "AMD Ryzen 9 7900X3D 12-Core Processor"
+    NumberOfCores              = 12
+    NumberOfLogicalProcessors  = 24
+    ArchitectureType           = "AMD_DualCCD_3DVCache"
+    HasHeterogeneousCores      = $false
+    Has3DVCache                = $true
+}
+# Aseveración: El script DEBE delegar el balanceo de hilos al driver oficial
+# de AMD (CPPC / 3D V-Cache Performance Optimizer) sin forzar afinidades estáticas.
+```
+
+### C. Mock: Topología Gráfica Discreta (dGPU con VRAM Propia) vs APU/UMA
+```powershell
+$mockDedicatedGPU = [PSCustomObject]@{
+    Name                  = "NVIDIA GeForce RTX 4080"
+    DedicatedVRAM_GB      = 16
+    IsIntegratedAPU       = $false
+    SharedMemoryArchitecture = $false
+}
+
+$mockIntegratedAPU = [PSCustomObject]@{
+    Name                  = "AMD Radeon 760M Graphics"
+    DedicatedVRAM_GB      = 0.5
+    IsIntegratedAPU       = $true
+    SharedMemoryArchitecture = $true
+}
+# Aseveración: En APU/UMA, LargeSystemCache DEBE ser forzosamente 0 para no
+# estrangular la memoria de vídeo compartida. En dGPU se admiten buffers ampliados.
+```
+
+### D. Mock: Topología de Almacenamiento Mixto (NVMe + HDD Mecánico)
+```powershell
+$mockDrives = @(
+    [PSCustomObject]@{ DeviceID = "\\.\PHYSICALDRIVE0"; MediaType = "SSD"; BusType = "NVMe"; Model = "Kingston SNV3S1000G" },
+    [PSCustomObject]@{ DeviceID = "\\.\PHYSICALDRIVE1"; MediaType = "HDD"; BusType = "SATA"; Model = "WDC WD10EZEX-08WN4A0" }
+)
+# Aseveración: Las directivas de I/O se aplican POR VOLUMEN. Prohibido deshabilitar
+# la indexación o búferes de lectura de forma global sobre el HDD mecánico.
+```
+

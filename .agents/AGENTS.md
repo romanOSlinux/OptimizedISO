@@ -109,3 +109,27 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
   1. Para dar por cerrada cualquier auditoría o corrección sistémica, el agente DEBE presentar al usuario una matriz métrica cuantificada con el 100% de los scripts del proyecto demostrando cero ocurrencias residuales del defecto.
   2. Se debe activar y seguir la skill `holistic-audit` para la ejecución estandarizada de esta metodología.
 
+## 14. Salvaguarda de Almacenamiento Físico, Arquitectura Multi-Hardware y Validación por Mocks Sintéticos
+- **Inviolabilidad Absoluta de Medios de Almacenamiento (Cero Destrucción de Datos):**
+  1. Queda estrictamente prohibido ejecutar comandos destructivos de disco (`Format-Volume`, `Clear-Disk`, `Remove-Partition`, `diskpart clean` o borrado de carpetas de usuario) en cualquiera de las unidades físicas o lógicas del host (`C:`, `D:`, `E:`, SSDs NVMe, HDDs mecánicos o dispositivos USB).
+  2. Toda comprobación del sistema en el host físico debe ser de **Solo Lectura** (`Get-*`, `Test-*`) o ejecutarse con el switch `-WhatIf` / `-Simulate`.
+  3. Las pruebas que involucren archivos efímeros deben confinarse estrictamente a la carpeta designada del proyecto (`C:\OptimizedISO\scratch\`), sin tocar jamás directorios raíz ni carpetas personales.
+- **Principio de Diseño Agnóstico y Adaptativo (Multi-Hardware Obligatorio):**
+  1. Está terminantemente prohibido asumir que la máquina de desarrollo o de prueba representa la configuración universal del usuario final.
+  2. Todo módulo de optimización, afinamiento de memoria, red, disco, gráficos o CPU DEBE estructurarse en **3 Capas Arquitectónicas**:
+     - **Capa 1: Invariantes Universales del SO:** Ajustes que aplican al 100% de los entornos Windows 11 sin importar el hardware (Seguridad Anti-Cheat con `VulnerableDriverBlocklistEnable = 1` y servicio `bam`, blindaje contra reinicios forzados de Windows Update, bypasses OOBE como `BypassNRO` y debloat universal).
+     - **Capa 2: Motor de Topología Dinámica (Hardware-Aware):** Detección en tiempo de ejecución de la topología real antes de aplicar cualquier directiva:
+       - *CPU:* Heterogénea / Híbrida (Intel 12th-14th Gen P/E Cores) vs Simétrica vs AMD 3D V-Cache (Dual-CCD). Prohibido forzar `Win32PrioritySeparation` estático si se detecta arquitectura híbrida o X3D para no romper Intel Thread Director ni AMD CPPC.
+       - *GPU / Memoria:* APU / iGPU con memoria compartida UMA vs GPU Discreta (dGPU con VRAM propia). En APU/UMA, `LargeSystemCache` DEBE ser 0 estricto para no asfixiar el pool de texturas del juego.
+       - *Almacenamiento:* Detección **volumen por volumen** (`NVMe` vs `SATA SSD` vs `HDD Mecánico`). Prohibido deshabilitar indexación o búferes de lectura de forma global si conviven discos mecánicos con SSDs.
+       - *Red:* Detección dinámica de capacidades de la NIC (RSS, Offloads, ECN). Prohibido forzar `TcpAckFrequency = 1` o tweaks legacy de 2005 que colapsan conexiones de fibra óptica.
+     - **Capa 3: Fallback Seguro (Zero-Damage Principle):** Ante cualquier fallo de detección o hardware desconocido/exótico, el script DEBE replegarse automáticamente al estándar seguro y oficial de Microsoft sin aplicar modificaciones agresivas.
+- **Validación Multi-Hardware por Mocks Sintéticos en Memoria (Independencia de Hyper-V):**
+  1. Dado que el entorno de desarrollo opera sin privilegios de administrador elevado para Hyper-V (`IsAdmin: False`), la certificación de compatibilidad multi-hardware se realizará **obligatoriamente mediante inyección de Mocks de CIM/WMI en memoria**, simulando en pruebas unitarias:
+     - Topología Intel Híbrida (P-Cores + E-Cores).
+     - Topología AMD con 3D V-Cache (Dual-CCD).
+     - Topología con GPU Discreta dedicada (dGPU con VRAM dedicada de alta capacidad).
+     - Topología de Almacenamiento Mixta o Mecánica Pura (HDD SATA).
+  2. Ningún script con impacto en hardware se dará por validado sin superar la matriz de mocks en `scripts/Testing/`.
+
+
