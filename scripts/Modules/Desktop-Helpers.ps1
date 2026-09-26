@@ -162,6 +162,6 @@ function Show-RomanOSHelpersMenu {
 # -----------------------------------------------------------------------------
 if (-not [string]::IsNullOrWhiteSpace($HelperName)) {
     Invoke-DesktopHelperToggle -Name $HelperName -HelperAction $Action -QuietOutput:$Quiet
-} elseif (-not $Quiet -and $Host.Name -notmatch "ServerRemoteHost") {
+} elseif (-not $Quiet -and $Host.Name -notmatch "ServerRemoteHost" -and -not [Console]::IsInputRedirected -and $MyInvocation.InvocationName -ne '.') {
     Show-RomanOSHelpersMenu
 }

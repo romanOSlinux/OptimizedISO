@@ -184,7 +184,7 @@ if (-not $desktopHelpersModule -and $repoScriptsRoot) {
 }
 if ($desktopHelpersModule -and (Test-Path $desktopHelpersModule)) {
     try {
-        . $desktopHelpersModule
+        . $desktopHelpersModule -Quiet
         Write-CCLog "Cargado modulo Desktop-Helpers: $desktopHelpersModule"
     } catch {
         Write-CCLog "Error al cargar Desktop-Helpers: $($_.Exception.Message)" -Level "WARN"
