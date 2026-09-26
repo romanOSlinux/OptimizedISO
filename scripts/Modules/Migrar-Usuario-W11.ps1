@@ -9,25 +9,44 @@
 
 #Requires -Version 5.1
 
+[CmdletBinding(SupportsShouldProcess = $true)]
+param(
+    [switch]$ListOnly,
+    [switch]$SkipElevation
+)
+
 # ============================================================
 #  Migrar-Usuario-W11.ps1
 #  Migracion segura de cuenta de usuario local en Windows 11
 # ============================================================
 
-# --- Auto-elevacion ---
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+$isSimulated = ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+# --- Auto-elevacion (solo requerida para mutaciones del sistema) ---
+if (-not $isAdmin -and -not $SkipElevation -and -not $isSimulated -and -not $ListOnly) {
     Write-Host "Se requieren permisos de administrador. Reiniciando con elevacion..." -ForegroundColor Yellow
-    Start-Process powershell.exe -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    exit
+    try {
+        Start-Process powershell.exe -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+        exit
+    } catch {
+        Write-Warning "No se pudo iniciar proceso elevado automáticamente: $($_.Exception.Message)"
+    }
 }
 
-$Host.UI.RawUI.WindowTitle = "Migrar-Usuario-W11"
+try {
+    $Host.UI.RawUI.WindowTitle = "Migrar-Usuario-W11"
+} catch {
+    Write-Verbose "No se pudo ajustar WindowTitle en consola no interactiva: $($_.Exception.Message)"
+}
 $script:OldUserName = $null
 $script:NewUserName = $null
 
 function Write-Titulo {
     param([string]$Texto)
-    Clear-Host
+    if (-not [Console]::IsInputRedirected -and -not $isSimulated) {
+        Clear-Host
+    }
     Write-Host "============================================================" -ForegroundColor Cyan
     Write-Host "  $Texto" -ForegroundColor Cyan
     Write-Host "============================================================" -ForegroundColor Cyan
@@ -35,8 +54,10 @@ function Write-Titulo {
 }
 
 function Pausar {
-    Write-Host ""
-    Read-Host "Presione Enter para volver al menu"
+    if (-not [Console]::IsInputRedirected -and -not $isSimulated) {
+        Write-Host ""
+        Read-Host "Presione Enter para volver al menu"
+    }
 }
 
 function Confirmar-NombresUsuario {
@@ -246,9 +267,15 @@ function Mostrar-Menu {
     Write-Host ""
 }
 
+if ($ListOnly -or [Console]::IsInputRedirected -or $isSimulated) {
+    Mostrar-EstadoCuentas
+    exit 0
+}
+
 do {
     Mostrar-Menu
     $Opcion = Read-Host "Seleccione una opcion"
+    if ($null -eq $Opcion -or [string]::IsNullOrWhiteSpace($Opcion)) { break }
     switch ($Opcion) {
         "1" { Mostrar-EstadoCuentas }
         "2" { Crear-CuentaNueva }

@@ -115,7 +115,7 @@ function Write-ThermalLog {
     try {
         [System.IO.File]::AppendAllText($LogPath, "$line`r`n", [System.Text.Encoding]::UTF8)
     } catch {
-        # Fallback sin interrumpir flujo
+        Write-Verbose "[ThermalLog] Fallo al escribir en log físico ($LogPath): $($_.Exception.Message)"
     }
 }
 
@@ -160,7 +160,7 @@ function Get-ThermalSensorsData {
             }
         }
     } catch {
-        # Fallback visible si ACPI WMI no está disponible
+        Write-Verbose "[ThermalSensors] MSAcpi_ThermalZoneTemperature no disponible: $($_.Exception.Message)"
     }
 
     # 2. Intentar PerfOS ThermalZone Information
@@ -186,7 +186,7 @@ function Get-ThermalSensorsData {
             }
         }
     } catch {
-        # Fallback visible
+        Write-Verbose "[ThermalSensors] Counters_ThermalZoneInformation no disponible: $($_.Exception.Message)"
     }
 
     # 3. Telemetría informativa cuando los sensores directos de placa base están aislados por firmware OEM
@@ -276,7 +276,7 @@ function Get-EnergyProfileState {
             $state.PowerThrottlingOff = $true
         }
     } catch {
-        # Clave no presente
+        Write-Verbose "[EnergyProfile] Clave PowerThrottling no presente en registro: $($_.Exception.Message)"
     }
 
     # 3. Estado de batería
@@ -287,7 +287,7 @@ function Get-EnergyProfileState {
             $state.BatteryHealth = "$($battery.EstimatedChargeRemaining)% (Estado: $($battery.BatteryStatus))"
         }
     } catch {
-        # Desktop
+        Write-Verbose "[EnergyProfile] Win32_Battery no disponible (sistema de escritorio o AC puro): $($_.Exception.Message)"
     }
 
     return $state
