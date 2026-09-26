@@ -1234,7 +1234,7 @@ function Get-RomanOSMemoryTier {
         Tier                   = $tier
         TotalGiB               = $RamGiB
         DisablePagingExecutive = if ($tier -eq "Low") { 0 } else { 1 }
-        LargeSystemCache       = if ($tier -eq "Enthusiast") { 1 } else { 0 }
+        LargeSystemCache       = 0
         MemoryCompression      = if ($tier -eq "Enthusiast") { $false } else { $true }
         PageCombining          = if ($tier -eq "Low") { $true } else { $false }
         Rationale              = if ($tier -eq "Low") {
@@ -1242,11 +1242,56 @@ function Get-RomanOSMemoryTier {
         } elseif ($tier -eq "Balanced") {
             "RAM equilibrada (8-16GB): kernel bloqueado en RAM fisica sin paginado para eliminar micro-stutters"
         } else {
-            "RAM abundante (>16GB): compresion de memoria desactivada para reducir latencia DPC y consumo de ciclos de CPU"
+            "RAM abundante (>16GB): compresion desactivada para reducir DPC jitter; LargeSystemCache=0 para proteger memoria de trabajo y VRAM en APU/UMA"
         }
     }
 
     return $recommended
+}
+
+function Get-RomanOSSchedulerRecommendation {
+    <#
+    .SYNOPSIS
+        Evalua la topologia de la CPU para prescribir la directiva adecuada de Win32PrioritySeparation.
+    .DESCRIPTION
+        En arquitecturas heterogeneas (Intel Hybrid P/E Cores) y AMD con 3D V-Cache Asimetrico (Dual-CCD),
+        alterar Win32PrioritySeparation perturba el balance de Intel Thread Director y AMD PPM Provisioning.
+        En CPUs simetricas tradicionales, un valor de 38 (0x26: quantum corto, variable, 3:1 boost)
+        mejora la respuesta de la aplicacion en primer plano.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [PSCustomObject]$HardwareInfo = $null
+    )
+
+    if ($null -eq $HardwareInfo) {
+        $HardwareInfo = Get-RomanOSHardwareInfo
+    }
+
+    $isHybrid = $false
+    $isDualCcdX3D = $false
+
+    if ($HardwareInfo.CPU) {
+        $isHybrid = [bool]$HardwareInfo.CPU.IsHybrid
+        $isDualCcdX3D = [bool]$HardwareInfo.CPU.IsDualCcdX3D
+    }
+
+    if ($isHybrid -or $isDualCcdX3D) {
+        return [PSCustomObject]@{
+            ShouldModifyPrioritySeparation = $false
+            RecommendedValue              = 2
+            TopologyType                  = if ($isHybrid) { "Intel_Hybrid_PE" } else { "AMD_DualCCD_X3D" }
+            Rationale                     = "Arquitectura asimetrica detectada. Mantener Win32PrioritySeparation por defecto de Windows para no interferir con Thread Director / AMD CPPC."
+        }
+    } else {
+        return [PSCustomObject]@{
+            ShouldModifyPrioritySeparation = $true
+            RecommendedValue              = 38
+            TopologyType                  = "Symmetric_CPU"
+            Rationale                     = "CPU simetrica detectada. Aplicar Win32PrioritySeparation=38 para maximizar respuesta del proceso en primer plano."
+        }
+    }
 }
 
 

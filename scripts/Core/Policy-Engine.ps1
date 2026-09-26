@@ -50,10 +50,11 @@ $global:RomanOS_Policies = @(
         ValueName     = "AllowNewsAndInterests"
         Type          = "REG_DWORD"
         ExpectedValue = 0
-        Profiles      = @(1, 2, 3)
-        Description   = "Desactivar Noticias e Intereses en barra de tareas (Win10/11)"
+        Profiles      = @()
+        IsDeprecated  = $true
+        Description   = "[OBSOLETA - Win11] Desactivar Noticias e Intereses en barra de tareas (Sustituido en Windows 11 por POL_WIDGETS_ALLOW)"
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-widgets"
-        UnattendDesc  = "Disable News and Interests on Taskbar (Win10/11)"
+        UnattendDesc  = "Disable News and Interests on Taskbar (Deprecated in Win11 - Use AllowWidgets)"
     },
     @{
         Id            = "POL_CHAT_ICON"
@@ -134,10 +135,11 @@ $global:RomanOS_Policies = @(
         ValueName     = "AllowCortana"
         Type          = "REG_DWORD"
         ExpectedValue = 0
-        Profiles      = @(1, 2, 3)
-        Description   = "Desactivar asistente Cortana a nivel de sistema"
+        Profiles      = @()
+        IsDeprecated  = $true
+        Description   = "[OBSOLETA - Win11] Desactivar asistente Cortana (Descontinuado y eliminado en Windows 11 por Microsoft)"
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
-        UnattendDesc  = "Disable Cortana Assistant System-Wide"
+        UnattendDesc  = "Disable Cortana Assistant (Deprecated in Win11 - Discontinued by Microsoft)"
     },
     @{
         Id            = "POL_SEARCH_ALLOW_CLOUD"
@@ -616,6 +618,76 @@ $global:RomanOS_Policies = @(
         UnattendDesc  = "Prevent Automatic Reboots While Users Are Logged On"
     },
     @{
+        Id            = "POL_WU_ALWAYS_AUTO_REBOOT"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        ValueName     = "AlwaysAutoRebootAtScheduledTime"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Deshabilitar reinicios automaticos forzados en horario programado (PLAN-0115)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/deployment/update/waas-wu-policies"
+        UnattendDesc  = "Disable Always Auto Reboot At Scheduled Time (AlwaysAutoRebootAtScheduledTime=0)"
+    },
+    @{
+        Id            = "POL_WU_POWER_MANAGEMENT"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        ValueName     = "AUPowerManagement"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Impedir que Windows Update despierte el equipo o reactive energia para reiniciar de noche (PLAN-0115)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/deployment/update/waas-wu-policies"
+        UnattendDesc  = "Disable Windows Update Power Management Wake Timers (AUPowerManagement=0)"
+    },
+    @{
+        Id            = "POL_WU_RESTART_NOTIF_CONFIG"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "SetAutoRestartNotificationConfig"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Forzar notificaciones modales persistentes antes de cualquier reinicio requerido (PLAN-0115)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update"
+        UnattendDesc  = "Turn On Auto-Restart Notifications (SetAutoRestartNotificationConfig=1)"
+    },
+    @{
+        Id            = "POL_WU_RESTART_DISMISSAL"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "SetAutoRestartRequiredNotificationDismissal"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Exigir descarte manual del usuario en notificaciones de reinicio requerido (PLAN-0115)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update"
+        UnattendDesc  = "Require User Action to Dismiss Restart Notification (SetAutoRestartRequiredNotificationDismissal=1)"
+    },
+    @{
+        Id            = "POL_WU_ENGAGED_TRANSITION"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "SetEngagedRestartTransitionSchedule"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar transicion automatica a reinicio forzado desatendido (PLAN-0115)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update"
+        UnattendDesc  = "Disable Engaged Restart Transition Schedule (SetEngagedRestartTransitionSchedule=0)"
+    },
+    @{
         Id            = "POL_WU_ALLOW_OPTIONAL_CONTENT"
         Module        = "Base - Windows Update"
         Category      = "Windows Update & Rendimiento"
@@ -893,11 +965,11 @@ $global:RomanOS_Policies = @(
         PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
         ValueName     = "LargeSystemCache"
         Type          = "REG_DWORD"
-        ExpectedValue = 1
+        ExpectedValue = 0
         Profiles      = @(1, 2, 3)
-        Description   = "Optimizar tamano de cache del sistema de archivos para maximizar I/O en sistemas con abundante RAM (>16 GB)"
+        Description   = "Priorizar memoria de trabajo para programas y gaming (LargeSystemCache=0 seguro para APU/UMA y dGPU, previene asfixia de VRAM y memory leaks)"
         OfficialDoc   = "https://learn.microsoft.com/windows-hardware/drivers/kernel/memory-management-registry-keys"
-        UnattendDesc  = "Enable Large System Cache for High-Memory Systems"
+        UnattendDesc  = "Set LargeSystemCache to 0 (Prioritize Process Working Set and Protect UMA VRAM)"
     },
     # --- MÓDULO F2: PERSONALIZACIÓN VISUAL Y MODO OSCURO (THEMES) ---
     @{
@@ -1190,7 +1262,8 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        IsDeprecated  = $true
+        Description   = "[OBSOLETA - Win11] ActivityFeed (Timeline fue descontinuado y eliminado en Windows 10 21H2)"
     },
     @{
         Id            = "DEBLOAT_DisableLocation"
@@ -2538,7 +2611,7 @@ $global:RomanOS_NetworkPolicies = @(
         Id            = "NET_SYS_NAGLE_ALGORITHM"
         Category      = "Sistema / Registry"
         ActionType    = "DynamicRegistry_Interfaces"
-        Description   = "Algoritmo de Nagle deshabilitado en interfaces activas (TcpNoDelay=1, TcpAckFrequency=1)."
+        Description   = "Algoritmo de Nagle deshabilitado en interfaces activas (TcpNoDelay=1, preservando ACK diferido estandar RFC 1122)."
     },
 
     # --- HARDWARE NIC ---
@@ -3085,9 +3158,9 @@ function Apply-RomanOSTieredMemoryPolicy {
             & reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "DisablePagingExecutive" /t REG_DWORD /d $disablePaging /f 2>&1 | Out-Null
             if ($LASTEXITCODE -eq 0) { $applied++ } else { $failed++ }
 
-            # 2. LargeSystemCache: Habilitar en Enthusiast (>16GB)
-            $largeCache = if ($tier -eq "Enthusiast") { 1 } else { 0 }
-            & reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "LargeSystemCache" /t REG_DWORD /d $largeCache /f 2>&1 | Out-Null
+            # 2. LargeSystemCache: Mantener en 0 estricto para Workstation/Gaming y APU/UMA
+            $largeCache = 0
+            & reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "LargeSystemCache" /t REG_DWORD /d 0 /f 2>&1 | Out-Null
             if ($LASTEXITCODE -eq 0) { $applied++ } else { $failed++ }
 
             # 3. MMAgent: Memory Compression & Page Combining

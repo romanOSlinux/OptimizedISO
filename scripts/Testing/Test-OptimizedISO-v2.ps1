@@ -1214,9 +1214,11 @@ $meteredPol = $pols55 | Where-Object { $_.Id -eq 'POL_SEARCH_CONNECTED_METERED' 
 Assert-NotNull "PLAN-0055: Politica POL_SEARCH_CONNECTED_METERED registrada en Policy-Engine" $meteredPol
 Assert-Equal "PLAN-0055: Politica ConnectedSearchUseWebOverMeteredConnections valor esperado es 0" $meteredPol.ExpectedValue 0
 
-$cortanaPol = $pols55 | Where-Object { $_.Id -eq 'POL_SEARCH_CORTANA_ALLOW' }
+# PLAN-0055 / PLAN-0115: POL_SEARCH_CORTANA_ALLOW marcada como obsoleta en Win11 y excluida de perfiles activos
+$cortanaPol = $global:RomanOS_Policies | Where-Object { $_.Id -eq 'POL_SEARCH_CORTANA_ALLOW' }
 Assert-NotNull "PLAN-0055: Politica POL_SEARCH_CORTANA_ALLOW registrada en Policy-Engine" $cortanaPol
-Assert-Equal "PLAN-0055: Politica AllowCortana valor esperado es 0" $cortanaPol.ExpectedValue 0
+Assert-True "PLAN-0115: Politica AllowCortana marcada como obsoleta (IsDeprecated = `$true)" ([bool]$cortanaPol.IsDeprecated)
+Assert-True "PLAN-0115: Politica AllowCortana excluida de perfiles activos en Windows 11" ($cortanaPol.Profiles.Count -eq 0)
 
 $unattendExp55 = Export-RomanOSUnattendCommands -Profile '1' -StartOrder 2
 Assert-True "PLAN-0055: Export-RomanOSUnattendCommands incluye directiva EnableDynamicContentInWSB" ([bool]($unattendExp55.XmlContent -match 'EnableDynamicContentInWSB'))
@@ -1264,10 +1266,14 @@ Assert-True "PLAN-0057: Builder suprime TaskbarDa en NTUSER.DAT evitando bloqueo
 Assert-True "PLAN-0057: Builder inyecta TaskbarMn = 0 en NTUSER.DAT" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"TaskbarMn`""))
 Assert-True "PLAN-0057: Builder inyecta ShowCopilotButton = 0 en NTUSER.DAT" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"ShowCopilotButton`""))
 
-# 2. Validar inyeccion de AllowWidgets, AllowNewsAndInterests y ChatIcon en SOFTWARE hive del Builder
+# 2. Validar inyeccion de AllowWidgets y ChatIcon en SOFTWARE hive del Builder (AllowNewsAndInterests purgado en Win11 por PLAN-0115)
 Assert-True "PLAN-0057: Builder inyecta AllowWidgets = 0 en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"AllowWidgets`""))
-Assert-True "PLAN-0057: Builder inyecta AllowNewsAndInterests = 0 en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"AllowNewsAndInterests`""))
 Assert-True "PLAN-0057: Builder inyecta ChatIcon = 3 en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"ChatIcon`""))
+Assert-True "PLAN-0115: Builder inyecta AlwaysAutoRebootAtScheduledTime en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"AlwaysAutoRebootAtScheduledTime`""))
+Assert-True "PLAN-0115: Builder inyecta AUPowerManagement en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"AUPowerManagement`""))
+Assert-True "PLAN-0115: Builder inyecta SetAutoRestartNotificationConfig en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"SetAutoRestartNotificationConfig`""))
+Assert-True "PLAN-0115: Builder inyecta SetAutoRestartRequiredNotificationDismissal en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"SetAutoRestartRequiredNotificationDismissal`""))
+Assert-True "PLAN-0115: Builder inyecta SetEngagedRestartTransitionSchedule en SOFTWARE hive" ([bool]($v2FreshContent57 -match "Name\s*=\s*`"SetEngagedRestartTransitionSchedule`""))
 
 # 3. Validar registro de POL_CHAT_ICON en Policy-Engine.ps1
 $policyEnginePath57 = Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"

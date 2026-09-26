@@ -425,7 +425,7 @@ $policiesToAudit = @(
         Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Dsh"
         Name     = "AllowNewsAndInterests"
         Expected = 0
-        Desc     = "Desactivar Noticias e Intereses a nivel de máquina (PLAN-0057)"
+        Desc     = "[OBSOLETO W11 - Ver AllowWidgets] Desactivar Noticias e Intereses legacy (PLAN-0057/PLAN-0115)"
     },
     @{
         Id       = "ChatIcon (GPO)"
@@ -454,6 +454,41 @@ $policiesToAudit = @(
         Name     = "NoAutoRebootWithLoggedOnUsers"
         Expected = 1
         Desc     = "Evitar reinicios automáticos con usuarios conectados (PLAN-0059)"
+    },
+    @{
+        Id       = "AlwaysAutoRebootAtScheduledTime (WU AU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        Name     = "AlwaysAutoRebootAtScheduledTime"
+        Expected = 0
+        Desc     = "Impedir reinicio forzado desatendido a hora programada (PLAN-0115)"
+    },
+    @{
+        Id       = "AUPowerManagement (WU AU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        Name     = "AUPowerManagement"
+        Expected = 0
+        Desc     = "Impedir wake timers de Windows Update para reactivar de noche (PLAN-0115)"
+    },
+    @{
+        Id       = "SetAutoRestartNotificationConfig (WU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        Name     = "SetAutoRestartNotificationConfig"
+        Expected = 1
+        Desc     = "Forzar notificaciones modales persistentes antes de reinicio (PLAN-0115)"
+    },
+    @{
+        Id       = "SetAutoRestartRequiredNotificationDismissal (WU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        Name     = "SetAutoRestartRequiredNotificationDismissal"
+        Expected = 1
+        Desc     = "Exigir descarte manual del usuario en notificaciones de reinicio (PLAN-0115)"
+    },
+    @{
+        Id       = "SetEngagedRestartTransitionSchedule (WU)"
+        Path     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        Name     = "SetEngagedRestartTransitionSchedule"
+        Expected = 0
+        Desc     = "Desactivar transicion automatica a reinicio forzado (PLAN-0115)"
     },
     @{
         Id       = "AllowOptionalContent (WU)"

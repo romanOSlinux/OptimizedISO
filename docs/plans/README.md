@@ -130,7 +130,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0112 | [PLAN-0112-20260924-mejoras-arquitectura-ux-guis-controlcenter-studio.md](PLAN-0112-20260924-mejoras-arquitectura-ux-guis-controlcenter-studio.md) | 2026-09-24 | Mejoras Arquitectónicas y de Experiencia de Usuario (UX) en romanOS Control Center y romanOS Studio | COMPLETADO |
 | 0113 | [PLAN-0113-20260924-erradicacion-bloqueos-consola-gui-stdin-unattended.md](PLAN-0113-20260924-erradicacion-bloqueos-consola-gui-stdin-unattended.md) | 2026-09-24 | Erradicación Integral de Bloqueos de Consola en GUIs (StandardInput Redirection, Cierre Inmediato y Modo Desatendido Transversal) | COMPLETADO |
 | 0114 | [PLAN-0114-20260925-fase-1-atlas-revios-desktop-helpers-latencia.md](PLAN-0114-20260925-fase-1-atlas-revios-desktop-helpers-latencia.md) | 2026-09-25 | Fase 1 - Inspiración AtlasOS / ReviOS: Suite de Reversibilidad "Desktop Helpers", Latencia Gaming Quirúrgica e Integración en Cascada | COMPLETADO |
-| 0115 | [PLAN-0115-20260926-auditoria-holistica-obsolescencia-win11-y-agnosticismo-hardware.md](PLAN-0115-20260926-auditoria-holistica-obsolescencia-win11-y-agnosticismo-hardware.md) | 2026-09-26 | Auditoría Holística de Obsolescencia Windows 7/10 vs. Windows 11: Depuración de Claves Zombi, Blindaje de Reinicios, Erradicación de Mitos y Validación Multi-Hardware por Mocks | PENDIENTE |
+| 0115 | [PLAN-0115-20260926-auditoria-holistica-obsolescencia-win11-y-agnosticismo-hardware.md](PLAN-0115-20260926-auditoria-holistica-obsolescencia-win11-y-agnosticismo-hardware.md) | 2026-09-26 | Auditoría Holística de Obsolescencia Windows 7/10 vs. Windows 11: Depuración de Claves Zombi, Blindaje de Reinicios, Erradicación de Mitos y Validación Multi-Hardware por Mocks | COMPLETADO |
 
 
 

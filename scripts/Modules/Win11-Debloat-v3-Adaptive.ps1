@@ -1799,7 +1799,7 @@ if ($applyStartMenu) {
 #region 10. Extra tweaks de sistema
 # ============================================================
 Write-Host "`n[10] Aplicando ajustes adicionales del sistema..." -ForegroundColor Cyan
-Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh' 'AllowNewsAndInterests' 0
+# [DEPRECATED W11] AllowNewsAndInterests sustituida por AllowWidgets en Windows 11 (PLAN-0115)
 Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings' 'TaskbarEndTask' 1
 Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager' 'RotatingLockScreenEnabled' 0
 Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' 'DisableAutoplay' 1
@@ -2376,8 +2376,8 @@ Set-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemPro
 $mmProfileKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
 Set-Reg $mmProfileKey 'NetworkThrottlingIndex' -1
 
-# SystemResponsiveness = 10 (Default de Windows para mantener background services sanos)
-Set-Reg $mmProfileKey 'SystemResponsiveness' 10
+# SystemResponsiveness = 0 (Alineado con Policy-Engine SSOT para maxima prioridad a primer plano/gaming)
+Set-Reg $mmProfileKey 'SystemResponsiveness' 0
 
 # --- 12.F Estatico: VRR + Windowed Games Optimization (DirectX Settings) ---
 # [NEW-12] Combinamos VRR y SwapEffectUpgradeEnable en un solo bloque ya que comparten

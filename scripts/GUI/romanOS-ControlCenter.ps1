@@ -599,7 +599,7 @@ function Resolve-ToolScript {
                         <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
                             <StackPanel>
                                 <TextBlock Text="Optimizacion de Pila de Red y Latencia TCP" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
-                                <TextBlock Text="Desactiva el algoritmo de Nagle (TcpNoDelay/TcpAckFrequency) para reducir latencia en partidas online y audita sockets." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,10"/>
+                                <TextBlock Text="Desactiva el algoritmo de Nagle (TcpNoDelay) para reducir latencia en partidas online y audita sockets." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,10"/>
                                 <WrapPanel>
                                     <Button x:Name="btnOptimizeNetworkNagle" Content="Optimizar Latencia TCP / Nagle (1-Clic)" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
                                     <Button x:Name="btnFullNetworkDiag" Content="Diagnostico Completo de Red &amp; Sockets" Width="280" Margin="0,0,10,10"/>

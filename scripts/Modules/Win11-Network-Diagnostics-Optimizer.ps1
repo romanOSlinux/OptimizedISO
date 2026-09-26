@@ -277,12 +277,13 @@ try {
             $count = 0
             foreach ($key in $subKeys) {
                 Set-ItemProperty -Path $key.PSPath -Name "TcpNoDelay" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-                Set-ItemProperty -Path $key.PSPath -Name "TcpAckFrequency" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
-                Set-ItemProperty -Path $key.PSPath -Name "TcpDelAckTicks" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+                # PLAN-0115: Preservar ACK diferido estandar (RFC 1122) para no colapsar throughput en fibra/gigabit ni causar tormenta DPC
+                Remove-ItemProperty -Path $key.PSPath -Name "TcpAckFrequency" -ErrorAction SilentlyContinue
+                Remove-ItemProperty -Path $key.PSPath -Name "TcpDelAckTicks" -ErrorAction SilentlyContinue
                 $count++
             }
-            Write-Host "  [OK] Algoritmo Nagle deshabilitado exitosamente en $count interfaces de red." -ForegroundColor Green
-            Write-LogEntry -Level "OK" -Message "Nagle desactivado (TcpNoDelay=1, TcpAckFrequency=1) en $count interfaces."
+            Write-Host "  [OK] Algoritmo Nagle deshabilitado exitosamente en $count interfaces de red (TcpNoDelay=1, ACK diferido estandar)." -ForegroundColor Green
+            Write-LogEntry -Level "OK" -Message "Nagle desactivado (TcpNoDelay=1, RFC 1122 Delayed ACK preservado) en $count interfaces."
         } catch {
             Write-Host "  ! Error configurando Nagle: $($_.Exception.Message)" -ForegroundColor Yellow
             Write-LogEntry -Level "WARN" -Message "Fallo al desactivar Nagle: $($_.Exception.Message)"
@@ -480,8 +481,9 @@ try {
                         $subKeys = Get-ChildItem -Path $ifPath -ErrorAction SilentlyContinue
                         foreach ($key in $subKeys) {
                             Set-ItemProperty -Path $key.PSPath -Name "TcpNoDelay" -Value 1 -Type DWord -ErrorAction SilentlyContinue
-                            Set-ItemProperty -Path $key.PSPath -Name "TcpAckFrequency" -Value 1 -Type DWord -ErrorAction SilentlyContinue
-                            Set-ItemProperty -Path $key.PSPath -Name "TcpDelAckTicks" -Value 0 -Type DWord -ErrorAction SilentlyContinue
+                            # PLAN-0115: Preservar ACK diferido estandar (RFC 1122) para proteger conexiones de alto rendimiento
+                            Remove-ItemProperty -Path $key.PSPath -Name "TcpAckFrequency" -ErrorAction SilentlyContinue
+                            Remove-ItemProperty -Path $key.PSPath -Name "TcpDelAckTicks" -ErrorAction SilentlyContinue
                         }
                     }
                     'NetAdapter_Enable' {

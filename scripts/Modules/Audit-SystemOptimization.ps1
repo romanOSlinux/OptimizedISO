@@ -417,19 +417,19 @@ try {
         Register-AuditResult -Category "Red/TCP" -Item "TCP ECN Capability" -Status "WARN" -ActualValue "Deshabilitado" -ExpectedValue "Habilitado" -Impact "Riesgo de bufferbloat en conexiones congestionadas" -Source "IETF RFC 3168" -RemediationCmd "netsh int tcp set global ecncapability=enabled"
     }
 
-    # Algoritmo de Nagle en Adaptadores
+    # Algoritmo de Nagle en Adaptadores (TCPNoDelay - RFC 896)
     $interfaces = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\*' -ErrorAction SilentlyContinue
     $nagleDisabled = $false
     foreach ($iface in $interfaces) {
-        if ($iface.TcpAckFrequency -eq 1 -and $iface.TCPNoDelay -eq 1) {
+        if ($iface.TCPNoDelay -eq 1 -or $iface.TcpNoDelay -eq 1) {
             $nagleDisabled = $true
             break
         }
     }
     if ($nagleDisabled) {
-        Register-AuditResult -Category "Red/TCP" -Item "Algoritmo de Nagle (TcpAckFrequency)" -Status "OK" -ActualValue "Deshabilitado (ACK Inmediato)" -ExpectedValue "TcpAckFrequency=1, TCPNoDelay=1" -Impact "Cero retraso artificial de 200ms en el envio de paquetes pequenos en juegos" -Source "IETF RFC 896 / RFC 1122"
+        Register-AuditResult -Category "Red/TCP" -Item "Algoritmo de Nagle (TCPNoDelay)" -Status "OK" -ActualValue "Deshabilitado (TCPNoDelay=1)" -ExpectedValue "TCPNoDelay=1" -Impact "Cero retraso artificial en el envio de paquetes pequenos (RFC 896), preservando ACK diferido para alto rendimiento" -Source "IETF RFC 896"
     } else {
-        Register-AuditResult -Category "Red/TCP" -Item "Algoritmo de Nagle (TcpAckFrequency)" -Status "WARN" -ActualValue "Estandar (Buffer de espera 200ms)" -ExpectedValue "ACK Inmediato (1)" -Impact "Micro-retrasos en juegos online y aplicaciones de streaming" -Source "IETF RFC 896 / RFC 1122" -RemediationCmd "Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces' | ForEach-Object { Set-ItemProperty -Path `$_.PSPath -Name 'TcpAckFrequency' -Value 1 -Type DWord; Set-ItemProperty -Path `$_.PSPath -Name 'TCPNoDelay' -Value 1 -Type DWord }"
+        Register-AuditResult -Category "Red/TCP" -Item "Algoritmo de Nagle (TCPNoDelay)" -Status "WARN" -ActualValue "Buffer de Nagle Activo" -ExpectedValue "TCPNoDelay=1" -Impact "Posible buffer de 200ms en envio de paquetes pequenos en juegos TCP" -Source "IETF RFC 896" -RemediationCmd "Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces' | ForEach-Object { Set-ItemProperty -Path `$_.PSPath -Name 'TCPNoDelay' -Value 1 -Type DWord }"
     }
 
     # Green Ethernet & Power Saving en Adaptadores Realtek / Intel

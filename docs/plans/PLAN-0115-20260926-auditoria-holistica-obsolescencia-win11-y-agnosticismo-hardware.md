@@ -5,7 +5,7 @@
 | **ID de Plan** | PLAN-0115 |
 | **Fecha** | 2026-09-26 |
 | **Componentes** | `scripts/Core/Policy-Engine.ps1`, `scripts/Core/Hardware-Engine.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/Modules/Win11-Debloat-v3-Adaptive.ps1`, `scripts/Modules/Win11-Network-Diagnostics-Optimizer.ps1`, `scripts/Modules/Audit-SystemOptimization.ps1`, `scripts/Modules/Audit-FreshInstallFootprint.ps1`, `scripts/Testing/Test-HardwareTopologyMocks.ps1`, `scripts/Testing/Test-OptimizedISO-v2.ps1` |
-| **Estado** | `PENDIENTE` |
+| **Estado** | `COMPLETADO` |
 | **Prioridad** | Crítica (Saneamiento de Base Arquitectónica, Resiliencia en Destino, Agnosticismo Hardware y Blindaje contra Reinicios) |
 | **Reglas Relevantes** | Regla 0 (Git), Regla 1 (Windows Host), Regla 2 (Cero Suposiciones), Regla 4 (UTF-8 BOM / PS 5.1), Regla 5 (Planes), Regla 7 (Watchdog de Tareas), Regla 8 (Modo Autónomo de Avance Continuo), Regla 9 (SSOT Policy-Engine), Regla 10 (Mantenimiento en Cascada), Regla 11 (Ingeniero Autónomo), Regla 13 (Auditoría Holística Whole-Repository), Regla 14 (Salvaguarda de Almacenamiento, Agnosticismo Multi-Hardware y Mocks Sintéticos) |
 
@@ -119,10 +119,12 @@ El reinicio no solicitado de Windows Update en el host de desarrollo reveló una
 
 ## 4. Criterios de Éxito Cuantificables
 
-* [ ] Cero referencias a claves zombi (`AllowCortana`, `EnableActivityFeed`, `AllowNewsAndInterests` en Dsh) en todo el repositorio.
-* [ ] 100% de coherencia en `LargeSystemCache = 0` entre Builder, Policy-Engine, Debloat y Auditoría.
-* [ ] Pila de red liberada del mito destructivo de `TcpAckFrequency = 1` global.
-* [ ] Set moderno de Windows 11 para Windows Update inyectado y activo en el host.
-* [ ] `Hardware-Engine.ps1` modularizado en 3 capas (Invariantes, Dinámica, Fallback).
-* [ ] Suite `Test-HardwareTopologyMocks.ps1` superada con 100% PASS en Windows PowerShell 5.1 sin requerir elevación de Hyper-V.
-* [ ] Cero comandos destructivos sobre los discos del host físico (Regla 14.1 cumplida estrictamente).
+* [x] Cero referencias a claves zombi (`AllowCortana`, `EnableActivityFeed`, `AllowNewsAndInterests` en Dsh) activas en el repositorio.
+* [x] 100% de coherencia en `LargeSystemCache = 0` entre Builder, Policy-Engine, Debloat y Auditoría.
+* [x] Pila de red liberada del mito destructivo de `TcpAckFrequency = 1` global (preservando RFC 1122 y TCPNoDelay=1).
+* [x] Set moderno de Windows 11 para Windows Update inyectado en Builder, autounattend y catálogo SSOT.
+* [x] `Hardware-Engine.ps1` modularizado en 3 capas (Invariantes, Dinámica, Fallback) con `Get-RomanOSSchedulerRecommendation`.
+* [x] Suite `Test-HardwareTopologyMocks.ps1` superada con 100% PASS (17/17) en Windows PowerShell 5.1 sin requerir elevación de Hyper-V.
+* [x] Cero comandos destructivos sobre los discos del host físico (Regla 14.1 cumplida estrictamente).
+* [x] 100% de los scripts probados con codificación estricta UTF-8 con BOM y 0 errores de sintaxis AST en Windows PowerShell 5.1.
+* [x] Batería consolidada `Invoke-TestSuite.ps1` completada con éxito (15/15 fases PASS, 581/581 aserciones del Test Harness).

@@ -5012,7 +5012,7 @@ reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v NtfsDisableLastAcc
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v NtfsMemoryUsage /t REG_DWORD /d 2 /f >> "%LOG%" 2>&1
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v DisablePagingExecutive /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v LargeSystemCache /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v LargeSystemCache /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v Win32PrioritySeparation /t REG_DWORD /d 38 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v NoLazyMode /t REG_DWORD /d 1 /f >> "%LOG%" 2>&1
 reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" /v SystemResponsiveness /t REG_DWORD /d 0 /f >> "%LOG%" 2>&1
@@ -5608,8 +5608,33 @@ $($firstLogonCommands -join "`n")
           <Description>Prevent Automatic Reboots While Users Are Logged On</Description>
           <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoRebootWithLoggedOnUsers /t REG_DWORD /d 1 /f</Path>
         </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 4)</Order>
+          <Description>Disable Always Auto Reboot At Scheduled Time (PLAN-0115)</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v AlwaysAutoRebootAtScheduledTime /t REG_DWORD /d 0 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 5)</Order>
+          <Description>Disable Windows Update Power Management Wake Timers (PLAN-0115)</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v AUPowerManagement /t REG_DWORD /d 0 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 6)</Order>
+          <Description>Turn On Auto-Restart Notifications (PLAN-0115)</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v SetAutoRestartNotificationConfig /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 7)</Order>
+          <Description>Require User Action to Dismiss Restart Notification (PLAN-0115)</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v SetAutoRestartRequiredNotificationDismissal /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$($nextOrder + 8)</Order>
+          <Description>Disable Engaged Restart Transition Schedule (PLAN-0115)</Description>
+          <Path>reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v SetEngagedRestartTransitionSchedule /t REG_DWORD /d 0 /f</Path>
+        </RunSynchronousCommand>
 "@
-            $nextOrder += 4
+            $nextOrder += 9
         }
     }
 
@@ -7041,22 +7066,10 @@ if ($wimFile) {
                                             Type = "REG_DWORD"
                                             Data = "0"
                                         }
-                                        @{
-                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\Windows Search"
-                                            Name = "AllowCortana"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        # Neutralizacion de Widgets, Noticias e Intereses y Chat en SOFTWARE hive (PLAN-0057)
+                                        # Neutralizacion de Widgets y Chat en SOFTWARE hive (PLAN-0057 / PLAN-0115)
                                         @{
                                             Path = "HKLM\OfflineSoftware\Policies\Microsoft\Widgets"
                                             Name = "AllowWidgets"
-                                            Type = "REG_DWORD"
-                                            Data = "0"
-                                        }
-                                        @{
-                                            Path = "HKLM\OfflineSoftware\Policies\Microsoft\Dsh"
-                                            Name = "AllowNewsAndInterests"
                                             Type = "REG_DWORD"
                                             Data = "0"
                                         }
@@ -7132,6 +7145,36 @@ if ($wimFile) {
                                                 Name = "NoAutoRebootWithLoggedOnUsers"
                                                 Type = "REG_DWORD"
                                                 Data = "1"
+                                            }
+                                            @{
+                                                Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate\AU"
+                                                Name = "AlwaysAutoRebootAtScheduledTime"
+                                                Type = "REG_DWORD"
+                                                Data = "0"
+                                            }
+                                            @{
+                                                Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate\AU"
+                                                Name = "AUPowerManagement"
+                                                Type = "REG_DWORD"
+                                                Data = "0"
+                                            }
+                                            @{
+                                                Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate"
+                                                Name = "SetAutoRestartNotificationConfig"
+                                                Type = "REG_DWORD"
+                                                Data = "1"
+                                            }
+                                            @{
+                                                Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate"
+                                                Name = "SetAutoRestartRequiredNotificationDismissal"
+                                                Type = "REG_DWORD"
+                                                Data = "1"
+                                            }
+                                            @{
+                                                Path = "HKLM\OfflineSoftware\Policies\Microsoft\Windows\WindowsUpdate"
+                                                Name = "SetEngagedRestartTransitionSchedule"
+                                                Type = "REG_DWORD"
+                                                Data = "0"
                                             }
                                         )
                                     }

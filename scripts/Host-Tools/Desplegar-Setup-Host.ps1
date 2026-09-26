@@ -133,19 +133,20 @@ function Install-WingetPackage {
 function Configure-GamingOptimizations {
     Write-HostBanner "OPTIMIZACIONES DE RED Y LATENCIA PARA GAMING (WORLD OF TANKS)"
 
-    if ($PSCmdlet.ShouldProcess("Red y TCP", "Ajustar TCPNoDelay y TcpAckFrequency")) {
+    if ($PSCmdlet.ShouldProcess("Red y TCP", "Ajustar TCPNoDelay (Desactivar Nagle)")) {
         try {
-            # Desactivar algoritmo de Nagle en todas las interfaces de red activas
+            # Desactivar algoritmo de Nagle en todas las interfaces de red activas preservando ACK diferido (RFC 1122)
             $tcpInterfacesKey = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"
             if (Test-Path $tcpInterfacesKey) {
                 $subKeys = Get-ChildItem -Path $tcpInterfacesKey
                 $count = 0
                 foreach ($k in $subKeys) {
-                    Set-ItemProperty -Path $k.PSPath -Name "TcpAckFrequency" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
                     Set-ItemProperty -Path $k.PSPath -Name "TCPNoDelay" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+                    Remove-ItemProperty -Path $k.PSPath -Name "TcpAckFrequency" -ErrorAction SilentlyContinue
+                    Remove-ItemProperty -Path $k.PSPath -Name "TcpDelAckTicks" -ErrorAction SilentlyContinue
                     $count++
                 }
-                Write-HostOK "Algoritmo de Nagle neutralizado (TCPNoDelay=1, TcpAckFrequency=1 en $count interfaces)."
+                Write-HostOK "Algoritmo de Nagle neutralizado (TCPNoDelay=1, ACK diferido estandar en $count interfaces)."
             }
 
             # Forzar Game Mode activo en usuario actual
