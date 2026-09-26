@@ -837,7 +837,7 @@ try {
         $window.FindName('lblRamInfo').Text   = $ramText
         $window.FindName('lblDiskInfo').Text  = $diskText
         
-        $primaryGpu = if ($hw.GPU.Devices -and $hw.GPU.Devices.Count -gt 0) { $hw.GPU.Devices[0] } else { $null }
+        $primaryGpu = if ($hw.GPU.Devices -and @($hw.GPU.Devices).Count -gt 0) { @($hw.GPU.Devices)[0] } else { $null }
         if ($primaryGpu) {
             $window.FindName('lblGpuInfo').Text = "$($primaryGpu.Name) ($($primaryGpu.VendorName))"
             $msiLabel = if ($primaryGpu.MsiStatus -eq 1) { "Habilitado [1]" } elseif ($primaryGpu.MsiStatus -eq 0) { "Deshabilitado [0]" } else { "No config" }
@@ -875,7 +875,7 @@ try {
                 $nics = Get-RomanOSNetworkOffloadCaps
                 $lblNet = $window.FindName('lblNetOffloadInfo')
                 if ($lblNet) {
-                    $pNic = if ($nics.Count -gt 0) { $nics[0] } else { $null }
+                    $pNic = if ($nics -and @($nics).Count -gt 0) { @($nics)[0] } else { $null }
                     if ($pNic) {
                         $lblNet.Text = "$($pNic.Name) (UDP RSC: $($pNic.UdpRscState))"
                     } else {
@@ -916,19 +916,32 @@ function Update-ControlCenterDnsState {
         if ($lbl) {
             # Determinar adaptador activo con ruta por defecto (0.0.0.0/0)
             $defRoute = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1
+            $active = $null
+
             if (Get-Command 'Get-RomanOSCurrentDns' -ErrorAction SilentlyContinue) {
-                $curr = Get-RomanOSCurrentDns
+                $curr = @(Get-RomanOSCurrentDns)
                 if ($curr -and $curr.Count -gt 0) {
                     $active = if ($defRoute) { $curr | Where-Object { $_.InterfaceIndex -eq $defRoute.InterfaceIndex } | Select-Object -First 1 } else { $null }
                     if (-not $active) { $active = $curr | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1 }
                     if (-not $active) { $active = $curr[0] }
-                    $serverStr = if ($active.DnsServers) { $active.DnsServers } else { "DHCP / Sin asignar" }
-                    $lbl.Text = "$($active.DetectedProfile) ($serverStr) en $($active.InterfaceAlias)"
+                }
+            }
+
+            if ($active) {
+                $serverStr = if ($active.DnsServers) { $active.DnsServers } else { "DHCP / Sin asignar" }
+                $lbl.Text = "$($active.DetectedProfile) ($serverStr) en $($active.InterfaceAlias)"
+            } else {
+                # Fallback nativo directo mediante Get-NetAdapter y Get-DnsClientServerAddress
+                $natAdapters = @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' })
+                if ($natAdapters.Count -gt 0) {
+                    $natActive = if ($defRoute) { $natAdapters | Where-Object { $_.ifIndex -eq $defRoute.InterfaceIndex } | Select-Object -First 1 } else { $null }
+                    if (-not $natActive) { $natActive = $natAdapters[0] }
+                    $natDns = Get-DnsClientServerAddress -InterfaceIndex $natActive.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue
+                    $dnsStr = if ($natDns -and $natDns.ServerAddresses) { $natDns.ServerAddresses -join ', ' } else { "DHCP Automatico" }
+                    $lbl.Text = "Activo ($dnsStr) en $($natActive.Name)"
                 } else {
                     $lbl.Text = "No se detectaron adaptadores activos"
                 }
-            } else {
-                $lbl.Text = "Consulta de DNS no disponible"
             }
         }
     } catch {
@@ -1117,6 +1130,15 @@ function Start-ControlCenterTask {
                 }
             } catch {
                 Write-CCLog "Aviso al refrescar estado de Desktop Helpers: $($_.Exception.Message)" -Level "WARN"
+            }
+
+            # Refrescar estado de DNS tras concluir la tarea
+            try {
+                if (Get-Command 'Update-ControlCenterDnsState' -ErrorAction SilentlyContinue) {
+                    Update-ControlCenterDnsState
+                }
+            } catch {
+                Write-CCLog "Aviso al refrescar estado de DNS: $($_.Exception.Message)" -Level "WARN"
             }
         }
     })
@@ -1637,52 +1659,86 @@ $window.FindName('btnRunDnsBench').Add_Click({
     }
 })
 
-$window.FindName('btnSetCloudflareDns').Add_Click({
-    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
-    $doh = if ($window.FindName('chkEnableDoH').IsChecked) { " -EnableDoH" } else { "" }
-    if ($netTool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS Cloudflare$doh -Unattended" -TaskTitle "Asignar DNS Cloudflare (1.1.1.1)"
+function Invoke-ControlCenterSetDns {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProfileId,
+        [Parameter(Mandatory = $true)]
+        [string]$ProfileName,
+        [bool]$EnableDoH = $false
+    )
+
+    $lblDns = $window.FindName('lblCurrentDns')
+    if ($lblDns) {
+        $lblDns.Text = "Aplicando configuración DNS: $ProfileName..."
     }
-    Update-ControlCenterDnsState
+
+    $applied = $false
+    if (Get-Command 'Set-RomanOSDnsServer' -ErrorAction SilentlyContinue) {
+        try {
+            $defRoute = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1
+            $targetAlias = if ($defRoute) {
+                $a = Get-NetAdapter -InterfaceIndex $defRoute.InterfaceIndex -ErrorAction SilentlyContinue
+                if ($a) { $a.Name } else { $null }
+            } else { $null }
+
+            $params = @{
+                ProfileId = $ProfileId
+                EnableDoH = $EnableDoH
+                Quiet     = $true
+            }
+            if ($targetAlias) { $params['InterfaceAlias'] = $targetAlias }
+
+            $applied = Set-RomanOSDnsServer @params
+            if ($applied) {
+                Write-CCLog "DNS actualizado a $ProfileName exitosamente (DoH: $EnableDoH)."
+                Update-ControlCenterDnsState
+                return
+            }
+        } catch {
+            Write-CCLog "Llamada directa Set-RomanOSDnsServer requirio fallback: $($_.Exception.Message)" -Level "WARN"
+        }
+    }
+
+    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+    $dohFlag = if ($EnableDoH) { " -EnableDoH" } else { "" }
+    if ($netTool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS $ProfileId$dohFlag -Unattended" -TaskTitle "Asignar DNS $ProfileName"
+    } else {
+        $cmdDns = if ($ProfileId -eq "DHCP") {
+            "Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ResetServerAddresses"
+        } else {
+            $p = if (Get-Command 'Get-RomanOSDnsProfileById' -ErrorAction SilentlyContinue) { Get-RomanOSDnsProfileById -Id $ProfileId } else { $null }
+            $ip1 = if ($p) { $p.PrimaryIPv4 } else { '8.8.8.8' }
+            $ip2 = if ($p) { $p.SecondaryIPv4 } else { '8.8.4.4' }
+            "Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses @('$ip1','$ip2')"
+        }
+        Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$r = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1; `$w = if (`$r) { Get-NetAdapter -InterfaceIndex `$r.InterfaceIndex -ErrorAction SilentlyContinue } else { `$null }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; $cmdDns; Clear-DnsClientCache -ErrorAction SilentlyContinue; Write-Host ('[OK] DNS actualizado a $ProfileName en ' + `$w.Name) } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS $ProfileName"
+    }
+}
+
+$window.FindName('btnSetCloudflareDns').Add_Click({
+    $doh = $window.FindName('chkEnableDoH').IsChecked -eq $true
+    Invoke-ControlCenterSetDns -ProfileId "Cloudflare" -ProfileName "Cloudflare (1.1.1.1)" -EnableDoH $doh
 })
 
 $window.FindName('btnSetQuad9Dns').Add_Click({
-    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
-    $doh = if ($window.FindName('chkEnableDoH').IsChecked) { " -EnableDoH" } else { "" }
-    if ($netTool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS Quad9$doh -Unattended" -TaskTitle "Asignar DNS Quad9 (9.9.9.9)"
-    }
-    Update-ControlCenterDnsState
+    $doh = $window.FindName('chkEnableDoH').IsChecked -eq $true
+    Invoke-ControlCenterSetDns -ProfileId "Quad9" -ProfileName "Quad9 (9.9.9.9)" -EnableDoH $doh
 })
 
 $window.FindName('btnSetGoogleDns').Add_Click({
-    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
-    $doh = if ($window.FindName('chkEnableDoH').IsChecked) { " -EnableDoH" } else { "" }
-    if ($netTool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS Google$doh -Unattended" -TaskTitle "Asignar DNS Google (8.8.8.8)"
-    } else {
-        Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$r = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1; `$w = if (`$r) { Get-NetAdapter -InterfaceIndex `$r.InterfaceIndex -ErrorAction SilentlyContinue } else { `$null }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('8.8.8.8','8.8.4.4'); Write-Host ('[OK] DNS configurado en Google (8.8.8.8) en ' + `$w.Name) } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Google"
-    }
-    Update-ControlCenterDnsState
+    $doh = $window.FindName('chkEnableDoH').IsChecked -eq $true
+    Invoke-ControlCenterSetDns -ProfileId "Google" -ProfileName "Google (8.8.8.8)" -EnableDoH $doh
 })
 
 $window.FindName('btnSetAdGuardDns').Add_Click({
-    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
-    $doh = if ($window.FindName('chkEnableDoH').IsChecked) { " -EnableDoH" } else { "" }
-    if ($netTool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS AdGuard$doh -Unattended" -TaskTitle "Asignar DNS AdGuard (94.140.14.14)"
-    }
-    Update-ControlCenterDnsState
+    $doh = $window.FindName('chkEnableDoH').IsChecked -eq $true
+    Invoke-ControlCenterSetDns -ProfileId "AdGuard" -ProfileName "AdGuard (94.140.14.14)" -EnableDoH $doh
 })
 
 $window.FindName('btnResetDnsDhcp').Add_Click({
-    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
-    if ($netTool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS DHCP -Unattended" -TaskTitle "Restaurar DNS Automatico (DHCP)"
-    } else {
-        Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$r = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1; `$w = if (`$r) { Get-NetAdapter -InterfaceIndex `$r.InterfaceIndex -ErrorAction SilentlyContinue } else { `$null }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ResetServerAddresses; Write-Host ('[OK] DNS restaurado a DHCP en ' + `$w.Name) } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Restaurar DNS DHCP"
-    }
-    Update-ControlCenterDnsState
+    Invoke-ControlCenterSetDns -ProfileId "DHCP" -ProfileName "DHCP Dinámico" -EnableDoH $false
 })
 
 # Handlers: Optimizacion de Pila de Red y Latencia TCP

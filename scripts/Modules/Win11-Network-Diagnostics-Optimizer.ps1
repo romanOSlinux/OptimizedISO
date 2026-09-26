@@ -107,7 +107,7 @@ function Get-RomanOSActiveNetworkAdapters {
         if (-not $adapters) {
             $adapters = Get-NetAdapter -ErrorAction SilentlyContinue
         }
-        return @($adapters)
+        return ,@($adapters)
     } catch {
         Write-Warning "Fallo al enumerar adaptadores de red: $($_.Exception.Message)"
         return @()
@@ -258,9 +258,9 @@ function Set-RomanOSDnsServer {
     }
 
     $targetAdapters = if ($InterfaceAlias) {
-        Get-NetAdapter -Name $InterfaceAlias -ErrorAction SilentlyContinue
+        @(Get-NetAdapter -Name $InterfaceAlias -ErrorAction SilentlyContinue)
     } else {
-        Get-RomanOSActiveNetworkAdapters
+        @(Get-RomanOSActiveNetworkAdapters)
     }
 
     if (-not $targetAdapters -or $targetAdapters.Count -eq 0) {
@@ -290,9 +290,9 @@ function Set-RomanOSDnsServer {
                     if ($EnableDoH -and $profile.SupportsDoH -and $profile.DoHTemplate) {
                         try {
                             if (Get-Command "Add-DnsClientDohServerAddress" -ErrorAction SilentlyContinue) {
-                                Add-DnsClientDohServerAddress -ServerAddress $profile.PrimaryIPv4 -DnsOverHttpsTemplate $profile.DoHTemplate -AllowFallbackToUdp $true -AutoUpgrade $true -ErrorAction SilentlyContinue | Out-Null
+                                Add-DnsClientDohServerAddress -ServerAddress $profile.PrimaryIPv4 -DohTemplate $profile.DoHTemplate -AllowFallbackToUdp $true -AutoUpgrade $true -ErrorAction SilentlyContinue | Out-Null
                                 if ($profile.SecondaryIPv4) {
-                                    Add-DnsClientDohServerAddress -ServerAddress $profile.SecondaryIPv4 -DnsOverHttpsTemplate $profile.DoHTemplate -AllowFallbackToUdp $true -AutoUpgrade $true -ErrorAction SilentlyContinue | Out-Null
+                                    Add-DnsClientDohServerAddress -ServerAddress $profile.SecondaryIPv4 -DohTemplate $profile.DoHTemplate -AllowFallbackToUdp $true -AutoUpgrade $true -ErrorAction SilentlyContinue | Out-Null
                                 }
                             }
                         } catch {
@@ -339,7 +339,7 @@ function Get-RomanOSCurrentDns {
     [CmdletBinding()]
     param()
 
-    $adapters = Get-RomanOSActiveNetworkAdapters
+    $adapters = @(Get-RomanOSActiveNetworkAdapters)
     $profiles = if (Get-Command "Get-RomanOSDnsProfiles" -ErrorAction SilentlyContinue) { Get-RomanOSDnsProfiles } else { @() }
     $output = [System.Collections.Generic.List[PSCustomObject]]::new()
 
@@ -372,7 +372,7 @@ function Get-RomanOSCurrentDns {
         }
     }
 
-    return $output
+    return ,$output.ToArray()
 }
 
 # ============================================================
@@ -764,8 +764,8 @@ try {
     $tweaksList += [PSCustomObject]@{ Id='NetReset'; Category='Troubleshooting'; Name='Reset Completo de Red'; Description='Restablece Winsock, TCP/IP y DNS (Recomendado ante fallos de conexion).'; ActionType='Local_Reset' }
 
     if ($Unattended) {
-        $selectedTweaks = $tweaksList
-        Write-Host "  Modo desatendido: seleccionando todos los tweaks de red recomendados..." -ForegroundColor Gray
+        $selectedTweaks = $tweaksList | Where-Object { $_.ActionType -ne 'Local_Reset' }
+        Write-Host "  Modo desatendido: seleccionando todos los tweaks de red recomendados (excluyendo reinicio completo de red)..." -ForegroundColor Gray
     } else {
         Write-Host "  Abriendo menu interactivo de optimizaciones de red..." -ForegroundColor Yellow
         Write-Host "  (Usa Ctrl/Shift para seleccionar multiples items. Presiona OK para aplicar o Cancelar para omitir)." -ForegroundColor Gray
