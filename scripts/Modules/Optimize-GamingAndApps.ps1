@@ -187,38 +187,111 @@ if (-not $PurgeShadersOnly) {
     $dxGpuPath = "HKCU:\Software\Microsoft\DirectX\UserGpuPreferences"
     if (-not (Test-Path $dxGpuPath)) { New-Item -Path $dxGpuPath -Force | Out-Null }
     
-    # Suprimir telemetria y auto-arranque parasito de Spotify / Discord
+    # Rutas comunes de carpetas Startup de usuario y sistema
+    $startupPaths = @(
+        (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"),
+        (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\Startup")
+    )
+    $runKeyCU = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+
+    # Suprimir telemetria, aceleracion GPU y auto-arranque parasito de Spotify
     $spotifyPath = Join-Path $env:APPDATA "Spotify\prefs"
     if (Test-Path $spotifyPath) {
         try {
             $prefs = Get-Content -Path $spotifyPath -Raw -ErrorAction SilentlyContinue
+            $spotifyModified = $false
             if ($prefs -notmatch "app.enable-hardware-acceleration=false") {
-                Add-Content -Path $spotifyPath -Value "`napp.enable-hardware-acceleration=false" -ErrorAction SilentlyContinue
+                Add-Content -Path $spotifyPath -Value "`napp.enable-hardware-acceleration=false" -ErrorAction Stop
                 Write-OK "Spotify: Aceleracion por hardware desactivada en interfaz de audio."
-                $stats.ElectronTweaked++
+                $spotifyModified = $true
             }
+            if ($prefs -notmatch "autostart\.mode=") {
+                Add-Content -Path $spotifyPath -Value "`nautostart.mode=`"off`"" -ErrorAction Stop
+                Write-OK "Spotify: Auto-arranque desactivado en archivo de preferencias."
+                $spotifyModified = $true
+            }
+            if ($spotifyModified) { $stats.ElectronTweaked++ }
         } catch {
-            Write-Warn "No se pudo modificar aceleración por hardware en preferencias de Spotify: $($_.Exception.Message)"
+            Write-Warn "No se pudo modificar preferencias de Spotify ($spotifyPath): $($_.Exception.Message)"
         }
     }
-    
-    # Discord: desactivar telemetria y oclusion de renderizado
+
+    # Spotify: Eliminar claves de inicio en Registro de Windows
+    if (Test-Path $runKeyCU) {
+        foreach ($sName in @("Spotify", "Spotify Web Helper", "SpotifyStartup")) {
+            $prop = Get-ItemProperty -Path $runKeyCU -Name $sName -ErrorAction SilentlyContinue
+            if ($prop -and $prop.$sName) {
+                try {
+                    Remove-ItemProperty -Path $runKeyCU -Name $sName -Force -ErrorAction Stop
+                    Write-OK "Spotify: Clave '$sName' eliminada del Registro (HKCU\Run)."
+                    $stats.ElectronTweaked++
+                } catch {
+                    Write-Warn "No se pudo eliminar clave '$sName' de HKCU\Run: $($_.Exception.Message)"
+                }
+            }
+        }
+    }
+    foreach ($sDir in $startupPaths) {
+        if (Test-Path $sDir) {
+            $sLnks = Get-ChildItem -Path $sDir -Filter "*Spotify*.lnk" -ErrorAction SilentlyContinue
+            foreach ($lnk in $sLnks) {
+                try {
+                    Remove-Item -Path $lnk.FullName -Force -ErrorAction Stop
+                    Write-OK "Spotify: Acceso directo de inicio eliminado de $($lnk.FullName)."
+                    $stats.ElectronTweaked++
+                } catch {
+                    Write-Warn "No se pudo eliminar acceso directo de Spotify ($($lnk.Name)): $($_.Exception.Message)"
+                }
+            }
+        }
+    }
+
+    # Discord: Desactivar auto-arranque en JSON interno
     $discordConfig = Join-Path $env:APPDATA "discord\settings.json"
     if (Test-Path $discordConfig) {
         try {
             $djson = Get-Content -Path $discordConfig -Raw | ConvertFrom-Json
             if ($djson.DANGEROUS_ENABLE_DEVTOOLS_ONLY_ENABLE_IF_YOU_KNOW_WHAT_YOURE_DOING -ne $true) {
-                # Modificar configuracion segura
                 $djson | Add-Member -Name "OPEN_ON_STARTUP" -Value $false -MemberType NoteProperty -Force
                 $djson | ConvertTo-Json -Compress | Out-File -FilePath $discordConfig -Encoding utf8 -Force
-                Write-OK "Discord: Auto-arranque no deseado mitigado."
+                Write-OK "Discord: Preferencia OPEN_ON_STARTUP = false guardada en settings.json."
                 $stats.ElectronTweaked++
             }
         } catch {
-            Write-Warn "No se pudo actualizar configuración de Discord ($discordConfig) - $($_.Exception.Message)"
+            Write-Warn "No se pudo actualizar configuración de Discord ($discordConfig): $($_.Exception.Message)"
         }
     }
-    
+
+    # Discord: Eliminar clave de inicio en Registro de Windows
+    if (Test-Path $runKeyCU) {
+        $prop = Get-ItemProperty -Path $runKeyCU -Name "Discord" -ErrorAction SilentlyContinue
+        if ($prop -and $prop.Discord) {
+            try {
+                Remove-ItemProperty -Path $runKeyCU -Name "Discord" -Force -ErrorAction Stop
+                Write-OK "Discord: Clave de inicio automatico erradicada del Registro (HKCU\Run)."
+                $stats.ElectronTweaked++
+            } catch {
+                Write-Warn "No se pudo eliminar clave 'Discord' de HKCU\Run: $($_.Exception.Message)"
+            }
+        }
+    }
+
+    # Discord: Eliminar accesos directos en carpetas Startup
+    foreach ($sDir in $startupPaths) {
+        if (Test-Path $sDir) {
+            $dLnks = Get-ChildItem -Path $sDir -Filter "*Discord*.lnk" -ErrorAction SilentlyContinue
+            foreach ($lnk in $dLnks) {
+                try {
+                    Remove-Item -Path $lnk.FullName -Force -ErrorAction Stop
+                    Write-OK "Discord: Acceso directo de inicio eliminado de $($lnk.FullName)."
+                    $stats.ElectronTweaked++
+                } catch {
+                    Write-Warn "No se pudo eliminar acceso directo de Discord ($($lnk.Name)): $($_.Exception.Message)"
+                }
+            }
+        }
+    }
+
     Write-OK "Optimizaciones de aplicaciones Electron completadas."
 }
 

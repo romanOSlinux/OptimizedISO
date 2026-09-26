@@ -1699,6 +1699,9 @@ $gamingContent92 = Get-Content $gamingPath92 -Raw
 Assert-True "PLAN-0092: Optimize-GamingAndApps.ps1 incluye Intel\ShaderCache" ([bool]($gamingContent92 -match 'Intel\\ShaderCache'))
 Assert-True "PLAN-0092: Optimize-GamingAndApps.ps1 incluye NVIDIA\GLCache" ([bool]($gamingContent92 -match 'NVIDIA\\GLCache'))
 Assert-True "PLAN-0092: Optimize-GamingAndApps.ps1 incluye AMD\GLCache" ([bool]($gamingContent92 -match 'AMD\\GLCache'))
+Assert-True "Optimize-GamingAndApps.ps1 elimina clave Discord de HKCU\Run" ([bool]($gamingContent92 -match 'Remove-ItemProperty\s+-Path\s+\$runKeyCU\s+-Name\s+"Discord"'))
+Assert-True "Optimize-GamingAndApps.ps1 elimina clave Spotify de HKCU\Run" ([bool]($gamingContent92 -match 'Remove-ItemProperty\s+-Path\s+\$runKeyCU\s+-Name\s+\$sName'))
+Assert-True "Optimize-GamingAndApps.ps1 purga accesos directos de carpetas Startup" ([bool]($gamingContent92 -match 'Filter\s+"\*Discord\*\.lnk"') -and [bool]($gamingContent92 -match 'Filter\s+"\*Spotify\*\.lnk"'))
 
 # 3. Validar DNS por gateway predeterminado y textos XAML universales en Control Center
 $ccContent92 = Get-Content $ccScriptPath86 -Raw
