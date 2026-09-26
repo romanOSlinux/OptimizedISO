@@ -132,4 +132,17 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
      - Topología de Almacenamiento Mixta o Mecánica Pura (HDD SATA).
   2. Ningún script con impacto en hardware se dará por validado sin superar la matriz de mocks en `scripts/Testing/`.
 
+## 15. Arquitectura de Memoria Jerárquica, Persistencia Externa y Patrón Map-Reduce para Tareas Masivas
+- **Prohibición de Procesamiento Monolítico Ciego (Anti-Context Dilution):** Queda terminantemente prohibido intentar auditar, refactorizar o validar listas extensas de archivos, scripts o políticas (más de 5 componentes) en un único turno o prompt masivo. Dicha práctica satura la ventana de contexto, provoca el fenómeno de "amnesia en el medio" (*lost in the middle*), degrada la atención del modelo y conduce a conclusiones complacientes superficiales sin comprobación empírica.
+- **Protocolo Obligatorio de 6 Pilares para Auditorías y Tareas Extensas:** Ante cualquier requerimiento de auditoría repo-wide, modernización integral o procesamiento a gran escala, el agente DEBE ejecutar obligatoriamente los siguientes 6 pasos:
+  1. **Pilar 1 — Grafo de Conocimiento Estructurado (MCP `memory`):** Registrar entidades, relaciones y observaciones técnicas de cada componente analizado en la base de datos de grafos persistente en disco (`create_entities`, `add_observations`), garantizando supervivencia inter-sesión con costo cero de contexto.
+  2. **Pilar 2 — Conciencia de Compaction y Rollup Progresivo:** Diseñar el flujo de trabajo asumiendo que el historial de chat será compactado automáticamente por el motor de Antigravity. Dejar siempre un resumen estructurado al final de cada turno que alimente directamente el siguiente ciclo de compaction sin pérdida de restricciones.
+  3. **Pilar 3 — Persistencia en Archivos Git (*Docs-as-Code*):** Registrar inmediatamente un plan formal en `docs/plans/PLAN-NNNN.md` con la matriz exhaustiva de elementos numerados y estados (`PENDIENTE` / `EN PROGRESO` / `COMPLETADO`). El repositorio Git es la única fuente de verdad inmutable para el avance de tareas.
+  4. **Pilar 4 — Patrón Map-Reduce por Lotes (Chunking Metodológico de 3 a 5 Elementos):**
+     - *Map:* Seleccionar un lote acotado de 3 a 5 scripts/componentes por iteración.
+     - *Audit & Modernize:* Investigar fuentes líderes mundiales (Microsoft Learn, AtlasOS, ReviOS, Sophia Script), contrastar parámetros y corregir código.
+     - *Reduce / Checkpoint:* Actualizar las métricas físicas, validar en Windows PowerShell 5.1 y registrar el avance en el plan antes de tomar el siguiente lote.
+  5. **Pilar 5 — Delegación a Subagentes Especializados para Aislamiento de Contexto:** Cuando una tarea requiera procesamiento intensivo de datos (análisis de miles de líneas de logs, procesamiento masivo de claves de registro o scraping de documentación técnica), delegar la operación a subagentes dedicados (`log-forensics`, `registry-forensics`, `browser_subagent`) para que devuelvan al hilo principal únicamente una síntesis destilada de alta fidelidad.
+  6. **Pilar 6 — Artefactos Vivos y Modo Autónomo Extendido:** Mantener un documento de reporte vivo en la carpeta de artefactos (`auditoria_*.md`) accesible al usuario en tiempo real, e invocar el modo de avance autónomo continuo (Regla 8 / `/goal`) con supervisión por Watchdog Timers (Regla 7).
+
 
