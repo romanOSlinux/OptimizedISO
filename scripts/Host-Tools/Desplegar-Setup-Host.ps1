@@ -270,6 +270,10 @@ function Show-CustomMenu {
     )
 
     foreach ($pkg in $packages) {
+        if ([Console]::IsInputRedirected) {
+            Write-Host "  [-] Entorno no interactivo: Omitiendo $($pkg.Name)" -ForegroundColor DarkGray
+            continue
+        }
         $ans = Read-Host "  Deseas instalar $($pkg.Name) [$($pkg.Category)]? (S/N) [Por defecto: S]"
         if ([string]::IsNullOrWhiteSpace($ans) -or $ans.ToUpper() -eq "S") {
             $null = Install-WingetPackage -PackageId $pkg.Id -DisplayName $pkg.Name
@@ -278,9 +282,11 @@ function Show-CustomMenu {
         }
     }
 
-    $optNet = Read-Host "  Deseas aplicar optimizaciones de baja latencia de red (TCP NoDelay)? (S/N) [Por defecto: S]"
-    if ([string]::IsNullOrWhiteSpace($optNet) -or $optNet.ToUpper() -eq "S") {
-        Configure-GamingOptimizations
+    if (-not [Console]::IsInputRedirected) {
+        $optNet = Read-Host "  Deseas aplicar optimizaciones de baja latencia de red (TCP NoDelay)? (S/N) [Por defecto: S]"
+        if ([string]::IsNullOrWhiteSpace($optNet) -or $optNet.ToUpper() -eq "S") {
+            Configure-GamingOptimizations
+        }
     }
 }
 
@@ -295,6 +301,11 @@ while ($running) {
         $choice = $AutomatedOption
         $running = $false
     } else {
+        if ([Console]::IsInputRedirected) {
+            Write-HostWarn "Entorno no interactivo detectado o entrada redirigida. Finalizando ejecucion."
+            $running = $false
+            break
+        }
         Clear-Host
         Write-Host ""
         Write-Host "======================================================================" -ForegroundColor Cyan
@@ -318,6 +329,11 @@ while ($running) {
         Write-Host ""
         Write-Host "======================================================================" -ForegroundColor Cyan
         $choice = Read-Host "Selecciona una opcion [0-4]"
+        if ([string]::IsNullOrWhiteSpace($choice)) {
+            Write-HostWarn "No se recibio entrada. Finalizando ejecucion."
+            $running = $false
+            break
+        }
     }
 
     switch ($choice) {
@@ -326,28 +342,28 @@ while ($running) {
             Configure-DevAndAIEcosystem
             Configure-GamingPlatforms
             Write-HostBanner "DESPLIEGUE COMPLETO FINALIZADO EXITOSAMENTE"
-            if (-not $AutomatedOption) { pause }
+            if (-not $AutomatedOption -and -not [Console]::IsInputRedirected) { pause }
             $running = $false
         }
         "2" {
             Test-InternetConnectivity | Out-Null
             Configure-DevAndAIEcosystem
             Write-HostBanner "ENTORNO DE DESARROLLO E IA CONFIGURADO EXITOSAMENTE"
-            if (-not $AutomatedOption) { pause }
+            if (-not $AutomatedOption -and -not [Console]::IsInputRedirected) { pause }
             $running = $false
         }
         "3" {
             Test-InternetConnectivity | Out-Null
             Configure-GamingPlatforms
             Write-HostBanner "ENTORNO GAMING CONFIGURADO EXITOSAMENTE"
-            if (-not $AutomatedOption) { pause }
+            if (-not $AutomatedOption -and -not [Console]::IsInputRedirected) { pause }
             $running = $false
         }
         "4" {
             Test-InternetConnectivity | Out-Null
             Show-CustomMenu
             Write-HostBanner "INSTALACION PERSONALIZADA FINALIZADA"
-            if (-not $AutomatedOption) { pause }
+            if (-not $AutomatedOption -and -not [Console]::IsInputRedirected) { pause }
             $running = $false
         }
         "0" {

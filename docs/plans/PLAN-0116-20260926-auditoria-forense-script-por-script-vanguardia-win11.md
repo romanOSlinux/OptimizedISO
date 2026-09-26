@@ -72,6 +72,6 @@ Por mandato constitucional de la Regla 15, cada script debe generar una ficha t�
 * [x] **Lote 9: Modules 5** (`Deploy-AppProfiles.ps1`, `Invoke-LiveSandbox.ps1`, `Optimize-InterruptAffinity.ps1`, `Optimize-WebBrowsers.ps1`) — COMPLETADO 2026-09-26
 * [x] **Lote 10: Modules 6** (`Add-OptimizedContextMenus.ps1`, `Monitor-ThermalEnergy.ps1`, `PostInstall-Diagnostics.ps1`, `romanOS-Toolkit.ps1`, `Migrar-Usuario-W11.ps1`) — COMPLETADO 2026-09-26
 * [x] **Lote 11: GUI Suite** (`romanOS-ControlCenter.ps1`, `romanOS-Studio.ps1`) — COMPLETADO 2026-09-26
-* [ ] **Lote 12: Host-Tools** (`Desplegar-Setup-Host.ps1`, `Get-OfficialWindowsISO.ps1`, `Limpiar-ResiduosWinISO.ps1`, `Setup-AntigravityWindows.ps1`, `Test-CodeQuality.ps1`)
+* [x] **Lote 12: Host-Tools** (`Desplegar-Setup-Host.ps1`, `Get-OfficialWindowsISO.ps1`, `Limpiar-ResiduosWinISO.ps1`, `Setup-AntigravityWindows.ps1`, `Test-CodeQuality.ps1`) — COMPLETADO 2026-09-26
 * [ ] **Lote 13: Drivers** (`Backup-HardwareDrivers.ps1`, `Clean-DriverStore.ps1`, `Get-CriticalDrivers.ps1`)
 * [ ] **Lote 14: Desktop-Helpers** (`romanOS-Helpers-Menu.ps1`, `Toggle-Defender.ps1`, `Toggle-WindowsUpdate.ps1`, `Toggle-VBS-CoreIsolation.ps1`, `Toggle-Bluetooth.ps1`, `Toggle-FileSharing.ps1`, `Toggle-PowerPlan.ps1`)

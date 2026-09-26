@@ -1,6 +1,4 @@
-﻿#Requires -RunAsAdministrator
-
-<#
+﻿<#
 .SYNOPSIS
 Detecta y limpia los residuos que puede dejar New-OptimizedWindowsISO-v2.ps1 en el sistema
 cuando el proceso de creación de ISO se interrumpe o falla a mitad de camino.
@@ -33,17 +31,34 @@ No ejecutar mientras New-OptimizedWindowsISO-v2.ps1 esté corriendo en otra vent
 podría estar usando esas mismas carpetas o esa misma imagen montada.
 #>
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [Parameter()]
     [switch]$Unattended,
 
     [Parameter()]
-    [switch]$Quiet
+    [switch]$Quiet,
+
+    [Parameter()]
+    [switch]$SkipElevation
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Continue'
+
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    if (-not $SkipElevation -and -not [Console]::IsInputRedirected -and -not $Unattended) {
+        Write-Host "  [AVISO] Este script requiere privilegios de Administrador para desmontar WIMs y descargar colmenas." -ForegroundColor Yellow
+        $relaunch = Read-Host "  ¿Desea relanzar este asistente con privilegios elevados? (S/N) [Por defecto: S]"
+        if ([string]::IsNullOrWhiteSpace($relaunch) -or $relaunch -match '^[sSyY]') {
+            Start-Process powershell.exe -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+            return
+        }
+    } else {
+        Write-Host "  [AVISO] Ejecutando en modo limitado sin elevación de Administrador. Algunas operaciones de DISM/Registro requerirán elevación." -ForegroundColor Yellow
+    }
+}
 
 #------------------------------------------------------------------------------
 # SALIDA CON COLOR
@@ -312,6 +327,7 @@ function Show-GestionDependencias {
     }
     Write-Host "  [0] Volver sin desinstalar nada" -ForegroundColor Gray
 
+    if ([Console]::IsInputRedirected) { return }
     $sel = Read-Host "  Elegí cuál desinstalar"
     if ($sel -match '^\d+$' -and [int]$sel -ge 1 -and [int]$sel -le $deps.Count) {
         $elegida = $deps[[int]$sel - 1]
@@ -372,6 +388,12 @@ Show-Reporte $hallazgos
 
 $salir = $false
 do {
+    if ([Console]::IsInputRedirected) {
+        Write-Warn "Entorno no interactivo detectado o sin entrada. Finalizando ejecucion."
+        $salir = $true
+        break
+    }
+
     Write-Host ""
     Write-Host "  [1] Analizar de nuevo" -ForegroundColor White
     Write-Host "  [2] Limpiar TODOS los residuos detectados" -ForegroundColor White
@@ -379,6 +401,12 @@ do {
     Write-Host "  [4] Gestionar dependencias instaladas (7-Zip / OSCDIMG)" -ForegroundColor White
     Write-Host "  [0] Salir" -ForegroundColor White
     $op = Read-Host "  Opción"
+
+    if ([string]::IsNullOrWhiteSpace($op)) {
+        Write-Warn "No se recibió entrada. Finalizando ejecucion."
+        $salir = $true
+        break
+    }
 
     switch ($op) {
         "1" {
@@ -390,7 +418,7 @@ do {
             if ($hallazgos.Count -eq 0) {
                 Write-Warn "No hay residuos detectados para limpiar."
             } else {
-                $conf = Read-Host "  Se eliminarán $($hallazgos.Count) elementos. ¿Confirmar? (S/N)"
+                $conf = if ([Console]::IsInputRedirected) { "N" } else { Read-Host "  Se eliminarán $($hallazgos.Count) elementos. ¿Confirmar? (S/N)" }
                 if ($conf -match '^[sS]') {
                     foreach ($item in $hallazgos) { Remove-Residuo -Item $item | Out-Null }
                     Invoke-CleanupMountpoints
@@ -405,7 +433,7 @@ do {
                 Write-Warn "No hay residuos detectados para limpiar."
             } else {
                 Show-Reporte $hallazgos
-                $sel = Read-Host "  Números a limpiar separados por coma (Enter = todos)"
+                $sel = if ([Console]::IsInputRedirected) { "" } else { Read-Host "  Números a limpiar separados por coma (Enter = todos)" }
                 if ([string]::IsNullOrWhiteSpace($sel)) {
                     $seleccionados = $hallazgos
                 } else {

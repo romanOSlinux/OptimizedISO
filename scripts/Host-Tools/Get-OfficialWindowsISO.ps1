@@ -395,26 +395,37 @@ function Get-OnlineWindowsReleases {
 # ------------------------------------------------------------------------------
 
 if (-not $Version) {
-    Show-Header
-    $liveReleases = Get-OnlineWindowsReleases -TimeoutSec 5
-    Write-Host ""
-    Write-Host "  PASO 1: SELECCIONE EL CANAL Y VERSIÓN DE WINDOWS (MICROSOFT LEARN):" -ForegroundColor Cyan
-    Write-Host "  ──────────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
-    
-    for ($i = 0; $i -lt $liveReleases.Count; $i++) {
-        $rel = $liveReleases[$i]
-        $optNum = $i + 1
-        Write-Host "  [$optNum] $($rel.DisplayName) — $($rel.Tag)" -ForegroundColor White
-    }
-    Write-Host "  [0] Cancelar y salir" -ForegroundColor Gray
-    Write-Host ""
+    if ([Console]::IsInputRedirected) {
+        $Version = "11_24H2"
+        Write-Info "Entorno no interactivo detectado. Seleccionando versión por defecto: $Version"
+    } else {
+        Show-Header
+        $liveReleases = Get-OnlineWindowsReleases -TimeoutSec 5
+        Write-Host ""
+        Write-Host "  PASO 1: SELECCIONE EL CANAL Y VERSIÓN DE WINDOWS (MICROSOFT LEARN):" -ForegroundColor Cyan
+        Write-Host "  ──────────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
+        
+        for ($i = 0; $i -lt $liveReleases.Count; $i++) {
+            $rel = $liveReleases[$i]
+            $optNum = $i + 1
+            Write-Host "  [$optNum] $($rel.DisplayName) — $($rel.Tag)" -ForegroundColor White
+        }
+        Write-Host "  [0] Cancelar y salir" -ForegroundColor Gray
+        Write-Host ""
 
-    $vChoice = Read-Host "  Seleccione una opción (1-$($liveReleases.Count))"
-    if ($vChoice -match '^\d+$') {
-        $idx = [int]$vChoice - 1
-        if ($idx -ge 0 -and $idx -lt $liveReleases.Count) {
-            $selectedRelease = $liveReleases[$idx]
-            $Version = $selectedRelease.Key
+        $vChoice = Read-Host "  Seleccione una opción (1-$($liveReleases.Count))"
+        if ($vChoice -match '^\d+$') {
+            $idx = [int]$vChoice - 1
+            if ($idx -ge 0 -and $idx -lt $liveReleases.Count) {
+                $selectedRelease = $liveReleases[$idx]
+                $Version = $selectedRelease.Key
+            } else {
+                Write-Host "  [WARN] Operación cancelada." -ForegroundColor Yellow
+                try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
+                    Write-LogEntry -Level "INFO" -Message "Transcript finalizado: $($_.Exception.Message)"
+                }
+                exit 0
+            }
         } else {
             Write-Host "  [WARN] Operación cancelada." -ForegroundColor Yellow
             try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
@@ -422,55 +433,59 @@ if (-not $Version) {
             }
             exit 0
         }
-    } else {
-        Write-Host "  [WARN] Operación cancelada." -ForegroundColor Yellow
-        try { Stop-Transcript -ErrorAction Stop | Out-Null } catch {
-            Write-LogEntry -Level "INFO" -Message "Transcript finalizado: $($_.Exception.Message)"
-        }
-        exit 0
     }
 }
 
 if (-not $Edition) {
-    Show-Header
-    Write-Host "  PASO 2: SELECCIONE EL TIPO DE MEDIO / PAQUETE DE EDICIÓN:" -ForegroundColor Cyan
-    Write-Host "  ──────────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
-    Write-Host "  [1] Consumer Multi-Edition (Minorista / Retail: Home, Pro, Edu)" -ForegroundColor White
-    Write-Host "  [2] Business / Volume Licensing (VL Empresarial: Enterprise, Pro, Edu)" -ForegroundColor White
-    Write-Host "  [3] IoT Enterprise / LTSC (Edición Especial de Máximo Rendimiento)" -ForegroundColor White
-    Write-Host ""
+    if ([Console]::IsInputRedirected) {
+        $Edition = "Consumer"
+        Write-Info "Entorno no interactivo detectado. Seleccionando edición por defecto: $Edition"
+    } else {
+        Show-Header
+        Write-Host "  PASO 2: SELECCIONE EL TIPO DE MEDIO / PAQUETE DE EDICIÓN:" -ForegroundColor Cyan
+        Write-Host "  ──────────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
+        Write-Host "  [1] Consumer Multi-Edition (Minorista / Retail: Home, Pro, Edu)" -ForegroundColor White
+        Write-Host "  [2] Business / Volume Licensing (VL Empresarial: Enterprise, Pro, Edu)" -ForegroundColor White
+        Write-Host "  [3] IoT Enterprise / LTSC (Edición Especial de Máximo Rendimiento)" -ForegroundColor White
+        Write-Host ""
 
-    $eChoice = Read-Host "  Seleccione una opción (1-3)"
-    switch ($eChoice) {
-        "1" { $Edition = "Consumer" }
-        "2" { $Edition = "Business" }
-        "3" { $Edition = "IoTEnterprise" }
-        default { $Edition = "Consumer" }
+        $eChoice = Read-Host "  Seleccione una opción (1-3)"
+        switch ($eChoice) {
+            "1" { $Edition = "Consumer" }
+            "2" { $Edition = "Business" }
+            "3" { $Edition = "IoTEnterprise" }
+            default { $Edition = "Consumer" }
+        }
     }
 }
 
 if (-not $Language) {
-    Show-Header
-    Write-Host "  PASO 3: SELECCIONE EL IDIOMA OFICIAL DE LA IMAGEN:" -ForegroundColor Cyan
-    Write-Host "  ──────────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
-    Write-Host "  [1] Español (España / Internacional) [Spanish / es-ES]" -ForegroundColor White
-    Write-Host "  [2] Español (México / Latinoamérica) [Spanish (Mexico) / es-MX]" -ForegroundColor White
-    Write-Host "  [3] Inglés (Estados Unidos) [English / en-US]" -ForegroundColor White
-    Write-Host "  [4] Portugués (Brasil) [Portuguese (Brazil) / pt-BR]" -ForegroundColor White
-    Write-Host "  [5] Otro idioma (escribir nombre en inglés, ej. French, German)" -ForegroundColor Yellow
-    Write-Host ""
+    if ([Console]::IsInputRedirected) {
+        $Language = "Spanish"
+        Write-Info "Entorno no interactivo detectado. Seleccionando idioma por defecto: $Language"
+    } else {
+        Show-Header
+        Write-Host "  PASO 3: SELECCIONE EL IDIOMA OFICIAL DE LA IMAGEN:" -ForegroundColor Cyan
+        Write-Host "  ──────────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
+        Write-Host "  [1] Español (España / Internacional) [Spanish / es-ES]" -ForegroundColor White
+        Write-Host "  [2] Español (México / Latinoamérica) [Spanish (Mexico) / es-MX]" -ForegroundColor White
+        Write-Host "  [3] Inglés (Estados Unidos) [English / en-US]" -ForegroundColor White
+        Write-Host "  [4] Portugués (Brasil) [Portuguese (Brazil) / pt-BR]" -ForegroundColor White
+        Write-Host "  [5] Otro idioma (escribir nombre en inglés, ej. French, German)" -ForegroundColor Yellow
+        Write-Host ""
 
-    $lChoice = Read-Host "  Seleccione una opción (1-5)"
-    switch ($lChoice) {
-        "1" { $Language = "Spanish" }
-        "2" { $Language = "Spanish (Mexico)" }
-        "3" { $Language = "English" }
-        "4" { $Language = "Portuguese (Brazil)" }
-        "5" { 
-            $customLang = Read-Host "  Escriba el nombre del idioma en inglés (ej. French)"
-            $Language = if ($customLang) { $customLang.Trim() } else { "Spanish" }
+        $lChoice = Read-Host "  Seleccione una opción (1-5)"
+        switch ($lChoice) {
+            "1" { $Language = "Spanish" }
+            "2" { $Language = "Spanish (Mexico)" }
+            "3" { $Language = "English" }
+            "4" { $Language = "Portuguese (Brazil)" }
+            "5" { 
+                $customLang = Read-Host "  Escriba el nombre del idioma en inglés (ej. French)"
+                $Language = if ($customLang) { $customLang.Trim() } else { "Spanish" }
+            }
+            default { $Language = "Spanish" }
         }
-        default { $Language = "Spanish" }
     }
 }
 
@@ -745,14 +760,14 @@ try {
             Write-Host "  $OutputDir" -ForegroundColor White
             Write-Host ""
 
-            Write-LogEntry -Level "INFO" -Message "Canal especial. EvalCenter: $evalUrl | Massgrave: $massgraveUrl"
-
-            $openChoice = Read-Host "  Abrir en navegador: [A] Evaluation Center  [B] Massgrave  [C] Ambos  [N] No"
-            switch ($openChoice.ToUpper().Trim()) {
-                "A" { Start-Process $evalUrl }
-                "B" { Start-Process $massgraveUrl }
-                "C" { Start-Process $evalUrl; Start-Sleep -Seconds 1; Start-Process $massgraveUrl }
-                default { Write-Info "Ninguna página abierta. URLs copiadas en el log de sesión." }
+            $openChoice = if ([Console]::IsInputRedirected) { "N" } else { Read-Host "  Abrir en navegador: [A] Evaluation Center  [B] Massgrave  [C] Ambos  [N] No" }
+            if ($openChoice) {
+                switch ($openChoice.ToUpper().Trim()) {
+                    "A" { Start-Process $evalUrl }
+                    "B" { Start-Process $massgraveUrl }
+                    "C" { Start-Process $evalUrl; Start-Sleep -Seconds 1; Start-Process $massgraveUrl }
+                    default { Write-Info "Ninguna página abierta. URLs copiadas en el log de sesión." }
+                }
             }
 
         } else {
@@ -777,8 +792,8 @@ try {
             Write-Host "  └────────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
             Write-Host ""
 
-            $openBrowser = Read-Host "  ¿Desea abrir el portal oficial de Microsoft en su navegador ahora? (S/N)"
-            if ($openBrowser -match '^[sSyY]') {
+            $openBrowser = if ([Console]::IsInputRedirected) { "N" } else { Read-Host "  ¿Desea abrir el portal oficial de Microsoft en su navegador ahora? (S/N)" }
+            if ($openBrowser -and $openBrowser -match '^[sSyY]') {
                 Start-Process $consumerUrl
             }
         }

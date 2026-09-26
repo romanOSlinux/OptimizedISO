@@ -11,7 +11,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [string]$Path = 'c:\OptimizedISO\scripts',
+    [string]$Path = '',
 
     [Parameter()]
     [string]$ScriptPath,
@@ -28,6 +28,16 @@ if ($ScriptPath) {
     }
     $targetFiles = @(Get-Item -LiteralPath $ScriptPath)
 } else {
+    if (-not $Path) {
+        $parentScripts = Join-Path (Split-Path -Parent $PSScriptRoot) "scripts"
+        if (Test-Path -LiteralPath $parentScripts) {
+            $Path = $parentScripts
+        } elseif (Test-Path -LiteralPath 'c:\OptimizedISO\scripts') {
+            $Path = 'c:\OptimizedISO\scripts'
+        } else {
+            $Path = $PSScriptRoot
+        }
+    }
     if (-not (Test-Path -LiteralPath $Path)) {
         Write-Error "La ruta especificada no existe: $Path"
         exit 1

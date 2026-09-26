@@ -108,7 +108,14 @@ $antigravityPresent = ($null -ne $agyCmd) -or $antigravityAppData
 
 $gitDetail = if ($gitInstalled) { (git --version) } else { "Requerido para control de versiones y trazabilidad" }
 $adkDetail = if ($adkInstalled) { $oscdimgPath } else { "Requerido para compilar ISOs de arranque BIOS/UEFI" }
-$pwshDetail = if ($pwshInstalled) { $PSVersionTable.PSVersion.ToString() } else { "Opcional / Recomendado (PowerShell 5.1 nativo soportado)" }
+$pwshDetail = if ($pwshInstalled) {
+    try {
+        $verOut = (& $pwshCmd.Source --version 2>&1) | Out-String
+        if ($verOut -match 'PowerShell\s+([\d\.]+)') { $matches[1] } else { $verOut.Trim() }
+    } catch {
+        "Instalado"
+    }
+} else { "Opcional / Recomendado (PowerShell 5.1 nativo soportado)" }
 $hvDetail = if ($hyperVEnabled) { "Habilitado" } else { "Necesario para New-TestVM-HyperV.ps1" }
 $agyDetail = if ($antigravityPresent) { "Instalado / Carpeta .gemini activa" } else { "Instalar Antigravity IDE" }
 
