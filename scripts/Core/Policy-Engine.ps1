@@ -3643,6 +3643,100 @@ function Set-RomanOSDesktopHelperState {
     }
 }
 
+# ============================================================================
+# FASE 2 (PLAN-0117): MOTOR Y PERFILES CANÓNICOS DE DNS INTELIGENTE (SSOT)
+# ============================================================================
+
+function Get-RomanOSDnsProfiles {
+    <#
+    .SYNOPSIS
+        Retorna los perfiles canonicos de proveedores DNS de alta velocidad y seguridad para romanOS.
+    .DESCRIPTION
+        Fuente Unica de Verdad (SSOT) de configuraciones de DNS (IPv4, IPv6, DoH Templates y metadatos)
+        inspirada en Chris Titus Tech WinUtil y estandarizada para Windows 11 24H2/25H2.
+    #>
+    [CmdletBinding()]
+    param()
+
+    return @(
+        [PSCustomObject]@{
+            Id            = "Cloudflare"
+            Name          = "Cloudflare DNS (1.1.1.1)"
+            Description   = "Maxima velocidad global y privacidad estricta sin registros."
+            PrimaryIPv4   = "1.1.1.1"
+            SecondaryIPv4 = "1.0.0.1"
+            PrimaryIPv6   = "2606:4700:4700::1111"
+            SecondaryIPv6 = "2606:4700:4700::1001"
+            DoHTemplate   = "https://cloudflare-dns.com/dns-query"
+            SupportsDoH   = $true
+            Category      = "Rendimiento & Privacidad"
+        },
+        [PSCustomObject]@{
+            Id            = "Quad9"
+            Name          = "Quad9 DNS (9.9.9.9 - Seguridad)"
+            Description   = "Bloqueo activo de malware, phishing y dominios fraudulentos."
+            PrimaryIPv4   = "9.9.9.9"
+            SecondaryIPv4 = "149.112.112.112"
+            PrimaryIPv6   = "2620:fe::fe"
+            SecondaryIPv6 = "2620:fe::9"
+            DoHTemplate   = "https://dns.quad9.net/dns-query"
+            SupportsDoH   = $true
+            Category      = "Seguridad & Anti-Malware"
+        },
+        [PSCustomObject]@{
+            Id            = "Google"
+            Name          = "Google Public DNS (8.8.8.8)"
+            Description   = "Infraestructura Anycast global de Google de alta disponibilidad."
+            PrimaryIPv4   = "8.8.8.8"
+            SecondaryIPv4 = "8.8.4.4"
+            PrimaryIPv6   = "2001:4860:4860::8888"
+            SecondaryIPv6 = "2001:4860:4860::8844"
+            DoHTemplate   = "https://dns.google/dns-query"
+            SupportsDoH   = $true
+            Category      = "Disponibilidad Global"
+        },
+        [PSCustomObject]@{
+            Id            = "AdGuard"
+            Name          = "AdGuard DNS (Anti-Publicidad)"
+            Description   = "Filtrado de anuncios y rastreadores a nivel de resolucion de red."
+            PrimaryIPv4   = "94.140.14.14"
+            SecondaryIPv4 = "94.140.15.15"
+            PrimaryIPv6   = "2a10:50c0::ad1:ff"
+            SecondaryIPv6 = "2a10:50c0::ad2:ff"
+            DoHTemplate   = "https://dns.adguard-dns.com/dns-query"
+            SupportsDoH   = $true
+            Category      = "Ad-Blocking & Privacidad"
+        },
+        [PSCustomObject]@{
+            Id            = "DHCP"
+            Name          = "DHCP Automatico (ISP / Router)"
+            Description   = "Restablece la asignacion dinamica de DNS otorgada por el enrutador."
+            PrimaryIPv4   = $null
+            SecondaryIPv4 = $null
+            PrimaryIPv6   = $null
+            SecondaryIPv6 = $null
+            DoHTemplate   = $null
+            SupportsDoH   = $false
+            Category      = "Por Defecto de Red"
+        }
+    )
+}
+
+function Get-RomanOSDnsProfileById {
+    <#
+    .SYNOPSIS
+        Busca y retorna un perfil de DNS por su identificador unico.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Id
+    )
+
+    $profiles = Get-RomanOSDnsProfiles
+    return ($profiles | Where-Object { $_.Id -ieq $Id })
+}
+
 
 
 

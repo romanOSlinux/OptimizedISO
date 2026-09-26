@@ -8,7 +8,12 @@
 param(
     [switch]$Unattended,
     [switch]$NagleOnly,
-    [switch]$FlushDNSOnly
+    [switch]$FlushDNSOnly,
+    [string]$SetDNS,
+    [switch]$TestDNS,
+    [switch]$EnableDoH,
+    [string]$InterfaceAlias,
+    [switch]$Quiet
 )
 
 # Precarga de ensamblados WPF para soporte garantizado de interfaz grafica (Out-GridView)
@@ -18,41 +23,8 @@ try {
     Write-Warning "[Network-Optimizer] No se pudieron precargar ensamblados WPF: $($_.Exception.Message)"
 }
 
-# ============================================================
-# Comprobar privilegios de Administrador y auto-elevar
-# ============================================================
 try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop } catch {
     Write-Warning "[Network-Optimizer] No se pudo establecer ExecutionPolicy: $($_.Exception.Message)"
-}
-
-$isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-
-if (-not $isAdmin) {
-    if ($isSimulated) {
-        Write-Warning "Ejecutando en modo simulado (-WhatIf) sin elevacion UAC."
-    } else {
-        Write-Warning "Este script requiere privilegios de Administrador. Reiniciando de forma elevada..."
-        $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-        $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
-        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
-        if ($Unattended) { $argList += '-Unattended' }
-        if ($NagleOnly) { $argList += '-NagleOnly' }
-        if ($FlushDNSOnly) { $argList += '-FlushDNSOnly' }
-        Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
-        Exit
-    }
-}
-
-if ($FlushDNSOnly) {
-    try {
-        Clear-DnsClientCache -ErrorAction Stop
-        Write-Host "  [OK] Cache DNS vaciada con exito (Clear-DnsClientCache)." -ForegroundColor Green
-    } catch {
-        ipconfig /flushdns | Out-Null
-        Write-Host "  [OK] Cache DNS vaciada con exito (ipconfig /flushdns)." -ForegroundColor Green
-    }
-    Exit 0
 }
 
 $ErrorActionPreference = 'Continue'
@@ -110,6 +82,356 @@ foreach ($p in $enginePaths) {
 }
 if (-not $engineLoaded) {
     Write-Warning "No se pudo cargar Policy-Engine.ps1. El script no podra leer las directivas de red dinamicas."
+}
+
+# ============================================================
+# FUNCIONES MODULARES DE DNS Y RED (INSPIRACIÓN WINUTIL / PLAN-0117)
+# ============================================================
+
+function Get-RomanOSActiveNetworkAdapters {
+    <#
+    .SYNOPSIS
+        Detecta y retorna los adaptadores de red fisicos o activos del sistema de destino.
+    #>
+    [CmdletBinding()]
+    param()
+
+    try {
+        $adapters = Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' }
+        if (-not $adapters) {
+            $adapters = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Virtual|Hyper-V|Loopback|TAP|VPN' }
+        }
+        if (-not $adapters) {
+            $adapters = Get-NetAdapter -Physical -ErrorAction SilentlyContinue
+        }
+        if (-not $adapters) {
+            $adapters = Get-NetAdapter -ErrorAction SilentlyContinue
+        }
+        return @($adapters)
+    } catch {
+        Write-Warning "Fallo al enumerar adaptadores de red: $($_.Exception.Message)"
+        return @()
+    }
+}
+
+function Test-RomanOSDnsLatency {
+    <#
+    .SYNOPSIS
+        Mide la latencia RTT (Round-Trip Time) en milisegundos hacia los resolvers DNS canonicos.
+    .DESCRIPTION
+        Inspirado en el conmutador de DNS de Chris Titus Tech WinUtil, realiza sondeos en tiempo real
+        (via Socket TCP en puerto 53 / Ping ICMP) para benchmark y recomendacion automatica.
+    #>
+    [CmdletBinding()]
+    param(
+        [string[]]$ProfileIds,
+        [int]$Samples = 3,
+        [int]$TimeoutMs = 800
+    )
+
+    $allProfiles = if (Get-Command "Get-RomanOSDnsProfiles" -ErrorAction SilentlyContinue) {
+        Get-RomanOSDnsProfiles
+    } else {
+        @(
+            [PSCustomObject]@{ Id = "Cloudflare"; Name = "Cloudflare DNS"; PrimaryIPv4 = "1.1.1.1"; SecondaryIPv4 = "1.0.0.1"; SupportsDoH = $true; DoHTemplate = "https://cloudflare-dns.com/dns-query" },
+            [PSCustomObject]@{ Id = "Quad9"; Name = "Quad9 DNS"; PrimaryIPv4 = "9.9.9.9"; SecondaryIPv4 = "149.112.112.112"; SupportsDoH = $true; DoHTemplate = "https://dns.quad9.net/dns-query" },
+            [PSCustomObject]@{ Id = "Google"; Name = "Google Public DNS"; PrimaryIPv4 = "8.8.8.8"; SecondaryIPv4 = "8.8.4.4"; SupportsDoH = $true; DoHTemplate = "https://dns.google/dns-query" },
+            [PSCustomObject]@{ Id = "AdGuard"; Name = "AdGuard DNS"; PrimaryIPv4 = "94.140.14.14"; SecondaryIPv4 = "94.140.15.15"; SupportsDoH = $true; DoHTemplate = "https://dns.adguard-dns.com/dns-query" }
+        )
+    }
+
+    $targets = if ($ProfileIds) {
+        $allProfiles | Where-Object { $_.Id -in $ProfileIds -and $_.PrimaryIPv4 }
+    } else {
+        $allProfiles | Where-Object { $_.PrimaryIPv4 }
+    }
+
+    $results = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    foreach ($p in $targets) {
+        $ip = $p.PrimaryIPv4
+        $latencies = [System.Collections.Generic.List[double]]::new()
+        $successCount = 0
+
+        for ($i = 0; $i -lt $Samples; $i++) {
+            $rtt = $null
+            try {
+                $ping = [System.Net.NetworkInformation.Ping]::new()
+                $reply = $ping.Send($ip, $TimeoutMs)
+                if ($reply.Status -eq [System.Net.NetworkInformation.IPStatus]::Success) {
+                    $rtt = [double]$reply.RoundtripTime
+                }
+            } catch {
+                $rtt = $null
+            }
+
+            if ($null -eq $rtt) {
+                $sw = [System.Diagnostics.Stopwatch]::StartNew()
+                $client = $null
+                try {
+                    $client = [System.Net.Sockets.TcpClient]::new()
+                    $iar = $client.BeginConnect($ip, 53, $null, $null)
+                    $connected = $iar.AsyncWaitHandle.WaitOne($TimeoutMs, $false)
+                    if ($connected -and $client.Connected) {
+                        $sw.Stop()
+                        $rtt = [math]::Round($sw.Elapsed.TotalMilliseconds, 1)
+                    }
+                } catch {
+                    $rtt = $null
+                } finally {
+                    if ($client) { $client.Close() }
+                }
+            }
+
+            if ($null -ne $rtt) {
+                $latencies.Add($rtt)
+                $successCount++
+            }
+        }
+
+        $avgLatency = if ($latencies.Count -gt 0) {
+            [math]::Round(($latencies | Measure-Object -Average).Average, 1)
+        } else {
+            999.0
+        }
+
+        $minLatency = if ($latencies.Count -gt 0) {
+            [math]::Round(($latencies | Measure-Object -Minimum).Minimum, 1)
+        } else {
+            999.0
+        }
+
+        $lossPct = [math]::Round((($Samples - $successCount) / $Samples) * 100, 0)
+        $statusStr = if ($lossPct -eq 0) { "EXCELENTE" } elseif ($lossPct -lt 50) { "ACEPTABLE" } else { "INACCESIBLE" }
+
+        $results.Add([PSCustomObject]@{
+            Id             = $p.Id
+            Name           = $p.Name
+            PrimaryIPv4    = $p.PrimaryIPv4
+            SecondaryIPv4  = $p.SecondaryIPv4
+            DoHTemplate    = $p.DoHTemplate
+            SupportsDoH    = $p.SupportsDoH
+            AverageMs      = $avgLatency
+            MinMs          = $minLatency
+            PacketLoss     = "${lossPct}%"
+            Status         = $statusStr
+            Recommended    = $false
+        })
+    }
+
+    $sorted = $results | Sort-Object AverageMs
+    $firstValid = $sorted | Where-Object { $_.AverageMs -lt 999.0 } | Select-Object -First 1
+    if ($firstValid) {
+        $firstValid.Recommended = $true
+    }
+
+    return $sorted
+}
+
+function Set-RomanOSDnsServer {
+    <#
+    .SYNOPSIS
+        Configura el servidor DNS y plantilla DoH en el adaptador activo o especificado.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProfileId,
+
+        [string]$InterfaceAlias,
+
+        [switch]$EnableDoH,
+
+        [switch]$Quiet
+    )
+
+    $profile = if (Get-Command "Get-RomanOSDnsProfileById" -ErrorAction SilentlyContinue) {
+        Get-RomanOSDnsProfileById -Id $ProfileId
+    } else {
+        $all = if (Get-Command "Get-RomanOSDnsProfiles" -ErrorAction SilentlyContinue) { Get-RomanOSDnsProfiles } else { @() }
+        $all | Where-Object { $_.Id -ieq $ProfileId }
+    }
+
+    if (-not $profile) {
+        Write-Error "Perfil de DNS no reconocido: '$ProfileId'."
+        return $false
+    }
+
+    $targetAdapters = if ($InterfaceAlias) {
+        Get-NetAdapter -Name $InterfaceAlias -ErrorAction SilentlyContinue
+    } else {
+        Get-RomanOSActiveNetworkAdapters
+    }
+
+    if (-not $targetAdapters -or $targetAdapters.Count -eq 0) {
+        Write-Warning "No se encontraron adaptadores de red activos para configurar DNS."
+        return $false
+    }
+
+    $allSuccess = $true
+
+    foreach ($adapter in $targetAdapters) {
+        $alias = $adapter.InterfaceAlias
+        $idx   = $adapter.InterfaceIndex
+
+        if ($PSCmdlet.ShouldProcess("Adaptador '$alias' (Index: $idx)", "Aplicar configuración DNS '$($profile.Name)'")) {
+            try {
+                if ($profile.Id -ieq "DHCP") {
+                    Set-DnsClientServerAddress -InterfaceIndex $idx -ResetServerAddresses -ErrorAction Stop
+                    if (-not $Quiet) {
+                        Write-Host "  [OK] Adaptador '$alias' configurado a DNS dinámico (DHCP)." -ForegroundColor Green
+                    }
+                } else {
+                    $ips = @($profile.PrimaryIPv4)
+                    if ($profile.SecondaryIPv4) { $ips += $profile.SecondaryIPv4 }
+
+                    Set-DnsClientServerAddress -InterfaceIndex $idx -ServerAddresses $ips -ErrorAction Stop
+
+                    if ($EnableDoH -and $profile.SupportsDoH -and $profile.DoHTemplate) {
+                        try {
+                            if (Get-Command "Add-DnsClientDohServerAddress" -ErrorAction SilentlyContinue) {
+                                Add-DnsClientDohServerAddress -ServerAddress $profile.PrimaryIPv4 -DnsOverHttpsTemplate $profile.DoHTemplate -AllowFallbackToUdp $true -AutoUpgrade $true -ErrorAction SilentlyContinue | Out-Null
+                                if ($profile.SecondaryIPv4) {
+                                    Add-DnsClientDohServerAddress -ServerAddress $profile.SecondaryIPv4 -DnsOverHttpsTemplate $profile.DoHTemplate -AllowFallbackToUdp $true -AutoUpgrade $true -ErrorAction SilentlyContinue | Out-Null
+                                }
+                            }
+                        } catch {
+                            Write-Warning "No se pudo registrar plantilla DoH en el cliente DNS: $($_.Exception.Message)"
+                        }
+                    }
+
+                    if (-not $Quiet) {
+                        $dohMsg = if ($EnableDoH -and $profile.SupportsDoH) { " (+ DoH activado)" } else { "" }
+                        Write-Host "  [OK] Adaptador '$alias' configurado con $($profile.Name) ($($ips -join ', '))$dohMsg." -ForegroundColor Green
+                    }
+                }
+
+                try { Clear-DnsClientCache -ErrorAction Stop } catch { & ipconfig.exe /flushdns | Out-Null }
+            } catch {
+                Write-Warning "Fallo al configurar DNS en '$alias': $($_.Exception.Message)"
+                $allSuccess = $false
+            }
+        }
+    }
+
+    return $allSuccess
+}
+
+function Reset-RomanOSDnsServer {
+    <#
+    .SYNOPSIS
+        Restablece la configuracion DNS del adaptador activo a DHCP automatico.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [string]$InterfaceAlias,
+        [switch]$Quiet
+    )
+
+    return (Set-RomanOSDnsServer -ProfileId "DHCP" -InterfaceAlias $InterfaceAlias -Quiet:$Quiet)
+}
+
+function Get-RomanOSCurrentDns {
+    <#
+    .SYNOPSIS
+        Consulta la configuracion DNS activa de los adaptadores de red y detecta el proveedor.
+    #>
+    [CmdletBinding()]
+    param()
+
+    $adapters = Get-RomanOSActiveNetworkAdapters
+    $profiles = if (Get-Command "Get-RomanOSDnsProfiles" -ErrorAction SilentlyContinue) { Get-RomanOSDnsProfiles } else { @() }
+    $output = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    foreach ($a in $adapters) {
+        try {
+            $dns = Get-DnsClientServerAddress -InterfaceIndex $a.InterfaceIndex -AddressFamily IPv4 -ErrorAction Stop
+            $servers = $dns.ServerAddresses
+            $matchedProfile = "Personalizado / Desconocido"
+            if (-not $servers -or $servers.Count -eq 0) {
+                $matchedProfile = "DHCP Automatico"
+            } else {
+                foreach ($p in $profiles) {
+                    if ($p.PrimaryIPv4 -and ($servers -contains $p.PrimaryIPv4)) {
+                        $matchedProfile = $p.Name
+                        break
+                    }
+                }
+            }
+
+            $output.Add([PSCustomObject]@{
+                InterfaceAlias  = $a.InterfaceAlias
+                InterfaceIndex  = $a.InterfaceIndex
+                Description     = $a.InterfaceDescription
+                Status          = $a.Status
+                DnsServers      = ($servers -join ', ')
+                DetectedProfile = $matchedProfile
+            })
+        } catch {
+            Write-Warning "Fallo al consultar DNS en $($a.InterfaceAlias): $($_.Exception.Message)"
+        }
+    }
+
+    return $output
+}
+
+# ============================================================
+# ACCIONES RÁPIDAS NO ELEVADAS O TEMPRANAS
+# ============================================================
+
+if ($TestDNS) {
+    Write-Host "`n==========================================================" -ForegroundColor Magenta
+    Write-Host "   romanOS: BENCHMARK DE LATENCIA DNS (RTT Engine)        " -ForegroundColor Cyan
+    Write-Host "==========================================================" -ForegroundColor Magenta
+    $latencies = Test-RomanOSDnsLatency
+    $latencies | Format-Table -Property Name, PrimaryIPv4, AverageMs, MinMs, PacketLoss, Status, Recommended -AutoSize
+    Exit 0
+}
+
+if ($FlushDNSOnly) {
+    try {
+        Clear-DnsClientCache -ErrorAction Stop
+        Write-Host "  [OK] Cache DNS vaciada con exito (Clear-DnsClientCache)." -ForegroundColor Green
+    } catch {
+        ipconfig /flushdns | Out-Null
+        Write-Host "  [OK] Cache DNS vaciada con exito (ipconfig /flushdns)." -ForegroundColor Green
+    }
+    Exit 0
+}
+
+# Si fue invocado mediante dot-sourcing (como modulo de funciones), finalizar aqui exportando las funciones
+if ($MyInvocation.InvocationName -eq '.') {
+    return
+}
+
+# ============================================================
+# COMPROBAR PRIVILEGIOS DE ADMINISTRADOR Y AUTO-ELEVACIÓN
+# ============================================================
+$isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin) {
+    if ($isSimulated) {
+        Write-Warning "Ejecutando en modo simulado (-WhatIf) sin elevacion UAC."
+    } else {
+        Write-Warning "Este script requiere privilegios de Administrador. Reiniciando de forma elevada..."
+        $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+        $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
+        if ($Unattended)     { $argList += '-Unattended' }
+        if ($NagleOnly)      { $argList += '-NagleOnly' }
+        if ($SetDNS)         { $argList += @('-SetDNS', $SetDNS) }
+        if ($EnableDoH)      { $argList += '-EnableDoH' }
+        if ($InterfaceAlias) { $argList += @('-InterfaceAlias', $InterfaceAlias) }
+        if ($Quiet)          { $argList += '-Quiet' }
+        Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
+        Exit
+    }
+}
+
+if ($SetDNS) {
+    $res = Set-RomanOSDnsServer -ProfileId $SetDNS -InterfaceAlias $InterfaceAlias -EnableDoH:$EnableDoH -Quiet:$Quiet
+    if ($res) { Exit 0 } else { Exit 1 }
 }
 
 # ============================================================
@@ -518,30 +840,13 @@ try {
                         }
                     }
                     'Local_DoH' {
-                        if ($tweak.ExpectedValue -eq 1) {
-                            $pri = "1.1.1.1"
-                            $sec = "1.0.0.1"
-                            $tmpl = "https://cloudflare-dns.com/dns-query"
-                        } else {
-                            $pri = "9.9.9.9"
-                            $sec = "149.112.112.112"
-                            $tmpl = "https://dns.quad9.net/dns-query"
-                        }
-                        if ($adapters) {
-                            foreach ($a in $adapters) {
-                                try {
-                                    Set-DnsClientServerAddress -InterfaceAlias $a.InterfaceAlias -ServerAddresses $pri, $sec -ErrorAction SilentlyContinue
-                                    Add-DnsClientDohServerAddress -ServerAddress $pri -DohTemplate $tmpl -AllowFallbackToUdp $false -ErrorAction SilentlyContinue
-                                    Add-DnsClientDohServerAddress -ServerAddress $sec -DohTemplate $tmpl -AllowFallbackToUdp $false -ErrorAction SilentlyContinue
-                                    Set-DnsClientServerAddress -InterfaceAlias $a.InterfaceAlias -ServerAddresses $pri, $sec -ErrorAction SilentlyContinue
-                                } catch { Write-Warning "No se pudo configurar DoH nativo en $($a.Name)" }
-                            }
-                        }
+                        $profileId = if ($tweak.ExpectedValue -eq 1) { "Cloudflare" } else { "Quad9" }
+                        Set-RomanOSDnsServer -ProfileId $profileId -EnableDoH -Quiet
                     }
                     'Local_Reset' {
+                        Reset-RomanOSDnsServer -Quiet
                         & netsh.exe winsock reset | Out-Null
                         & netsh.exe int ip reset | Out-Null
-                        try { Clear-DnsClientCache -ErrorAction Stop } catch { & ipconfig.exe /flushdns | Out-Null }
                     }
                 }
                 
