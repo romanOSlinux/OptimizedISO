@@ -69,7 +69,7 @@ Por mandato constitucional de la Regla 15, cada script debe generar una ficha t�
 * [x] **Lote 6: Modules 2** (`Win11-Network-Diagnostics-Optimizer.ps1`, `Optimize-GamingAndApps.ps1`, `Optimize-ProcessMemory.ps1`) — COMPLETADO 2026-09-26
 * [x] **Lote 7: Modules 3** (`Invoke-WindowsSecurityHardening.ps1`, `Invoke-WindowsMaintenance.ps1`, `Desktop-Helpers.ps1`) — COMPLETADO 2026-09-26
 * [x] **Lote 8: Modules 4** (`Manage-SystemSnapshots.ps1`, `Switch-GameDevMode.ps1`, `Trace-SystemLatency.ps1`, `Watchdog-ServiceDrift.ps1`) — COMPLETADO 2026-09-26
-* [ ] **Lote 9: Modules 5** (`Deploy-AppProfiles.ps1`, `Invoke-LiveSandbox.ps1`, `Optimize-InterruptAffinity.ps1`, `Optimize-WebBrowsers.ps1`)
+* [x] **Lote 9: Modules 5** (`Deploy-AppProfiles.ps1`, `Invoke-LiveSandbox.ps1`, `Optimize-InterruptAffinity.ps1`, `Optimize-WebBrowsers.ps1`) — COMPLETADO 2026-09-26
 * [ ] **Lote 10: Modules 6** (`Add-OptimizedContextMenus.ps1`, `Monitor-ThermalEnergy.ps1`, `PostInstall-Diagnostics.ps1`, `romanOS-Toolkit.ps1`, `Migrar-Usuario-W11.ps1`)
 * [ ] **Lote 11: GUI Suite** (`romanOS-ControlCenter.ps1`, `romanOS-Studio.ps1`)
 * [ ] **Lote 12: Host-Tools** (`Desplegar-Setup-Host.ps1`, `Get-OfficialWindowsISO.ps1`, `Limpiar-ResiduosWinISO.ps1`, `Setup-AntigravityWindows.ps1`, `Test-CodeQuality.ps1`)

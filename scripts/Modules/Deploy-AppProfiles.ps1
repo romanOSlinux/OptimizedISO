@@ -149,7 +149,7 @@ function Write-DeployLog {
     try {
         [System.IO.File]::AppendAllText($LogPath, "$line`r`n", [System.Text.Encoding]::UTF8)
     } catch {
-        # Fallback sin detener el flujo si el log no es accesible
+        Write-Verbose "[ADVERTENCIA] Fallo al persistir evento en archivo de log ($LogPath): $($_.Exception.Message)"
     }
 }
 
@@ -360,7 +360,7 @@ if ($AutoDetectHardware -and $catalog.hardwareAddons) {
         }
         if ($pnpDevices) { $hasNpu = $true }
     } catch {
-        # Non-fatal
+        Write-Verbose "[Deploy-AppProfiles] Telemetría de hardware NPU no accesible vía Win32_PnPEntity: $($_.Exception.Message)"
     }
 
     if ($hasNpu -and $catalog.hardwareAddons.Npu) {

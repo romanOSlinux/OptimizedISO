@@ -210,21 +210,23 @@ try {
 Write-StepHeader -StepNumber 2 -TotalSteps 2 -Message "Aplicando directivas de Copilot e IA a nivel de sistema..."
 
 try {
-    # Desactivacion de Copilot e IA publicitaria en Windows
-    $copilotPolicies = @(
-        @{ Path = "HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot"; Name = "TurnOffWindowsCopilot"; Value = 1 },
-        @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot"; Name = "TurnOffWindowsCopilot"; Value = 1 },
-        @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI";      Name = "DisableAIDataAnalysis"; Value = 1 },
-        @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows AI";     Name = "DisableAIDataAnalysis"; Value = 1 }
-    )
-
-    foreach ($cp in $copilotPolicies) {
-        if (-not (Test-Path $cp.Path)) {
-            New-Item -Path $cp.Path -Force -ErrorAction SilentlyContinue | Out-Null
+    # Desactivacion de Copilot e IA publicitaria en Windows sincronizada con Policy-Engine (SSOT)
+    $ssotCopilot = Get-RomanOSPolicies | Where-Object { $_.Id -in @("POL_COPILOT_TURNOFF", "POL_AI_DISABLE_ANALYSIS") }
+    foreach ($cp in $ssotCopilot) {
+        if (-not (Test-Path $cp.PSPath)) {
+            New-Item -Path $cp.PSPath -Force -ErrorAction SilentlyContinue | Out-Null
         }
-        Set-ItemProperty -Path $cp.Path -Name $cp.Name -Value $cp.Value -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $cp.PSPath -Name $cp.ValueName -Value $cp.ExpectedValue -Type DWord -Force -ErrorAction SilentlyContinue
     }
-    Write-Success "Politicas de Copilot e IA a nivel de sistema aseguradas."
+
+    # Asegurar desactivación en perfil de usuario actual (HKCU)
+    $hkcuCopilotPath = "HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot"
+    if (-not (Test-Path $hkcuCopilotPath)) {
+        New-Item -Path $hkcuCopilotPath -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+    Set-ItemProperty -Path $hkcuCopilotPath -Name "TurnOffWindowsCopilot" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+
+    Write-Success "Politicas de Copilot e IA a nivel de sistema aseguradas (SSOT)."
 } catch {
     $warnsCount++
     Write-Warn "No se pudieron actualizar algunas claves de Copilot: $($_.Exception.Message)"

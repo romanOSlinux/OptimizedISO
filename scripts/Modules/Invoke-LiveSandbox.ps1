@@ -195,7 +195,7 @@ function Get-RomanOSSandboxDiagnostic {
             $diag.HyperVRunning = $true
         }
     } catch {
-        # vmms no instalado o sin permisos
+        Write-Verbose "[LiveSandbox] Servicio vmms no accesible para telemetría Hyper-V: $($_.Exception.Message)"
     }
 
     if ($diag.SandboxBinaryExists -and $diag.VirtualizationFirmware) {
