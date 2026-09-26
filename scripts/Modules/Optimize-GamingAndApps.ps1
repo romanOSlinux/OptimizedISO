@@ -250,7 +250,7 @@ foreach ($dir in $shaderDirs) {
                 Remove-Item -Path $f.FullName -Force -ErrorAction Stop
                 $bytesCleaned += $len
             } catch {
-                # Archivo en uso por juego activo o controlador; omitir de forma segura
+                Write-Verbose "[Optimize-GamingAndApps] Archivo de shader en uso bloqueado por el controlador: $($f.Name) ($($_.Exception.Message)) - omitiendo de forma segura."
             }
         }
     }
