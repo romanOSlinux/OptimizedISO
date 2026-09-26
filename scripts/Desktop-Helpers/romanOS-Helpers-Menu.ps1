@@ -31,3 +31,7 @@ if (-not $moduleLoaded) {
     Write-Error "CRITICAL: No se pudo localizar Desktop-Helpers.ps1."
     exit 1
 }
+
+if (-not [Console]::IsInputRedirected) {
+    Show-RomanOSHelpersMenu
+}
