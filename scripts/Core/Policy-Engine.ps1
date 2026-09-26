@@ -879,11 +879,12 @@ $global:RomanOS_Policies = @(
         PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl"
         ValueName     = "Win32PrioritySeparation"
         Type          = "REG_DWORD"
-        ExpectedValue = 38 # 0x26: Cuantos fijos, cortos y boost 3:1 a primer plano
+        ExpectedValue = 38 # 0x26: Cuantos fijos, cortos y boost 3:1 a primer plano en CPUs simetricas (en hibridas/X3D Hardware-Engine preserva default 2)
         Profiles      = @(1, 2, 3)
-        Description   = "Optimizar separacion de prioridades del planificador (cuantos fijos/cortos con boost 3:1 para juego/ventana activa)"
+        TopologyAware = $true
+        Description   = "Optimizar separacion de prioridades del planificador en CPUs simetricas (38). En topologias asimetricas (Intel Hybrid / AMD Dual-CCD X3D), Hardware-Engine preserva 2 para proteger Thread Director y AMD CPPC"
         OfficialDoc   = "https://learn.microsoft.com/sysinternals/resources/windows-internals"
-        UnattendDesc  = "Optimize Win32PrioritySeparation for Low Jitter and High Foreground Response"
+        UnattendDesc  = "Optimize Win32PrioritySeparation for Symmetric CPUs (Preserve Default on Hybrid/X3D)"
     },
     # --- MÓDULO F1: SUBSISTEMA DE ARCHIVOS Y ALMACENAMIENTO NVME (NTFS) ---
     @{
