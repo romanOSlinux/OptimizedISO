@@ -38,8 +38,12 @@ Write-Host ""
 # 1. Comprobar privilegios administrativos
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Write-Host "  [!] Se requieren privilegios de Administrador para depurar el DriverStore." -ForegroundColor Red
-    return [PSCustomObject]@{ Success = $false; Error = "Privilegios insuficientes" }
+    if ($PSBoundParameters.ContainsKey('WhatIf')) {
+        Write-Host "  [AVISO] Ejecutando simulación en modo solo lectura sin elevación de Administrador." -ForegroundColor Yellow
+    } else {
+        Write-Host "  [!] Se requieren privilegios de Administrador para depurar el DriverStore." -ForegroundColor Red
+        return [PSCustomObject]@{ Success = $false; Error = "Privilegios insuficientes" }
+    }
 }
 
 Write-Host "  [1/3] Identificando controladores en uso activo por el hardware..." -ForegroundColor Gray
@@ -148,6 +152,10 @@ if ($candidates.Count -gt 10) {
 Write-Host ""
 
 if (-not $Force -and -not $PSBoundParameters.ContainsKey('WhatIf')) {
+    if ([Console]::IsInputRedirected) {
+        Write-Host "  [!] Entorno no interactivo detectado sin switch -Force. Cancelando eliminación por seguridad." -ForegroundColor Yellow
+        return [PSCustomObject]@{ Success = $true; RemovedCount = 0; Cancelled = $true }
+    }
     $confirm = Read-Host "¿Desea proceder a eliminar estos $($candidates.Count) controladores obsoletos del DriverStore? [S/N] (Default: S)"
     if ($confirm -ne '' -and $confirm -notmatch '^[sSyY]') {
         Write-Host "  Operación cancelada por el usuario." -ForegroundColor Yellow

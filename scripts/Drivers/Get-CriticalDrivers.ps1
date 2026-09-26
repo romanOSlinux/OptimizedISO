@@ -44,18 +44,21 @@ Write-Host ""
 
 # Determinar ruta base
 if ([string]::IsNullOrWhiteSpace($DestinationPath)) {
-    if (Test-Path "C:\OptimizedISO\scripts\Drivers") {
-        $DestinationPath = "C:\OptimizedISO\scripts\Drivers"
-    } elseif ($PSScriptRoot) {
+    if ($PSScriptRoot -and (Test-Path $PSScriptRoot)) {
         $DestinationPath = $PSScriptRoot
+    } elseif (Test-Path "C:\OptimizedISO\scripts\Drivers") {
+        $DestinationPath = "C:\OptimizedISO\scripts\Drivers"
     } else {
         $DestinationPath = Join-Path (Get-Location) "Drivers"
     }
 }
 
+$DestinationPath = [System.IO.Path]::GetFullPath($DestinationPath)
 $storageDir = Join-Path $DestinationPath "Storage"
 if (-not (Test-Path $storageDir)) {
-    New-Item -ItemType Directory -Path $storageDir -Force | Out-Null
+    if ($PSCmdlet.ShouldProcess($storageDir, "Crear directorio de almacenamiento de controladores")) {
+        New-Item -ItemType Directory -Path $storageDir -Force | Out-Null
+    }
 }
 
 $catalog = @(
@@ -128,9 +131,10 @@ foreach ($pkg in $packagesToProcess) {
                             Copy-Item -Path "$netkvmSrc\*" -Destination $netDir -Recurse -Force
                         }
                     }
-                    Dismount-DiskImage -ImagePath $tempFile -ErrorAction SilentlyContinue | Out-Null
                 } catch {
                     Write-Host "      No se pudo montar la ISO de VirtIO para extracción directa: $($_.Exception.Message)" -ForegroundColor Yellow
+                } finally {
+                    Dismount-DiskImage -ImagePath $tempFile -ErrorAction SilentlyContinue | Out-Null
                 }
             }
 

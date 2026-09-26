@@ -48,22 +48,22 @@ function Write-DriverLog {
 
 # 1. Determinar ruta de destino
 if ([string]::IsNullOrWhiteSpace($DestinationPath)) {
-    if (Test-Path "C:\OptimizedISO\scripts\Drivers") {
-        $DestinationPath = "C:\OptimizedISO\scripts\Drivers"
-    } elseif ($PSScriptRoot) {
+    if ($PSScriptRoot -and (Test-Path $PSScriptRoot)) {
         $DestinationPath = $PSScriptRoot
+    } elseif (Test-Path "C:\OptimizedISO\scripts\Drivers") {
+        $DestinationPath = "C:\OptimizedISO\scripts\Drivers"
     } else {
         $DestinationPath = Join-Path (Get-Location) "Drivers"
     }
 }
+
+$DestinationPath = [System.IO.Path]::GetFullPath($DestinationPath)
 
 if (-not (Test-Path $DestinationPath)) {
     if ($PSCmdlet.ShouldProcess($DestinationPath, "Crear directorio de destino para controladores")) {
         New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
     }
 }
-
-$DestinationPath = (Resolve-Path $DestinationPath).Path
 
 if (-not $Quiet) {
     Write-Host ""
@@ -108,6 +108,16 @@ if ($PSCmdlet.ShouldProcess($DestinationPath, "Exportar controladores de tercero
         if ($pnpProcess.ExitCode -eq 0) {
             $infFiles = Get-ChildItem -Path $DestinationPath -Filter "*.inf" -Recurse -File -ErrorAction SilentlyContinue
             $exportedCount = $infFiles.Count
+            foreach ($inf in $infFiles) {
+                $manifestData.Add([PSCustomObject]@{
+                    Driver            = $inf.Name
+                    OriginalFileName  = $inf.Name
+                    ProviderName      = "OEM / Third-Party"
+                    ClassName         = "DriverPackage"
+                    Version           = "Exported"
+                    Date              = (Get-Date).ToString("yyyy-MM-dd")
+                })
+            }
         } else {
             Write-DriverLog "pnputil devolvió código de salida: $($pnpProcess.ExitCode)" "Red"
         }
