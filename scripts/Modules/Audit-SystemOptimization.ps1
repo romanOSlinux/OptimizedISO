@@ -31,7 +31,7 @@
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [switch]$ExportReport = $true,
+    [bool]$ExportReport = $true,
     [string]$OutputDir,
     [bool]$ShowRemediation = $true,
     [switch]$NoColor
