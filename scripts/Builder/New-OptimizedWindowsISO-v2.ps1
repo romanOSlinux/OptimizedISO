@@ -3572,7 +3572,7 @@ function Invoke-RegUnloadHive {
                 return $true
             }
         } catch {
-            # Reintentar
+            Write-Warning "Intento $attempt de $RetryCount en ejecución de proceso falló: $($_.Exception.Message)"
         }
 
         if ($attempt -lt $RetryCount) {
@@ -4015,7 +4015,7 @@ try {
         Write-Warn "Se recomienda tener al menos 15-25 GB libres para imágenes Windows."
     }
 } catch {
-    # No bloquear por no poder estimar espacio.
+    Write-Warning "Aviso: No se pudo estimar el espacio disponible en $env:TEMP : $($_.Exception.Message)"
 }
 
 # Limpiar directorio temporal previo si existe.
@@ -4772,6 +4772,38 @@ if (Test-Path $ccScriptSrc) {
 }
 
 # ------------------------------------------------------------------
+# Inyectar Suite de Desktop Helpers y Reversibilidad (PLAN-0114)
+# ------------------------------------------------------------------
+$helpersDirSrc = Join-Path $ScriptsDir "Desktop-Helpers"
+$helpersModSrc = Join-Path $ScriptsDir "Modules\Desktop-Helpers.ps1"
+
+if (Test-Path $helpersDirSrc) {
+    $oemHelpersDir  = Join-Path $OEMScriptsDir "DesktopHelpers"
+    $oemHelpersDir1 = Join-Path $OEMScriptsDir1 "DesktopHelpers"
+    if (-not (Test-Path $oemHelpersDir))  { New-Item -ItemType Directory -Path $oemHelpersDir -Force | Out-Null }
+    if (-not (Test-Path $oemHelpersDir1)) { New-Item -ItemType Directory -Path $oemHelpersDir1 -Force | Out-Null }
+
+    Copy-Item -Path "$helpersDirSrc\*" -Destination $oemHelpersDir -Recurse -Force
+    Copy-Item -Path "$helpersDirSrc\*" -Destination $oemHelpersDir1 -Recurse -Force
+
+    if (Test-Path $helpersModSrc) {
+        Copy-Item -Path $helpersModSrc -Destination (Join-Path $destModulesDir "Desktop-Helpers.ps1") -Force
+        Copy-Item -Path $helpersModSrc -Destination (Join-Path $destModulesDir1 "Desktop-Helpers.ps1") -Force
+        Copy-Item -Path $helpersModSrc -Destination (Join-Path $oemHelpersDir "Desktop-Helpers.ps1") -Force
+        Copy-Item -Path $helpersModSrc -Destination (Join-Path $oemHelpersDir1 "Desktop-Helpers.ps1") -Force
+    }
+
+    if ($OEMDesktopDir -and (Test-Path $OEMDesktopDir)) {
+        $desktopHelpersTarget = Join-Path $OEMDesktopDir "romanOS Helpers"
+        if (-not (Test-Path $desktopHelpersTarget)) { New-Item -ItemType Directory -Path $desktopHelpersTarget -Force | Out-Null }
+        Copy-Item -Path "$helpersDirSrc\*.cmd" -Destination $desktopHelpersTarget -Force
+    }
+
+    Write-OK "Suite de Reversibilidad 'romanOS Helpers' inyectada en `$OEM`$ y Public Desktop."
+    Add-AuditRecord -Resource "Desktop-Helpers" -Target '$OEM$' -Status "OK" -Details "Inyectado en DesktopHelpers y Public Desktop"
+}
+
+# ------------------------------------------------------------------
 # Garantizar Presencia de Submódulos del Toolkit Maestro en $OEM$
 # ------------------------------------------------------------------
 $suiteSubmodules = @(
@@ -5124,7 +5156,9 @@ try {
     `$scItem.Description = '$($sc.Title)'
     `$scItem.IconLocation = '%SystemRoot%\System32\imageres.dll,$iconNumber'
     `$scItem.Save()
-} catch {}
+} catch {
+    Write-Warning "Fallo al crear acceso directo $($sc.ShortcutName): `$(`$_.Exception.Message)"
+}
 "@)
     }
 }
@@ -5137,7 +5171,9 @@ try {
     `$scAudit.Description = 'Auditar y Diagnosticar Instalacion de Windows'
     `$scAudit.IconLocation = '%SystemRoot%\System32\imageres.dll,104'
     `$scAudit.Save()
-} catch {}
+} catch {
+    Write-Warning "Fallo al crear acceso directo Auditar Instalacion: `$(`$_.Exception.Message)"
+}
 
 if (Test-Path "$scriptsDir\Desplegar-Setup-Host.cmd") {
     `$dt = [System.Environment]::GetFolderPath('CommonDesktopDirectory')
@@ -5150,7 +5186,9 @@ if (Test-Path "$scriptsDir\Desplegar-Setup-Host.cmd") {
             `$scHost.Description = 'Suite Modular de Despliegue (Dev-IA y Gaming)'
             `$scHost.IconLocation = '%SystemRoot%\System32\shell32.dll,277'
             `$scHost.Save()
-        } catch {}
+        } catch {
+            Write-Warning "Fallo al crear acceso directo Desplegar Setup: `$(`$_.Exception.Message)"
+        }
     }
 }
 
@@ -5162,7 +5200,9 @@ if (Test-Path "$scriptsDir\Lanzar-romanOS-ControlCenter.cmd") {
         `$scCC.Description = 'Centro de Control y Optimizacion romanOS'
         `$scCC.IconLocation = '%SystemRoot%\System32\imageres.dll,109'
         `$scCC.Save()
-    } catch {}
+    } catch {
+        Write-Warning "Fallo al crear acceso directo Control Center StartMenu: `$(`$_.Exception.Message)"
+    }
     `$dt = [System.Environment]::GetFolderPath('CommonDesktopDirectory')
     if (-not `$dt -or -not (Test-Path `$dt)) { `$dt = if (`$env:PUBLIC) { "`$env:PUBLIC\Desktop" } else { "C:\Users\Public\Desktop" } }
     if (Test-Path `$dt) {
@@ -5173,7 +5213,31 @@ if (Test-Path "$scriptsDir\Lanzar-romanOS-ControlCenter.cmd") {
             `$scCCDt.Description = 'Centro de Control y Optimizacion romanOS'
             `$scCCDt.IconLocation = '%SystemRoot%\System32\imageres.dll,109'
             `$scCCDt.Save()
-        } catch {}
+        } catch {
+            Write-Warning "Fallo al crear acceso directo Control Center Desktop: `$(`$_.Exception.Message)"
+        }
+    }
+
+    # Desplegar Suite de romanOS Helpers en Public Desktop
+    try {
+        `$helpersDesktop = "`$dt\romanOS Helpers"
+        if (-not (Test-Path `$helpersDesktop)) { New-Item -ItemType Directory -Path `$helpersDesktop -Force | Out-Null }
+        `$helpersSrc = "`$scriptsDir\DesktopHelpers"
+        if (Test-Path `$helpersSrc) {
+            Get-ChildItem "`$helpersSrc\*.cmd" | ForEach-Object {
+                try {
+                    `$scH = `$ws.CreateShortcut("`$helpersDesktop\`($_.BaseName).lnk")
+                    `$scH.TargetPath = `$_.FullName
+                    `$scH.WorkingDirectory = `$helpersSrc
+                    `$scH.IconLocation = '%SystemRoot%\System32\imageres.dll,109'
+                    `$scH.Save()
+                } catch {
+                    Write-Warning "Fallo al crear acceso directo helper `$(`$_.Name): `$(`$_.Exception.Message)"
+                }
+            }
+        }
+    } catch {
+        Write-Warning "Fallo al crear carpeta romanOS Helpers en escritorio: `$(`$_.Exception.Message)"
     }
 }
 "@)

@@ -364,7 +364,9 @@ function New-RomanOSSnapshot {
                             $actualVal = $prop.($pol.ValueName)
                         }
                     }
-                } catch { $null }
+                } catch {
+                    Write-Warning "[Snapshot-Engine] No se pudo leer politica $($pol.Id): $($_.Exception.Message)"
+                }
 
                 $evaluatedPolicies += [PSCustomObject]@{
                     Id            = $pol.Id
@@ -394,7 +396,9 @@ function New-RomanOSSnapshot {
     $ubr = 0
     try {
         $ubr = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR -ErrorAction SilentlyContinue).UBR
-    } catch { $null }
+    } catch {
+        Write-Warning "[Snapshot-Engine] No se pudo consultar UBR de Windows: $($_.Exception.Message)"
+    }
 
     $manifest = [PSCustomObject]@{
         SnapshotId   = $snapId
@@ -643,11 +647,15 @@ function Restore-RomanOSSnapshot {
                     if ($ss.Status -eq 'Running' -and $curr.Status -ne 'Running') {
                         try {
                             Start-Service -Name $ss.Name -ErrorAction SilentlyContinue
-                        } catch { $null }
+                        } catch {
+                            Write-Warning "[Snapshot-Engine] No se pudo iniciar servicio $($ss.Name): $($_.Exception.Message)"
+                        }
                     } elseif ($ss.Status -eq 'Stopped' -and $curr.Status -eq 'Running') {
                         try {
                             Stop-Service -Name $ss.Name -Force -ErrorAction SilentlyContinue
-                        } catch { $null }
+                        } catch {
+                            Write-Warning "[Snapshot-Engine] No se pudo detener servicio $($ss.Name): $($_.Exception.Message)"
+                        }
                     }
                 }
             }

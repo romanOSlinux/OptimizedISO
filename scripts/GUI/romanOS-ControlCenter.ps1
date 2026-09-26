@@ -160,6 +160,7 @@ $script:searchDirs = @()
 if ($repoScriptsRoot -and (Test-Path $repoScriptsRoot)) {
     $script:searchDirs += @(
         (Join-Path $repoScriptsRoot "Modules"),
+        (Join-Path $repoScriptsRoot "Desktop-Helpers"),
         (Join-Path $repoScriptsRoot "Drivers"),
         (Join-Path $repoScriptsRoot "Builder"),
         (Join-Path $repoScriptsRoot "Host-Tools")
@@ -168,11 +169,25 @@ if ($repoScriptsRoot -and (Test-Path $repoScriptsRoot)) {
     if ($parentOfScripts -and (Test-Path $parentOfScripts)) {
         $script:searchDirs += @(
             (Join-Path $parentOfScripts "scripts\Modules"),
+            (Join-Path $parentOfScripts "scripts\Desktop-Helpers"),
             (Join-Path $parentOfScripts "scripts\Drivers"),
             (Join-Path $parentOfScripts "scripts\Builder"),
             (Join-Path $parentOfScripts "scripts\Core"),
             (Join-Path $parentOfScripts "scripts\Testing")
         )
+    }
+}
+$desktopHelpersModule = Resolve-CoreModule "..\Modules\Desktop-Helpers.ps1"
+if (-not $desktopHelpersModule -and $repoScriptsRoot) {
+    $cand = Join-Path $repoScriptsRoot "Modules\Desktop-Helpers.ps1"
+    if (Test-Path $cand) { $desktopHelpersModule = (Resolve-Path $cand).Path }
+}
+if ($desktopHelpersModule -and (Test-Path $desktopHelpersModule)) {
+    try {
+        . $desktopHelpersModule
+        Write-CCLog "Cargado modulo Desktop-Helpers: $desktopHelpersModule"
+    } catch {
+        Write-CCLog "Error al cargar Desktop-Helpers: $($_.Exception.Message)" -Level "WARN"
     }
 }
 if ($scriptRoot -and (Test-Path $scriptRoot)) {
@@ -370,6 +385,24 @@ function Resolve-ToolScript {
                                     <Button x:Name="btnQuickAffinity" Content="Auditar Afinidad IRQ / PCIe" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
                                     <Button x:Name="btnQuickFootprint" Content="Auditar Huella RAM / Procesos" Width="230" Margin="0,0,10,10" Background="#233544" BorderBrush="#00E5FF"/>
                                     <Button x:Name="btnQuickRestoreServices" Content="Restaurar Servicios (Wi-Fi/BT)" Width="230" Margin="0,0,10,10"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Asistentes de Escritorio romanOS (Inspiracion Atlas/ReviOS) -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Asistentes Modulares de Escritorio (Desktop Helpers)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Conmutadores rapidos para activar o pausar servicios bajo demanda sin alterar las invariantes criticas del sistema." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                <WrapPanel Margin="0,0,0,6">
+                                    <Button x:Name="btnHelperWU" Content="Windows Update: ..." Width="220" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnHelperDefender" Content="Microsoft Defender: ..." Width="220" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnHelperBluetooth" Content="Bluetooth: ..." Width="190" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnHelperPrinting" Content="Impresion / Spooler: ..." Width="200" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnHelperSharing" Content="Compartir Archivos: ..." Width="210" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnHelperVBS" Content="VBS / Aislamiento: ..." Width="210" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnAuditInvariants" Content="Auditar Invariantes romanOS" Width="230" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnOpenHelpersFolder" Content="Abrir Carpeta Helpers" Width="180" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -807,6 +840,15 @@ try {
     Write-CCLog "Error al poblar telemetria de hardware: $($_.Exception.Message)" -Level "WARN"
 }
 
+# Inicializar estados de los Desktop Helpers en la UI si la función existe
+try {
+    if (Get-Command 'Update-DesktopHelpersGUIState' -ErrorAction SilentlyContinue) {
+        Update-DesktopHelpersGUIState
+    }
+} catch {
+    Write-CCLog "Aviso al inicializar botones Desktop Helpers: $($_.Exception.Message)" -Level "WARN"
+}
+
 # -----------------------------------------------------------------------------
 # 4. MOTOR DE EJECUCIÓN ASÍNCRONA DESACOPLADA (60 FPS)
 # -----------------------------------------------------------------------------
@@ -979,6 +1021,15 @@ function Start-ControlCenterTask {
                 }
             }
             $t.BtnCancel.IsEnabled = $false
+
+            # Refrescar estados de Desktop Helpers tras concluir la tarea
+            try {
+                if (Get-Command 'Update-DesktopHelpersGUIState' -ErrorAction SilentlyContinue) {
+                    Update-DesktopHelpersGUIState
+                }
+            } catch {
+                Write-CCLog "Aviso al refrescar estado de Desktop Helpers: $($_.Exception.Message)" -Level "WARN"
+            }
         }
     })
 
@@ -1137,6 +1188,99 @@ $window.FindName('btnQuickFootprint').Add_Click({
 
 $window.FindName('btnQuickRestoreServices').Add_Click({
     Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { Set-Service -Name WlanSvc -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config WlanSvc start= auto | Out-Null; Start-Service WlanSvc -ErrorAction SilentlyContinue; Set-Service -Name bthserv -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config bthserv start= auto | Out-Null; Start-Service bthserv -ErrorAction SilentlyContinue; Set-Service -Name Spooler -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config Spooler start= auto | Out-Null; Start-Service Spooler -ErrorAction SilentlyContinue; Set-Service -Name WSearch -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config WSearch start= delayed-auto | Out-Null; Start-Service WSearch -ErrorAction SilentlyContinue; Write-Host '[OK] Servicios basicos restaurados a inicio automatico (Wi-Fi, Bluetooth, Spooler, WSearch).' } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Restaurar Servicios Basicos de Sistema"
+})
+
+# --- Asistentes Modulares de Escritorio (Desktop Helpers & Invariantes) ---
+function Update-DesktopHelpersGUIState {
+    $helperMap = @(
+        @{ Id = "WindowsUpdate"; Btn = 'btnHelperWU'; Name = "Windows Update" },
+        @{ Id = "Defender";      Btn = 'btnHelperDefender'; Name = "Defender" },
+        @{ Id = "Bluetooth";     Btn = 'btnHelperBluetooth'; Name = "Bluetooth" },
+        @{ Id = "Printing";      Btn = 'btnHelperPrinting'; Name = "Impresion" },
+        @{ Id = "FileSharing";   Btn = 'btnHelperSharing'; Name = "Compartir Red" },
+        @{ Id = "VBS";           Btn = 'btnHelperVBS'; Name = "VBS / HVCI" }
+    )
+    foreach ($item in $helperMap) {
+        $btn = $window.FindName($item.Btn)
+        if ($btn -and (Get-Command "Get-RomanOSDesktopHelperState" -ErrorAction SilentlyContinue)) {
+            try {
+                $st = Get-RomanOSDesktopHelperState -HelperId $item.Id
+                $statusText = if ($st.Status -eq "Enabled") { "Activo" } elseif ($st.Status -eq "Disabled") { "Pausado" } else { "Desconocido" }
+                $btn.Content = "$($item.Name): $statusText"
+                if ($st.Status -eq "Enabled") {
+                    $btn.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1B4D3E")
+                    $btn.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00E676")
+                } else {
+                    $btn.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#4A2A1E")
+                    $btn.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF9100")
+                }
+            } catch {
+                Write-CCLog "Error al consultar estado de $($item.Id): $($_.Exception.Message)" "WARN"
+            }
+        }
+    }
+}
+
+# Conexión de Clics de Desktop Helpers
+$window.FindName('btnHelperWU').Add_Click({
+    $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "WindowsUpdate" } else { $null }
+    $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
+    $tool = Resolve-ToolScript "Toggle-WindowsUpdate.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Windows Update ($action)" }
+})
+
+$window.FindName('btnHelperDefender').Add_Click({
+    $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "Defender" } else { $null }
+    $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
+    $tool = Resolve-ToolScript "Toggle-Defender.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Microsoft Defender ($action)" }
+})
+
+$window.FindName('btnHelperBluetooth').Add_Click({
+    $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "Bluetooth" } else { $null }
+    $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
+    $tool = Resolve-ToolScript "Toggle-Bluetooth.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Bluetooth ($action)" }
+})
+
+$window.FindName('btnHelperPrinting').Add_Click({
+    $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "Printing" } else { $null }
+    $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
+    $tool = Resolve-ToolScript "Toggle-Printing.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Impresion / Spooler ($action)" }
+})
+
+$window.FindName('btnHelperSharing').Add_Click({
+    $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "FileSharing" } else { $null }
+    $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
+    $tool = Resolve-ToolScript "Toggle-FileSharing.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Compartir Archivos ($action)" }
+})
+
+$window.FindName('btnHelperVBS').Add_Click({
+    $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "VBS" } else { $null }
+    $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
+    $tool = Resolve-ToolScript "Toggle-VBS-CoreIsolation.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: VBS / Aislamiento de Nucleo ($action)" }
+})
+
+$window.FindName('btnAuditInvariants').Add_Click({
+    $pEng = Resolve-CoreModule "Policy-Engine.ps1"
+    if ($pEng) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -Command `"& { . '$pEng'; Assert-RomanOSInvariants -AutoRemediate; Write-Host '`n[OK] Verificacion de Invariantes Finalizada.' }`"" -TaskTitle "Auditoria de Invariantes del Sistema"
+    }
+})
+
+$window.FindName('btnOpenHelpersFolder').Add_Click({
+    $helpersDir = Join-Path $repoScriptsRoot "Desktop-Helpers"
+    if (-not (Test-Path $helpersDir)) {
+        $helpersDir = "C:\Users\Public\Desktop\romanOS Helpers"
+    }
+    if (Test-Path $helpersDir) {
+        Start-Process "explorer.exe" -ArgumentList "`"$helpersDir`""
+    } else {
+        [System.Windows.MessageBox]::Show("Carpeta de Helpers no encontrada en el sistema.", "romanOS Control Center", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+    }
 })
 
 # --- Pestaña 2: Gaming & Bimodal ---

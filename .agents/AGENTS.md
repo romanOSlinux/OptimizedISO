@@ -10,6 +10,7 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **Trazabilidad y Detección de Regresiones:** Cuando una prueba falle o un script arroje error, utilizar siempre `git diff` o comparar con el último commit estable para aislar la causa raíz con exactitud matemática en lugar de adivinar o rehacer código desde cero.
 - **Commits Atómicos tras Validación:** Tras completar y verificar empíricamente cada hito, corrección o refactorización, registrar un commit atómico y descriptivo.
 - **Rollback Seguro:** En caso de regresión crítica o fallo irreparable en una prueba, realizar rollback inmediato con herramientas de Git (`git restore`, `git checkout` o `git revert`) para retornar al último estado seguro conocido.
+- **Protección Anti-Bucle en Operaciones Git:** Todo comando de Git susceptible de demorar (ej. `git commit` con pre-commit hooks de ~80s, `git clone`, `git fetch`, `git push`) DEBE ejecutarse con aviso previo al usuario, modo estrictamente no interactivo (`GIT_TERMINAL_PROMPT=0`, `--no-pager`) y supervisión mediante Watchdog Timer (`schedule`) cuando se envíe a segundo plano, impidiendo que el agente o la tarea queden atrapados en bucles de espera pasiva o solicitudes interactivas colgadas.
 
 ## 1. Conciencia Estricta del Entorno (Windows vs. Linux Host)
 - **Detección Automática del Host:**
@@ -48,13 +49,17 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **Higiene Automática de `.gitignore`:** Ante cualquier nueva herramienta o script que descargue artefactos pesados en tiempo de ejecución, el agente DEBE asegurar que las rutas de descarga queden explícitamente ignoradas en `.gitignore`.
 - **Commits y Push Periódicos:** Mantener sincronizado el repositorio con el remoto (`origin`) mediante commits atómicos y limpios exclusivamente de código fuente (`.ps1`, `.cmd`, `.xml`), documentación (`.md`) y configuración.
 
-## 7. Transparencia, Notificación y Timer Anti-Bloqueo Obligatorio (Watchdog de Tareas)
-- **Aviso de Inicio Obligatorio:** Antes de lanzar cualquier prueba unitaria, suite de pruebas (`Invoke-TestSuite.ps1`, `Test-OptimizedISO-v2.ps1`), comando de larga duración o tarea en segundo plano, el agente DEBE emitir un mensaje breve y visible al usuario indicando:
-  `⏳ Iniciando prueba / tarea: [Nombre del test o script]...`
-- **Aviso de Finalización Obligatorio:** Tan pronto como la prueba o comando concluya, el agente DEBE notificar su finalización y el resultado obtenido:
-  `✅ Prueba finalizada: [Nombre del test o script] — Resultado: [PASS / FAIL / Métricas].`
-- **Timer Anti-Bloqueo Obligatorio (Watchdog del Agente):** Para toda tarea que se ejecute en segundo plano, clonado de repositorios, descargas masivas o comandos prolongados que puedan quedar atrapados en un bucle o fallo de entrada/salida (I/O), el agente DEBE obligatoriamente programar un temporizador de supervisión activa (`schedule` con `DurationSeconds` acotado, ej. 60-120 segundos) condicionado al TaskId. Si el comando no concluye antes de ese plazo, el timer despertará al agente para forzar la inspección de logs (`manage_task status`), diagnosticar anomalías y erradicar cualquier espera pasiva indefinida.
-- **Cero Tareas Fantasma y Cero Esperas Pasivas:** Está terminantemente prohibido dejar tareas en segundo plano corriendo sin supervisión periódica ni timer de control, o cerrar turnos asumiendo que un comando finalizará sin incidencias.
+## 7. Norma Taxativa: Transparencia, Notificación y Timer Anti-Bloqueo Obligatorio (Watchdog de Tareas)
+- **Carácter de Norma Obligatoria:** Este protocolo NO es una sugerencia ni una recomendación opcional; es una **norma taxativa e inquebrantable** para toda operación prolongada (Git hooks, suites de pruebas, montajes DISM, descargas de repositorios, compilaciones oscdimg o comandos en segundo plano).
+- **Aviso de Inicio Obligatorio:** Antes de lanzar cualquier operación que tome tiempo o entrañe riesgo de bloqueo/bucle, el agente DEBE emitir un mensaje visible en el chat:
+  `⏳ [AVISO DE OPERACIÓN PROLONGADA]: Iniciando [Nombre de la acción / test / comando]... Tiempo estimado: [X]s. Watchdog de supervisión activado.`
+- **Timer Anti-Bloqueo Obligatorio (Watchdog del Agente):**
+  1. Para toda tarea ejecutada en segundo plano o que demore más de 30 segundos, el agente DEBE obligatoriamente programar un temporizador de supervisión activa (`schedule` con `DurationSeconds` acotado, ej. 60-120 segundos) condicionado al TaskId o liveness.
+  2. Si el comando no concluye antes de dicho plazo, el temporizador despertará al agente para forzar la inspección forense (`manage_task status`), evaluar los logs y diagnosticar anomalías, erradicando cualquier congelamiento o espera pasiva infinita.
+- **Protección contra Bucles e Interactividad Colgada:** Queda estrictamente prohibido ejecutar procesos que esperen confirmación por teclado (stdin interactivo), prompts de credenciales de Git, paginadores que bloqueen la terminal (`PAGER=cat` obligatorio), o herramientas MCP que entren en bucle sin límite de tiempo.
+- **Aviso de Finalización Obligatorio:** Tan pronto como la operación concluya, el agente DEBE notificar su finalización y el resultado obtenido:
+  `✅ [OPERACIÓN FINALIZADA]: [Nombre de la acción] — Resultado: [PASS / FAIL / Métricas].`
+- **Cero Tareas Fantasma y Cero Esperas Pasivas:** Está terminantemente prohibido dejar tareas en segundo plano sin supervisión periódica o cerrar turnos asumiendo que un proceso finalizará por su cuenta sin un perro guardián (watchdog) activo.
 
 ## 8. Ejecución Autónoma y Continua de Planes (Modo Autorizado)
 - **Autorización de Avance Continuo:** Por instrucción expresa del usuario, el agente queda autorizado para avanzar de forma continua y autónoma en la ejecución completa de las fases de los planes de implementación aprobados (`PLAN-*.md`), sin detenerse a solicitar aprobaciones intermedias paso a paso, hasta completar el hito o hasta que el usuario emita una contraorden en el chat.

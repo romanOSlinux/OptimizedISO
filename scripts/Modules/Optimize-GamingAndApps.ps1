@@ -74,6 +74,18 @@ foreach ($dir in $searchDirs) {
     }
 }
 
+foreach ($dir in $searchDirs) {
+    $pePath = Join-Path $dir "Policy-Engine.ps1"
+    if (Test-Path $pePath) {
+        try {
+            . $pePath
+        } catch {
+            Write-Warning "No se pudo cargar Policy-Engine: $($_.Exception.Message)"
+        }
+        break
+    }
+}
+
 if (-not $uiLoaded) {
     function Show-UnifiedBanner { param($Title,$Subtitle,[switch]$ShowSystemInfo,[switch]$NoClear) Write-Host "`n=== $Title ($Subtitle) ===`n" -ForegroundColor Cyan }
     function Write-StepHeader   { param($StepNumber,$TotalSteps,$Message) Write-Host "`n>>> [$StepNumber/$TotalSteps] $Message" -ForegroundColor Cyan }
@@ -99,7 +111,7 @@ $stats = @{
 # 1. OPTIMIZACION DE STEAM WEB VIEWS (Ahorro de VRAM en APU)
 # ============================================================
 if (-not $PurgeShadersOnly) {
-    Write-StepHeader -StepNumber 1 -TotalSteps 4 -Message "Optimizacion de Memoria VRAM en Cliente Steam"
+    Write-StepHeader -StepNumber 1 -TotalSteps 5 -Message "Optimizacion de Memoria VRAM en Cliente Steam"
     
     $steamPath = $null
     $steamReg = Get-ItemProperty -Path "HKCU:\Software\Valve\Steam" -ErrorAction SilentlyContinue
@@ -169,7 +181,7 @@ if ($SteamOnly) {
 # 2. TUNING DE APLICACIONES ELECTRON (Discord, Spotify, VS Code)
 # ============================================================
 if (-not $PurgeShadersOnly) {
-    Write-StepHeader -StepNumber 2 -TotalSteps 4 -Message "Optimizacion de Aplicaciones Electron (Discord / Spotify)"
+    Write-StepHeader -StepNumber 2 -TotalSteps 5 -Message "Optimizacion de Aplicaciones Electron (Discord / Spotify)"
     
     # Flags globales en registro para evitar caidas de FPS por oclusion de ventanas
     $dxGpuPath = "HKCU:\Software\Microsoft\DirectX\UserGpuPreferences"
@@ -213,7 +225,7 @@ if (-not $PurgeShadersOnly) {
 # ============================================================
 # 3. PURGA TRANSACCIONAL DE CACHE DE SHADERS (AMD / DirectX)
 # ============================================================
-Write-StepHeader -StepNumber 3 -TotalSteps 4 -Message "Purga Transaccional de Caches de Shaders Graficos"
+Write-StepHeader -StepNumber 3 -TotalSteps 5 -Message "Purga Transaccional de Caches de Shaders Graficos"
 
 $shaderDirs = @(
     (Join-Path $env:LOCALAPPDATA "AMD\DxCache"),
@@ -251,7 +263,7 @@ Write-OK "Limpieza de shaders finalizada: $mbCleaned MB liberados (prevencion de
 # ============================================================
 # 4. AFINAMIENTO DE SUBSISTEMA GRAFICO (MPO & WDDM 3.x)
 # ============================================================
-Write-StepHeader -StepNumber 4 -TotalSteps 4 -Message "Afinamiento de WDDM 3.x y Presentacion Flip Model"
+Write-StepHeader -StepNumber 4 -TotalSteps 5 -Message "Afinamiento de WDDM 3.x y Presentacion Flip Model"
 
 try {
     # Forzar Flip Model en juegos en ventana
@@ -260,6 +272,58 @@ try {
     Write-OK "Optimizaciones para juegos en ventana forzadas (SwapEffectUpgradeEnable=1, AutoHDR, VRR)."
 } catch {
     Write-Warn "No se pudo actualizar DirectXUserGlobalSettings: $($_.Exception.Message)"
+}
+
+# ============================================================
+# 5. RATIFICACION DE INVARIANTES GAMING Y ANTI-CHEAT (Vanguard/EAC & BAM)
+# ============================================================
+Write-StepHeader -StepNumber 5 -TotalSteps 5 -Message "Ratificacion de Invariantes de Seguridad y Anti-Cheat"
+
+# Invariante 1: VulnerableDriverBlocklistEnable = 1 (Obligatorio para Vanguard, EAC, BattlEye)
+try {
+    $ciPath = "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config"
+    if (-not (Test-Path $ciPath)) { New-Item -Path $ciPath -Force | Out-Null }
+    $curDrv = (Get-ItemProperty -Path $ciPath -Name "VulnerableDriverBlocklistEnable" -ErrorAction SilentlyContinue).VulnerableDriverBlocklistEnable
+    if ($curDrv -ne 1) {
+        Set-ItemProperty -Path $ciPath -Name "VulnerableDriverBlocklistEnable" -Value 1 -Type DWord -Force
+        Write-OK "Invariante Anti-Cheat certificada: VulnerableDriverBlocklistEnable = 1 (Vanguard/EAC blindado)."
+    } else {
+        Write-OK "Invariante Anti-Cheat verificada: VulnerableDriverBlocklistEnable = 1 (OK)."
+    }
+} catch {
+    Write-Warn "No se pudo ratificar VulnerableDriverBlocklistEnable: $($_.Exception.Message)"
+}
+
+# Invariante 2: Preservación del servicio BAM (Background Activity Moderator)
+# Esencial para el scheduler de Windows 11 y el Modo Eficiencia en Game Mode sin interferir con hilos del juego.
+try {
+    $bamPath = "HKLM:\SYSTEM\CurrentControlSet\Services\bam"
+    if (Test-Path $bamPath) {
+        $bamStart = (Get-ItemProperty -Path $bamPath -Name "Start" -ErrorAction SilentlyContinue).Start
+        if ($bamStart -eq 4) {
+            Set-ItemProperty -Path $bamPath -Name "Start" -Value 1 -Type DWord -Force
+            Write-OK "Servicio BAM re-activado (Start=1) para preservar planificador y Modo Eficiencia."
+        } else {
+            Write-OK "Servicio BAM verificado en estado optimo (Start=$bamStart)."
+        }
+    }
+} catch {
+    Write-Warn "No se pudo consultar o configurar servicio BAM: $($_.Exception.Message)"
+}
+
+# Invariante 3: Auditoria transversal de Invariantes romanOS si Policy-Engine está presente
+try {
+    if (Get-Command "Assert-RomanOSInvariants" -ErrorAction SilentlyContinue) {
+        $invResults = Assert-RomanOSInvariants -AutoRemediate
+        $invBreaches = @($invResults | Where-Object { -not $_.Satisfied }).Count
+        if ($invBreaches -eq 0) {
+            Write-OK "Matriz de Invariantes del Sistema: 100% Satisfecha (Cero transgresiones)."
+        } else {
+            Write-Warn "Se detectaron y remediaron $invBreaches desviaciones de invariantes del sistema."
+        }
+    }
+} catch {
+    Write-Warn "Aviso al evaluar invariantes del sistema: $($_.Exception.Message)"
 }
 
 # ============================================================
@@ -272,4 +336,5 @@ Write-Host "  Steam VRAM Optimizado      : $(if ($stats.SteamTweaked) { 'SI (~' 
 Write-Host "  Apps Electron Afinadas     : $($stats.ElectronTweaked)"
 Write-Host "  Caches de Shaders Purgadas : $($stats.ShadersPurgedMB) MB"
 Write-Host "  Modelo WDDM Flip Model     : APLICADO"
+Write-Host "  Invariantes Anti-Cheat/BAM : RATIFICADAS"
 Write-Host "==========================================================`n" -ForegroundColor Cyan

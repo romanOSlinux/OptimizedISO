@@ -123,7 +123,9 @@ try {
         $manifest = $null
         try {
             $manifest = Get-Content -Path $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        } catch { $null }
+        } catch {
+            Write-Warning "Fallo al deserializar manifest.json: $($_.Exception.Message)"
+        }
 
         $validMeta = [bool]($manifest -and $manifest.SnapshotId -and $manifest.OSBuild -gt 0)
         Assert-Test -TestName "manifest.json contiene metadatos de sistema válidos" `

@@ -3120,5 +3120,455 @@ function Apply-RomanOSTieredMemoryPolicy {
     }
 }
 
+# -----------------------------------------------------------------------------
+# 10. MATRIZ DE INVARIANTES INMUTABLES DEL SISTEMA (SSOT)
+# -----------------------------------------------------------------------------
+
+$global:RomanOS_SystemInvariants = @(
+    @{
+        Id            = "INV_DRIVERS_NO_WU_OVERWRITE"
+        Category      = "Controladores"
+        Name          = "ExcludeWUDriversInQualityUpdate"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "ExcludeWUDriversInQualityUpdate"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Description   = "Protección inmutable de drivers calibrados: prohíbe a Windows Update sobreescribir controladores con genéricos"
+    },
+    @{
+        Id            = "INV_WU_NO_PREVIEWS"
+        Category      = "Windows Update"
+        Name          = "AllowOptionalContent"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "AllowOptionalContent"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Description   = "Bloqueo inmutable de parches preview, betas y continuous feature releases (CFR)"
+    },
+    @{
+        Id            = "INV_WU_NO_CONTINUOUS_INNOVATION"
+        Category      = "Windows Update"
+        Name          = "IsContinuousInnovationOptedIn"
+        RegistryKey   = "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings"
+        PSPath        = "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings"
+        ValueName     = "IsContinuousInnovationOptedIn"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Description   = "Desactivación inmutable de novedades tempranas inestables de Windows"
+    },
+    @{
+        Id            = "INV_WU_QUALITY_DEFERRAL_7D"
+        Category      = "Windows Update"
+        Name          = "DeferQualityUpdatesPeriodInDays"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "DeferQualityUpdatesPeriodInDays"
+        Type          = "REG_DWORD"
+        ExpectedValue = 7
+        Description   = "Cuarentena inmutable de 7 días de maduración para parches acumulativos (KIR)"
+    },
+    @{
+        Id            = "INV_ANTI_BLOAT_CONTENT_DELIVERY"
+        Category      = "Anti-Bloatware"
+        Name          = "ContentDeliveryManager"
+        RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+        PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+        ValueName     = "SilentInstalledAppsEnabled"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Description   = "Prohibición inmutable de instalación automática y silenciosa de aplicaciones patrocinadas"
+    },
+    @{
+        Id            = "INV_SECURITY_DRIVER_BLOCKLIST"
+        Category      = "Seguridad Kernel"
+        Name          = "VulnerableDriverBlocklistEnable"
+        RegistryKey   = "HKLM\SYSTEM\CurrentControlSet\Control\CI\Config"
+        PSPath        = "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Config"
+        ValueName     = "VulnerableDriverBlocklistEnable"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Description   = "Bloqueo inmutable de drivers vulnerables para compatibilidad obligatoria con Anti-Cheats (Vanguard/EAC/BattlEye)"
+    },
+    @{
+        Id            = "INV_STORE_AUTH_ROOT"
+        Category      = "Microsoft Store"
+        Name          = "DisableRootAutoUpdate"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\SystemCertificates\AuthRoot"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\SystemCertificates\AuthRoot"
+        ValueName     = "DisableRootAutoUpdate"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Description   = "Preservación inmutable de certificados raíz para funcionamiento continuo de la Microsoft Store"
+    }
+)
+
+function Get-RomanOSSystemInvariants {
+    <#
+    .SYNOPSIS
+        Retorna la matriz de invariantes inmutables del sistema.
+    #>
+    [CmdletBinding()]
+    param()
+    return $global:RomanOS_SystemInvariants
+}
+
+function Assert-RomanOSInvariants {
+    <#
+    .SYNOPSIS
+        Audita los invariantes del sistema y opcionalmente los autorepara si detecta desviaciones.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [switch]$AutoRemediate,
+        [switch]$Quiet
+    )
+
+    $violations = [System.Collections.Generic.List[PSObject]]::new()
+    $invariants = Get-RomanOSSystemInvariants
+
+    foreach ($inv in $invariants) {
+        $actualValue = $null
+        $keyExists = Test-Path -Path $inv.PSPath -ErrorAction SilentlyContinue
+
+        if ($keyExists) {
+            try {
+                $prop = Get-ItemProperty -Path $inv.PSPath -Name $inv.ValueName -ErrorAction SilentlyContinue
+                if ($null -ne $prop -and $null -ne $prop.$($inv.ValueName)) {
+                    $actualValue = $prop.$($inv.ValueName)
+                }
+            } catch {
+                Write-Warning "Fallo al consultar invariante '$($inv.Id)': $($_.Exception.Message)"
+            }
+        }
+
+        $isCompliant = ($null -ne $actualValue) -and ($actualValue -eq $inv.ExpectedValue)
+
+        if (-not $isCompliant) {
+            $violation = [PSCustomObject]@{
+                Id            = $inv.Id
+                Category      = $inv.Category
+                Name          = $inv.Name
+                PSPath        = $inv.PSPath
+                ExpectedValue = $inv.ExpectedValue
+                ActualValue   = $actualValue
+                Remediated    = $false
+            }
+
+            if ($AutoRemediate -and $PSCmdlet.ShouldProcess("$($inv.PSPath)\$($inv.ValueName)", "Autoreparar invariante del sistema")) {
+                try {
+                    if (-not (Test-Path -Path $inv.PSPath -ErrorAction SilentlyContinue)) {
+                        New-Item -Path $inv.PSPath -Force -ErrorAction Stop | Out-Null
+                    }
+                    Set-ItemProperty -Path $inv.PSPath -Name $inv.ValueName -Value $inv.ExpectedValue -Type DWord -Force -ErrorAction Stop | Out-Null
+                    $violation.Remediated = $true
+                    if (-not $Quiet) {
+                        Write-Host "  [AUTOREPAIR] Invariante '$($inv.Id)' restaurado a $($inv.ExpectedValue)." -ForegroundColor Green
+                    }
+                } catch {
+                    Write-Error "CRITICAL: No se pudo autoreparar el invariante '$($inv.Id)': $($_.Exception.Message)"
+                }
+            }
+
+            $violations.Add($violation)
+        }
+    }
+
+    $allPassed = ($violations.Count -eq 0)
+    return [PSCustomObject]@{
+        Passed          = $allPassed
+        TotalInvariants = $invariants.Count
+        ViolationsCount = $violations.Count
+        Violations      = $violations.ToArray()
+    }
+}
+
+function Invoke-RomanOSMutation {
+    <#
+    .SYNOPSIS
+        Gateway de mutación controlada. Ejecuta una acción asegurando que ningún invariante resulte violado.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TargetName,
+
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$ActionScript,
+
+        [switch]$ValidateInvariants = $true
+    )
+
+    if ($PSCmdlet.ShouldProcess($TargetName, "Ejecutar mutación de estado con salvaguarda de invariantes")) {
+        # 1. Pre-assert
+        if ($ValidateInvariants) {
+            Assert-RomanOSInvariants -AutoRemediate -Quiet | Out-Null
+        }
+
+        # 2. Ejecución
+        $result = $null
+        try {
+            $result = & $ActionScript
+        } catch {
+            Write-Error "Fallo en la mutación de estado '$TargetName': $($_.Exception.Message)"
+            throw
+        }
+
+        # 3. Post-assert y Auto-remediación inmediata
+        if ($ValidateInvariants) {
+            $postAudit = Assert-RomanOSInvariants -AutoRemediate -Quiet
+            if (-not $postAudit.Passed) {
+                Write-Warning "La mutación '$TargetName' intentó alterar invariantes protegidos. Se aplicó auto-remediación para $($postAudit.ViolationsCount) directiva(s)."
+            }
+        }
+
+        return $result
+    }
+}
+
+# -----------------------------------------------------------------------------
+# 11. SUITE DE DESKTOP HELPERS CANÓNICOS (SSOT)
+# -----------------------------------------------------------------------------
+
+$global:RomanOS_DesktopHelpers = @(
+    @{
+        Id                  = "HELP_WU"
+        Name                = "WindowsUpdate"
+        Title               = "Windows Update (Carril Seguro)"
+        Description         = "Conmutador de actualizaciones oficiales sin alterar candados de drivers ni previews"
+        TargetServices      = @("wuauserv", "UsoSvc")
+        TargetTasks         = @("Microsoft\Windows\WindowsUpdate\sih", "Microsoft\Windows\WindowsUpdate\sihboot")
+        RegistryBranch      = "HKLM\SOFTWARE\RomanOS\DesktopHelpers\WindowsUpdate"
+        PSRegistryBranch    = "HKLM:\SOFTWARE\RomanOS\DesktopHelpers\WindowsUpdate"
+        ProtectedInvariants = @("INV_DRIVERS_NO_WU_OVERWRITE", "INV_WU_NO_PREVIEWS", "INV_WU_QUALITY_DEFERRAL_7D", "INV_ANTI_BLOAT_CONTENT_DELIVERY")
+        DefaultState        = 1
+    },
+    @{
+        Id                  = "HELP_DEFENDER"
+        Name                = "Defender"
+        Title               = "Microsoft Defender & SmartScreen"
+        Description         = "Conmutador de protección en tiempo real y SmartScreen"
+        TargetServices      = @("WinDefend", "Sense", "WdNisSvc")
+        TargetTasks         = @("Microsoft\Windows\Windows Defender\Windows Defender Scheduled Scan")
+        RegistryBranch      = "HKLM\SOFTWARE\RomanOS\DesktopHelpers\Defender"
+        PSRegistryBranch    = "HKLM:\SOFTWARE\RomanOS\DesktopHelpers\Defender"
+        ProtectedInvariants = @("INV_SECURITY_DRIVER_BLOCKLIST")
+        DefaultState        = 1
+    },
+    @{
+        Id                  = "HELP_BLUETOOTH"
+        Name                = "Bluetooth"
+        Title               = "Servicios y Pila Bluetooth"
+        Description         = "Conmutador de conectividad inalámbrica para mandos y auriculares"
+        TargetServices      = @("bthserv", "BluetoothUserService")
+        TargetTasks         = @()
+        RegistryBranch      = "HKLM\SOFTWARE\RomanOS\DesktopHelpers\Bluetooth"
+        PSRegistryBranch    = "HKLM:\SOFTWARE\RomanOS\DesktopHelpers\Bluetooth"
+        ProtectedInvariants = @()
+        DefaultState        = 1
+    },
+    @{
+        Id                  = "HELP_PRINTING"
+        Name                = "Printing"
+        Title               = "Servicio de Impresión (Spooler)"
+        Description         = "Conmutador del subsistema de cola de impresión"
+        TargetServices      = @("Spooler")
+        TargetTasks         = @()
+        RegistryBranch      = "HKLM\SOFTWARE\RomanOS\DesktopHelpers\Printing"
+        PSRegistryBranch    = "HKLM:\SOFTWARE\RomanOS\DesktopHelpers\Printing"
+        ProtectedInvariants = @()
+        DefaultState        = 0
+    },
+    @{
+        Id                  = "HELP_FILESHARING"
+        Name                = "FileSharing"
+        Title               = "Uso Compartido de Red (SMB)"
+        Description         = "Conmutador de LanmanServer, LanmanWorkstation y Network Discovery"
+        TargetServices      = @("LanmanServer", "LanmanWorkstation")
+        TargetTasks         = @()
+        RegistryBranch      = "HKLM\SOFTWARE\RomanOS\DesktopHelpers\FileSharing"
+        PSRegistryBranch    = "HKLM:\SOFTWARE\RomanOS\DesktopHelpers\FileSharing"
+        ProtectedInvariants = @()
+        DefaultState        = 0
+    },
+    @{
+        Id                  = "HELP_VBS"
+        Name                = "VBS"
+        Title               = "Seguridad Basada en Virtualización (VBS / HVCI)"
+        Description         = "Conmutador de integridad de memoria del hipervisor (Esports vs Seguridad)"
+        TargetServices      = @()
+        TargetTasks         = @()
+        RegistryBranch      = "HKLM\SOFTWARE\RomanOS\DesktopHelpers\VBS"
+        PSRegistryBranch    = "HKLM:\SOFTWARE\RomanOS\DesktopHelpers\VBS"
+        ProtectedInvariants = @("INV_SECURITY_DRIVER_BLOCKLIST")
+        DefaultState        = 1
+    }
+)
+
+function Get-RomanOSDesktopHelperDef {
+    <#
+    .SYNOPSIS
+        Retorna la definición de un helper o la lista completa de helpers.
+    #>
+    [CmdletBinding()]
+    param(
+        [Alias("HelperId")]
+        [string]$Name
+    )
+    if ([string]::IsNullOrWhiteSpace($Name)) {
+        return $global:RomanOS_DesktopHelpers
+    }
+    return $global:RomanOS_DesktopHelpers | Where-Object { $_.Name -ieq $Name -or $_.Id -ieq $Name } | Select-Object -First 1
+}
+
+function Get-RomanOSDesktopHelperState {
+    <#
+    .SYNOPSIS
+        Consulta el estado actual de un Desktop Helper en el registro (0=Disabled, 1=Enabled).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [Alias("HelperId")]
+        [string]$Name
+    )
+
+    $helper = Get-RomanOSDesktopHelperDef -Name $Name
+    if (-not $helper) {
+        Write-Warning "Desktop Helper '$Name' no reconocido en el catálogo SSOT."
+        return [PSCustomObject]@{
+            Name   = $Name
+            State  = -1
+            Status = "Unknown"
+        }
+    }
+
+    $stateVal = $helper.DefaultState
+
+    if (Test-Path -Path $helper.PSRegistryBranch -ErrorAction SilentlyContinue) {
+        try {
+            $prop = Get-ItemProperty -Path $helper.PSRegistryBranch -Name "State" -ErrorAction SilentlyContinue
+            if ($null -ne $prop -and $null -ne $prop.State) {
+                $stateVal = [int]$prop.State
+                return [PSCustomObject]@{
+                    Name   = $helper.Name
+                    State  = $stateVal
+                    Status = if ($stateVal -eq 1) { "Enabled" } else { "Disabled" }
+                }
+            }
+        } catch {
+            Write-Warning "Fallo al consultar estado de '$Name': $($_.Exception.Message)"
+        }
+    }
+
+    if ($helper.TargetServices.Count -gt 0) {
+        $mainSvc = $helper.TargetServices[0]
+        $svcObj = Get-Service -Name $mainSvc -ErrorAction SilentlyContinue
+        if ($svcObj) {
+            $stateVal = if ($svcObj.StartType -eq "Disabled") { 0 } else { 1 }
+            return [PSCustomObject]@{
+                Name   = $helper.Name
+                State  = $stateVal
+                Status = if ($stateVal -eq 1) { "Enabled" } else { "Disabled" }
+            }
+        }
+    }
+
+    return [PSCustomObject]@{
+        Name   = $helper.Name
+        State  = $stateVal
+        Status = if ($stateVal -eq 1) { "Enabled" } else { "Disabled" }
+    }
+}
+
+function Set-RomanOSDesktopHelperState {
+    <#
+    .SYNOPSIS
+        Conmuta el estado de un Desktop Helper (0=Disabled, 1=Enabled) utilizando el Mutation Gateway.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [Alias("HelperId")]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet(0, 1)]
+        [int]$State,
+
+        [switch]$Quiet
+    )
+
+    $helper = Get-RomanOSDesktopHelperDef -Name $Name
+    if (-not $helper) {
+        throw "Desktop Helper '$Name' no existe en el catálogo canónico."
+    }
+
+    if ($PSCmdlet.ShouldProcess("$($helper.Title) -> Estado: $State", "Conmutar servicio de Desktop Helper")) {
+        Invoke-RomanOSMutation -TargetName "DesktopHelper_$Name" -ActionScript {
+            # 1. Conmutar servicios
+            foreach ($svc in $helper.TargetServices) {
+                try {
+                    $svcExists = Get-Service -Name $svc -ErrorAction SilentlyContinue
+                    if ($svcExists) {
+                        if ($State -eq 1) {
+                            & sc.exe config $svc start= demand 2>&1 | Out-Null
+                            & sc.exe start $svc 2>&1 | Out-Null
+                        } else {
+                            & sc.exe stop $svc 2>&1 | Out-Null
+                            & sc.exe config $svc start= disabled 2>&1 | Out-Null
+                        }
+                    }
+                } catch {
+                    Write-Warning "Error al conmutar servicio '$svc': $($_.Exception.Message)"
+                }
+            }
+
+            # 2. Conmutar tareas programadas si existen
+            foreach ($task in $helper.TargetTasks) {
+                try {
+                    $taskState = if ($State -eq 1) { "/Enable" } else { "/Disable" }
+                    & schtasks.exe /Change /TN "$task" $taskState 2>&1 | Out-Null
+                } catch {
+                    Write-Warning "Error al conmutar tarea '$task': $($_.Exception.Message)"
+                }
+            }
+
+            # 3. Acciones específicas por Helper
+            if ($Name -ieq "VBS") {
+                try {
+                    $hvciVal = if ($State -eq 1) { 1 } else { 0 }
+                    $hypLaunch = if ($State -eq 1) { "Auto" } else { "Off" }
+                    $vbsPath = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
+                    if (-not (Test-Path $vbsPath)) { New-Item -Path $vbsPath -Force | Out-Null }
+                    Set-ItemProperty -Path $vbsPath -Name "Enabled" -Value $hvciVal -Type DWord -Force | Out-Null
+                    & bcdedit.exe /set hypervisorlaunchtype $hypLaunch 2>&1 | Out-Null
+                } catch {
+                    Write-Warning "Fallo al conmutar VBS/HVCI: $($_.Exception.Message)"
+                }
+            }
+
+            # 4. Actualizar estado persistente en HKLM\SOFTWARE\RomanOS\DesktopHelpers
+            try {
+                if (-not (Test-Path -Path $helper.PSRegistryBranch)) {
+                    New-Item -Path $helper.PSRegistryBranch -Force | Out-Null
+                }
+                Set-ItemProperty -Path $helper.PSRegistryBranch -Name "State" -Value $State -Type DWord -Force | Out-Null
+                Set-ItemProperty -Path $helper.PSRegistryBranch -Name "Title" -Value $helper.Title -Type String -Force | Out-Null
+                Set-ItemProperty -Path $helper.PSRegistryBranch -Name "LastUpdated" -Value (Get-Date -Format "yyyy-MM-dd HH:mm:ss") -Type String -Force | Out-Null
+            } catch {
+                Write-Warning "Fallo al registrar estado de Helper en registro: $($_.Exception.Message)"
+            }
+
+            if (-not $Quiet) {
+                $statusText = if ($State -eq 1) { "ACTIVADO [Demand/Running]" } else { "DESACTIVADO [Disabled/Stopped]" }
+                Write-Host "  [OK] $($helper.Title) ha sido conmutado a: $statusText" -ForegroundColor Cyan
+            }
+        }
+    }
+}
+
+
 
 
