@@ -547,7 +547,10 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                 <CheckBox x:Name="chkMaintTrim" Content="Ejecutar SSD TRIM en todas las unidades NVMe/SATA" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
                                 <CheckBox x:Name="chkMaintSfc" Content="Verificacion y reparacion de archivos corruptos (SFC /scannow + RestoreHealth)" Foreground="#E3E3E3" IsChecked="False" FontSize="12" Margin="0,0,0,14"/>
 
-                                <Button x:Name="btnRunMaintenanceBatch" Content="Iniciar Saneamiento Seleccionado" Width="260" HorizontalAlignment="Left" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                <WrapPanel Margin="0,5,0,0">
+                                    <Button x:Name="btnRunMaintenanceBatch" Content="Iniciar Saneamiento Seleccionado" Width="260" HorizontalAlignment="Left" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" Margin="0,0,10,0"/>
+                                    <Button x:Name="btnInspectDismCatalog" Content="Catalogo Componentes DISM (SSOT)" Width="250" HorizontalAlignment="Left" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                                </WrapPanel>
                             </StackPanel>
                         </Border>
 
@@ -911,10 +914,13 @@ function Update-ControlCenterDnsState {
     try {
         $lbl = $window.FindName('lblCurrentDns')
         if ($lbl) {
+            # Determinar adaptador activo con ruta por defecto (0.0.0.0/0)
+            $defRoute = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1
             if (Get-Command 'Get-RomanOSCurrentDns' -ErrorAction SilentlyContinue) {
                 $curr = Get-RomanOSCurrentDns
                 if ($curr -and $curr.Count -gt 0) {
-                    $active = $curr | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1
+                    $active = if ($defRoute) { $curr | Where-Object { $_.InterfaceIndex -eq $defRoute.InterfaceIndex } | Select-Object -First 1 } else { $null }
+                    if (-not $active) { $active = $curr | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1 }
                     if (-not $active) { $active = $curr[0] }
                     $serverStr = if ($active.DnsServers) { $active.DnsServers } else { "DHCP / Sin asignar" }
                     $lbl.Text = "$($active.DetectedProfile) ($serverStr) en $($active.InterfaceAlias)"
@@ -1477,7 +1483,7 @@ $window.FindName('btnRunMaintenanceBatch').Add_Click({
     $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
     if ($tool) {
         $argsList = @()
-        if ($window.FindName('chkMaintWinSxS').IsChecked) { $argsList += "-DeepClean" }
+        if ($window.FindName('chkMaintWinSxS').IsChecked) { $argsList += "-DeepClean -ResetBase" }
         if ($window.FindName('chkMaintShaders').IsChecked) { $argsList += "-ShadersOnly" }
         if ($window.FindName('chkMaintTrim').IsChecked) { $argsList += "-TrimOnly" }
         if ($window.FindName('chkMaintSfc').IsChecked) { $argsList += "-RepairOnly" }
@@ -1485,6 +1491,16 @@ $window.FindName('btnRunMaintenanceBatch').Add_Click({
         Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" $argsStr -Unattended" -TaskTitle "Saneamiento de Sistema y WinSxS"
     }
 })
+
+$btnDism = $window.FindName('btnInspectDismCatalog')
+if ($btnDism) {
+    $window.FindName('btnInspectDismCatalog').Add_Click({
+        $peScript = Resolve-ToolScript "Policy-Engine.ps1"
+        if (-not $peScript) { $peScript = "C:\OptimizedISO\scripts\Core\Policy-Engine.ps1" }
+        $cmd = "-NoProfile -ExecutionPolicy Bypass -Command `". '$peScript'; Get-RomanOSDismComponentsCatalog | Format-Table -AutoSize Id, Name, Category, Type, SafeForGaming`""
+        Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Catalogo Canónico de Componentes DISM (SSOT)"
+    })
+}
 
 # Manejadores de Eventos: romanOS Snapshot & Rollback Engine
 function Refresh-CCSnapshotsComboBox {
@@ -1644,6 +1660,8 @@ $window.FindName('btnSetGoogleDns').Add_Click({
     $doh = if ($window.FindName('chkEnableDoH').IsChecked) { " -EnableDoH" } else { "" }
     if ($netTool) {
         Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS Google$doh -Unattended" -TaskTitle "Asignar DNS Google (8.8.8.8)"
+    } else {
+        Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$r = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1; `$w = if (`$r) { Get-NetAdapter -InterfaceIndex `$r.InterfaceIndex -ErrorAction SilentlyContinue } else { `$null }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('8.8.8.8','8.8.4.4'); Write-Host ('[OK] DNS configurado en Google (8.8.8.8) en ' + `$w.Name) } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Google"
     }
     Update-ControlCenterDnsState
 })
@@ -1661,6 +1679,8 @@ $window.FindName('btnResetDnsDhcp').Add_Click({
     $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
     if ($netTool) {
         Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS DHCP -Unattended" -TaskTitle "Restaurar DNS Automatico (DHCP)"
+    } else {
+        Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$r = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1; `$w = if (`$r) { Get-NetAdapter -InterfaceIndex `$r.InterfaceIndex -ErrorAction SilentlyContinue } else { `$null }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ResetServerAddresses; Write-Host ('[OK] DNS restaurado a DHCP en ' + `$w.Name) } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Restaurar DNS DHCP"
     }
     Update-ControlCenterDnsState
 })

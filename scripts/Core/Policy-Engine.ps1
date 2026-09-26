@@ -3737,6 +3737,170 @@ function Get-RomanOSDnsProfileById {
     return ($profiles | Where-Object { $_.Id -ieq $Id })
 }
 
+# -----------------------------------------------------------------------------
+# 1.5 CATÁLOGO CANÓNICO DE COMPONENTES OPCIONALES DISM (INSPIRACIÓN MSMG TOOLKIT)
+# -----------------------------------------------------------------------------
+
+function Get-RomanOSDismComponentsCatalog {
+    <#
+    .SYNOPSIS
+        Retorna el catálogo canónico SSOT de paquetes y características opcionales DISM
+        para servicing offline/online de imágenes de Windows (inspirado en MSMG Toolkit).
+    .DESCRIPTION
+        Estructura los componentes de bajo nivel con metadatos de seguridad, impacto en
+        actualizaciones acumulativas (LCUs), compatibilidad con juegos y nombres DISM oficiales.
+    #>
+    [CmdletBinding()]
+    param()
+
+    return @(
+        # --- COMPONENTES DE TELEMETRÍA Y OBSERVABILIDAD ---
+        [PSCustomObject]@{
+            Id                  = "DISM_COMP_CEIP"
+            Name                = "Customer Experience Improvement Program (CEIP)"
+            Category            = "Telemetria"
+            Type                = "PackagePattern"
+            TargetName          = "*CustomerExperienceReporting*"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Paquete de reporte y telemetría de experiencia de usuario de Windows."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_COMP_DIAGNOSTICS"
+            Name                = "Windows Diagnostics & Feedback Hub"
+            Category            = "Telemetria"
+            Type                = "PackagePattern"
+            TargetName          = "*DiagnosticDataProcessor*"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Infraestructura de diagnóstico y recopilación de retroalimentación."
+        },
+        # --- COMPONENTES AUXILIARES / LEGACY OBSOLETOS ---
+        [PSCustomObject]@{
+            Id                  = "DISM_COMP_VBSCRIPT"
+            Name                = "VBScript Engine (FOD Deprecado)"
+            Category            = "Legacy"
+            Type                = "Capability"
+            TargetName          = "VBScript~~~~0.0.1.0"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Motor heredado VBScript marcado para descarte oficial por Microsoft."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_COMP_IE_OPTIONAL"
+            Name                = "Internet Explorer Mode / Engine"
+            Category            = "Legacy"
+            Type                = "Capability"
+            TargetName          = "Browser.InternetExplorer~~~~0.0.11.0"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Componentes obsoletos de Internet Explorer 11."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_COMP_MATH_RECOGNIZER"
+            Name                = "Math Input Recognizer"
+            Category            = "Accesorios"
+            Type                = "Capability"
+            TargetName          = "MathRecognizer~~~~0.0.1.0"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Reconocedor de fórmulas matemáticas escritas a mano."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_COMP_STEPS_RECORDER"
+            Name                = "Steps Recorder (PSR - Deprecado)"
+            Category            = "Accesorios"
+            Type                = "Capability"
+            TargetName          = "App.StepsRecorder~~~~0.0.1.0"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Grabador de pasos de reproducción de problemas (deprecado en 24H2)."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_COMP_QUICK_ASSIST"
+            Name                = "Quick Assist (Asistencia Rápida Legacy)"
+            Category            = "Accesorios"
+            Type                = "Capability"
+            TargetName          = "App.Support.QuickAssist~~~~0.0.1.0"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Herramienta heredada de asistencia remota."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_COMP_WORDPAD"
+            Name                = "WordPad (Eliminado oficialmente en 24H2)"
+            Category            = "Accesorios"
+            Type                = "Capability"
+            TargetName          = "Microsoft.Windows.WordPad~~~~0.0.1.0"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Procesador de texto simple WordPad."
+        },
+        # --- CARACTERÍSTICAS OPCIONALES DE RED Y SERVICIOS INNECESARIOS ---
+        [PSCustomObject]@{
+            Id                  = "DISM_FEAT_TELNET_CLIENT"
+            Name                = "Telnet Client"
+            Category            = "Red"
+            Type                = "OptionalFeature"
+            TargetName          = "TelnetClient"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Cliente de protocolo Telnet no seguro en texto claro."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_FEAT_TFTP_CLIENT"
+            Name                = "TFTP Client"
+            Category            = "Red"
+            Type                = "OptionalFeature"
+            TargetName          = "TFTP"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Cliente de transferencia Trivial FTP."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_FEAT_WORKFOLDERS"
+            Name                = "Work Folders Client"
+            Category            = "Empresarial"
+            Type                = "OptionalFeature"
+            TargetName          = "WorkFolders-Client"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Sincronizador corporativo de carpetas de trabajo."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_FEAT_REMOTE_DESKTOP"
+            Name                = "Remote Desktop Connection (RDP Client)"
+            Category            = "Red"
+            Type                = "OptionalFeature"
+            TargetName          = "Microsoft-RemoteDesktopConnection"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Cliente nativo de escritorio remoto RDP."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_FEAT_PRINTING_LPR"
+            Name                = "LPR Port Monitor"
+            Category            = "Impresion"
+            Type                = "OptionalFeature"
+            TargetName          = "Printing-Foundation-LPRPortMonitor"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Monitor de puerto de impresión Unix LPR legado."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_FEAT_PRINTING_LPD"
+            Name                = "LPD Print Service"
+            Category            = "Impresion"
+            Type                = "OptionalFeature"
+            TargetName          = "Printing-Foundation-LPDPrintService"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Servicio de impresión Line Printer Daemon legado."
+        }
+    )
+}
+
+
 
 
 

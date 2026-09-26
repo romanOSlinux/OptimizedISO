@@ -641,7 +641,9 @@ function Show-QuickActionsMenu {
         "Guardian Anti-Drift de Servicios y Tareas (Watchdog-ServiceDrift)",
         "Calibrador de Afinidad PCIe e Interrupciones IRQ (DPC Steering & MSI Tuning)",
         "Benchmark de Latencia y Resolvers DNS en Tiempo Real (Cloudflare, Quad9, Google, AdGuard)",
-        "Explorador de Software Curado y Runtimes de IA (Listar Catalogo WinGet)"
+        "Explorador de Software Curado y Runtimes de IA (Listar Catalogo WinGet)",
+        "Catalogo Canonico de Componentes Opcionales DISM (MSMG Toolkit SSOT)",
+        "Consolidacion Profunda de WinSxS (DISM StartComponentCleanup con ResetBase)"
     )
     
     $actChoice = Show-UnifiedMenu -Title "ACCIONES DISPONIBLES" -Options $quickOpts -DefaultChoice 1 -AllowCancel -CancelText "Volver al Menu Principal"
@@ -829,6 +831,31 @@ function Show-QuickActionsMenu {
         25 {
             Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Catalogo Canonico de Software Curado (WinGet Engine)"
             Invoke-AppProfilesModule -ListCatalog
+            pause
+        }
+        26 {
+            Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Catalogo Canonico de Componentes Opcionales DISM (SSOT)"
+            $peScript = Resolve-ToolScript "Policy-Engine.ps1"
+            if (-not $peScript) { $peScript = "C:\OptimizedISO\scripts\Core\Policy-Engine.ps1" }
+            if (Test-Path $peScript) {
+                . $peScript
+                if (Get-Command 'Get-RomanOSDismComponentsCatalog' -ErrorAction SilentlyContinue) {
+                    $cat = Get-RomanOSDismComponentsCatalog
+                    $cat | Format-Table -AutoSize Id, Name, Category, Type, SafeForGaming, BreaksWindowsUpdate
+                }
+            } else {
+                Write-ErrorMsg "No se encontro Policy-Engine.ps1"
+            }
+            pause
+        }
+        27 {
+            Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Consolidacion Profunda de WinSxS con ResetBase"
+            $maintScript = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+            if ($maintScript) {
+                & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $maintScript -DeepClean -ResetBase
+            } else {
+                Write-ErrorMsg "No se encontro Invoke-WindowsMaintenance.ps1"
+            }
             pause
         }
         default { return }

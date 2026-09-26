@@ -231,6 +231,9 @@ param(
     [switch]$SkipComponentCleanup,
 
     [Parameter()]
+    [switch]$RemoveDismComponents,
+
+    [Parameter()]
     [switch]$KeepExtractDir,
 
     [Parameter()]
@@ -1479,6 +1482,8 @@ function Export-BuildPreset {
         OptimizationProfile = if ($script:OptProfile)         { $script:OptProfile }         else { '2' }
         BlockOneDrive       = if ($null -ne $script:BlockOneDrive)      { [bool]$script:BlockOneDrive }      else { $true }
         InjectVisualTweaks  = if ($null -ne $script:InjectVisualTweaks) { [bool]$script:InjectVisualTweaks } else { $false }
+        SkipComponentCleanup = [bool]$script:SkipComponentCleanup
+        RemoveDismComponents = [bool]$script:RemoveDismComponents
         WimCompression      = if ($script:WimCompression)     { $script:WimCompression }     else { 'Max' }
         Architecture        = if ($script:Architecture)       { $script:Architecture }       else { 'amd64' }
         ExportedAt          = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
@@ -1588,6 +1593,10 @@ function Import-BuildPreset {
         if ($null -ne $preset.SkipComponentCleanup) {
             $script:SkipComponentCleanup = [bool]$preset.SkipComponentCleanup
             $ScriptBoundParameters['SkipComponentCleanup'] = [bool]$preset.SkipComponentCleanup
+        }
+        if ($null -ne $preset.RemoveDismComponents) {
+            $script:RemoveDismComponents = [bool]$preset.RemoveDismComponents
+            $ScriptBoundParameters['RemoveDismComponents'] = [bool]$preset.RemoveDismComponents
         }
 
         $script:Headless = $true
@@ -1950,6 +1959,312 @@ function Assert-RomanOSWimMetadata {
         Issues    = @($checks)
         Summary   = if ($isValid) { "Metadatos WIM validados e integros tras servicing." } else { "Anomalias detectadas: $($checks -join '; ')" }
     }
+}
+
+function Invoke-RomanOSDismComponentRemoval {
+    <#
+    .SYNOPSIS
+        Remueve componentes y características opcionales de Windows de forma offline mediante DISM
+        basándose en el catálogo canónico SSOT de Policy-Engine.ps1 (inspirado en MSMG Toolkit).
+    .DESCRIPTION
+        Soporta tres tipos de remoción:
+        1. Capabilities (FOD - Features On Demand) vía Remove-WindowsCapability o dism.exe /Remove-Capability
+        2. OptionalFeatures vía Disable-WindowsOptionalFeature o dism.exe /Disable-Feature /Remove
+        3. Packages vía Remove-WindowsPackage o dism.exe /Remove-Package con búsqueda por patrón
+        Garantiza visibilidad de errores (CWE-390) y no aborta la compilación si un componente no existe.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$MountDir,
+
+        [Parameter(Mandatory = $false)]
+        [string[]]$ComponentIds = @(),
+
+        [Parameter(Mandatory = $false)]
+        [string]$ScratchDir = "",
+
+        [Parameter(Mandatory = $false)]
+        [int]$TimeoutSeconds = 600,
+
+        [Parameter(Mandatory = $false)]
+        [int]$HeartbeatIntervalSeconds = 30
+    )
+
+    $result = [PSCustomObject]@{
+        Success      = $true
+        Total        = 0
+        RemovedCount = 0
+        FailedCount  = 0
+        SkippedCount = 0
+        Details      = [System.Collections.Generic.List[string]]::new()
+    }
+
+    if (-not (Test-Path $MountDir)) {
+        $msg = "Directorio de montaje no existe: '$MountDir'"
+        Write-Warn $msg
+        $result.Success = $false
+        $result.Details.Add("FAIL: $msg")
+        return $result
+    }
+
+    $catalog = if (Get-Command -Name "Get-RomanOSDismComponentsCatalog" -ErrorAction SilentlyContinue) {
+        Get-RomanOSDismComponentsCatalog
+    } else {
+        @()
+    }
+
+    $targets = if ($ComponentIds -and $ComponentIds.Count -gt 0) {
+        $catalog | Where-Object { $ComponentIds -contains $_.Id -or $ComponentIds -contains $_.TargetName }
+    } else {
+        $catalog | Where-Object { $_.SafeForGaming -eq $true -and $_.BreaksWindowsUpdate -eq $false }
+    }
+
+    $result.Total = @($targets).Count
+    if ($result.Total -eq 0) {
+        Write-Info "Invoke-RomanOSDismComponentRemoval: No hay componentes seleccionados para remoción."
+        return $result
+    }
+
+    Write-Host "    Iniciando remoción de $($result.Total) componentes DISM seleccionados..." -ForegroundColor Cyan
+
+    foreach ($comp in $targets) {
+        $compName = $comp.Name
+        $compType = $comp.Type
+        $target   = $comp.TargetName
+
+        Write-Host "    -> Procesando: $compName ($target) [$compType]..." -ForegroundColor Gray
+
+        try {
+            $removed = $false
+            if ($compType -eq "Capability") {
+                $argsDism = @("/Image:$MountDir", "/Remove-Capability", "/CapabilityName:$target")
+                if ($ScratchDir -and (Test-Path $ScratchDir)) {
+                    $argsDism += "/ScratchDir:$ScratchDir"
+                }
+
+                $procRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                    -ArgumentList $argsDism `
+                    -TaskDescription "DISM Remocion Capability: $target" `
+                    -TimeoutSeconds $TimeoutSeconds `
+                    -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+
+                if ($procRes.Success) {
+                    $removed = $true
+                } elseif ($procRes.StdOut -match "(0x800f080c|not found|no se encuentra|0x800f0954)") {
+                    Write-Info "Capability '$target' no presente en la imagen. Omitiendo."
+                    $result.SkippedCount++
+                    $result.Details.Add("SKIP: $target (No presente)")
+                    continue
+                } else {
+                    Write-Warn "Fallo al remover Capability '$target' (ExitCode: $($procRes.ExitCode))"
+                    $result.FailedCount++
+                    $result.Details.Add("FAIL: $target (ExitCode: $($procRes.ExitCode))")
+                    continue
+                }
+            }
+            elseif ($compType -eq "OptionalFeature") {
+                $argsDism = @("/Image:$MountDir", "/Disable-Feature", "/FeatureName:$target", "/Remove")
+                if ($ScratchDir -and (Test-Path $ScratchDir)) {
+                    $argsDism += "/ScratchDir:$ScratchDir"
+                }
+
+                $procRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                    -ArgumentList $argsDism `
+                    -TaskDescription "DISM Remocion Feature: $target" `
+                    -TimeoutSeconds $TimeoutSeconds `
+                    -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+
+                if ($procRes.Success) {
+                    $removed = $true
+                } elseif ($procRes.StdOut -match "(0x800f080c|not found|no se encuentra)") {
+                    Write-Info "Feature '$target' no presente en la imagen. Omitiendo."
+                    $result.SkippedCount++
+                    $result.Details.Add("SKIP: $target (No presente)")
+                    continue
+                } else {
+                    Write-Warn "Fallo al remover Feature '$target' (ExitCode: $($procRes.ExitCode))"
+                    $result.FailedCount++
+                    $result.Details.Add("FAIL: $target (ExitCode: $($procRes.ExitCode))")
+                    continue
+                }
+            }
+            elseif ($compType -eq "PackagePattern") {
+                $argsList = @("/Image:$MountDir", "/Get-Packages")
+                if ($ScratchDir -and (Test-Path $ScratchDir)) { $argsList += "/ScratchDir:$ScratchDir" }
+
+                $listRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                    -ArgumentList $argsList `
+                    -TaskDescription "DISM Listar Paquetes para: $target" `
+                    -TimeoutSeconds 120 `
+                    -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+
+                $pkgMatches = [System.Collections.Generic.List[string]]::new()
+                if ($listRes.Success -and $listRes.StdOut) {
+                    $lines = $listRes.StdOut -split "`r?`n"
+                    foreach ($line in $lines) {
+                        if ($line -match "Package Identity\s*:\s*(.+)$" -or $line -match "Identidad del paquete\s*:\s*(.+)$") {
+                            $pkgId = $matches[1].Trim()
+                            $wildcard = [System.Management.Automation.WildcardPattern]::new($target, [System.Management.Automation.WildcardOptions]::IgnoreCase)
+                            if ($wildcard.IsMatch($pkgId)) {
+                                $pkgMatches.Add($pkgId)
+                            }
+                        }
+                    }
+                }
+
+                if ($pkgMatches.Count -eq 0) {
+                    Write-Info "Paquetes coincidentes con '$target' no presentes en la imagen. Omitiendo."
+                    $result.SkippedCount++
+                    $result.Details.Add("SKIP: $target (No coincidente)")
+                    continue
+                }
+
+                foreach ($pkgId in $pkgMatches) {
+                    $argsRem = @("/Image:$MountDir", "/Remove-Package", "/PackageName:$pkgId")
+                    if ($ScratchDir -and (Test-Path $ScratchDir)) { $argsRem += "/ScratchDir:$ScratchDir" }
+
+                    $pkgRemRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+                        -ArgumentList $argsRem `
+                        -TaskDescription "DISM Remocion Paquete: $pkgId" `
+                        -TimeoutSeconds $TimeoutSeconds `
+                        -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+
+                    if ($pkgRemRes.Success) {
+                        $removed = $true
+                    } else {
+                        Write-Warn "Fallo al remover paquete '$pkgId' (ExitCode: $($pkgRemRes.ExitCode))"
+                    }
+                }
+            }
+
+            if ($removed) {
+                Write-OK "Componente '$compName' removido exitosamente."
+                $result.RemovedCount++
+                $result.Details.Add("OK: $target")
+            }
+        } catch {
+            Write-Warn "Error inesperado procesando componente '$compName': $($_.Exception.Message)"
+            $result.FailedCount++
+            $result.Details.Add("FAIL: $target ($($_.Exception.Message))")
+        }
+    }
+
+    $result.Success = ($result.FailedCount -eq 0)
+    return $result
+}
+
+function Invoke-RomanOSComponentStoreCleanup {
+    <#
+    .SYNOPSIS
+        Ejecuta la consolidación y limpieza profunda del almacén de componentes WinSxS
+        con opción de /ResetBase para reducir la huella de la imagen WIM (inspirado en MSMG Toolkit).
+    .DESCRIPTION
+        Calcula el tamaño previo y posterior de WinSxS para reportar la métrica exacta de ahorro en MB.
+        Garantiza tolerancia a fallos visible (CWE-390).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$MountDir,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$ResetBase,
+
+        [Parameter(Mandatory = $false)]
+        [string]$ScratchDir = "",
+
+        [Parameter(Mandatory = $false)]
+        [int]$TimeoutSeconds = 1800,
+
+        [Parameter(Mandatory = $false)]
+        [int]$HeartbeatIntervalSeconds = 30
+    )
+
+    $result = [PSCustomObject]@{
+        Success      = $false
+        ExitCode     = -1
+        ResetBase    = [bool]$ResetBase
+        SizeBeforeMB = 0.0
+        SizeAfterMB  = 0.0
+        SavedMB      = 0.0
+        Summary      = ""
+    }
+
+    if (-not (Test-Path $MountDir)) {
+        $msg = "Directorio de montaje no existe: '$MountDir'"
+        Write-Warn $msg
+        $result.Summary = $msg
+        return $result
+    }
+
+    $winsxsPath = Join-Path $MountDir "Windows\WinSxS"
+    if (Test-Path $winsxsPath) {
+        try {
+            $measurePre = Get-ChildItem -Path $winsxsPath -Recurse -File -ErrorAction SilentlyContinue |
+                          Measure-Object -Property Length -Sum
+            if ($measurePre -and $measurePre.Sum) {
+                $result.SizeBeforeMB = [math]::Round($measurePre.Sum / 1MB, 2)
+            }
+        } catch {
+            Write-Verbose "No se pudo calcular tamaño inicial de WinSxS: $($_.Exception.Message)"
+        }
+    }
+
+    $argsDism = @("/Image:$MountDir", "/Cleanup-Image", "/StartComponentCleanup")
+    if ($ResetBase) {
+        $argsDism += "/ResetBase"
+    }
+    if ($ScratchDir -and (Test-Path $ScratchDir)) {
+        $argsDism += "/ScratchDir:$ScratchDir"
+    }
+
+    $taskDesc = if ($ResetBase) {
+        "Limpieza y consolidacion ResetBase de componentes (WinSxS)"
+    } else {
+        "Limpieza de componentes obsoletos (WinSxS StartComponentCleanup)"
+    }
+
+    Write-Host "    Ejecutando $taskDesc..." -ForegroundColor Cyan
+
+    try {
+        $procRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
+            -ArgumentList $argsDism `
+            -TaskDescription $taskDesc `
+            -TimeoutSeconds $TimeoutSeconds `
+            -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+
+        $result.ExitCode = $procRes.ExitCode
+        $result.Success  = $procRes.Success
+
+        if (Test-Path $winsxsPath) {
+            try {
+                $measurePost = Get-ChildItem -Path $winsxsPath -Recurse -File -ErrorAction SilentlyContinue |
+                               Measure-Object -Property Length -Sum
+                if ($measurePost -and $measurePost.Sum) {
+                    $result.SizeAfterMB = [math]::Round($measurePost.Sum / 1MB, 2)
+                    if ($result.SizeBeforeMB -gt 0 -and $result.SizeAfterMB -lt $result.SizeBeforeMB) {
+                        $result.SavedMB = [math]::Round($result.SizeBeforeMB - $result.SizeAfterMB, 2)
+                    }
+                }
+            } catch {
+                Write-Verbose "No se pudo calcular tamaño posterior de WinSxS: $($_.Exception.Message)"
+            }
+        }
+
+        if ($result.Success) {
+            $result.Summary = "ComponentStoreCleanup exitoso (ResetBase: $([bool]$ResetBase)). Ahorro estimado: $($result.SavedMB) MB."
+            Write-OK $result.Summary
+        } else {
+            $result.Summary = "ComponentStoreCleanup finalizo con ExitCode: $($result.ExitCode)."
+            Write-Warn $result.Summary
+        }
+    } catch {
+        $result.Summary = "Excepcion ejecutando ComponentStoreCleanup: $($_.Exception.Message)"
+        Write-Warn $result.Summary
+    }
+
+    return $result
 }
 
 #------------------------------------------------------------------------------
@@ -6850,32 +7165,41 @@ if ($wimFile) {
                     }
 
                     #==================================================================
-                    # RESETBASE
+                    # REMOCIÓN DE COMPONENTES DISM (INSPIRACIÓN MSMG TOOLKIT)
                     #==================================================================
 
-                    if ($successCount -gt 0) {
-                        if ($SkipComponentCleanup) {
+                    $dismRemovalRes = $null
+                    if ($optProfileInt -ge 2 -or $RemoveDismComponents -or $script:RemoveDismComponents) {
+                        Write-Host ""
+                        Write-Host "    ══ Remoción DISM de componentes opcionales y FOD ══" -ForegroundColor Cyan
+                        $dismRemovalRes = Invoke-RomanOSDismComponentRemoval -MountDir $WimMountDir -ScratchDir $ScratchDir -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+                        $dismStatus = if ($dismRemovalRes.FailedCount -gt 0 -and $dismRemovalRes.RemovedCount -eq 0) { "FAIL" } `
+                                      elseif ($dismRemovalRes.FailedCount -gt 0) { "WARN" } else { "OK" }
+                        Add-AuditRecord -Resource "DISM Componentes" -Target "WIM Idx $wimIndex" `
+                                        -Status $dismStatus `
+                                        -Details "$($dismRemovalRes.RemovedCount) removidos, $($dismRemovalRes.FailedCount) fallidos, $($dismRemovalRes.SkippedCount) omitidos"
+                    }
+
+                    #==================================================================
+                    # RESETBASE / CONSOLIDACIÓN WINSXS
+                    #==================================================================
+
+                    if ($successCount -gt 0 -or ($dismRemovalRes -and $dismRemovalRes.RemovedCount -gt 0)) {
+                        if ($SkipComponentCleanup -or $script:SkipComponentCleanup) {
                             Write-Host ""
                             Write-Host "    [INFO] StartComponentCleanup / ResetBase omitido (-SkipComponentCleanup activo)." -ForegroundColor DarkYellow
+                            Add-AuditRecord -Resource "Consolidacion WinSxS" -Target "WIM Idx $wimIndex" `
+                                            -Status "SKIP" `
+                                            -Details "Omitido por parámetro -SkipComponentCleanup"
                         } else {
                             Write-Host ""
                             Write-Host "    Ejecutando ResetBase / StartComponentCleanup..." -ForegroundColor Cyan
 
-                            try {
-                                $resetRes = Invoke-MonitoredProcess -FilePath "dism.exe" `
-                                    -ArgumentList @("/Image:$WimMountDir", "/Cleanup-Image", "/StartComponentCleanup", "/ResetBase", "/ScratchDir:$ScratchDir") `
-                                    -TaskDescription "Limpieza y consolidación ResetBase de componentes" `
-                                    -TimeoutSeconds 1800 `
-                                    -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
-
-                                if ($resetRes.Success) {
-                                    Write-OK "Componentes limpiados y consolidados."
-                                } else {
-                                    Write-Warn "ResetBase finalizó con código: $($resetRes.ExitCode). Continuando."
-                                }
-                            } catch {
-                                Write-Warn "Error ejecutando ResetBase: $($_.Exception.Message)"
-                            }
+                            $cleanupRes = Invoke-RomanOSComponentStoreCleanup -MountDir $WimMountDir -ResetBase -ScratchDir $ScratchDir -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
+                            $cleanupStatus = if ($cleanupRes.Success) { "OK" } else { "WARN" }
+                            Add-AuditRecord -Resource "Consolidacion WinSxS" -Target "WIM Idx $wimIndex" `
+                                            -Status $cleanupStatus `
+                                            -Details $cleanupRes.Summary
                         }
                     }
 

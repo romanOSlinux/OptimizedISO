@@ -48,7 +48,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 70
+$EXPECTED_FUNCS  = 72
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -329,7 +329,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "70 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "72 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -348,7 +348,8 @@ $expectedList = @(
     "Test-MsuIsPsfFormat", "Get-WimPatchLevel", "Resolve-RuntimesDirectory",
     "Set-BuildDefenderExclusions", "Import-BuildPreset", "Export-BuildPreset",
     "Test-IsRomanizedISO", "Invoke-WimAiHardening",
-    "Write-RomanOSEiCfg", "Get-RomanOSWimMetadata", "Assert-RomanOSWimMetadata"
+    "Write-RomanOSEiCfg", "Get-RomanOSWimMetadata", "Assert-RomanOSWimMetadata",
+    "Invoke-RomanOSDismComponentRemoval", "Invoke-RomanOSComponentStoreCleanup"
 )
 foreach ($fn in $expectedList) {
     Assert-True "Funcion '$fn' disponible" ($null -ne (Get-Command $fn -ErrorAction SilentlyContinue))
@@ -1769,6 +1770,16 @@ Assert-True "PLAN-0117: Assert-RomanOSWimMetadata valida metadatos íntegros" $m
 $mockPostCorrupt = [PSCustomObject]@{ Edition = "Core"; Architecture = "9"; Languages = @(); Version = "10.0.26100.1" }
 $mockAssertBad = Assert-RomanOSWimMetadata -PreMetadata $mockPre -PostMetadata $mockPostCorrupt
 Assert-True "PLAN-0117: Assert-RomanOSWimMetadata detecta desvío de edición y pérdida de idiomas" (-not $mockAssertBad.IsValid -and $mockAssertBad.Issues.Count -ge 2)
+
+# Validación de Invoke-RomanOSDismComponentRemoval e Invoke-RomanOSComponentStoreCleanup (PLAN-0118)
+Write-HarnessHeader2 "FASE 2V: Servicing WIM de Componentes DISM y ResetBase (PLAN-0118 MSMG)"
+$mockDismInvalid = Invoke-RomanOSDismComponentRemoval -MountDir "C:\NonExistent_Mount_Dir_Mock"
+Assert-False "PLAN-0118: Invoke-RomanOSDismComponentRemoval falla controladamente ante ruta inexistente" $mockDismInvalid.Success
+Assert-True "PLAN-0118: Invoke-RomanOSDismComponentRemoval reporta detalle visible" ($mockDismInvalid.Details.Count -gt 0)
+
+$mockCleanupInvalid = Invoke-RomanOSComponentStoreCleanup -MountDir "C:\NonExistent_Mount_Dir_Mock"
+Assert-False "PLAN-0118: Invoke-RomanOSComponentStoreCleanup falla controladamente ante ruta inexistente" $mockCleanupInvalid.Success
+Assert-True "PLAN-0118: Invoke-RomanOSComponentStoreCleanup reporta mensaje de error" ($mockCleanupInvalid.Summary.Length -gt 0)
 
 # --- LIMPIEZA TEMPORAL ---
 try {
