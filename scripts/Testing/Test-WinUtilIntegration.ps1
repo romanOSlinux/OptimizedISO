@@ -207,6 +207,35 @@ $assertBad = Assert-RomanOSWimMetadata -PreMetadata $mPre -PostMetadata $mPostBa
 Assert-Test -Description "Assert-RomanOSWimMetadata detecta corrupción de edición o idiomas" -Condition (-not $assertBad.IsValid -and $assertBad.Issues.Count -ge 2)
 
 # ----------------------------------------------------------------------
+# 6. PARIDAD E INTEGRACIÓN GRÁFICA EN ROMANOS-CONTROLCENTER.PS1 (FASE 4)
+# ----------------------------------------------------------------------
+Write-Host "`n>>> [6/6] Verificando Paridad e Integración Gráfica en romanOS-ControlCenter.ps1..." -ForegroundColor Yellow
+
+$ccFile = "$PSScriptRoot\..\GUI\romanOS-ControlCenter.ps1"
+Assert-Test -Description "Existencia física de romanOS-ControlCenter.ps1" -Condition (Test-Path $ccFile)
+
+$ccBytes = [System.IO.File]::ReadAllBytes((Resolve-Path $ccFile).Path)
+$hasCCBOM = ($ccBytes.Count -ge 3 -and $ccBytes[0] -eq 0xEF -and $ccBytes[1] -eq 0xBB -and $ccBytes[2] -eq 0xBF)
+Assert-Test -Description "romanOS-ControlCenter.ps1 codificado en UTF-8 con BOM (Regla 4)" -Condition $hasCCBOM
+
+$tokens = $null; $errors = $null
+$ccAst = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $ccFile).Path, [ref]$tokens, [ref]$errors)
+Assert-Test -Description "Parser AST de romanOS-ControlCenter.ps1 sin errores sintácticos" -Condition ($errors.Count -eq 0) -Details "Errores: $($errors.Count)"
+
+$ccText = Get-Content -Path (Resolve-Path $ccFile).Path -Raw -Encoding UTF8
+Assert-Test -Description "XAML de Control Center contiene control de DNS Actual (lblCurrentDns)" -Condition ($ccText -match 'x:Name="lblCurrentDns"')
+Assert-Test -Description "XAML de Control Center contiene botón AdGuard DNS (btnSetAdGuardDns)" -Condition ($ccText -match 'x:Name="btnSetAdGuardDns"')
+Assert-Test -Description "XAML de Control Center contiene checkbox DoH (chkEnableDoH)" -Condition ($ccText -match 'x:Name="chkEnableDoH"')
+Assert-Test -Description "XAML de Control Center contiene selector de Categorías WinGet (cbxAppCategories)" -Condition ($ccText -match 'x:Name="cbxAppCategories"')
+Assert-Test -Description "XAML de Control Center contiene botón desplegar categoría (btnDeployCategoryGUI)" -Condition ($ccText -match 'x:Name="btnDeployCategoryGUI"')
+Assert-Test -Description "XAML de Control Center contiene botón explorar catálogo (btnListCatalogGUI)" -Condition ($ccText -match 'x:Name="btnListCatalogGUI"')
+
+# Ejecución en frío en Windows PowerShell 5.1 con switch -WhatIf
+$ccWhatIf = & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -STA -NoProfile -ExecutionPolicy Bypass -Command "& { & '$((Resolve-Path $ccFile).Path)' -WhatIf }"
+$ccWhatIfSuccess = ($LASTEXITCODE -eq 0 -and $ccWhatIf -match "romanOS Control Center validado correctamente")
+Assert-Test -Description "romanOS-ControlCenter.ps1 -WhatIf ejecuta limpiamente en PS 5.1 (-STA)" -Condition $ccWhatIfSuccess
+
+# ----------------------------------------------------------------------
 # RESUMEN DE PRUEBAS
 # ----------------------------------------------------------------------
 Write-Host "`n==========================================================================" -ForegroundColor Magenta

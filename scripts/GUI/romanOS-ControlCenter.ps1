@@ -224,6 +224,27 @@ function Resolve-ToolScript {
     return $null
 }
 
+# Precarga de módulos de funciones (dot-sourcing temprano con guardias de retorno)
+$netOptimizerModule = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+if ($netOptimizerModule -and (Test-Path $netOptimizerModule)) {
+    try {
+        . $netOptimizerModule -Quiet
+        Write-CCLog "Cargado modulo Network-Diagnostics-Optimizer: $netOptimizerModule"
+    } catch {
+        Write-CCLog "Error al precargar Network-Diagnostics-Optimizer: $($_.Exception.Message)" -Level "WARN"
+    }
+}
+
+$deployAppsModule = Resolve-ToolScript "Deploy-AppProfiles.ps1"
+if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
+    try {
+        . $deployAppsModule -SkipElevation
+        Write-CCLog "Cargado modulo Deploy-AppProfiles: $deployAppsModule"
+    } catch {
+        Write-CCLog "Error al precargar Deploy-AppProfiles: $($_.Exception.Message)" -Level "WARN"
+    }
+}
+
 # -----------------------------------------------------------------------------
 # 2. DEFINICION XAML DE LA INTERFAZ (WPF)
 # -----------------------------------------------------------------------------
@@ -577,19 +598,38 @@ function Resolve-ToolScript {
                     <StackPanel Margin="10">
                         <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
-                                <TextBlock Text="Benchmark de Servidores DNS en Vivo" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
-                                <TextBlock Text="Compara la latencia real en milisegundos desde tu conexion hacia los servidores DNS globales mas reconocidos." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,12"/>
+                                <TextBlock Text="Conmutador y Benchmark de Servidores DNS (DoH + RTT)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Compara la latencia real en milisegundos (RTT) hacia los resolvers globales líderes y conmuta perfiles con cifrado DoH en Windows 11." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,12"/>
 
-                                <Button x:Name="btnRunDnsBench" Content="Ejecutar Benchmark DNS en Vivo" Width="240" HorizontalAlignment="Left" Margin="0,0,0,12"/>
-
-                                <Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
-                                    <TextBlock x:Name="txtDnsResults" Text="Haga clic en 'Ejecutar Benchmark DNS' para iniciar las pruebas." Foreground="#A0A0A0" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap"/>
+                                <!-- Estado DNS Actual en Vivo -->
+                                <Border Background="#1E2822" BorderBrush="#00E676" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="DNS Actual en Uso: " Foreground="#FFFFFF" FontWeight="Bold" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" x:Name="lblCurrentDns" Text="Detectando..." Foreground="#00E5FF" FontWeight="SemiBold" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                        <Button Grid.Column="2" x:Name="btnRefreshDns" Content="Actualizar Estado" Width="130" Height="24" FontSize="11"/>
+                                    </Grid>
                                 </Border>
 
+                                <WrapPanel Margin="0,0,0,12">
+                                    <Button x:Name="btnRunDnsBench" Content="Ejecutar Benchmark DNS en Vivo (RTT)" Width="250" Margin="0,0,12,0" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                                    <CheckBox x:Name="chkEnableDoH" Content="Activar Cifrado DoH (DNS-over-HTTPS en Windows 11)" IsChecked="True" Foreground="#E0E0E0" VerticalAlignment="Center"/>
+                                </WrapPanel>
+
+                                <Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
+                                    <TextBlock x:Name="txtDnsResults" Text="Haga clic en 'Ejecutar Benchmark DNS en Vivo (RTT)' para evaluar Cloudflare, Quad9, Google y AdGuard." Foreground="#A0A0A0" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap"/>
+                                </Border>
+
+                                <TextBlock Text="Conmutación Rápida de Perfiles DNS (1-Clic):" Foreground="#E0E0E0" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,8"/>
                                 <WrapPanel>
-                                    <Button x:Name="btnSetCloudflareDns" Content="Asignar Cloudflare (1.1.1.1)" Width="190" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnSetGoogleDns" Content="Asignar Google (8.8.8.8)" Width="180" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnSetQuad9Dns" Content="Asignar Quad9 (9.9.9.9)" Width="180" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnSetCloudflareDns" Content="Cloudflare (1.1.1.1)" Width="170" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnSetQuad9Dns" Content="Quad9 Seguro (9.9.9.9)" Width="180" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnSetGoogleDns" Content="Google (8.8.8.8)" Width="160" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnSetAdGuardDns" Content="AdGuard AdBlock (94.140.14.14)" Width="210" Margin="0,0,10,10"/>
                                     <Button x:Name="btnResetDnsDhcp" Content="Restaurar DNS (DHCP)" Width="170" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
@@ -689,18 +729,33 @@ function Resolve-ToolScript {
                                 <TextBlock Text="romanOS App &amp; AI Runtimes Manager (Winget &amp; IA 2026)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
                                 <TextBlock Text="Instalacion automatizada y silenciosa de perfiles de software curados, aceleradores de IA local (Ollama, DirectML) y runtimes de sistema." Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,10"/>
                                 
-                                <Grid Margin="0,0,0,10">
+                                <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="180"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Perfil de Software:" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Perfil de Software:" Foreground="#FFFFFF" VerticalAlignment="Center"/>
                                     <ComboBox x:Name="cbxAppProfiles" Grid.Column="1" Height="26" SelectedIndex="0" Background="#1E1E1E" Foreground="#FFFFFF">
                                         <ComboBoxItem Content="eSports &amp; Competitive Gamer (Steam, Discord, RTSS, Vulkan, OBS)" Tag="EsportsGamer"/>
                                         <ComboBoxItem Content="AI Engineer &amp; Developer (Ollama, VS Code, Git, Python 3.12, Terminal)" Tag="AIAndDeveloper"/>
                                         <ComboBoxItem Content="Content Creator &amp; Streamer (OBS, HandBrake, VLC, Audacity, Codecs)" Tag="CreatorStreamer"/>
                                         <ComboBoxItem Content="Essential Daily Utilities (7-Zip, Firefox, SumatraPDF, Notepad++)" Tag="Essential"/>
                                         <ComboBoxItem Content="Todos los Perfiles Completos" Tag="All"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Categoría Curada (WinGet):" Foreground="#00E676" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="cbxAppCategories" Grid.Column="1" Height="26" SelectedIndex="0" Background="#1E1E1E" Foreground="#FFFFFF">
+                                        <ComboBoxItem Content="Navegadores Web (Brave, Firefox, Chrome, LibreWolf)" Tag="Browsers"/>
+                                        <ComboBoxItem Content="Gaming &amp; Plataformas (Steam, Epic, Discord, OBS, Prism Launcher)" Tag="Gaming"/>
+                                        <ComboBoxItem Content="Desarrollo &amp; Terminal (VS Code, Git, Python 3.12, Windows Terminal, Notepad++)" Tag="Development"/>
+                                        <ComboBoxItem Content="Utilidades Esenciales (7-Zip, PowerToys, FastStone, Everything, VLC, Revo)" Tag="Utilities"/>
+                                        <ComboBoxItem Content="Todas las Categorías Curadas (Suite Completa)" Tag="All"/>
                                     </ComboBox>
                                 </Grid>
 
@@ -711,8 +766,10 @@ function Resolve-ToolScript {
 
                                 <WrapPanel>
                                     <Button x:Name="btnDeployProfileGUI" Content="Instalar Perfil Seleccionado" Width="210" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
-                                    <Button x:Name="btnSimulateProfileGUI" Content="Simular Instalacion (-WhatIf)" Width="200" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnInstallRuntimesGUI" Content="Instalar Solo Runtimes Base" Width="210" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnDeployCategoryGUI" Content="Instalar Categoría (WinGet)" Width="200" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnSimulateProfileGUI" Content="Simular Selección (-WhatIf)" Width="190" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnListCatalogGUI" Content="Explorar Catálogo Curado" Width="180" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnInstallRuntimesGUI" Content="Instalar Solo Runtimes Base" Width="200" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -848,6 +905,31 @@ try {
 } catch {
     Write-CCLog "Aviso al inicializar botones Desktop Helpers: $($_.Exception.Message)" -Level "WARN"
 }
+
+# Inicializar estado de DNS en la UI
+function Update-ControlCenterDnsState {
+    try {
+        $lbl = $window.FindName('lblCurrentDns')
+        if ($lbl) {
+            if (Get-Command 'Get-RomanOSCurrentDns' -ErrorAction SilentlyContinue) {
+                $curr = Get-RomanOSCurrentDns
+                if ($curr -and $curr.Count -gt 0) {
+                    $active = $curr | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1
+                    if (-not $active) { $active = $curr[0] }
+                    $serverStr = if ($active.DnsServers) { $active.DnsServers } else { "DHCP / Sin asignar" }
+                    $lbl.Text = "$($active.DetectedProfile) ($serverStr) en $($active.InterfaceAlias)"
+                } else {
+                    $lbl.Text = "No se detectaron adaptadores activos"
+                }
+            } else {
+                $lbl.Text = "Consulta de DNS no disponible"
+            }
+        }
+    } catch {
+        Write-CCLog "Aviso al consultar estado DNS: $($_.Exception.Message)" -Level "WARN"
+    }
+}
+Update-ControlCenterDnsState
 
 # -----------------------------------------------------------------------------
 # 4. MOTOR DE EJECUCIÓN ASÍNCRONA DESACOPLADA (60 FPS)
@@ -1498,51 +1580,89 @@ $window.FindName('btnInstallDriftTaskGUI').Add_Click({
 })
 
 # --- Pestaña 4: Red ---
+$btnRefDns = $window.FindName('btnRefreshDns')
+if ($btnRefDns) {
+    $btnRefDns.Add_Click({
+        Update-ControlCenterDnsState
+    })
+}
+
 $window.FindName('btnRunDnsBench').Add_Click({
     $txtDns = $window.FindName('txtDnsResults')
-    $txtDns.Text = "Ejecutando medicion de latencia contra servidores globales...`r`n"
+    $txtDns.Text = "Ejecutando medicion de latencia RTT contra servidores globales SSOT...`r`nPor favor espere unos segundos...`r`n"
     
-    $servers = @(
-        @{ Name = "Cloudflare Primary"; IP = "1.1.1.1" },
-        @{ Name = "Google Public DNS";  IP = "8.8.8.8" },
-        @{ Name = "Quad9 Secure";       IP = "9.9.9.9" },
-        @{ Name = "OpenDNS Standard";   IP = "208.67.222.222" }
-    )
-    
-    $sb = [System.Text.StringBuilder]::new()
-    $sb.AppendLine(("{0,-24} {1,-16} {2}" -f "SERVIDOR", "DIRECCION IP", "LATENCIA")) | Out-Null
-    $sb.AppendLine("-" * 55) | Out-Null
-    
-    foreach ($s in $servers) {
-        $ping = New-Object System.Net.NetworkInformation.Ping
-        try {
-            $reply = $ping.Send($s.IP, 1500)
-            if ($reply.Status -eq 'Success') {
-                $sb.AppendLine(("{0,-24} {1,-16} {2,4} ms [OK]" -f $s.Name, $s.IP, $reply.RoundtripTime)) | Out-Null
-            } else {
-                $sb.AppendLine(("{0,-24} {1,-16} {2}" -f $s.Name, $s.IP, "Tiempo de espera agotado")) | Out-Null
+    try {
+        if (Get-Command 'Test-RomanOSDnsLatency' -ErrorAction SilentlyContinue) {
+            $results = Test-RomanOSDnsLatency
+            $sb = [System.Text.StringBuilder]::new()
+            $sb.AppendLine(("{0,-20} {1,-16} {2,-14} {3,-12} {4}" -f "PROVEEDOR", "IP PRIMARIA", "LATENCIA RTT", "PERDIDA", "ESTADO")) | Out-Null
+            $sb.AppendLine("-" * 75) | Out-Null
+            $best = $null
+            foreach ($r in $results) {
+                $recTag = if ($r.Recommended) { " [RECOMENDADO / MAS RAPIDO]" } else { "" }
+                if ($r.Recommended) { $best = $r }
+                $latStr = if ($r.AverageMs -ge 0) { "$($r.AverageMs) ms" } else { "Tiempo agotado" }
+                $lossStr = "$($r.PacketLoss)%"
+                $sb.AppendLine(("{0,-20} {1,-16} {2,-14} {3,-12} {4}{5}" -f $r.Name, $r.PrimaryIPv4, $latStr, $lossStr, $r.Status, $recTag)) | Out-Null
             }
-        } catch {
-            $sb.AppendLine(("{0,-24} {1,-16} {2}" -f $s.Name, $s.IP, "Fallo al consultar")) | Out-Null
+            if ($best) {
+                $sb.AppendLine("") | Out-Null
+                $sb.AppendLine(">> Servidor optimo detectado: $($best.Name) ($($best.AverageMs) ms)") | Out-Null
+            }
+            $txtDns.Text = $sb.ToString()
+        } else {
+            $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+            if ($netTool) {
+                Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -TestDNS -Unattended" -TaskTitle "Benchmark DNS en Tiempo Real"
+            }
         }
+    } catch {
+        $txtDns.Text = "Error al ejecutar benchmark: $($_.Exception.Message)"
     }
-    $txtDns.Text = $sb.ToString()
 })
 
 $window.FindName('btnSetCloudflareDns').Add_Click({
-    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$r = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1; `$w = if (`$r) { Get-NetAdapter -InterfaceIndex `$r.InterfaceIndex -ErrorAction SilentlyContinue } else { `$null }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' -and `$_.HardwareInterface -eq `$true } | Select-Object -First 1 }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('1.1.1.1','1.0.0.1'); Write-Host ('[OK] DNS configurado en Cloudflare (1.1.1.1) en ' + `$w.Name + ' (' + `$w.InterfaceDescription + ')') } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Cloudflare"
-})
-
-$window.FindName('btnSetGoogleDns').Add_Click({
-    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$r = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1; `$w = if (`$r) { Get-NetAdapter -InterfaceIndex `$r.InterfaceIndex -ErrorAction SilentlyContinue } else { `$null }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' -and `$_.HardwareInterface -eq `$true } | Select-Object -First 1 }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('8.8.8.8','8.8.4.4'); Write-Host ('[OK] DNS configurado en Google (8.8.8.8) en ' + `$w.Name + ' (' + `$w.InterfaceDescription + ')') } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Google"
+    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+    $doh = if ($window.FindName('chkEnableDoH').IsChecked) { " -EnableDoH" } else { "" }
+    if ($netTool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS Cloudflare$doh -Unattended" -TaskTitle "Asignar DNS Cloudflare (1.1.1.1)"
+    }
+    Update-ControlCenterDnsState
 })
 
 $window.FindName('btnSetQuad9Dns').Add_Click({
-    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$r = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1; `$w = if (`$r) { Get-NetAdapter -InterfaceIndex `$r.InterfaceIndex -ErrorAction SilentlyContinue } else { `$null }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' -and `$_.HardwareInterface -eq `$true } | Select-Object -First 1 }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ServerAddresses ('9.9.9.9','149.112.112.112'); Write-Host ('[OK] DNS configurado en Quad9 (9.9.9.9) en ' + `$w.Name + ' (' + `$w.InterfaceDescription + ')') } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Asignar DNS Quad9"
+    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+    $doh = if ($window.FindName('chkEnableDoH').IsChecked) { " -EnableDoH" } else { "" }
+    if ($netTool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS Quad9$doh -Unattended" -TaskTitle "Asignar DNS Quad9 (9.9.9.9)"
+    }
+    Update-ControlCenterDnsState
+})
+
+$window.FindName('btnSetGoogleDns').Add_Click({
+    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+    $doh = if ($window.FindName('chkEnableDoH').IsChecked) { " -EnableDoH" } else { "" }
+    if ($netTool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS Google$doh -Unattended" -TaskTitle "Asignar DNS Google (8.8.8.8)"
+    }
+    Update-ControlCenterDnsState
+})
+
+$window.FindName('btnSetAdGuardDns').Add_Click({
+    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+    $doh = if ($window.FindName('chkEnableDoH').IsChecked) { " -EnableDoH" } else { "" }
+    if ($netTool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS AdGuard$doh -Unattended" -TaskTitle "Asignar DNS AdGuard (94.140.14.14)"
+    }
+    Update-ControlCenterDnsState
 })
 
 $window.FindName('btnResetDnsDhcp').Add_Click({
-    Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { `$r = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Sort-Object RouteMetric | Select-Object -First 1; `$w = if (`$r) { Get-NetAdapter -InterfaceIndex `$r.InterfaceIndex -ErrorAction SilentlyContinue } else { `$null }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' -and `$_.HardwareInterface -eq `$true } | Select-Object -First 1 }; if (-not `$w) { `$w = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { `$_.Status -eq 'Up' } | Select-Object -First 1 }; Set-DnsClientServerAddress -InterfaceIndex `$w.ifIndex -ResetServerAddresses; Write-Host ('[OK] DNS restaurado a DHCP automatico en ' + `$w.Name + ' (' + `$w.InterfaceDescription + ')') } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Restaurar DNS DHCP"
+    $netTool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
+    if ($netTool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$netTool`" -SetDNS DHCP -Unattended" -TaskTitle "Restaurar DNS Automatico (DHCP)"
+    }
+    Update-ControlCenterDnsState
 })
 
 # Handlers: Optimizacion de Pila de Red y Latencia TCP
@@ -1688,17 +1808,49 @@ $window.FindName('btnDeployProfileGUI').Add_Click({
     }
 })
 
+$btnDeployCat = $window.FindName('btnDeployCategoryGUI')
+if ($btnDeployCat) {
+    $btnDeployCat.Add_Click({
+        $cbxCat = $window.FindName('cbxAppCategories')
+        $selectedCat = if ($cbxCat) { $cbxCat.SelectedItem } else { $null }
+        $catTag = if ($selectedCat -and $selectedCat.Tag) { $selectedCat.Tag } else { 'Browsers' }
+        $incRt = $window.FindName('chkIncludeRuntimes').IsChecked
+
+        $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
+        if ($tool) {
+            $catsArg = if ($catTag -eq 'All') { "Browsers,Gaming,Development,Utilities" } else { $catTag }
+            $cmd = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Categories $catsArg -Unattended"
+            if (-not $incRt) { $cmd += " -IncludeRuntimes:`$false" }
+            Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Despliegue WinGet: Categoria $catTag"
+        }
+    })
+}
+
+$btnListCat = $window.FindName('btnListCatalogGUI')
+if ($btnListCat) {
+    $btnListCat.Add_Click({
+        $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
+        if ($tool) {
+            Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ListCatalog -SkipElevation" -TaskTitle "Explorar Catalogo Curado de Software WinGet"
+        }
+    })
+}
+
 $window.FindName('btnSimulateProfileGUI').Add_Click({
     $cbx = $window.FindName('cbxAppProfiles')
+    $cbxCat = $window.FindName('cbxAppCategories')
     $selectedItem = if ($cbx) { $cbx.SelectedItem } else { $null }
     $profileTag = if ($selectedItem -and $selectedItem.Tag) { $selectedItem.Tag } else { 'EsportsGamer' }
+    $selectedCat = if ($cbxCat) { $cbxCat.SelectedItem } else { $null }
+    $catTag = if ($selectedCat -and $selectedCat.Tag) { $selectedCat.Tag } else { 'Browsers' }
     $autoHw = $window.FindName('chkAutoDetectHw').IsChecked
 
     $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
     if ($tool) {
-        $cmd = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Profile $profileTag -WhatIf -SkipElevation"
+        $catsArg = if ($catTag -eq 'All') { "Browsers,Gaming,Development,Utilities" } else { $catTag }
+        $cmd = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Profile $profileTag -Categories $catsArg -WhatIf -SkipElevation"
         if ($autoHw) { $cmd += " -AutoDetectHardware" }
-        Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Simulacion de Perfil: $profileTag"
+        Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Simulacion de Perfil y Categoria: $profileTag / $catTag"
     }
 })
 

@@ -5,7 +5,7 @@
 | **ID de Plan** | PLAN-0117 |
 | **Fecha** | 2026-09-26 |
 | **Componentes** | `scripts/Core/Policy-Engine.ps1`, `scripts/Modules/Deploy-AppProfiles.ps1`, `scripts/Modules/Win11-Network-Diagnostics-Optimizer.ps1`, `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/romanOS-Toolkit.ps1`, `scripts/Testing/Test-WinUtilIntegration.ps1`, `docs/plans/README.md` |
-| **Estado** | `EN PROGRESO` |
+| **Estado** | `COMPLETADO` |
 | **Prioridad** | Alta (Ampliación de Capacidades de Red/DNS en Tiempo Real, Aprovisionamiento de Software y Robustez de Servicing) |
 | **Reglas Relevantes** | Regla 0 (Git SSOT), Regla 2 (Cero Suposiciones), Regla 4 (UTF-8 BOM / PS 5.1), Regla 5 (Planes), Regla 7 (Watchdogs), Regla 8 (Modo Autónomo Continuo), Regla 9 (SSOT Policy-Engine), Regla 10 (Cascada Docs-as-Code), Regla 11 (Ingeniero Autónomo), Regla 13 (Auditoría Holística / CWE-390), Regla 14 (Salvaguarda de Almacenamiento y Mocks Multi-Hardware), Regla 15 (Memoria Jerárquica Map-Reduce) |
 
@@ -80,18 +80,27 @@ El proyecto `romanOS / OptimizedISO` cuenta con un motor de creación y servicin
 * **`scripts/Testing/Test-WinUtilIntegration.ps1`:**
   * Incorporada Sección 5 con 10 nuevas aserciones para ei.cfg y metadatos WIM (38/38 tests PASS).
 
-### Fase 4: Paridad e Integración Gráfica (romanOS Control Center)
+### Fase 4: Paridad e Integración Gráfica (romanOS Control Center) [COMPLETADA]
 * **`scripts/GUI/romanOS-ControlCenter.ps1`:**
-  * Agregar pestaña o tarjeta de "Red & Conmutador DNS":
-    * Visualización de DNS actual y botón de prueba rápida de latencia RTT.
-    * Selector desplegable o botones de 1-clic para Cloudflare, Quad9, Google, AdGuard o DHCP.
-  * Enriquecer sección de "Software y Runtimes" con selector por categorías y botón de despliegue silencioso.
+  * Dot-sourcing no intrusivo y precarga de `Win11-Network-Diagnostics-Optimizer.ps1` y `Deploy-AppProfiles.ps1`.
+  * Integrada tarjeta de "Conmutador y Benchmark de Servidores DNS (DoH + RTT)" en Pestaña 4 (`Red & Latencia`):
+    * Visualización en vivo de DNS activo (`lblCurrentDns`) y botón de refresco (`btnRefreshDns`).
+    * Medición y reporte en vivo de latencia RTT con resaltado de proveedor óptimo recomendado.
+    * Checkbox de cifrado DoH (`chkEnableDoH`) y botones 1-clic para Cloudflare, Quad9, Google, AdGuard y DHCP.
+  * Enriquecida tarjeta "romanOS App & AI Runtimes Manager" en Pestaña 6 (`Drivers & Herramientas`):
+    * Selector de categorías curadas WinGet (`cbxAppCategories`) con `Browsers`, `Gaming`, `Development`, `Utilities` y `All`.
+    * Botones desacoplados `btnDeployCategoryGUI`, `btnListCatalogGUI` y simulación adaptativa `btnSimulateProfileGUI` (-WhatIf).
+  * Validación en frío en Windows PowerShell 5.1 con modo `-WhatIf` (100% exitoso).
 
-### Fase 5: Suite de Pruebas Unitarias y Certificación (Reglas 4, 13 y 14)
-* Crear `scripts/Testing/Test-WinUtilIntegration.ps1`:
-  * Mocks sintéticos de adaptadores de red y consultas DNS sin conexión externa obligatoria.
-  * Verificación de sintaxis y compatibilidad en frío en Windows PowerShell 5.1 (`powershell.exe -STA`).
-  * Validación de codificación UTF-8 con BOM y cero fallos silenciosos CWE-390.
+### Fase 5: Suite de Pruebas Unitarias y Certificación (Reglas 4, 13 y 14) [COMPLETADA]
+* Creada y ampliada suite `scripts/Testing/Test-WinUtilIntegration.ps1`:
+  * Sección 1: Encodings UTF-8 BOM y sintaxis AST de 4 módulos (10/10 PASS).
+  * Sección 2: SSOT de perfiles DNS en `Policy-Engine.ps1` (4/4 PASS).
+  * Sección 3: Diagnóstico y conmutación de DNS con mocks y -WhatIf (6/6 PASS).
+  * Sección 4: Catálogo curado y despliegue por categoría WinGet (8/8 PASS).
+  * Sección 5: Micro-mejoras de servicing ISO (ei.cfg y metadatos WIM) (10/10 PASS).
+  * Sección 6: Paridad e integración gráfica en `romanOS-ControlCenter.ps1` (10/10 PASS).
+  * Resultado Global: 48 de 48 aserciones aprobadas (100% PASS en Windows PowerShell 5.1).
 
 ---
 
