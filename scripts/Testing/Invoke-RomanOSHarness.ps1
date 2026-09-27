@@ -14,6 +14,7 @@
 
 [CmdletBinding()]
 param(
+    [switch]$Fast,
     [switch]$ExportJson,
     [string]$JsonPath = "c:\OptimizedISO\scratch\RomanOS-Harness-Report.json"
 )
@@ -160,6 +161,9 @@ Assert-Harness "Tier1_Static_AST" "Erradicación de bloques catch vacíos (CWE-3
     return $true
 }
 
+if ($Fast) {
+    Write-Host "`n[INFO] Modo -Fast activado (L1: check:fast). Omitiendo Tiers 2-5." -ForegroundColor Yellow
+} else {
 # ==============================================================================
 # TIER 2: SSOT POLICY-ENGINE Y ESQUEMA XML DE INSTALACIÓN DESATENDIDA
 # ==============================================================================
@@ -313,6 +317,7 @@ Assert-Harness "Tier5_Artifacts_Environment" "Diagnóstico de Privilegios y Esta
         Write-Host "    [INFO] ISO Optimizada aún no compilada en disco (Pendiente de ejecución de New-OptimizedWindowsISO-v2.ps1 con UAC)." -ForegroundColor Yellow
     }
     return $true
+}
 }
 
 # ==============================================================================
