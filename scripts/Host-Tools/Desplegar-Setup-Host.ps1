@@ -78,7 +78,7 @@ function Test-InternetConnectivity {
             }
             $tcp.Close()
         } catch {
-            # Continuar probando siguiente host
+            Write-Debug "Fallo al conectar con host DNS $t : $($_.Exception.Message)"
         }
     }
 

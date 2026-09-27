@@ -180,7 +180,7 @@ foreach ($venKey in $pciDevices) {
                     }
                 }
             } catch {
-                # Ignorar lecturas no disponibles de afinidad
+                Write-Debug "Afinidad de interrupción no disponible para $cleanName : $($_.Exception.Message)"
             }
         }
 

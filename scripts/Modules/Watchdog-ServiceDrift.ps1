@@ -160,7 +160,7 @@ function Get-RomanOSServiceDriftReport {
             try {
                 $taskObj = Get-ScheduledTask -TaskName $tName -TaskPath $tPath -ErrorAction SilentlyContinue
             } catch {
-                # Tarea no encontrada o error de permisos
+                Write-Debug "Tarea programada $tPath$tName no encontrada o sin permisos: $($_.Exception.Message)"
             }
 
             if ($null -eq $taskObj) {

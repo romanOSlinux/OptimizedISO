@@ -166,7 +166,7 @@ function Write-UnifiedLogEntry {
         try {
             [System.IO.File]::AppendAllLines($TargetLogFile, @($logLine), [System.Text.Encoding]::UTF8)
         } catch {
-            # Fallback silencioso para no generar bucles de error
+            $null = $_.Exception # Fallback para evitar recursión infinita si el archivo de log está bloqueado
         }
     }
     return $logLine

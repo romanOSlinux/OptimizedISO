@@ -172,7 +172,7 @@ function Find-Residuos {
             })
         }
     } catch {
-        # DISM no disponible o sin imágenes montadas.
+        Write-Debug "DISM no disponible o sin imágenes montadas: $($_.Exception.Message)"
     }
 
     Write-Info "Verificando colmena de registro 'OfflineDefaultUser'..."

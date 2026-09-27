@@ -2291,7 +2291,7 @@ function Get-WimImageList {
             return $list
         }
     } catch {
-        # Ignorar y probar fallback
+        Write-Debug "Fallo al consultar imágenes WIM mediante wimlib: $($_.Exception.Message). Intentando fallback con dism.exe..."
     }
 
     # Intento 2: parsing de dism.exe
@@ -2315,7 +2315,7 @@ function Get-WimImageList {
             }
         }
     } catch {
-        # Ignorar fallback fallido
+        Write-Debug "Fallo al consultar imágenes WIM mediante dism.exe: $($_.Exception.Message)."
     }
 
     if ($list.Count -eq 0) {
@@ -2368,7 +2368,7 @@ function Detect-WindowsVersion {
                     return $candidate
                 }
             } catch {
-                # Continuar con otros métodos
+                Write-Debug "Error en detección por setup.exe: $($_.Exception.Message)"
             }
         }
 
@@ -2390,7 +2390,7 @@ function Detect-WindowsVersion {
                     }
                 }
             } catch {
-                # Continuar con otros métodos
+                Write-Debug "Error en detección por DISM: $($_.Exception.Message)"
             }
         }
     }
@@ -2417,7 +2417,7 @@ function Detect-WindowsVersion {
                 }
             }
         } catch {
-            # Ignorar y continuar
+            Write-Debug "Error al montar ISO para leer etiqueta: $($_.Exception.Message)"
         } finally {
             if ($mounted) {
                 Dismount-DiskImage -ImagePath $IsoPath -ErrorAction SilentlyContinue | Out-Null
@@ -2654,7 +2654,7 @@ function Invoke-SelectionMenu {
                     try {
                         [System.Console]::CursorVisible = $true
                     } catch {
-                        # Ignorar si la consola no permite restaurar cursor
+                        Write-Debug "Consola no permite restaurar CursorVisible: $($_.Exception.Message)"
                     }
 
                     return $cursor
@@ -2664,7 +2664,7 @@ function Invoke-SelectionMenu {
             try {
                 [System.Console]::CursorVisible = $true
             } catch {
-                # Ignorar
+                Write-Debug "Fallo al restaurar CursorVisible en menú: $($_.Exception.Message)"
             }
 
             return Invoke-FallbackSelectionMenu -Title $Title -Options $Options -Descriptions $Descriptions -DefaultIndex $DefaultIndex

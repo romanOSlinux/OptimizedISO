@@ -386,7 +386,7 @@ function Set-Reg {
                     return  # exito via .NET, no necesitamos New-ItemProperty
                 }
             } catch {
-                # Si .NET falla tambien, caemos al New-ItemProperty estandar
+                Write-Debug "Escritura .NET directa fallida en $Path\$Name : $($_.Exception.Message). Pasando a New-ItemProperty..."
             }
         }
 

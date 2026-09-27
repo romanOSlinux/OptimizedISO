@@ -149,21 +149,56 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **Modus Operandi Autómata / Cero Complacencia Humana:**
   1. Queda estrictamente erradicado todo lenguaje persuasivo, adulador, suposiciones optimistas o conclusiones declaradas "completadas" sin evidencia cruda.
   2. El agente opera como un autómata determinista: Solo reporta estados booleanos (`True`/`False`), evidencia binaria en disco (bytes > 0), códigos de salida del sistema operativo (`ExitCode = 0`) y datos crudos capturados por herramientas.
-- **Cerrojo Inviolable de Existencia Física de Artefactos (Physical Artifact Enforcer):**
-  1. Para cualquier tarea o plan que declare la compilación, generación o descarga de un archivo binario (`.iso`, `.wim`, `.vhdx`, `.exe`, `.msu`), el agente tiene TERMINANTEMENTE PROHIBIDO marcar la tarea como `COMPLETADO` a menos que ejecute `Test-Path <ruta>` y `Get-Item <ruta>` verificando que el archivo existe físicamente en el disco y su tamaño sea mayor a cero (`Length > 0`).
-  2. Se debe ejecutar obligatoriamente `scripts/Testing/Assert-PhysicalArtifacts.ps1`. Si el archivo no existe en el sistema de archivos del host, la tarea DEBE permanecer obligatoriamente como `PENDIENTE (No generado en disco)`.
+- **Cerrojo Inviolable de Evaluación Repo-Wide:**
+  1. Para cualquier tarea o plan que declare la compilación, generación o certificación de componentes, el agente tiene TERMINANTEMENTE PROHIBIDO marcar la tarea como `COMPLETADO` a menos que ejecute `scripts/Testing/Invoke-RomanOSHarness.ps1` y obtenga `ExitCode = 0` con el 100% de cumplimiento.
+  2. Si un artefacto binario (`.iso`, `.wim`, `.vhdx`) no existe en el sistema de archivos del host, la tarea DEBE permanecer obligatoriamente como `PENDIENTE (No generado en disco)`.
 - **Distinción Taxativa entre "Simulación en Memoria / Mock" vs "Ejecución Real en Vivo":**
   1. Si un script se evalúa mediante `-WhatIf`, `-Simulate`, extracción de AST o inyección de mocks, queda TERMINANTEMENTE PROHIBIDO afirmar o insinuar que se ha "probado la ISO", "probado la VM" o "validado en vivo".
   2. Todo reporte debe etiquetarse explícita y obligatoriamente con el prefijo `[MOCK / SIMULACIÓN SINTÉTICA EN MEMORIA — NO EJECUTADO EN HARDWARE REAL]`.
 - **Cerrojo de Privilegios de Seguridad del Sistema Operativo:**
   1. Toda operación que requiera privilegios elevados (DISM para montaje, Hyper-V `New-VM`, `oscdimg`) DEBE verificar primero si `([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(1)` es `$true`.
   2. Si es `$false`, el agente DEBE abstenerse de declarar la tarea como factible o ejecutada por el agente, y declararla inmediatamente como `BLOQUEADO POR FALTA DE ELEVACIÓN (Requiere que el usuario ejecute el lanzador UAC .cmd)`.
-- **Estructura Obligatoria de Reporte Determinista:**
-  Toda respuesta técnica del agente debe seguir la estructura:
-  - **Objetivo:** (Acción precisa)
-  - **Comando Ejecutado:** (Sintaxis exacta)
-  - **Evidencia Cruda del Sistema:** (Salida literal stdout/stderr/bytes)
-  - **Veredicto Empírico:** (`VERIFICADO FÍSICAMENTE` | `SIMULADO EN MEMORIA` | `BLOQUEADO`)
-  - **Acción Siguiente / Requerida:** (Paso exacto sin suposiciones)
+
+## 17. Gobernanza de Ingeniería Industrial y Control de Comportamiento del Agente (Estándar agent-skills)
+- **17.1. Matriz Anti-Racionalización (Prohibición de Excusas y Atajos del Agente):**
+  Queda formalmente codificada la tabla de rechazo incondicional para evitar el sesgo de complacencia (*lazy green*):
+
+| Racionalización Típica del Agente | Regla de Rechazo Incondicional |
+| :--- | :--- |
+| *"El archivo no existe, pero la lógica está validada en memoria."* | **RECHAZADO.** Sin artefacto físico verificado con hash y tamaño > 0, el estado es FAIL/PENDIENTE. |
+| *"Agregué un catch vacío para evitar que el script se interrumpa."* | **RECHAZADO (CWE-390).** Degrada la resiliencia del software. Debe ser visible y emitir telemetría con `Write-Warning`. |
+| *"Creé un script nuevo aislado para probar que el componente compila."* | **RECHAZADO.** La prueba debe correr contra el arnés de regresión repo-wide (`Invoke-RomanOSHarness.ps1`), no en un test aislado. |
+| *"Solo cambié un valor en este archivo, no afecta al resto."* | **RECHAZADO.** Obligatorio correr la suite de contratos transversales y paridad SSOT. |
+| *"No tengo permisos de Admin, así que doy por completada la fase teóricamente."* | **RECHAZADO.** Reportar estado `BLOQUEADO_POR_UAC` con el comando exacto para que el usuario ejecute el lanzador `.cmd`. |
+
+- **17.2. Protocolo Doubt-Driven Development (D3):**
+  Ante cualquier decisión no trivial en kernel, registro o arquitectura, el agente debe seguir el ciclo:
+  1. *CLAIM:* Formular la afirmación técnica precisa antes de codificar (ej. *"Modificar parámetro X mejora la latencia de juego"*).
+  2. *DOUBT:* Cuestionar adversariamente la afirmación: ¿Qué documenta Microsoft Learn? ¿Cómo impacta en arquitecturas heterogéneas (P/E cores, UMA)? ¿Rompe anti-cheats Ring-0?
+  3. *RECONCILE:* Si no existe evidencia oficial concluyente o prueba empírica, la afirmación se descarta o se confina a lógica adaptativa con fallback seguro.
+  4. *STOP:* Queda prohibido aplicar modificaciones especulativas al registro.
+
+- **17.3. Test-Driven Development (TDD) y Regla "Beyoncé" (*If you liked it, put a test on it*):**
+  1. Para cada nueva directiva, tweak, servicio o eliminación de AppX:
+     - **RED:** Definir la aserción en `Invoke-RomanOSHarness.ps1` o en la suite de contratos correspondiente. La prueba DEBE fallar en rojo antes de codificar la solución.
+     - **GREEN:** Implementar la política canónica en `scripts/Core/Policy-Engine.ps1` y propagar. La prueba debe pasar a verde legítimamente.
+     - **REFACTOR:** Ejecutar el arnés completo repo-wide para certificar cero regresiones colaterales.
+
+- **17.4. Protocolo Stop-the-Line y Triaje en 5 Pasos:**
+  1. **Regla Stop-the-Line:** Si el arnés de evaluación (`Invoke-RomanOSHarness.ps1`) o cualquier suite reporta `ExitCode 1`, queda **estrictamente prohibido avanzar en nuevas características o modificar otros módulos**. La línea de producción se detiene hasta reparar la causa raíz.
+  2. **Triaje en 5 Pasos:**
+     - *Reproduce:* Aislar el comando mínimo reproducible.
+     - *Localize:* Aislar el archivo y número de línea exacto mediante AST o grep físico.
+     - *Reduce:* Aislar la expresión mínima que detona el error.
+     - *Fix:* Corregir la causa raíz sin usar parches superficiales ni silenciar errores.
+     - *Guard:* Agregar una aserción permanente en el arnés para garantizar que el defecto no vuelva a ocurrir jamás.
+
+- **17.5. Principio de la Cerca de Chesterton (*Chesterton's Fence*):**
+  *"No derribes una cerca hasta que sepas exactamente por qué fue construida."*
+  Queda estrictamente prohibido eliminar servicios de Windows, tareas programadas, dependencias de red o paquetes AppX sin documentar previamente su árbol de dependencias oficiales en Microsoft Learn y verificar que subsistemas críticos (RPC, DWM, CryptSvc, WMI, WinVerifyTrust) sigan 100% operativos.
+
+- **17.6. Desacoplamiento de Contexto vía `.agents/references/`:**
+  Las listas de verificación extensas, matrices de hardware y tablas de compatibilidad deben residir en archivos desacoplados bajo `.agents/references/`, siendo consultados bajo demanda para prevenir la saturación de contexto (*context dilution*) y la amnesia del modelo.
+
 
 

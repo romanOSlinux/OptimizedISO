@@ -98,7 +98,7 @@ try {
         $hyperVEnabled = $true
     }
 } catch {
-    # Requiere elevacion
+    Write-Debug "Característica Hyper-V requiere elevación o no está disponible: $($_.Exception.Message)"
 }
 
 # Comprobar Antigravity CLI o IDE

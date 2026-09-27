@@ -88,7 +88,7 @@ public static extern int NtQueryTimerResolution(
 );
 "@ -Name "NativeTimer" -Namespace "RomanOS" -ErrorAction Stop
     } catch {
-        # Fallback si ya estuviera cargado en la sesion
+        Write-Debug "Tipo RomanOS.NativeTimer ya presente en sesión o error de compilación: $($_.Exception.Message)"
     }
 }
 
