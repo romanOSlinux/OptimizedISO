@@ -1055,6 +1055,54 @@ if (Test-Path $htmlReport) {
 
 
 # ==============================================================================
+# CONTRATO 41: Blindaje contra Bloqueo OEM de SetupComplete.cmd (PLAN-0121)
+# ==============================================================================
+Write-ContractHeader "CTR-41" "OEM SetupComplete Fallback" "Dual-Execution en FirstLogonCommands y Mutex Anti-Doble Ejecución"
+
+$builderScriptPath = Join-Path $builderDir "New-OptimizedWindowsISO-v2.ps1"
+if (Test-Path $builderScriptPath) {
+    $builderContent = Get-Content -Path $builderScriptPath -Raw -Encoding UTF8
+    
+    # 1. Comprobar presencia de cerrojo mutex en plantilla SetupComplete
+    Assert-Contract "Assert: Template de SetupComplete.cmd incluye cerrojo mutex .setup_completed" {
+        return [bool]($builderContent -match 'IF EXIST "%SCRIPTS_DIR%\\\.setup_completed"' -and $builderContent -match 'echo romanOS Setup in progress.*?> "%SCRIPTS_DIR%\\\.setup_completed"')
+    } -ExpectedState "Cerrojo mutex IF EXIST .setup_completed presente en plantilla"
+
+    # 2. Comprobar presencia de contingencia OEM en FirstLogonCommands
+    Assert-Contract "Assert: FirstLogonCommands incluye llamada condicional a SetupComplete.cmd" {
+        return [bool]($builderContent -match 'cmd\.exe /c if not exist "%WINDIR%\\Setup\\Scripts\\\.setup_completed" call "%WINDIR%\\Setup\\Scripts\\SetupComplete\.cmd"')
+    } -ExpectedState "Comando de contingencia OEM en FirstLogonCommands presente"
+
+    # 3. Comprobación funcional del comportamiento condicional en cmd.exe con fixture temporal
+    $testMutexDir = Join-Path $env:TEMP "romanOS_Test_Mutex_$(Get-Random)"
+    New-Item -ItemType Directory -Path $testMutexDir -Force | Out-Null
+    $testMutexFile = Join-Path $testMutexDir ".setup_completed"
+    $testTargetFile = Join-Path $testMutexDir "target_executed.txt"
+    $dummyCmd = Join-Path $testMutexDir "dummy_setup.cmd"
+    Set-Content -Path $dummyCmd -Value "@echo executed > `"$testTargetFile`"" -Encoding ASCII
+    
+    # Caso A: Mutex NO existe -> Debe ejecutarse
+    & cmd.exe /c if not exist "$testMutexFile" call "$dummyCmd"
+    $executedWhenNoMutex = Test-Path $testTargetFile
+    
+    # Caso B: Mutex SÍ existe -> NO debe ejecutarse de nuevo (borramos target y creamos mutex)
+    Remove-Item -Path $testTargetFile -Force -ErrorAction SilentlyContinue
+    Set-Content -Path $testMutexFile -Value "completed" -Encoding ASCII
+    & cmd.exe /c if not exist "$testMutexFile" call "$dummyCmd"
+    $notExecutedWhenMutexExists = -not (Test-Path $testTargetFile)
+    
+    # Limpieza
+    Remove-Item -Path $testMutexDir -Recurse -Force -ErrorAction SilentlyContinue
+    
+    Assert-Contract "Assert: Lógica condicional OEM ejecuta solo cuando el mutex está ausente" {
+        return ($executedWhenNoMutex -and $notExecutedWhenMutexExists)
+    } -ExpectedState "Ejecuta cuando falta mutex, omite cuando mutex existe" -DetailMessage "SinMutex: $executedWhenNoMutex | ConMutex: $notExecutedWhenMutexExists"
+} else {
+    Assert-Contract "Existencia de New-OptimizedWindowsISO-v2.ps1" { return $false }
+}
+
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan

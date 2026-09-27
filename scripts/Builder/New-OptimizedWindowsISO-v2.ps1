@@ -5351,6 +5351,15 @@ SET SCRIPTS_DIR=%WINDIR%\Setup\Scripts
 SET LOG=%SCRIPTS_DIR%\SetupComplete.log
 SET PS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe
 
+REM ===========================================================
+REM Cerrojo Mutex Anti-Doble Ejecucion (PLAN-0121)
+REM ===========================================================
+IF EXIST "%SCRIPTS_DIR%\.setup_completed" (
+    echo [%DATE% %TIME%] romanOS Setup ya fue completado previamente. Omitiendo ejecucion duplicada. >> "%LOG%"
+    exit /b 0
+)
+echo romanOS Setup in progress [%DATE% %TIME%] > "%SCRIPTS_DIR%\.setup_completed"
+
 echo [%DATE% %TIME%] Iniciando SetupComplete.cmd >> "%LOG%"
 
 REM ===========================================================
@@ -5422,6 +5431,7 @@ REM ===========================================================
 REM Auditoria y Diagnostico Integral Post-Instalacion (PLAN-0076)
 REM ===========================================================
 echo [%DATE% %TIME%] SetupComplete.cmd finalizado exitosamente. >> "%LOG%"
+echo romanOS Setup Completed [%DATE% %TIME%] > "%SCRIPTS_DIR%\.setup_completed"
 if exist "%SCRIPTS_DIR%\PostInstall-Diagnostics.ps1" (
     echo [%DATE% %TIME%] Lanzando auditoria post-instalacion en segundo plano... >> "%LOG%"
     start "" /b "%PS%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\PostInstall-Diagnostics.ps1" -DesktopOutput -ExpectedProfile __OPT_PROFILE__ -ExpectedBlockOneDrive:__BLOCK_ONEDRIVE__ >> "%LOG%" 2>&1
@@ -5867,6 +5877,19 @@ if (-not $SkipAutoUnattend) {
         <SynchronousCommand wcm:action="add">
           <CommandLine>cmd.exe /c start "" /b powershell.exe -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 30; if (Test-Path 'C:\Windows\Setup\Scripts\Optimize-ProcessMemory.ps1') { . 'C:\Windows\Setup\Scripts\Optimize-ProcessMemory.ps1' -Quiet -Unattended }"</CommandLine>
           <Description>Trigger Background Working Set Memory Trim after stabilization</Description>
+          <Order>$cmdOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+    $cmdOrder++
+
+    # PLAN-0121: Fallback OEM para SetupComplete.cmd
+    # Si el equipo cuenta con clave OEM en BIOS (MSDM), Windows Setup desactiva SetupComplete.cmd.
+    # FirstLogonCommands detecta la ausencia del testigo .setup_completed y lo ejecuta con elevacion.
+    $firstLogonCommands.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>cmd.exe /c if not exist "%WINDIR%\Setup\Scripts\.setup_completed" call "%WINDIR%\Setup\Scripts\SetupComplete.cmd"</CommandLine>
+          <Description>Fallback Execution for SetupComplete on OEM Licensed Systems (PLAN-0121)</Description>
           <Order>$cmdOrder</Order>
           <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>

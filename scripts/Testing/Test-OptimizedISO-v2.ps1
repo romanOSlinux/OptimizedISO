@@ -1784,6 +1784,13 @@ $mockCleanupInvalid = Invoke-RomanOSComponentStoreCleanup -MountDir "C:\NonExist
 Assert-False "PLAN-0118: Invoke-RomanOSComponentStoreCleanup falla controladamente ante ruta inexistente" $mockCleanupInvalid.Success
 Assert-True "PLAN-0118: Invoke-RomanOSComponentStoreCleanup reporta mensaje de error" ($mockCleanupInvalid.Summary.Length -gt 0)
 
+# Validación de Blindaje OEM de SetupComplete.cmd y Mutex (PLAN-0121)
+Write-HarnessHeader2 "FASE 2W: Blindaje contra Bloqueo OEM de SetupComplete.cmd (PLAN-0121)"
+$builderFreshContent121 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0121: Template SetupComplete.cmd incluye cerrojo mutex .setup_completed" ([bool]($builderFreshContent121 -match 'IF EXIST "%SCRIPTS_DIR%\\\.setup_completed"'))
+Assert-True "PLAN-0121: Template SetupComplete.cmd registra testigo de finalización" ([bool]($builderFreshContent121 -match 'echo romanOS Setup Completed.*?> "%SCRIPTS_DIR%\\\.setup_completed"'))
+Assert-True "PLAN-0121: FirstLogonCommands incluye contingencia OEM para invocar SetupComplete.cmd" ([bool]($builderFreshContent121 -match 'cmd\.exe /c if not exist "%WINDIR%\\Setup\\Scripts\\\.setup_completed" call "%WINDIR%\\Setup\\Scripts\\SetupComplete\.cmd"'))
+
 # --- LIMPIEZA TEMPORAL ---
 try {
     if (Test-Path $TEMP_ROOT) { Remove-Item -Path $TEMP_ROOT -Recurse -Force -ErrorAction Stop }
