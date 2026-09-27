@@ -141,7 +141,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0123 | [PLAN-0123-20260927-pilar-3-diagnostico-y-desbloqueo-bypassio-directstorage.md](PLAN-0123-20260927-pilar-3-diagnostico-y-desbloqueo-bypassio-directstorage.md) | 2026-09-27 | Pilar 3: Diagnóstico Forense y Desbloqueo del Stack BypassIO / DirectStorage 1.2+ en Almacenamiento NVMe | COMPLETADO |
 | 0124 | [PLAN-0124-20260927-pilar-4-generador-visual-unattend-builder-mode-control-center.md](PLAN-0124-20260927-pilar-4-generador-visual-unattend-builder-mode-control-center.md) | 2026-09-27 | Pilar 4: Generador Visual de Perfiles Desatendidos (Builder Mode) en romanOS Control Center | COMPLETADO |
 | 0125 | [PLAN-0125-20260927-pilar-5-modern-standby-s0ix-y-neutralizacion-wake-timers.md](PLAN-0125-20260927-pilar-5-modern-standby-s0ix-y-neutralizacion-wake-timers.md) | 2026-09-27 | Pilar 5: Calibración de Modern Standby (S0ix) y Neutralización de Wake Timers Parásitos de Telemetría | COMPLETADO |
-| 0126 | [PLAN-0126-20260927-pilar-6-telemetria-visual-interactiva-dashboard-html.md](PLAN-0126-20260927-pilar-6-telemetria-visual-interactiva-dashboard-html.md) | 2026-09-27 | Pilar 6: Telemetría Visual Interactiva, Benchmarking de Estado y Gráficos Forenses en Auditoria-Ecosistema.html | PENDIENTE |
+| 0126 | [PLAN-0126-20260927-pilar-6-telemetria-visual-interactiva-dashboard-html.md](PLAN-0126-20260927-pilar-6-telemetria-visual-interactiva-dashboard-html.md) | 2026-09-27 | Pilar 6: Telemetría Visual Interactiva, Benchmarking de Estado y Gráficos Forenses en Auditoria-Ecosistema.html | COMPLETADO |
 
 
 
