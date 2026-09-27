@@ -1103,6 +1103,38 @@ if (Test-Path $builderScriptPath) {
 
 
 # ==============================================================================
+# CONTRATO 42: Conmutador y Servicing DISM de Windows Recall e IA (PLAN-0122)
+# ==============================================================================
+Write-ContractHeader "CTR-42" "Desktop-Helpers & Policy-Engine" "Conmutador de Windows Recall e IA y Catálogo DISM 24H2"
+
+$recallHelper = Join-Path $helpersDir "Toggle-Recall.ps1"
+if (Test-Path $recallHelper) {
+    # 1. Contrato de codificación UTF-8 con BOM
+    $rcBytes = [System.IO.File]::ReadAllBytes($recallHelper)
+    $rcHasBOM = ($rcBytes.Length -ge 3 -and $rcBytes[0] -eq 0xEF -and $rcBytes[1] -eq 0xBB -and $rcBytes[2] -eq 0xBF)
+    Assert-Contract "Assert: Toggle-Recall.ps1 posee codificación estricta UTF-8 con BOM (Regla 4)" {
+        return $rcHasBOM
+    } -ExpectedState "Primeros bytes: 0xEF-BB-BF" -DetailMessage "HasBOM: $rcHasBOM"
+
+    # 2. Contrato de telemetría de estado
+    $rcStatus = & $recallHelper -Action Status -PassThru -Quiet
+    Assert-Contract "Assert: Toggle-Recall -Action Status retorna telemetría válida" {
+        return ($rcStatus -ne $null -and $rcStatus.Helper -eq "Recall" -and $rcStatus.Success -eq $true)
+    } -ExpectedState "Helper = Recall y Success = True" -DetailMessage "Estado: $($rcStatus.Status) | State: $($rcStatus.State)"
+
+    # 3. Contrato de presencia en catálogo canónico DISM
+    . (Join-Path $coreDir "Policy-Engine.ps1")
+    $dismCat = Get-RomanOSDismComponentsCatalog
+    $dismRecall = $dismCat | Where-Object { $_.Id -eq "DISM_FEAT_RECALL" }
+    Assert-Contract "Assert: DISM_FEAT_RECALL registrado canónicamente en Policy-Engine" {
+        return ($null -ne $dismRecall -and $dismRecall.TargetName -eq "Recall" -and $dismRecall.Type -eq "OptionalFeature")
+    } -ExpectedState "TargetName = Recall, Type = OptionalFeature" -DetailMessage "Id: $($dismRecall.Id) | Category: $($dismRecall.Category)"
+} else {
+    Assert-Contract "Existencia de Toggle-Recall.ps1" { return $false }
+}
+
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan

@@ -80,7 +80,7 @@ if (Test-Path $policyEnginePath) {
     Assert-Condition "Catalogo DISM contiene al menos 14 componentes" (@($catalog).Count -ge 14) "Conteo actual: $(@($catalog).Count)"
 
     $validTypes = @("Capability", "OptionalFeature", "PackagePattern")
-    $validCategories = @("Telemetria", "Legacy", "Accesorios", "Red", "Empresarial", "Impresion")
+    $validCategories = @("Telemetria", "Legacy", "Accesorios", "Red", "Empresarial", "Impresion", "Inteligencia Artificial")
 
     $allWellFormed = $true
     $allSafeUpdate = $true
@@ -116,6 +116,9 @@ if (Test-Path $policyEnginePath) {
 
     $telnet = $catalog | Where-Object { $_.Id -eq "DISM_FEAT_TELNET_CLIENT" }
     Assert-Condition "Caracteristica TelnetClient presente en el catalogo" ($null -ne $telnet -and $telnet.Type -eq "OptionalFeature")
+
+    $recall = $catalog | Where-Object { $_.Id -eq "DISM_FEAT_RECALL" }
+    Assert-Condition "Caracteristica Windows Recall presente en el catalogo DISM (PLAN-0122)" ($null -ne $recall -and $recall.Type -eq "OptionalFeature" -and $recall.TargetName -eq "Recall")
 }
 
 # -----------------------------------------------------------------------------

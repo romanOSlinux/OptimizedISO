@@ -426,6 +426,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                     <Button x:Name="btnHelperPrinting" Content="Impresion / Spooler: ..." Width="200" Margin="0,0,10,10"/>
                                     <Button x:Name="btnHelperSharing" Content="Compartir Archivos: ..." Width="210" Margin="0,0,10,10"/>
                                     <Button x:Name="btnHelperVBS" Content="VBS / Aislamiento: ..." Width="210" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnHelperRecall" Content="Windows Recall: ..." Width="210" Margin="0,0,10,10"/>
                                     <Button x:Name="btnAuditInvariants" Content="Auditar Invariantes romanOS" Width="230" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
                                     <Button x:Name="btnOpenHelpersFolder" Content="Abrir Carpeta Helpers" Width="180" Margin="0,0,10,10"/>
                                 </WrapPanel>
@@ -1312,7 +1313,8 @@ function Update-DesktopHelpersGUIState {
         @{ Id = "Bluetooth";     Btn = 'btnHelperBluetooth'; Name = "Bluetooth" },
         @{ Id = "Printing";      Btn = 'btnHelperPrinting'; Name = "Impresion" },
         @{ Id = "FileSharing";   Btn = 'btnHelperSharing'; Name = "Compartir Red" },
-        @{ Id = "VBS";           Btn = 'btnHelperVBS'; Name = "VBS / HVCI" }
+        @{ Id = "VBS";           Btn = 'btnHelperVBS'; Name = "VBS / HVCI" },
+        @{ Id = "Recall";        Btn = 'btnHelperRecall'; Name = "Windows Recall" }
     )
     foreach ($item in $helperMap) {
         $btn = $window.FindName($item.Btn)
@@ -1376,6 +1378,13 @@ $window.FindName('btnHelperVBS').Add_Click({
     $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
     $tool = Resolve-ToolScript "Toggle-VBS-CoreIsolation.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: VBS / Aislamiento de Nucleo ($action)" }
+})
+
+$window.FindName('btnHelperRecall').Add_Click({
+    $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "Recall" } else { $null }
+    $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
+    $tool = Resolve-ToolScript "Toggle-Recall.ps1"
+    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Windows Recall e IA ($action)" }
 })
 
 $window.FindName('btnAuditInvariants').Add_Click({

@@ -146,8 +146,8 @@ function Show-RomanOSHelpersMenu {
         Write-Host "==========================================================================" -ForegroundColor Cyan
         Write-Host ""
 
-        $choice = Read-Host "  Selecciona una opción [1-6, A, Q]"
-        if ($choice -match '^[1-6]$') {
+        $choice = Read-Host "  Selecciona una opción [1-$($helpers.Count), A, Q]"
+        if ($choice -match '^\d+$' -and [int]$choice -ge 1 -and [int]$choice -le $helpers.Count) {
             $idx = [int]$choice - 1
             $selected = $helpers[$idx]
             Write-Host "`n  Conmutando $($selected.Title)..." -ForegroundColor Yellow

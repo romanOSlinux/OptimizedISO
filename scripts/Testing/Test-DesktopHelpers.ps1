@@ -77,6 +77,7 @@ $helperNames = @(
     "Toggle-Printing",
     "Toggle-FileSharing",
     "Toggle-VBS-CoreIsolation",
+    "Toggle-Recall",
     "romanOS-Helpers-Menu"
 )
 
@@ -154,7 +155,7 @@ if (Test-Path $corePolicyEngine) {
     }
 
     # Desktop Helpers en Policy-Engine
-    $helperIds = @("WindowsUpdate", "Defender", "Bluetooth", "Printing", "FileSharing", "VBS")
+    $helperIds = @("WindowsUpdate", "Defender", "Bluetooth", "Printing", "FileSharing", "VBS", "Recall")
     foreach ($hId in $helperIds) {
         $def = Get-RomanOSDesktopHelperDef -HelperId $hId
         Assert-Test -TestName "Definición canónica de Helper: $hId" `

@@ -3477,6 +3477,18 @@ $global:RomanOS_DesktopHelpers = @(
         PSRegistryBranch    = "HKLM:\SOFTWARE\RomanOS\DesktopHelpers\VBS"
         ProtectedInvariants = @("INV_SECURITY_DRIVER_BLOCKLIST")
         DefaultState        = 1
+    },
+    @{
+        Id                  = "HELP_RECALL"
+        Name                = "Recall"
+        Title               = "Windows Recall e IA (24H2+)"
+        Description         = "Conmutador de telemetría IA, capturas continuas Recall y Copilot"
+        TargetServices      = @()
+        TargetTasks         = @()
+        RegistryBranch      = "HKLM\SOFTWARE\RomanOS\DesktopHelpers\Recall"
+        PSRegistryBranch    = "HKLM:\SOFTWARE\RomanOS\DesktopHelpers\Recall"
+        ProtectedInvariants = @()
+        DefaultState        = 0
     }
 )
 
@@ -3533,6 +3545,21 @@ function Get-RomanOSDesktopHelperState {
             }
         } catch {
             Write-Warning "Fallo al consultar estado de '$Name': $($_.Exception.Message)"
+        }
+    }
+
+    if ($Name -ieq "Recall") {
+        $aiPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"
+        if (Test-Path $aiPath) {
+            $allow = (Get-ItemProperty -Path $aiPath -Name "AllowRecallEnablement" -ErrorAction SilentlyContinue).AllowRecallEnablement
+            if ($null -ne $allow) {
+                $stateVal = [int]$allow
+                return [PSCustomObject]@{
+                    Name   = $helper.Name
+                    State  = $stateVal
+                    Status = if ($stateVal -eq 1) { "Enabled" } else { "Disabled" }
+                }
+            }
         }
     }
 
@@ -3620,6 +3647,22 @@ function Set-RomanOSDesktopHelperState {
                     & bcdedit.exe /set hypervisorlaunchtype $hypLaunch 2>&1 | Out-Null
                 } catch {
                     Write-Warning "Fallo al conmutar VBS/HVCI: $($_.Exception.Message)"
+                }
+            }
+
+            if ($Name -ieq "Recall") {
+                try {
+                    $aiPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"
+                    if (-not (Test-Path $aiPath)) { New-Item -Path $aiPath -Force | Out-Null }
+                    if ($State -eq 1) {
+                        Set-ItemProperty -Path $aiPath -Name "AllowRecallEnablement" -Value 1 -Type DWord -Force | Out-Null
+                        Set-ItemProperty -Path $aiPath -Name "DisableAIDataAnalysis" -Value 0 -Type DWord -Force | Out-Null
+                    } else {
+                        Set-ItemProperty -Path $aiPath -Name "AllowRecallEnablement" -Value 0 -Type DWord -Force | Out-Null
+                        Set-ItemProperty -Path $aiPath -Name "DisableAIDataAnalysis" -Value 1 -Type DWord -Force | Out-Null
+                    }
+                } catch {
+                    Write-Warning "Fallo al conmutar políticas de Windows Recall: $($_.Exception.Message)"
                 }
             }
 
@@ -3896,6 +3939,16 @@ function Get-RomanOSDismComponentsCatalog {
             SafeForGaming       = $true
             BreaksWindowsUpdate = $false
             Description         = "Servicio de impresión Line Printer Daemon legado."
+        },
+        [PSCustomObject]@{
+            Id                  = "DISM_FEAT_RECALL"
+            Name                = "Windows Recall (IA Snapshotting 24H2+)"
+            Category            = "Inteligencia Artificial"
+            Type                = "OptionalFeature"
+            TargetName          = "Recall"
+            SafeForGaming       = $true
+            BreaksWindowsUpdate = $false
+            Description         = "Característica opcional de Windows Recall y captura continua de pantalla en Windows 11 24H2."
         }
     )
 }
