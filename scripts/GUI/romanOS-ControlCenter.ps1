@@ -857,17 +857,22 @@ try {
         $aiPcText = if ($hw.NPU.IsAiPc) { "Si ($($hw.NPU.DeviceName))" } else { "No detectada" }
         $window.FindName('lblAiPcInfo').Text = $aiPcText
 
-        # BypassIO & DirectStorage
+        # BypassIO & DirectStorage (PLAN-0123)
         try {
-            if (Get-Command "Test-RomanOSBypassIoState" -ErrorAction SilentlyContinue) {
+            $lblBypass = $window.FindName('lblBypassIoInfo')
+            if (Get-Command "Get-RomanOSBypassIOStatus" -ErrorAction SilentlyContinue) {
+                $bioStatus = Get-RomanOSBypassIOStatus
+                if ($lblBypass) {
+                    $lblBypass.Text = "$($bioStatus.DirectStorageStatus)"
+                    $lblBypass.Foreground = if ($bioStatus.SupportedVolumes -gt 0 -and -not $bioStatus.HasVetoedFilters) { [System.Windows.Media.Brushes]::LightGreen } else { [System.Windows.Media.Brushes]::Orange }
+                }
+            } elseif (Get-Command "Test-RomanOSBypassIoState" -ErrorAction SilentlyContinue) {
                 $bio = Test-RomanOSBypassIoState
-                $lblBypass = $window.FindName('lblBypassIoInfo')
                 if ($lblBypass) {
                     $lblBypass.Text = if ($bio.IsSupported) { "Activo (Ruta Rapida)" } else { "$($bio.StatusReason)" }
                     $lblBypass.Foreground = if ($bio.IsSupported) { [System.Windows.Media.Brushes]::LightGreen } else { [System.Windows.Media.Brushes]::Orange }
                 }
             } else {
-                $lblBypass = $window.FindName('lblBypassIoInfo')
                 if ($lblBypass) { $lblBypass.Text = "$($hw.Disk.DirectStorageStatus)" }
             }
         } catch {

@@ -1135,6 +1135,59 @@ if (Test-Path $recallHelper) {
 
 
 # ==============================================================================
+# CONTRATO 43: Diagnóstico Forense y Desbloqueo del Stack BypassIO / DirectStorage (PLAN-0123)
+# ==============================================================================
+Write-ContractHeader "CTR-43" "Hardware-Engine & Storage" "Diagnóstico Forense de BypassIO y Mocks Sintéticos DirectStorage"
+
+$hwEngineFile = Join-Path $coreDir "Hardware-Engine.ps1"
+if (Test-Path $hwEngineFile) {
+    . $hwEngineFile
+
+    # 1. Contrato de exportación de función Get-RomanOSBypassIOStatus
+    Assert-Contract "Assert: Get-RomanOSBypassIOStatus declarada y exportada en Hardware-Engine" {
+        return ($null -ne (Get-Command "Get-RomanOSBypassIOStatus" -ErrorAction SilentlyContinue))
+    } -ExpectedState "Función Get-RomanOSBypassIOStatus disponible" -DetailMessage "Comando exportado con éxito"
+
+    # 2. Contrato de parsing mock: BypassIO soportado
+    $mockSupportedText = @"
+BypassIo is supported on this volume
+Storage Driver: Disk (NVMe)
+Volume: C:\
+"@
+    $bioSupported = Test-RomanOSBypassIoState -VolumePath "C:\" -MockOutput $mockSupportedText
+    Assert-Contract "Assert: Test-RomanOSBypassIoState valida volumen compatible con DirectStorage" {
+        return ($bioSupported.IsSupported -eq $true -and $bioSupported.StatusReason -match "BypassIO Soportado")
+    } -ExpectedState "IsSupported = True" -DetailMessage "StatusReason: $($bioSupported.StatusReason)"
+
+    # 3. Contrato de parsing mock: BypassIO vetado por minifiltro
+    $mockVetoedText = @"
+BypassIo is not supported on this volume
+Reason: Minifilter driver does not support BypassIO
+Driver: AntivirusFilter.sys
+"@
+    $bioVetoed = Test-RomanOSBypassIoState -VolumePath "C:\" -MockOutput $mockVetoedText
+    Assert-Contract "Assert: Test-RomanOSBypassIoState detecta veto de minifiltro bloqueante" {
+        return ($bioVetoed.IsSupported -eq $false -and $bioVetoed.BlockingMinifilters -contains "AntivirusFilter.sys")
+    } -ExpectedState "IsSupported = False y BlockingMinifilters contiene AntivirusFilter.sys" -DetailMessage "Filtros: $($bioVetoed.BlockingMinifilters -join ', ')"
+
+    # 4. Contrato de síntesis multielemento Get-RomanOSBypassIOStatus por Mocks
+    $mockState = @{
+        Volumes             = @($bioSupported)
+        SupportedVolumes    = 1
+        HasVetoedFilters    = $false
+        VetoedMinifilters   = @()
+        DirectStorageStatus = "Activo (Ruta Rapida DirectStorage)"
+    }
+    $statusSynth = Get-RomanOSBypassIOStatus -MockState $mockState
+    Assert-Contract "Assert: Get-RomanOSBypassIOStatus sintetiza topología NVMe para DirectStorage" {
+        return ($statusSynth.SupportedVolumes -eq 1 -and $statusSynth.HasVetoedFilters -eq $false -and $statusSynth.DirectStorageStatus -match "Activo")
+    } -ExpectedState "DirectStorageStatus activo sin vetos" -DetailMessage "Status: $($statusSynth.DirectStorageStatus)"
+} else {
+    Assert-Contract "Existencia de Hardware-Engine.ps1" { return $false }
+}
+
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan

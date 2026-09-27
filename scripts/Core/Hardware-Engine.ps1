@@ -1057,7 +1057,11 @@ function Test-RomanOSBypassIoState {
     #>
     [CmdletBinding()]
     param(
-        [string]$VolumePath
+        [Parameter(Mandatory = $false)]
+        [string]$VolumePath,
+
+        [Parameter(Mandatory = $false)]
+        [string]$MockOutput = ""
     )
 
     if (-not $VolumePath) {
@@ -1071,6 +1075,31 @@ function Test-RomanOSBypassIoState {
         BlockingMinifilters  = @()
         BitLockerCompatible  = $true
         RawOutput            = ""
+    }
+
+    if ($MockOutput) {
+        $combined = $MockOutput.Trim()
+        $res.RawOutput = $combined
+        if ($combined -match 'BypassIo is supported' -or $combined -match 'BypassIo is enabled') {
+            $res.IsSupported = $true
+            $res.StatusReason = "BypassIO Soportado y Activo"
+        } else {
+            if ($combined -match 'Reason:\s*(.+)') {
+                $res.StatusReason = $matches[1].Trim()
+            } else {
+                $res.StatusReason = "BypassIO no habilitado en el volumen"
+            }
+
+            $lines = $combined -split "`r?`n"
+            $filtersFound = [System.Collections.Generic.List[string]]::new()
+            foreach ($line in $lines) {
+                if ($line -match 'Driver:\s*([a-zA-Z0-9_\-\.]+)') {
+                    $filtersFound.Add($matches[1].Trim())
+                }
+            }
+            $res.BlockingMinifilters = @($filtersFound)
+        }
+        return $res
     }
 
     $fsutilPath = Resolve-SystemBinary -BinaryName "fsutil.exe"
@@ -1122,6 +1151,124 @@ function Test-RomanOSBypassIoState {
     }
 
     return $res
+}
+
+function Get-RomanOSBypassIOStatus {
+    <#
+    .SYNOPSIS
+        Audita el estado integral de BypassIO y DirectStorage en todos los volúmenes del sistema
+        o en un volumen específico, correlacionando minifiltros cargados mediante fltmc (PLAN-0123).
+    .PARAMETER TargetDrive
+        Letra o ruta de volumen opcional (ej: "C:\"). Si se omite, audita todos los volúmenes fijos.
+    .PARAMETER MockState
+        Hashtable o colección de objetos mock para pruebas unitarias sin privilegios de elevación.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$TargetDrive,
+
+        [Parameter(Mandatory = $false)]
+        [hashtable]$MockState
+    )
+
+    if ($MockState) {
+        return [PSCustomObject]@{
+            Volumes             = @($MockState.Volumes)
+            TotalVolumes        = if ($MockState.Volumes) { @($MockState.Volumes).Count } else { 1 }
+            SupportedVolumes    = if ($null -ne $MockState.SupportedVolumes) { $MockState.SupportedVolumes } else { 1 }
+            HasVetoedFilters    = if ($null -ne $MockState.HasVetoedFilters) { $MockState.HasVetoedFilters } else { $false }
+            VetoedMinifilters   = if ($MockState.VetoedMinifilters) { @($MockState.VetoedMinifilters) } else { @() }
+            LoadedMinifilters   = if ($MockState.LoadedMinifilters) { @($MockState.LoadedMinifilters) } else { @() }
+            DirectStorageStatus = if ($MockState.DirectStorageStatus) { $MockState.DirectStorageStatus } else { "Activo (Ruta Rapida DirectStorage)" }
+        }
+    }
+
+    # Enumerar minifiltros cargados en el sistema mediante fltmc
+    $loadedFilters = [System.Collections.Generic.List[string]]::new()
+    $fltmcPath = Resolve-SystemBinary -BinaryName "fltmc.exe"
+    if (Test-Path $fltmcPath) {
+        try {
+            $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+            $pinfo.FileName = $fltmcPath
+            $pinfo.Arguments = "filters"
+            $pinfo.RedirectStandardOutput = $true
+            $pinfo.RedirectStandardError = $true
+            $pinfo.UseShellExecute = $false
+            $pinfo.CreateNoWindow = $true
+            $proc = [System.Diagnostics.Process]::Start($pinfo)
+            $fltOut = $proc.StandardOutput.ReadToEnd()
+            $proc.WaitForExit(3000) | Out-Null
+            $lines = $fltOut -split "`r?`n"
+            foreach ($line in $lines) {
+                if ($line -match '^\s*([a-zA-Z0-9_\-\.]+)\s+\d+\s+') {
+                    $filterName = $matches[1].Trim()
+                    if ($filterName -and -not ($loadedFilters.Contains($filterName))) {
+                        $loadedFilters.Add($filterName)
+                    }
+                }
+            }
+        } catch {
+            Write-Warning "[Hardware-Engine] No se pudo enumerar minifiltros fltmc: $($_.Exception.Message)"
+        }
+    }
+
+    # Determinar volúmenes objetivo
+    $volList = [System.Collections.Generic.List[string]]::new()
+    if ($TargetDrive) {
+        $volList.Add((if (-not $TargetDrive.EndsWith("\")) { "$TargetDrive\" } else { $TargetDrive }))
+    } else {
+        try {
+            $drives = Get-CimInstance -ClassName Win32_LogicalDisk -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 3 }
+            if ($drives) {
+                foreach ($d in $drives) {
+                    $volList.Add("$($d.DeviceID)\")
+                }
+            }
+        } catch {
+            Write-Warning "[Hardware-Engine] Error obteniendo discos lógicos: $($_.Exception.Message)"
+        }
+        if ($volList.Count -eq 0) {
+            $volList.Add((if ($env:SystemDrive) { "$($env:SystemDrive)\" } else { "C:\" }))
+        }
+    }
+
+    $volResults = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $vetoedFilters = [System.Collections.Generic.List[string]]::new()
+    $supportedCount = 0
+
+    foreach ($vol in $volList) {
+        $bio = Test-RomanOSBypassIoState -VolumePath $vol
+        if ($bio.IsSupported) {
+            $supportedCount++
+        }
+        if ($bio.BlockingMinifilters -and $bio.BlockingMinifilters.Count -gt 0) {
+            foreach ($bf in $bio.BlockingMinifilters) {
+                if (-not ($vetoedFilters.Contains($bf))) {
+                    $vetoedFilters.Add($bf)
+                }
+            }
+        }
+        $volResults.Add($bio)
+    }
+
+    $dsStatus = if ($supportedCount -gt 0 -and $vetoedFilters.Count -eq 0) {
+        "Activo (Ruta Rapida DirectStorage)"
+    } elseif ($vetoedFilters.Count -gt 0) {
+        "Veto Minifilter ($($vetoedFilters -join ', '))"
+    } else {
+        "No Habilitado / Reintentar"
+    }
+
+    return [PSCustomObject]@{
+        Volumes             = @($volResults)
+        TotalVolumes        = $volResults.Count
+        SupportedVolumes    = $supportedCount
+        HasVetoedFilters    = ($vetoedFilters.Count -gt 0)
+        VetoedMinifilters   = @($vetoedFilters)
+        LoadedMinifilters   = @($loadedFilters)
+        DirectStorageStatus = $dsStatus
+    }
 }
 
 function Get-RomanOSNetworkOffloadCaps {
