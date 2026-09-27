@@ -72,9 +72,10 @@ Write-TestBanner "romanOS — TEST HARNESS DE CONTRATOS FUNCIONALES Y MUTACION D
 Write-Host "Fecha: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | Runtime: PowerShell $($PSVersionTable.PSVersion)" -ForegroundColor Gray
 
 # Ubicaciones del repositorio
-$scriptsDir = Join-Path $PSScriptRoot "..\Modules"
-$coreDir    = Join-Path $PSScriptRoot "..\Core"
-$guiDir     = Join-Path $PSScriptRoot "..\GUI"
+$workspaceRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$scriptsDir    = Join-Path $workspaceRoot "scripts\Modules"
+$coreDir       = Join-Path $workspaceRoot "scripts\Core"
+$guiDir        = Join-Path $workspaceRoot "scripts\GUI"
 
 # ==============================================================================
 # CONTRATO 1: Botón "Optimizar Juegos y Apps" -> Supresión de Auto-arranque Discord
@@ -464,6 +465,107 @@ if (Test-Path $maintScript) {
     } -ExpectedState "Dummy shader purgado (-not Test-Path) y Success = True" -DetailMessage "Shader purgado: $( -not $dummyExistsAfter)"
 } else {
     Assert-Contract "Existencia de Invoke-WindowsMaintenance.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 16: Sondeo RTT de Latencia DNS (Win11-Network-Diagnostics-Optimizer.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-16" "Diagnóstico y Conectividad" "Sondeo de RTT y Selección Inteligente de DNS"
+
+$netScript = Join-Path $scriptsDir "Win11-Network-Diagnostics-Optimizer.ps1"
+if (Test-Path $netScript) {
+    $dnsProbes = & $netScript -TestDNS -PassThru -Quiet
+    Assert-Contract "Assert: Win11-Network-Diagnostics -TestDNS ejecuta sondeos RTT sin requerir elevación" {
+        return ($dnsProbes -ne $null -and @($dnsProbes).Count -gt 0)
+    } -ExpectedState "Array de perfiles DNS retornado" -DetailMessage "Resolvers evaluados: $(@($dnsProbes).Count)"
+
+    if ($dnsProbes -and @($dnsProbes).Count -gt 0) {
+        $firstProbe = @($dnsProbes)[0]
+        Assert-Contract "Assert: Estructura de telemetría DNS incluye IP primaria y promedio RTT" {
+            return ($firstProbe.PrimaryIPv4 -ne $null -and $firstProbe.AverageMs -gt 0)
+        } -ExpectedState "PrimaryIPv4 y AverageMs válidos" -DetailMessage "Target: $($firstProbe.Name) ($($firstProbe.PrimaryIPv4)) -> $($firstProbe.AverageMs) ms"
+    }
+} else {
+    Assert-Contract "Existencia de Win11-Network-Diagnostics-Optimizer.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 17: Debloat Adaptativo Solo-Lectura (Win11-Debloat-v3-Adaptive.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-17" "Debloat Adaptativo" "Auditoría de Bloatware e Inventario Seguro sin Mutaciones"
+
+$debloatScript = Join-Path $scriptsDir "Win11-Debloat-v3-Adaptive.ps1"
+if (Test-Path $debloatScript) {
+    $debloatAudit = & $debloatScript -AuditOnly -SkipElevation -PassThru -Unattended
+    Assert-Contract "Assert: Win11-Debloat -AuditOnly retorna diagnóstico de AppX y telemetría sin elevación" {
+        return ($debloatAudit -ne $null -and $debloatAudit.Mode -eq "AuditOnly" -and $debloatAudit.Success -eq $true)
+    } -ExpectedState "Mode = AuditOnly y Success = True" -DetailMessage "AppX Detectados: $($debloatAudit.InstalledAppx) | Perfil HW: $($debloatAudit.HardwareProfile)"
+} else {
+    Assert-Contract "Existencia de Win11-Debloat-v3-Adaptive.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 18: Auditor Universal de Optimización (Audit-SystemOptimization.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-18" "Auditor Universal" "Diagnóstico de 10 Dominios de Rendimiento Multi-Hardware"
+
+$sysAuditScript = Join-Path $scriptsDir "Audit-SystemOptimization.ps1"
+if (Test-Path $sysAuditScript) {
+    $sysAuditObj = & $sysAuditScript -NoColor -PassThru -Quiet
+    Assert-Contract "Assert: Audit-SystemOptimization ejecuta diagnóstico de 10 dominios en Medium IL" {
+        return ($sysAuditObj -ne $null -and $sysAuditObj.TotalAudited -gt 0)
+    } -ExpectedState "TotalAudited > 0 y objeto retornado" -DetailMessage "Directivas auditadas: $($sysAuditObj.TotalAudited) (OK: $($sysAuditObj.OkCount), Warn: $($sysAuditObj.WarnCount))"
+} else {
+    Assert-Contract "Existencia de Audit-SystemOptimization.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 19: Guardián Anti-Desvío de Servicios (Watchdog-ServiceDrift.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-19" "Guardián Anti-Drift" "Cálculo en Tiempo Real del Índice de Paridad de Servicios"
+
+$driftScript = Join-Path $scriptsDir "Watchdog-ServiceDrift.ps1"
+if (Test-Path $driftScript) {
+    $driftRep = & $driftScript -Action Status -SkipElevation -PassThru -Unattended
+    Assert-Contract "Assert: Watchdog-ServiceDrift -Action Status evalúa paridad SSOT sin elevación" {
+        return ($driftRep -ne $null -and $driftRep.TotalEvaluated -gt 0 -and $driftRep.ParityPercent -ge 0)
+    } -ExpectedState "TotalEvaluated > 0 y ParityPercent válido" -DetailMessage "Paridad: $($driftRep.ParityPercent)% (Conformes: $($driftRep.CompliantCount), Desviados: $($driftRep.DriftedCount))"
+} else {
+    Assert-Contract "Existencia de Watchdog-ServiceDrift.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 20: Auditoría y Diagnóstico Post-Instalación (PostInstall-Diagnostics.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-20" "Diagnóstico Post-Instalación" "Generación Resiliente de Informes Markdown y HTML"
+
+$postDiagScript = Join-Path $scriptsDir "PostInstall-Diagnostics.ps1"
+if (Test-Path $postDiagScript) {
+    $postDiagOutDir = Join-Path $workspaceRoot "scratch\postinstall_test"
+    if (Test-Path $postDiagOutDir) { Remove-Item -Path $postDiagOutDir -Recurse -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory -Path $postDiagOutDir -Force | Out-Null
+
+    try {
+        $diagRes = & $postDiagScript -OutputDir $postDiagOutDir -PassThru -Quiet
+        Assert-Contract "Assert: PostInstall-Diagnostics genera evaluación del sistema sin error fatal" {
+            return ($diagRes -ne $null -and $diagRes.PassedChecks -gt 0)
+        } -ExpectedState "PassedChecks > 0 y objeto retornado" -DetailMessage "Estado: $($diagRes.Status) | Verificaciones pasadas: $($diagRes.PassedChecks)"
+
+        Assert-Contract "Assert: Reporte Markdown físico generado y accesible" {
+            return ($diagRes.MarkdownReport -ne $null -and (Test-Path $diagRes.MarkdownReport))
+        } -ExpectedState "Archivo Markdown existente" -DetailMessage "Reporte: $($diagRes.MarkdownReport)"
+    } finally {
+        if ($postDiagOutDir -and (Test-Path $postDiagOutDir)) {
+            Remove-Item -Path $postDiagOutDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+} else {
+    Assert-Contract "Existencia de PostInstall-Diagnostics.ps1" { return $false }
 }
 
 

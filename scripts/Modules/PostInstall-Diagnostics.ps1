@@ -10,7 +10,9 @@ param(
     [switch]$ShowReport,
     [switch]$ShowHtml,
     [string]$ExpectedProfile = "1",
-    [bool]$ExpectedBlockOneDrive = $false
+    [bool]$ExpectedBlockOneDrive = $false,
+    [switch]$Quiet,
+    [switch]$PassThru
 )
 
 $ErrorActionPreference = 'Continue'
@@ -88,8 +90,14 @@ foreach ($p in $policyEnginePaths) {
 }
 
 try {
-    if (-not (Test-Path $OutputDir)) {
-        New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+    if ([string]::IsNullOrWhiteSpace($OutputDir) -or -not (Test-Path $OutputDir)) {
+        try {
+            if ([string]::IsNullOrWhiteSpace($OutputDir)) { $OutputDir = Join-Path $env:TEMP "romanOS-Diagnostics" }
+            New-Item -ItemType Directory -Path $OutputDir -Force -ErrorAction Stop | Out-Null
+        } catch {
+            $OutputDir = Join-Path $env:TEMP "romanOS-Diagnostics"
+            New-Item -ItemType Directory -Path $OutputDir -Force -ErrorAction SilentlyContinue | Out-Null
+        }
     }
 
     $desktopPath = [Environment]::GetFolderPath('Desktop')
@@ -622,11 +630,13 @@ try {
             Write-Warn -Message "No se pudo escribir el informe Markdown en la ruta temporal $systemReportPath" -Cause $_.Exception.Message -Action "El informe no pudo guardarse en disco"
         }
     }
-    try {
-        [System.IO.File]::WriteAllText($desktopReportPath, $finalReport, [System.Text.Encoding]::UTF8)
-        $finalReportPath = $desktopReportPath
-    } catch {
-        Write-Warn -Message "No se pudo copiar el informe al escritorio del usuario." -Cause $_.Exception.Message -Action "El informe permanece disponible en $systemReportPath"
+    if ($DesktopOutput) {
+        try {
+            [System.IO.File]::WriteAllText($desktopReportPath, $finalReport, [System.Text.Encoding]::UTF8)
+            $finalReportPath = $desktopReportPath
+        } catch {
+            Write-Warn -Message "No se pudo copiar el informe al escritorio del usuario." -Cause $_.Exception.Message -Action "El informe permanece disponible en $systemReportPath"
+        }
     }
 
     # Generar Dashboard HTML Offline
@@ -814,11 +824,13 @@ try {
             Write-Warn -Message "No se pudo escribir el dashboard HTML en la ruta temporal $systemReportHtmlPath" -Cause $_.Exception.Message -Action "El informe HTML no pudo guardarse en disco"
         }
     }
-    try {
-        [System.IO.File]::WriteAllText($desktopReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
-        $finalReportHtmlPath = $desktopReportHtmlPath
-    } catch {
-        Write-Warn -Message "No se pudo copiar el dashboard HTML al escritorio del usuario." -Cause $_.Exception.Message -Action "El dashboard permanece disponible en $systemReportHtmlPath"
+    if ($DesktopOutput) {
+        try {
+            [System.IO.File]::WriteAllText($desktopReportHtmlPath, $htmlContent, [System.Text.Encoding]::UTF8)
+            $finalReportHtmlPath = $desktopReportHtmlPath
+        } catch {
+            Write-Warn -Message "No se pudo copiar el dashboard HTML al escritorio del usuario." -Cause $_.Exception.Message -Action "El dashboard permanece disponible en $systemReportHtmlPath"
+        }
     }
 
     # Salida en consola
@@ -834,6 +846,18 @@ try {
     }
     if ($ShowHtml -or $ShowReport) {
         Start-Process -FilePath $finalReportHtmlPath
+    }
+
+    if ($PassThru) {
+        return [PSCustomObject]@{
+            Status         = $diagStatus
+            CriticalErrors = $criticalErrors.Count
+            Warnings       = $warnings.Count
+            PassedChecks   = $passedChecks.Count
+            MarkdownReport = $finalReportPath
+            HtmlReport     = $finalReportHtmlPath
+            Success        = ($criticalErrors.Count -eq 0)
+        }
     }
 } catch {
     Write-Host "[ERROR] Excepcion durante la auditoria post-instalacion: $($_.Exception.Message)" -ForegroundColor Red

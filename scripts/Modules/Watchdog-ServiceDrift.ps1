@@ -39,7 +39,9 @@ param(
 
     [string]$LogDir = "C:\OptimizedISO\Log",
     [switch]$Unattended,
-    [switch]$SkipElevation
+    [switch]$SkipElevation,
+    [switch]$Quiet,
+    [switch]$PassThru
 )
 
 $ErrorActionPreference = 'Continue'
@@ -301,6 +303,7 @@ switch ($Action) {
 
         $dur = [math]::Round(((Get-Date) - $startTime).TotalSeconds, 2)
         Show-UnifiedSummary -Title "DIAGNÓSTICO ANTI-DRIFT" -Status $(if ($rep.DriftedCount -eq 0) { "SUCCESS" } else { "ATTENTION_REQUIRED" }) -DurationSeconds $dur -ErrorsCount 0 -WarnsCount $(if ($rep.DriftedCount -gt 0) { 1 } else { 0 }) -Logs @{}
+        if ($PassThru) { return $rep }
     }
 
     "Audit" {
@@ -332,6 +335,7 @@ switch ($Action) {
 
         $dur = [math]::Round(((Get-Date) - $startTime).TotalSeconds, 2)
         Show-UnifiedSummary -Title "AUDITORÍA FORENSE ANTI-DRIFT" -Status "SUCCESS" -DurationSeconds $dur -ErrorsCount 0 -WarnsCount $(if ($rep.DriftedCount -gt 0) { 1 } else { 0 }) -Logs @{ "Reporte" = $reportPath }
+        if ($PassThru) { return $rep }
     }
 
     "Remediate" {

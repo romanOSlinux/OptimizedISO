@@ -34,7 +34,9 @@ param(
     [bool]$ExportReport = $true,
     [string]$OutputDir,
     [bool]$ShowRemediation = $true,
-    [switch]$NoColor
+    [switch]$NoColor,
+    [switch]$Quiet,
+    [switch]$PassThru
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -735,3 +737,15 @@ if ($ExportReport) {
 }
 
 Write-Host "`n  Auditoria finalizada exitosamente.`n" -ForegroundColor Green
+
+if ($PassThru) {
+    return [PSCustomObject]@{
+        TotalAudited    = $auditItems.Count
+        OkCount         = $okCount
+        WarnCount       = $warnCount
+        FailCount       = $failCount
+        RestrictedCount = $restrictedCount
+        Items           = $auditItems
+        Success         = ($failCount -eq 0)
+    }
+}

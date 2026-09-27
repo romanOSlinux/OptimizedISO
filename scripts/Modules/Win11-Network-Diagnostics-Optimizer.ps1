@@ -13,7 +13,9 @@ param(
     [switch]$TestDNS,
     [switch]$EnableDoH,
     [string]$InterfaceAlias,
-    [switch]$Quiet
+    [switch]$Quiet,
+    [switch]$PassThru,
+    [switch]$SkipElevation
 )
 
 # Precarga de ensamblados WPF para soporte garantizado de interfaz grafica (Out-GridView)
@@ -380,11 +382,16 @@ function Get-RomanOSCurrentDns {
 # ============================================================
 
 if ($TestDNS) {
-    Write-Host "`n==========================================================" -ForegroundColor Magenta
-    Write-Host "   romanOS: BENCHMARK DE LATENCIA DNS (RTT Engine)        " -ForegroundColor Cyan
-    Write-Host "==========================================================" -ForegroundColor Magenta
+    if (-not $Quiet) {
+        Write-Host "`n==========================================================" -ForegroundColor Magenta
+        Write-Host "   romanOS: BENCHMARK DE LATENCIA DNS (RTT Engine)        " -ForegroundColor Cyan
+        Write-Host "==========================================================" -ForegroundColor Magenta
+    }
     $latencies = Test-RomanOSDnsLatency
-    $latencies | Format-Table -Property Name, PrimaryIPv4, AverageMs, MinMs, PacketLoss, Status, Recommended -AutoSize
+    if (-not $Quiet) {
+        $latencies | Format-Table -Property Name, PrimaryIPv4, AverageMs, MinMs, PacketLoss, Status, Recommended -AutoSize
+    }
+    if ($PassThru) { return ,$latencies }
     Exit 0
 }
 
@@ -410,11 +417,11 @@ if ($MyInvocation.InvocationName -eq '.') {
 $isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
-if (-not $isAdmin) {
+if (-not $isAdmin -and -not $SkipElevation) {
     if ($isSimulated) {
         Write-Warning "Ejecutando en modo simulado (-WhatIf) sin elevacion UAC."
     } else {
-        Write-Warning "Este script requiere privilegios de Administrador. Reiniciando de forma elevada..."
+        Write-Warning "Este script requiere privilegios de Administrador. Intentando elevar..."
         $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
         $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
         $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $myScript)
@@ -424,8 +431,13 @@ if (-not $isAdmin) {
         if ($EnableDoH)      { $argList += '-EnableDoH' }
         if ($InterfaceAlias) { $argList += @('-InterfaceAlias', $InterfaceAlias) }
         if ($Quiet)          { $argList += '-Quiet' }
-        Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
-        Exit
+        if ($PassThru)       { $argList += '-PassThru' }
+        try {
+            Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs -ErrorAction Stop
+            Exit 0
+        } catch {
+            Write-Warning "No se pudo elevar UAC ($($_.Exception.Message)). Continuando en modo estandar..."
+        }
     }
 }
 

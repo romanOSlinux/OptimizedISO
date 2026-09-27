@@ -62,7 +62,9 @@
 
 param(
     [switch]$Unattended,
-    [switch]$AuditOnly
+    [switch]$AuditOnly,
+    [switch]$PassThru,
+    [switch]$SkipElevation
 )
 
 # ============================================================
@@ -93,8 +95,8 @@ try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAc
 }
 
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    if ($AuditOnly) {
-        Write-Warning "[Win11-Debloat] Modo Auditoria (Solo Lectura): ejecutando inspeccion con credenciales actuales..."
+    if ($AuditOnly -or $SkipElevation) {
+        Write-Warning "[Win11-Debloat] Modo Auditoria / SkipElevation: ejecutando inspeccion con credenciales actuales..."
     } else {
         Write-Warning "Este script debe ejecutarse como Administrador. Reiniciando con privilegios elevados..."
         $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -1118,6 +1120,15 @@ if ($AuditOnly) {
     Write-Host "                   Usa 'Debloat Asistido (Seleccion Manual)' para elegir que eliminar." -ForegroundColor Gray
     Write-Host "  ================================================================" -ForegroundColor Cyan
     Write-Host ""
+    if ($PassThru) {
+        return [PSCustomObject]@{
+            Mode             = "AuditOnly"
+            InstalledAppx    = $installedPkgs.Count
+            RunningTelemetry = $runningTelem
+            HardwareProfile  = $hwProfile
+            Success          = $true
+        }
+    }
     return
 }
 

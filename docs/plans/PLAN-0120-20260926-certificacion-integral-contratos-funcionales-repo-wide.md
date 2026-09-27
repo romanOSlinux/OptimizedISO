@@ -44,12 +44,12 @@ Para prevenir la saturación de contexto y garantizar rigor empírico, la certif
   * `Manage-SystemSnapshots.ps1` (Creación de instantáneas y manifiesto SHA-256 — CTR-14).
   * `Invoke-WindowsMaintenance.ps1` (Saneamiento transaccional de shaders sin elevación — CTR-15).
 
-- [ ] **Lote 3: Modules — Red, Debloat y Supervisión (5 scripts)**
-  * `Win11-Network-Diagnostics-Optimizer.ps1` (Afinamiento TCPIP, Nagle, QoS, DoH).
-  * `Win11-Debloat-v3-Adaptive.ps1` (Debloat adaptativo y eliminación limpia de AppX).
-  * `Audit-SystemOptimization.ps1` (Auditoría de paridad contra Policy-Engine).
-  * `Watchdog-ServiceDrift.ps1` (Detección de desvío y auto-remediación).
-  * `PostInstall-Diagnostics.ps1` (Verificación de integridad post-instalación).
+- [x] **Lote 3: Modules — Red, Debloat y Supervisión (5 scripts) [COMPLETADO]**
+  * `Win11-Network-Diagnostics-Optimizer.ps1` (Sondeo RTT y selección DNS — CTR-16).
+  * `Win11-Debloat-v3-Adaptive.ps1` (Inventario solo-lectura y resiliencia sin UAC — CTR-17).
+  * `Audit-SystemOptimization.ps1` (Auditoría universal de 10 dominios en Medium IL — CTR-18).
+  * `Watchdog-ServiceDrift.ps1` (Cálculo de paridad SSOT anti-drift — CTR-19).
+  * `PostInstall-Diagnostics.ps1` (Generación resiliente de informes sin elevación forzada — CTR-20).
 
 - [ ] **Lote 4: Desktop-Helpers — Conmutadores de Servicio (6 scripts)**
   * `Toggle-Defender.ps1` (Activación / desactivación de servicios y directivas de Defender).
