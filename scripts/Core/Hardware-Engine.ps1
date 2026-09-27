@@ -1166,6 +1166,7 @@ function Get-RomanOSBypassIOStatus {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
+        [Alias('DriveLetter', 'Drive')]
         [string]$TargetDrive,
 
         [Parameter(Mandatory = $false)]
@@ -1216,7 +1217,8 @@ function Get-RomanOSBypassIOStatus {
     # Determinar volúmenes objetivo
     $volList = [System.Collections.Generic.List[string]]::new()
     if ($TargetDrive) {
-        $volList.Add((if (-not $TargetDrive.EndsWith("\")) { "$TargetDrive\" } else { $TargetDrive }))
+        $normalizedDrive = if (-not $TargetDrive.EndsWith("\")) { "$TargetDrive\" } else { $TargetDrive }
+        $volList.Add($normalizedDrive)
     } else {
         try {
             $drives = Get-CimInstance -ClassName Win32_LogicalDisk -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 3 }
@@ -1229,7 +1231,8 @@ function Get-RomanOSBypassIOStatus {
             Write-Warning "[Hardware-Engine] Error obteniendo discos lógicos: $($_.Exception.Message)"
         }
         if ($volList.Count -eq 0) {
-            $volList.Add((if ($env:SystemDrive) { "$($env:SystemDrive)\" } else { "C:\" }))
+            $defaultDrive = if ($env:SystemDrive) { "$($env:SystemDrive)\" } else { "C:\" }
+            $volList.Add($defaultDrive)
         }
     }
 
@@ -1413,7 +1416,7 @@ function Get-RomanOSSchedulerRecommendation {
     )
 
     if ($null -eq $HardwareInfo) {
-        $HardwareInfo = Get-RomanOSHardwareInfo
+        $HardwareInfo = Get-SystemHardwareProfile
     }
 
     $isHybrid = $false
@@ -1440,5 +1443,12 @@ function Get-RomanOSSchedulerRecommendation {
         }
     }
 }
+
+# =============================================================================
+# ALIAS CANONICOS DE COMPATIBILIDAD (SSOT)
+# =============================================================================
+Set-Alias -Name Get-RomanOSHardwareProfile -Value Get-SystemHardwareProfile -ErrorAction SilentlyContinue
+Set-Alias -Name Get-RomanOSHardwareInfo    -Value Get-SystemHardwareProfile -ErrorAction SilentlyContinue
+
 
 

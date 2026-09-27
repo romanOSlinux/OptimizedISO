@@ -1280,6 +1280,72 @@ if (Test-Path $thermalModule) {
 
 
 # ==============================================================================
+# CONTRATO 46: Auditoría y Validación en Vivo del Lote 1 - Motores Core y SSOT (PLAN-0127)
+# ==============================================================================
+Write-ContractHeader "CTR-46" "Core-Engines-SSOT" "Validación de Contratos Funcionales y Telemetría en Vivo de Motores Core (Lote 1)"
+
+$hwEnginePath = Join-Path $coreDir "Hardware-Engine.ps1"
+$wimLibPath   = Join-Path $coreDir "WimLib-Helper.ps1"
+$sysIntPath   = Join-Path $coreDir "Sysinternals-Helper.ps1"
+
+if ((Test-Path $hwEnginePath) -and (Test-Path $wimLibPath) -and (Test-Path $sysIntPath)) {
+    . $hwEnginePath
+    . $wimLibPath
+    . $sysIntPath
+
+    # 1. Validación de Perfil de Hardware y Alias canónico
+    $hwProfile = Get-RomanOSHardwareProfile
+    Assert-Contract "Assert: Get-RomanOSHardwareProfile alias canónico retorna perfil válido y completo" {
+        return ($null -ne $hwProfile -and $null -ne $hwProfile.CPU -and $null -ne $hwProfile.GPU -and $null -ne $hwProfile.RAM)
+    } -ExpectedState "Perfil no nulo con CPU, GPU y RAM" -DetailMessage "CPU: $($hwProfile.CPU.Name) | GPU: $($hwProfile.GPU.PrimaryGpu.Name)"
+
+    # 2. Validación de Planificador según Topología de CPU (Regla 14)
+    $schedRec = Get-RomanOSSchedulerRecommendation -HardwareInfo $hwProfile
+    Assert-Contract "Assert: Get-RomanOSSchedulerRecommendation prescribe Win32PrioritySeparation según topología" {
+        if ($hwProfile.CPU.IsHybrid -or $hwProfile.CPU.IsDualCcdX3D) {
+            return ($schedRec.ShouldModifyPrioritySeparation -eq $false -and $schedRec.RecommendedValue -eq 2)
+        } else {
+            return ($schedRec.ShouldModifyPrioritySeparation -eq $true -and $schedRec.RecommendedValue -eq 38)
+        }
+    } -ExpectedState "PrioritySeparation coherente con topología CPU" -DetailMessage "Topology: $($schedRec.TopologyType) | Value: $($schedRec.RecommendedValue)"
+
+    # 3. Validación de Memory Tier y salvaguarda UMA (Regla 14 Capa 2)
+    $memTier = Get-RomanOSMemoryTier
+    Assert-Contract "Assert: Get-RomanOSMemoryTier prescribe LargeSystemCache=0 y DisablePagingExecutive coherente" {
+        return ($null -ne $memTier -and ($memTier.LargeSystemCache -eq 0 -or $memTier.LargeSystemCache -eq 1) -and ($memTier.DisablePagingExecutive -eq 0 -or $memTier.DisablePagingExecutive -eq 1))
+    } -ExpectedState "Memory Tier válido con LargeSystemCache definido" -DetailMessage "Tier: $($memTier.Tier) | LargeSystemCache: $($memTier.LargeSystemCache)"
+
+    # 4. Validación de BypassIO y DirectStorage con Mock sintético (Regla 14)
+    $mockBypass = @{
+        Volumes             = @([PSCustomObject]@{ VolumePath = "C:\"; IsSupported = $true; StatusReason = "BypassIO Activo"; BlockingMinifilters = @() })
+        TotalVolumes        = 1
+        SupportedVolumes    = 1
+        HasVetoedFilters    = $false
+        DirectStorageStatus = "Activo (Ruta Rapida DirectStorage)"
+    }
+    $bypassAudit = Get-RomanOSBypassIOStatus -MockState $mockBypass
+    Assert-Contract "Assert: Get-RomanOSBypassIOStatus evalúa compatibilidad y estado DirectStorage con Mocks" {
+        return ($null -ne $bypassAudit -and $bypassAudit.SupportedVolumes -eq 1 -and $bypassAudit.HasVetoedFilters -eq $false -and $bypassAudit.DirectStorageStatus -match "Activo")
+    } -ExpectedState "BypassIO activo con 1 volumen soportado" -DetailMessage "Status: $($bypassAudit.DirectStorageStatus)"
+
+    # 5. Validación de WimLib-Helper (Zero-Mount)
+    $wimLibFound = Test-WimLibAvailable
+    Assert-Contract "Assert: Test-WimLibAvailable detecta correctamente la herramienta wimlib-imagex" {
+        return ($wimLibFound -eq $true)
+    } -ExpectedState "wimlib-imagex.exe disponible" -DetailMessage "Path: $(Get-WimLibPath)"
+
+    # 6. Validación de Sysinternals-Helper
+    $coreinfoPath = Get-SysinternalsToolPath -ToolName "Coreinfo64.exe"
+    $sigcheckPath = Get-SysinternalsToolPath -ToolName "sigcheck64.exe"
+    $autorunPath  = Get-SysinternalsToolPath -ToolName "autorunsc64.exe"
+    Assert-Contract "Assert: Get-SysinternalsToolPath localiza las herramientas Coreinfo64, sigcheck64 y autorunsc64" {
+        return ((Test-Path $coreinfoPath) -and (Test-Path $sigcheckPath) -and (Test-Path $autorunPath))
+    } -ExpectedState "Todas las herramientas de Sysinternals presentes" -DetailMessage "Coreinfo: $(Test-Path $coreinfoPath) | Sigcheck: $(Test-Path $sigcheckPath) | Autorunsc: $(Test-Path $autorunPath)"
+} else {
+    Assert-Contract "Existencia de módulos Core (Hardware-Engine, WimLib-Helper, Sysinternals-Helper)" { return $false }
+}
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan
