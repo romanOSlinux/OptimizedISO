@@ -4,7 +4,7 @@
 |---|---|
 | **ID de Plan** | PLAN-0132 |
 | **Fecha** | 2026-09-27 |
-| **Componentes** | `scripts/Testing/New-TestVM-HyperV.ps1`, `scripts/Testing/New-TestVM-HyperV.cmd`, `scripts/GUI/romanOS-Studio.ps1` |
+| **Componentes** | `scripts/Testing/New-TestVM-HyperV.ps1`, `scripts/Testing/New-TestVM-HyperV.cmd`, `scripts/Testing/Watch-TestVMDeployment.ps1`, `scripts/Testing/Watch-TestVMDeployment.cmd`, `scripts/GUI/romanOS-Studio.ps1` |
 | **Estado** | `PENDIENTE` |
 | **Prioridad** | Crítica (Validación Funcional End-to-End del Ciclo de Vida del SO) |
 | **Reglas Relevantes** | Regla 0 (Git SSOT), Regla 1 (Windows Host / Hyper-V), Regla 2 (Cero Suposiciones), Regla 7 (Watchdogs), Regla 14 (Salvaguarda de Medios de Almacenamiento) |
@@ -40,12 +40,13 @@ La validación en una Máquina Virtual Hyper-V de 2ª Generación (Gen2) permite
 - [ ] **Fase 2: Aprovisionamiento Automatizado de la VM con `New-TestVM-HyperV.ps1`:**
   - Ejecutar la creación de la VM Gen2 enlazada a la ISO `Windows_11_Optimized_Test.iso`.
   - Configurar Secure Boot, vTPM y disco VHDX dinámico en `C:\OptimizedISO\scratch\VM\`.
-- [ ] **Fase 3: Ejecución de la Instalación Desatendida (Zero-Touch):**
-  - Arrancar la VM y monitorear el progreso del pase `windowsPE`, `specialize` y `oobeSystem`.
-  - Notificar eventos clave mediante temporizadores watchdog (Regla 7).
-- [ ] **Fase 4: Verificación Forense del Sistema Instalado en la VM:**
-  - Comprobar aterrizaje directo en el escritorio sin prompts de cuenta Microsoft.
-  - Confirmar ejecución exitosa de `SetupComplete.cmd` (o `FirstLogonCommands` con mutex `.setup_completed`).
-  - Verificar presencia de Desktop Helpers, Control Center y ausencia de apps de telemetría y Recall.
+- [ ] **Fase 3: Supervisión y Telemetría en Caliente con `Watch-TestVMDeployment.ps1`:**
+  - Ejecutar `Watch-TestVMDeployment.ps1` para monitorizar en tiempo real el progreso de instalación (CPU, memoria, latido y red).
+  - Esperar de forma no interactiva el paso de `windowsPE` a `oobeSystem`.
+- [ ] **Fase 4: Introspección por PowerShell Direct y Verificación Forense:**
+  - Conectar mediante PowerShell Direct (VMBus) para validar en caliente:
+    - Presencia del cerrojo mutex `.setup_completed` (Pilar 1).
+    - Estado neutralizado de telemetría (DiagTrack detenido).
+    - Conteo de procesos y memoria RAM en reposo (< 1.6 GB).
 - [ ] **Fase 5: Certificación y Reporte de Métricas del Plan 0132:**
   - Actualizar estado a `COMPLETADO`.
