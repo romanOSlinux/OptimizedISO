@@ -2851,6 +2851,449 @@ function Export-RomanOSUnattendCommands {
     }
 }
 
+function New-RomanOSUnattendXml {
+    <#
+    .SYNOPSIS
+        Genera un archivo de respuesta autounattend.xml completo, validado y conforme al SSOT de romanOS.
+    .DESCRIPTION
+        Construye la estructura XML oficial de Windows Setup para despliegues desatendidos,
+        incorporando bypasses de hardware (windowsPE), directivas de optimización del SO (specialize)
+        conforme al perfil seleccionado en Policy-Engine, configuración de usuario local,
+        auto-logon seguro y esquemas de particionado (manual o Zero-Touch GPT).
+    #>
+    [CmdletBinding()]
+    param(
+        [ValidateSet("1", "2", "3")]
+        [string]$Profile = "1",
+
+        [string]$LocalUser = "Usuario",
+        [string]$LocalPassword = "",
+
+        [bool]$BypassTPM = $true,
+        [bool]$BypassSecureBoot = $true,
+        [bool]$BypassRAM = $true,
+        [bool]$BypassCPU = $true,
+        [bool]$BypassStorage = $true,
+        [bool]$BypassDisk = $true,
+        [bool]$AllowMoSetupUpgrade = $true,
+
+        [bool]$BypassNRO = $true,
+        [bool]$AutoLogon = $true,
+        [int]$AutoLogonCount = 1,
+        [bool]$BlockOneDrive = $true,
+        [bool]$ForceDarkMode = $true,
+
+        [ValidateSet("Manual", "ZeroTouchGpt")]
+        [string]$DiskLayout = "Manual",
+        [int]$ZeroTouchDisk = 0,
+
+        [string]$Architecture = "amd64",
+        [string]$Language = "es-ES",
+        [string]$Keyboard = "040a:0000040a",
+        [string]$SystemLocale = "es-ES",
+        [string]$UserLocale = "es-ES",
+        [string]$TimeZone = "Romance Standard Time",
+
+        [string]$OutputPath
+    )
+
+    $effectiveUser = if ([string]::IsNullOrWhiteSpace($LocalUser)) { "Usuario" } else { $LocalUser }
+    $effectivePassword = if ($LocalPassword) { $LocalPassword } else { "" }
+    $isPasswordless = [string]::IsNullOrWhiteSpace($effectivePassword)
+
+    $encodedPasswordForAccount = ""
+    $encodedPasswordForAutologon = ""
+
+    if ($isPasswordless) {
+        $setupPassword = "RomanOS#Setup_" + [guid]::NewGuid().ToString('N').Substring(0, 8) + "!"
+        $encodedPasswordForAccount = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($setupPassword + "Password"))
+        $encodedPasswordForAutologon = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($setupPassword + "Password"))
+    } else {
+        $encodedPasswordForAccount = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($effectivePassword + "Password"))
+        $encodedPasswordForAutologon = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($effectivePassword + "Password"))
+    }
+
+    # Bloque windowsPE - Bypasses
+    $peCmds = [System.Collections.Generic.List[string]]::new()
+    $peOrder = 1
+    if ($BypassTPM) {
+        $peCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$peOrder</Order>
+          <Description>Bypass TPM Check</Description>
+          <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassTPMCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $peOrder++
+    }
+    if ($BypassSecureBoot) {
+        $peCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$peOrder</Order>
+          <Description>Bypass SecureBoot Check</Description>
+          <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassSecureBootCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $peOrder++
+    }
+    if ($BypassRAM) {
+        $peCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$peOrder</Order>
+          <Description>Bypass RAM Check</Description>
+          <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassRAMCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $peOrder++
+    }
+    if ($BypassCPU) {
+        $peCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$peOrder</Order>
+          <Description>Bypass CPU Check</Description>
+          <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassCPUCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $peOrder++
+    }
+    if ($BypassStorage) {
+        $peCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$peOrder</Order>
+          <Description>Bypass Storage Check</Description>
+          <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassStorageCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $peOrder++
+    }
+    if ($BypassDisk) {
+        $peCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$peOrder</Order>
+          <Description>Bypass Disk Check</Description>
+          <Path>reg add HKLM\SYSTEM\Setup\LabConfig /v BypassDiskCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $peOrder++
+    }
+    if ($AllowMoSetupUpgrade) {
+        $peCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$peOrder</Order>
+          <Description>Allow upgrades with unsupported TPM/CPU</Description>
+          <Path>reg add HKLM\SYSTEM\Setup\MoSetup /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $peOrder++
+    }
+
+    $peXmlCommands = ($peCmds -join "`r`n")
+
+    # Particionado de disco Zero-Touch si se especifica
+    $diskConfigXml = ""
+    $userDataXml = ""
+    if ($DiskLayout -eq "ZeroTouchGpt") {
+        $diskConfigXml = @"
+      <DiskConfiguration>
+        <Disk wcm:action="add">
+          <DiskID>$ZeroTouchDisk</DiskID>
+          <WillWipeDisk>true</WillWipeDisk>
+          <CreatePartitions>
+            <CreatePartition wcm:action="add">
+              <Order>1</Order>
+              <Type>EFI</Type>
+              <Size>300</Size>
+            </CreatePartition>
+            <CreatePartition wcm:action="add">
+              <Order>2</Order>
+              <Type>MSR</Type>
+              <Size>16</Size>
+            </CreatePartition>
+            <CreatePartition wcm:action="add">
+              <Order>3</Order>
+              <Type>Primary</Type>
+              <Size>500</Size>
+            </CreatePartition>
+            <CreatePartition wcm:action="add">
+              <Order>4</Order>
+              <Type>Primary</Type>
+              <Extend>true</Extend>
+            </CreatePartition>
+          </CreatePartitions>
+          <ModifyPartitions>
+            <ModifyPartition wcm:action="add">
+              <Order>1</Order>
+              <PartitionID>1</PartitionID>
+              <Format>FAT32</Format>
+              <Label>System</Label>
+            </ModifyPartition>
+            <ModifyPartition wcm:action="add">
+              <Order>2</Order>
+              <PartitionID>3</PartitionID>
+              <Format>NTFS</Format>
+              <Label>Recovery</Label>
+              <TypeID>de94bba4-06d1-4d40-a16a-bfd50179d6ac</TypeID>
+            </ModifyPartition>
+            <ModifyPartition wcm:action="add">
+              <Order>3</Order>
+              <PartitionID>4</PartitionID>
+              <Format>NTFS</Format>
+              <Label>Windows</Label>
+              <Letter>C</Letter>
+            </ModifyPartition>
+          </ModifyPartitions>
+        </Disk>
+      </DiskConfiguration>
+"@
+        $userDataXml = @"
+      <UserData>
+        <AcceptEula>true</AcceptEula>
+      </UserData>
+"@
+    }
+
+    # Bloque specialize - Comandos sincronos
+    $specCmds = [System.Collections.Generic.List[string]]::new()
+    $specOrder = 1
+
+    if ($BypassNRO) {
+        $specCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$specOrder</Order>
+          <Description>Bypass Microsoft Account (BypassNRO)</Description>
+          <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE /v BypassNRO /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $specOrder++
+    }
+
+    if ($BlockOneDrive) {
+        $specCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$specOrder</Order>
+          <Description>Prevent OneDrive from generating network traffic</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive /v PreventNetworkTrafficPreUserSignIn /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $specOrder++
+        $specCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$specOrder</Order>
+          <Description>Prevent OneDrive Sync and Auto-start</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive /v DisableFileSyncNGSC /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $specOrder++
+        $specCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$specOrder</Order>
+          <Description>Disable OneDrive Metered Network Sync</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive /v DisableMeteredNetworkFileSync /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $specOrder++
+        $specCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$specOrder</Order>
+          <Description>Disable OneDrive Libraries Style Pin</Description>
+          <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive /v DisableLibrariesStylePin /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+"@)
+        $specOrder++
+        $specCmds.Add(@"
+        <RunSynchronousCommand wcm:action="add">
+          <Order>$specOrder</Order>
+          <Description>Remove OneDrive from Default User Run key</Description>
+          <Path>cmd.exe /c &quot;reg delete HKU\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Run /v OneDriveSetup /f &gt;nul 2&gt;&amp;1 || exit 0&quot;</Path>
+        </RunSynchronousCommand>
+"@)
+        $specOrder++
+    }
+
+    # Politicas del perfil seleccionado desde Policy-Engine
+    $policyExport = Export-RomanOSUnattendCommands -Profile $Profile -StartOrder $specOrder -SkipOneDrive:(-not $BlockOneDrive)
+    if ($policyExport -and $policyExport.XmlContent) {
+        $specCmds.Add($policyExport.XmlContent)
+    }
+
+    $specXmlCommands = ($specCmds -join "`r`n")
+
+    # Bloque oobeSystem - AutoLogon y FirstLogonCommands
+    $firstLogonList = [System.Collections.Generic.List[string]]::new()
+    $firstLogonOrder = 1
+
+    if ($isPasswordless) {
+        $firstLogonList.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>cmd.exe /c net user "$effectiveUser" ""</CommandLine>
+          <Description>Purge ephemeral setup password to ensure passwordless account</Description>
+          <Order>$firstLogonOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+        $firstLogonOrder++
+        $firstLogonList.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /f</CommandLine>
+          <Description>Delete DefaultPassword from Winlogon registry</Description>
+          <Order>$firstLogonOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+        $firstLogonOrder++
+        $firstLogonList.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d 0 /f</CommandLine>
+          <Description>Reset AutoAdminLogon to normal mode for passwordless account</Description>
+          <Order>$firstLogonOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+        $firstLogonOrder++
+    }
+
+    if ($ForceDarkMode) {
+        $firstLogonList.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v AppsUseLightTheme /t REG_DWORD /d 0 /f</CommandLine>
+          <Description>Force Dark Mode for Apps in HKCU</Description>
+          <Order>$firstLogonOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+        $firstLogonOrder++
+        $firstLogonList.Add(@"
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v SystemUsesLightTheme /t REG_DWORD /d 0 /f</CommandLine>
+          <Description>Force Dark Mode for System in HKCU</Description>
+          <Order>$firstLogonOrder</Order>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+"@)
+        $firstLogonOrder++
+    }
+
+    $firstLogonXml = if ($firstLogonList.Count -gt 0) {
+        @"
+      <FirstLogonCommands>
+$($firstLogonList -join "`r`n")
+      </FirstLogonCommands>
+"@
+    } else { "" }
+
+    $autoLogonXml = if ($AutoLogon) {
+        @"
+      <AutoLogon>
+        <Password>
+          <Value>$encodedPasswordForAutologon</Value>
+          <PlainText>false</PlainText>
+        </Password>
+        <Enabled>true</Enabled>
+        <LogonCount>$AutoLogonCount</LogonCount>
+        <Username>$effectiveUser</Username>
+      </AutoLogon>
+"@
+    } else { "" }
+
+    # Generacion del XML completo
+    $xmlResult = @"
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <settings pass="windowsPE">
+    <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <SetupUILanguage>
+        <UILanguage>$Language</UILanguage>
+      </SetupUILanguage>
+      <InputLocale>$Keyboard</InputLocale>
+      <SystemLocale>$SystemLocale</SystemLocale>
+      <UILanguage>$Language</UILanguage>
+      <UserLocale>$UserLocale</UserLocale>
+    </component>
+    <component name="Microsoft-Windows-PnpCustomizationsWinPE" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <DriverPaths>
+        <PathAndCredentials wcm:action="add" wcm:keyValue="1">
+          <Path>.\Drivers</Path>
+        </PathAndCredentials>
+      </DriverPaths>
+    </component>
+    <component name="Microsoft-Windows-Setup" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+$diskConfigXml
+$userDataXml
+      <EnableFirewall>true</EnableFirewall>
+      <RunSynchronous>
+$peXmlCommands
+      </RunSynchronous>
+    </component>
+  </settings>
+  <settings pass="specialize">
+    <component name="Microsoft-Windows-Deployment" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <RunSynchronous>
+$specXmlCommands
+      </RunSynchronous>
+    </component>
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <ComputerName>*</ComputerName>
+      <RegisteredOrganization>Optimized</RegisteredOrganization>
+      <RegisteredOwner>User</RegisteredOwner>
+      <TimeZone>$TimeZone</TimeZone>
+    </component>
+    <component name="Microsoft-Windows-International-Core" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <InputLocale>$Keyboard</InputLocale>
+      <SystemLocale>$SystemLocale</SystemLocale>
+      <UILanguage>$Language</UILanguage>
+      <UserLocale>$UserLocale</UserLocale>
+    </component>
+  </settings>
+  <settings pass="oobeSystem">
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+$autoLogonXml
+$firstLogonXml
+      <OOBE>
+        <HideEULAPage>true</HideEULAPage>
+        <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+        <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+        <ProtectYourPC>3</ProtectYourPC>
+      </OOBE>
+      <RegisteredOrganization>Optimized</RegisteredOrganization>
+      <RegisteredOwner>User</RegisteredOwner>
+      <TimeZone>$TimeZone</TimeZone>
+      <UserAccounts>
+        <LocalAccounts>
+          <LocalAccount wcm:action="add">
+            <Password>
+              <Value>$encodedPasswordForAccount</Value>
+              <PlainText>false</PlainText>
+            </Password>
+            <DisplayName>$effectiveUser</DisplayName>
+            <Group>Administrators</Group>
+            <Name>$effectiveUser</Name>
+          </LocalAccount>
+        </LocalAccounts>
+      </UserAccounts>
+    </component>
+    <component name="Microsoft-Windows-International-Core" processorArchitecture="$Architecture" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <InputLocale>$Keyboard</InputLocale>
+      <SystemLocale>$SystemLocale</SystemLocale>
+      <UILanguage>$Language</UILanguage>
+      <UserLocale>$UserLocale</UserLocale>
+    </component>
+  </settings>
+</unattend>
+"@
+
+    if ($OutputPath) {
+        $parentDir = Split-Path -Parent $OutputPath
+        if ($parentDir -and -not (Test-Path $parentDir)) {
+            New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+        }
+        [System.IO.File]::WriteAllText($OutputPath, $xmlResult, [System.Text.Encoding]::UTF8)
+        return $OutputPath
+    }
+
+    return $xmlResult
+}
+
 function Get-RomanOSBrowserPolicies {
     <#
     .SYNOPSIS

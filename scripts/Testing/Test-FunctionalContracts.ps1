@@ -1186,6 +1186,54 @@ Driver: AntivirusFilter.sys
     Assert-Contract "Existencia de Hardware-Engine.ps1" { return $false }
 }
 
+# ==============================================================================
+# CONTRATO 44: Generador Visual de Perfiles Desatendidos (Builder Mode - PLAN-0124)
+# ==============================================================================
+Write-ContractHeader "CTR-44" "Builder-Mode" "Generación SSOT de autounattend.xml con Bypasses y Esquemas de Particionado"
+
+if (Get-Command "New-RomanOSUnattendXml" -ErrorAction SilentlyContinue) {
+    # 1. Generación de XML con Bypasses universales y perfil 1
+    $xmlP1 = New-RomanOSUnattendXml -Profile "1" -LocalUser "TestUser" -BypassTPM $true -BypassNRO $true
+    Assert-Contract "Assert: New-RomanOSUnattendXml genera documento XML estructurado con namespace urn:schemas-microsoft-com:unattend" {
+        return ($xmlP1 -ne $null -and $xmlP1 -match '<unattend xmlns="urn:schemas-microsoft-com:unattend"' -and $xmlP1 -match 'TestUser')
+    } -ExpectedState "XML con root unattend y usuario TestUser" -DetailMessage "Longitud XML: $($xmlP1.Length) caracteres"
+
+    # 2. Validación de pases oficiales y directivas SSOT
+    Assert-Contract "Assert: New-RomanOSUnattendXml incluye los 3 pases requeridos (windowsPE, specialize, oobeSystem)" {
+        $hasPe = ($xmlP1 -match 'pass="windowsPE"')
+        $hasSpec = ($xmlP1 -match 'pass="specialize"')
+        $hasOobe = ($xmlP1 -match 'pass="oobeSystem"')
+        $hasLab = ($xmlP1 -match 'BypassTPMCheck')
+        $hasNro = ($xmlP1 -match 'BypassNRO')
+        return ($hasPe -and $hasSpec -and $hasOobe -and $hasLab -and $hasNro)
+    } -ExpectedState "Pases windowsPE, specialize, oobeSystem y bypasses confirmados" -DetailMessage "LabConfig: True | BypassNRO: True"
+
+    # 3. Validación de esquema Zero-Touch GPT
+    $xmlZt = New-RomanOSUnattendXml -Profile "2" -DiskLayout "ZeroTouchGpt" -ZeroTouchDisk 0
+    Assert-Contract "Assert: New-RomanOSUnattendXml genera DiskConfiguration UEFI GPT en modo ZeroTouchGpt" {
+        $hasDisk = ($xmlZt -match '<DiskConfiguration>')
+        $hasEfi  = ($xmlZt -match '<Type>EFI</Type>')
+        $hasEula = ($xmlZt -match '<AcceptEula>true</AcceptEula>')
+        $cleanEntities = (-not ($xmlZt -match '2>&1'))
+        return ($hasDisk -and $hasEfi -and $hasEula -and $cleanEntities)
+    } -ExpectedState "DiskConfiguration con EFI y AcceptEula sin entidades desescapadas" -DetailMessage "DiskConfiguration: True | CleanEntities: $cleanEntities"
+
+    # 4. Integridad sintáctica comprobada mediante .NET System.Xml.XmlDocument
+    $xmlDocTest = New-Object System.Xml.XmlDocument
+    $parseSuccess = $false
+    try {
+        $xmlDocTest.LoadXml($xmlP1)
+        $parseSuccess = ($xmlDocTest.DocumentElement.LocalName -eq 'unattend')
+    } catch {
+        $parseSuccess = $false
+    }
+    Assert-Contract "Assert: autounattend.xml generado es sintácticamente bien formado para System.Xml.XmlDocument" {
+        return $parseSuccess
+    } -ExpectedState "LoadXml exitoso y DocumentElement == unattend" -DetailMessage "WellFormed: $parseSuccess"
+} else {
+    Assert-Contract "Existencia de New-RomanOSUnattendXml en Policy-Engine.ps1" { return $false }
+}
+
 
 # ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES

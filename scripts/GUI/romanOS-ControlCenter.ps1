@@ -785,7 +785,122 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                 </ScrollViewer>
             </TabItem>
 
-            <!-- Pestaña 7: Terminal / Logs -->
+            <!-- Pestaña 7: Constructor Desatendido (Builder Mode) -->
+            <TabItem x:Name="tabItemBuilder" Header="Constructor Desatendido">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
+                    <StackPanel Margin="10">
+                        <!-- Tarjeta Header -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Generador Visual de Perfiles Desatendidos (Builder Mode)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                <TextBlock Text="Cree, valide y exporte archivos autounattend.xml a medida para memorias USB de instalación o despliegues físicos sin compilar la ISO completa." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tarjeta Bypasses de Windows 11 -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Bypasses de Requisitos y Restricciones (windowsPE &amp; OOBE)" Foreground="#00E676" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
+                                <WrapPanel Margin="0,0,0,5">
+                                    <CheckBox x:Name="chkUnattendBypassTPM" Content="Bypass TPM 2.0" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,6"/>
+                                    <CheckBox x:Name="chkUnattendBypassSecureBoot" Content="Bypass Secure Boot" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,6"/>
+                                    <CheckBox x:Name="chkUnattendBypassRAM" Content="Bypass RAM (4GB)" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,6"/>
+                                    <CheckBox x:Name="chkUnattendBypassCPU" Content="Bypass Generación CPU" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,6"/>
+                                    <CheckBox x:Name="chkUnattendBypassStorage" Content="Bypass Espacio / Disco" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,6"/>
+                                    <CheckBox x:Name="chkUnattendBypassNRO" Content="Bypass Cuenta MS (OOBE Offline)" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,6"/>
+                                    <CheckBox x:Name="chkUnattendMoSetup" Content="Permitir In-Place Upgrade" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,6"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tarjeta Cuenta de Usuario y Preferencias -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Configuración de Cuenta Local y Sesión" Foreground="#00E5FF" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Usuario Local:" Foreground="#B0B0B0" VerticalAlignment="Center" Margin="0,4"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtUnattendUser" Text="Usuario" Background="#1E1E1E" Foreground="#FFFFFF" BorderBrush="#454545" Padding="4,2" Margin="0,4,10,4"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Contraseña (opcional):" Foreground="#B0B0B0" VerticalAlignment="Center" Margin="0,4"/>
+                                    <TextBox Grid.Row="0" Grid.Column="3" x:Name="txtUnattendPassword" Text="" Background="#1E1E1E" Foreground="#FFFFFF" BorderBrush="#454545" Padding="4,2" Margin="0,4,0,4"/>
+                                </Grid>
+                                <WrapPanel Margin="0,4,0,0">
+                                    <CheckBox x:Name="chkUnattendAutoLogon" Content="Auto-Logon en Primer Inicio" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,6"/>
+                                    <CheckBox x:Name="chkUnattendDarkMode" Content="Forzar Modo Oscuro en HKCU" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,6"/>
+                                    <CheckBox x:Name="chkUnattendBlockOneDrive" Content="Bloquear OneDrive y Telemetría Sync" IsChecked="True" Foreground="#E0E0E0" Margin="0,0,15,6"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tarjeta Perfil de Optimización y Esquema de Disco -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Perfil SSOT de Optimización y Particionado" Foreground="#00E5FF" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Perfil SSOT (Policy-Engine):" Foreground="#B0B0B0" VerticalAlignment="Center" Margin="0,4"/>
+                                    <ComboBox Grid.Column="1" x:Name="cbxUnattendProfile" SelectedIndex="0" Background="#1E1E1E" Foreground="#FFFFFF" Margin="0,4,10,4">
+                                        <ComboBoxItem Content="1 - Máximo Rendimiento / Gaming (Default)" Tag="1"/>
+                                        <ComboBoxItem Content="2 - Equilibrado / Oficina y Estudio" Tag="2"/>
+                                        <ComboBoxItem Content="3 - Ultra-Seguro / Enterprise" Tag="3"/>
+                                    </ComboBox>
+                                    <TextBlock Grid.Column="2" Text="Esquema de Particionado:" Foreground="#B0B0B0" VerticalAlignment="Center" Margin="0,4"/>
+                                    <ComboBox Grid.Column="3" x:Name="cbxUnattendDiskLayout" SelectedIndex="0" Background="#1E1E1E" Foreground="#FFFFFF" Margin="0,4,0,4">
+                                        <ComboBoxItem Content="Manual (Seleccionar en Setup - Seguro)" Tag="Manual"/>
+                                        <ComboBoxItem Content="Zero-Touch GPT (Auto-formato Disco 0)" Tag="ZeroTouchGpt"/>
+                                    </ComboBox>
+                                </Grid>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Idioma y Región:" Foreground="#B0B0B0" VerticalAlignment="Center" Margin="0,4"/>
+                                    <ComboBox Grid.Column="1" x:Name="cbxUnattendLocale" SelectedIndex="0" Background="#1E1E1E" Foreground="#FFFFFF" Margin="0,4,0,4">
+                                        <ComboBoxItem Content="es-ES (Español España)" Tag="es-ES"/>
+                                        <ComboBoxItem Content="es-MX (Español Latinoamérica / México)" Tag="es-MX"/>
+                                        <ComboBoxItem Content="en-US (English United States)" Tag="en-US"/>
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Botones de Operación -->
+                        <WrapPanel Margin="0,0,0,12">
+                            <Button x:Name="btnGenerateUnattendPreview" Content="Generar y Previsualizar XML" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                            <Button x:Name="btnExportUnattendFile" Content="Exportar autounattend.xml..." Width="220" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                            <Button x:Name="btnValidateUnattendGUI" Content="Certificar Sintaxis y Bypasses" Width="210" Margin="0,0,10,10"/>
+                            <Button x:Name="btnResetUnattendDefaults" Content="Restablecer Valores Recomendados" Width="230" Margin="0,0,10,10"/>
+                        </WrapPanel>
+
+                        <!-- Visor de Previsualización XML -->
+                        <Border Background="#181818" BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Padding="8">
+                            <StackPanel>
+                                <TextBlock Text="Previsualización de autounattend.xml:" Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,4"/>
+                                <TextBox x:Name="txtUnattendPreview" Height="180" Background="#121212" Foreground="#81D4FA" FontFamily="Consolas" FontSize="11"
+                                         IsReadOnly="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                         BorderBrush="#252525" BorderThickness="1" Padding="6" Text="Haga clic en 'Generar y Previsualizar XML' para renderizar el archivo de respuesta."/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Pestaña 8: Terminal / Logs -->
             <TabItem x:Name="tabItemLogs" Header="Consola en Vivo">
                 <Grid Margin="10">
                     <TextBox x:Name="txtConsole" Background="#151515" Foreground="#00E5FF" FontFamily="Consolas" FontSize="12"
@@ -1954,6 +2069,153 @@ $window.FindName('btnInstallRuntimesGUI').Add_Click({
         Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -InstallRuntimesOnly -Unattended" -TaskTitle "Instalacion de Runtimes del Sistema"
     }
 })
+
+# -----------------------------------------------------------------------------
+# Unattend Builder Mode Handlers (PLAN-0124)
+# -----------------------------------------------------------------------------
+function Get-UnattendFormParameters {
+    $profTag = "1"
+    $cbxProf = $window.FindName('cbxUnattendProfile')
+    if ($cbxProf -and $cbxProf.SelectedItem -and $cbxProf.SelectedItem.Tag) {
+        $profTag = [string]$cbxProf.SelectedItem.Tag
+    }
+
+    $diskTag = "Manual"
+    $cbxDisk = $window.FindName('cbxUnattendDiskLayout')
+    if ($cbxDisk -and $cbxDisk.SelectedItem -and $cbxDisk.SelectedItem.Tag) {
+        $diskTag = [string]$cbxDisk.SelectedItem.Tag
+    }
+
+    $locTag = "es-ES"
+    $cbxLoc = $window.FindName('cbxUnattendLocale')
+    if ($cbxLoc -and $cbxLoc.SelectedItem -and $cbxLoc.SelectedItem.Tag) {
+        $locTag = [string]$cbxLoc.SelectedItem.Tag
+    }
+
+    $kb = "040a:0000040a"
+    $tz = "Romance Standard Time"
+    if ($locTag -eq "es-MX") {
+        $kb = "080a:0000080a"
+        $tz = "Central Standard Time (Mexico)"
+    } elseif ($locTag -eq "en-US") {
+        $kb = "0409:00000409"
+        $tz = "Pacific Standard Time"
+    }
+
+    return @{
+        Profile              = $profTag
+        LocalUser            = $window.FindName('txtUnattendUser').Text
+        LocalPassword        = $window.FindName('txtUnattendPassword').Text
+        BypassTPM            = [bool]$window.FindName('chkUnattendBypassTPM').IsChecked
+        BypassSecureBoot     = [bool]$window.FindName('chkUnattendBypassSecureBoot').IsChecked
+        BypassRAM            = [bool]$window.FindName('chkUnattendBypassRAM').IsChecked
+        BypassCPU            = [bool]$window.FindName('chkUnattendBypassCPU').IsChecked
+        BypassStorage        = [bool]$window.FindName('chkUnattendBypassStorage').IsChecked
+        BypassDisk           = [bool]$window.FindName('chkUnattendBypassStorage').IsChecked
+        AllowMoSetupUpgrade  = [bool]$window.FindName('chkUnattendMoSetup').IsChecked
+        BypassNRO            = [bool]$window.FindName('chkUnattendBypassNRO').IsChecked
+        AutoLogon            = [bool]$window.FindName('chkUnattendAutoLogon').IsChecked
+        ForceDarkMode        = [bool]$window.FindName('chkUnattendDarkMode').IsChecked
+        BlockOneDrive        = [bool]$window.FindName('chkUnattendBlockOneDrive').IsChecked
+        DiskLayout           = $diskTag
+        Language             = $locTag
+        SystemLocale         = $locTag
+        UserLocale           = $locTag
+        Keyboard             = $kb
+        TimeZone             = $tz
+    }
+}
+
+$btnGenPrev = $window.FindName('btnGenerateUnattendPreview')
+if ($btnGenPrev) {
+    $btnGenPrev.Add_Click({
+        try {
+            $params = Get-UnattendFormParameters
+            $xmlContent = New-RomanOSUnattendXml @params
+            $window.FindName('txtUnattendPreview').Text = $xmlContent
+            Write-CCLog "autounattend.xml generado en memoria (Tamano: $($xmlContent.Length) caracteres, Perfil: $($params.Profile), Layout: $($params.DiskLayout))"
+            Update-Status "autounattend.xml generado exitosamente" "SUCCESS"
+        } catch {
+            Write-CCLog "Error al generar autounattend.xml: $($_.Exception.Message)" -Level "WARN"
+            Update-Status "Error generando XML: $($_.Exception.Message)" "ERROR"
+        }
+    })
+}
+
+$btnExportXml = $window.FindName('btnExportUnattendFile')
+if ($btnExportXml) {
+    $btnExportXml.Add_Click({
+        try {
+            $sfd = New-Object Microsoft.Win32.SaveFileDialog
+            $sfd.FileName = "autounattend.xml"
+            $sfd.DefaultExt = ".xml"
+            $sfd.Filter = "Archivo Unattend XML (*.xml)|*.xml|Todos los archivos (*.*)|*.*"
+            $sfd.Title = "Guardar autounattend.xml de romanOS"
+
+            if ($sfd.ShowDialog() -eq $true) {
+                $params = Get-UnattendFormParameters
+                $params['OutputPath'] = $sfd.FileName
+                $savedPath = New-RomanOSUnattendXml @params
+                $previewTxt = [System.IO.File]::ReadAllText($savedPath, [System.Text.Encoding]::UTF8)
+                $window.FindName('txtUnattendPreview').Text = $previewTxt
+                Write-CCLog "autounattend.xml exportado exitosamente a: $savedPath"
+                Update-Status "Exportado a: $savedPath" "SUCCESS"
+
+                [System.Windows.MessageBox]::Show(
+                    "El archivo autounattend.xml ha sido exportado exitosamente a:`n`n$savedPath`n`nPuede copiar este archivo a la raíz de cualquier memoria USB de instalación de Windows 11 para aplicar automáticamente esta configuración.",
+                    "romanOS Builder Mode — Exportación Completada",
+                    [System.Windows.MessageBoxButton]::OK,
+                    [System.Windows.MessageBoxImage]::Information
+                )
+            }
+        } catch {
+            Write-CCLog "Error al exportar autounattend.xml: $($_.Exception.Message)" -Level "WARN"
+            Update-Status "Fallo de exportacion: $($_.Exception.Message)" "ERROR"
+        }
+    })
+}
+
+$btnValGui = $window.FindName('btnValidateUnattendGUI')
+if ($btnValGui) {
+    $btnValGui.Add_Click({
+        try {
+            $params = Get-UnattendFormParameters
+            $tempXml = Join-Path $env:TEMP "validate_unattend_$(Get-Date -Format 'HHmmss').xml"
+            $params['OutputPath'] = $tempXml
+            New-RomanOSUnattendXml @params | Out-Null
+
+            $validator = Resolve-ToolScript "Test-UnattendXml.ps1"
+            if ($validator) {
+                Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$validator`" -Path `"$tempXml`"" -TaskTitle "Validación y Certificación de autounattend.xml"
+            }
+        } catch {
+            Write-CCLog "Error en validacion de autounattend.xml: $($_.Exception.Message)" -Level "WARN"
+            Update-Status "Error en validación: $($_.Exception.Message)" "ERROR"
+        }
+    })
+}
+
+$btnRstDef = $window.FindName('btnResetUnattendDefaults')
+if ($btnRstDef) {
+    $btnRstDef.Add_Click({
+        $window.FindName('chkUnattendBypassTPM').IsChecked = $true
+        $window.FindName('chkUnattendBypassSecureBoot').IsChecked = $true
+        $window.FindName('chkUnattendBypassRAM').IsChecked = $true
+        $window.FindName('chkUnattendBypassCPU').IsChecked = $true
+        $window.FindName('chkUnattendBypassStorage').IsChecked = $true
+        $window.FindName('chkUnattendBypassNRO').IsChecked = $true
+        $window.FindName('chkUnattendMoSetup').IsChecked = $true
+        $window.FindName('txtUnattendUser').Text = "Usuario"
+        $window.FindName('txtUnattendPassword').Text = ""
+        $window.FindName('chkUnattendAutoLogon').IsChecked = $true
+        $window.FindName('chkUnattendDarkMode').IsChecked = $true
+        $window.FindName('chkUnattendBlockOneDrive').IsChecked = $true
+        $window.FindName('cbxUnattendProfile').SelectedIndex = 0
+        $window.FindName('cbxUnattendDiskLayout').SelectedIndex = 0
+        $window.FindName('cbxUnattendLocale').SelectedIndex = 0
+        Update-Status "Valores por defecto de Builder restablecidos" "INFO"
+    })
+}
 
 # -----------------------------------------------------------------------------
 # 6. MODO WHATIF Y LANZAMIENTO
