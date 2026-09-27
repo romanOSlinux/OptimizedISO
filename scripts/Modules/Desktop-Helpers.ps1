@@ -17,7 +17,8 @@ param(
     [string]$HelperName,
     [ValidateSet("Toggle", "Enable", "Disable", "Status")]
     [string]$Action = "Toggle",
-    [switch]$Quiet
+    [switch]$Quiet,
+    [switch]$PassThru
 )
 
 # -----------------------------------------------------------------------------
@@ -63,7 +64,8 @@ function Invoke-DesktopHelperToggle {
         [ValidateSet("Toggle", "Enable", "Disable", "Status")]
         [string]$HelperAction = "Toggle",
 
-        [switch]$QuietOutput
+        [switch]$QuietOutput,
+        [switch]$PassThruOutput
     )
 
     $helper = Get-RomanOSDesktopHelperDef -Name $Name
@@ -79,6 +81,16 @@ function Invoke-DesktopHelperToggle {
         $stateText = if ($currentState -eq 1) { "ACTIVADO" } else { "DESACTIVADO" }
         if (-not $QuietOutput) {
             Write-Host "[$Name] $($helper.Title): $stateText (Valor: $currentState)" -ForegroundColor Cyan
+        }
+        if ($PassThruOutput) {
+            return [PSCustomObject]@{
+                Helper   = $Name
+                Title    = $helper.Title
+                State    = $currentState
+                IsActive = ($currentState -eq 1)
+                Status   = if ($currentState -eq 1) { "Enabled" } else { "Disabled" }
+                Success  = $true
+            }
         }
         return ($currentState -eq 1)
     }
@@ -161,7 +173,7 @@ function Show-RomanOSHelpersMenu {
 # 3. PUNTO DE ENTRADA CLI
 # -----------------------------------------------------------------------------
 if (-not [string]::IsNullOrWhiteSpace($HelperName)) {
-    Invoke-DesktopHelperToggle -Name $HelperName -HelperAction $Action -QuietOutput:$Quiet
+    Invoke-DesktopHelperToggle -Name $HelperName -HelperAction $Action -QuietOutput:$Quiet -PassThruOutput:$PassThru
 } elseif (-not $Quiet -and $Host.Name -notmatch "ServerRemoteHost" -and -not [Console]::IsInputRedirected -and $MyInvocation.InvocationName -ne '.') {
     Show-RomanOSHelpersMenu
 }

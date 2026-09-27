@@ -74,6 +74,7 @@ Write-Host "Fecha: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') | Runtime: PowerShe
 # Ubicaciones del repositorio
 $workspaceRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $scriptsDir    = Join-Path $workspaceRoot "scripts\Modules"
+$helpersDir    = Join-Path $workspaceRoot "scripts\Desktop-Helpers"
 $coreDir       = Join-Path $workspaceRoot "scripts\Core"
 $guiDir        = Join-Path $workspaceRoot "scripts\GUI"
 
@@ -566,6 +567,102 @@ if (Test-Path $postDiagScript) {
     }
 } else {
     Assert-Contract "Existencia de PostInstall-Diagnostics.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 21: Conmutador de Windows Update (Toggle-WindowsUpdate.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-21" "Desktop-Helpers" "Conmutador Seguro de Windows Update y Tareas Asociadas"
+
+$wuHelper = Join-Path $helpersDir "Toggle-WindowsUpdate.ps1"
+if (Test-Path $wuHelper) {
+    $wuStatus = & $wuHelper -Action Status -PassThru -Quiet
+    Assert-Contract "Assert: Toggle-WindowsUpdate -Action Status retorna estado sin elevación obligatoria" {
+        return ($wuStatus -ne $null -and $wuStatus.Helper -eq "WindowsUpdate" -and $wuStatus.Success -eq $true)
+    } -ExpectedState "Helper = WindowsUpdate y Success = True" -DetailMessage "Estado: $($wuStatus.Status) | State: $($wuStatus.State)"
+} else {
+    Assert-Contract "Existencia de Toggle-WindowsUpdate.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 22: Conmutador de Defender & SmartScreen (Toggle-Defender.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-22" "Desktop-Helpers" "Conmutador de Protección Microsoft Defender y SmartScreen"
+
+$defHelper = Join-Path $helpersDir "Toggle-Defender.ps1"
+if (Test-Path $defHelper) {
+    $defStatus = & $defHelper -Action Status -PassThru -Quiet
+    Assert-Contract "Assert: Toggle-Defender -Action Status retorna estado y preserva invariantes" {
+        return ($defStatus -ne $null -and $defStatus.Helper -eq "Defender" -and $defStatus.Success -eq $true)
+    } -ExpectedState "Helper = Defender y Success = True" -DetailMessage "Estado: $($defStatus.Status) | State: $($defStatus.State)"
+} else {
+    Assert-Contract "Existencia de Toggle-Defender.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 23: Conmutador de VBS / HVCI (Toggle-VBS-CoreIsolation.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-23" "Desktop-Helpers" "Conmutador de Integridad de Memoria del Hipervisor (VBS / HVCI)"
+
+$vbsHelper = Join-Path $helpersDir "Toggle-VBS-CoreIsolation.ps1"
+if (Test-Path $vbsHelper) {
+    $vbsStatus = & $vbsHelper -Action Status -PassThru -Quiet
+    Assert-Contract "Assert: Toggle-VBS-CoreIsolation -Action Status retorna estado de virtualización" {
+        return ($vbsStatus -ne $null -and $vbsStatus.Helper -eq "VBS" -and $vbsStatus.Success -eq $true)
+    } -ExpectedState "Helper = VBS y Success = True" -DetailMessage "Estado: $($vbsStatus.Status) | State: $($vbsStatus.State)"
+} else {
+    Assert-Contract "Existencia de Toggle-VBS-CoreIsolation.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 24: Conmutador de Pila Bluetooth (Toggle-Bluetooth.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-24" "Desktop-Helpers" "Conmutador de Pila de Servicios Inalámbricos Bluetooth"
+
+$bthHelper = Join-Path $helpersDir "Toggle-Bluetooth.ps1"
+if (Test-Path $bthHelper) {
+    $bthStatus = & $bthHelper -Action Status -PassThru -Quiet
+    Assert-Contract "Assert: Toggle-Bluetooth -Action Status retorna telemetría de conectividad" {
+        return ($bthStatus -ne $null -and $bthStatus.Helper -eq "Bluetooth" -and $bthStatus.Success -eq $true)
+    } -ExpectedState "Helper = Bluetooth y Success = True" -DetailMessage "Estado: $($bthStatus.Status) | State: $($bthStatus.State)"
+} else {
+    Assert-Contract "Existencia de Toggle-Bluetooth.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 25: Conmutador del Subsistema de Impresión (Toggle-Printing.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-25" "Desktop-Helpers" "Conmutador del Servicio de Cola de Impresión (Spooler)"
+
+$prnHelper = Join-Path $helpersDir "Toggle-Printing.ps1"
+if (Test-Path $prnHelper) {
+    $prnStatus = & $prnHelper -Action Status -PassThru -Quiet
+    Assert-Contract "Assert: Toggle-Printing -Action Status retorna estado del Spooler de impresión" {
+        return ($prnStatus -ne $null -and $prnStatus.Helper -eq "Printing" -and $prnStatus.Success -eq $true)
+    } -ExpectedState "Helper = Printing y Success = True" -DetailMessage "Estado: $($prnStatus.Status) | State: $($prnStatus.State)"
+} else {
+    Assert-Contract "Existencia de Toggle-Printing.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 26: Conmutador de Uso Compartido en Red (Toggle-FileSharing.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-26" "Desktop-Helpers" "Conmutador de LanmanServer, LanmanWorkstation y Red SMB"
+
+$smbHelper = Join-Path $helpersDir "Toggle-FileSharing.ps1"
+if (Test-Path $smbHelper) {
+    $smbStatus = & $smbHelper -Action Status -PassThru -Quiet
+    Assert-Contract "Assert: Toggle-FileSharing -Action Status retorna estado de servicios de red" {
+        return ($smbStatus -ne $null -and $smbStatus.Helper -eq "FileSharing" -and $smbStatus.Success -eq $true)
+    } -ExpectedState "Helper = FileSharing y Success = True" -DetailMessage "Estado: $($smbStatus.Status) | State: $($smbStatus.State)"
+} else {
+    Assert-Contract "Existencia de Toggle-FileSharing.ps1" { return $false }
 }
 
 

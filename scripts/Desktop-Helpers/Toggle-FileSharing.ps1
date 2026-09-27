@@ -12,7 +12,8 @@
 param(
     [ValidateSet("Toggle", "Enable", "Disable", "Status")]
     [string]$Action = "Toggle",
-    [switch]$Quiet
+    [switch]$Quiet,
+    [switch]$PassThru
 )
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -25,7 +26,7 @@ $moduleCandidates = @(
 $moduleLoaded = $false
 foreach ($cand in $moduleCandidates) {
     if (Test-Path -Path $cand) {
-        . $cand -HelperName "FileSharing" -Action $Action -Quiet:$Quiet
+        . $cand -HelperName "FileSharing" -Action $Action -Quiet:$Quiet -PassThru:$PassThru
         $moduleLoaded = $true
         break
     }

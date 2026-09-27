@@ -51,13 +51,13 @@ Para prevenir la saturación de contexto y garantizar rigor empírico, la certif
   * `Watchdog-ServiceDrift.ps1` (Cálculo de paridad SSOT anti-drift — CTR-19).
   * `PostInstall-Diagnostics.ps1` (Generación resiliente de informes sin elevación forzada — CTR-20).
 
-- [ ] **Lote 4: Desktop-Helpers — Conmutadores de Servicio (6 scripts)**
-  * `Toggle-Defender.ps1` (Activación / desactivación de servicios y directivas de Defender).
-  * `Toggle-WindowsUpdate.ps1` (Pausa / restauración de Windows Update).
-  * `Toggle-VBS-CoreIsolation.ps1` (Aislamiento del núcleo y VBS).
-  * `Toggle-Bluetooth.ps1` (Gestión de servicios bthserv).
-  * `Toggle-Printing.ps1` (Servicio Spooler y dependencias).
-  * `Toggle-FileSharing.ps1` (SMBv1/LanmanServer).
+- [x] **Lote 4: Desktop-Helpers — Conmutadores de Servicio (6 scripts) [COMPLETADO]**
+  * `Toggle-Defender.ps1` (Activación / desactivación de servicios y directivas de Defender — CTR-22).
+  * `Toggle-WindowsUpdate.ps1` (Pausa / restauración de Windows Update — CTR-21).
+  * `Toggle-VBS-CoreIsolation.ps1` (Aislamiento del núcleo y VBS — CTR-23).
+  * `Toggle-Bluetooth.ps1` (Gestión de servicios bthserv — CTR-24).
+  * `Toggle-Printing.ps1` (Servicio Spooler y dependencias — CTR-25).
+  * `Toggle-FileSharing.ps1` (SMBv1/LanmanServer — CTR-26).
 
 - [ ] **Lote 5: Core Engines & Orquestación (5 scripts)**
   * `Policy-Engine.ps1` (Invariantes, exportación Unattend y catálogo SSOT).
