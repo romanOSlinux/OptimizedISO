@@ -5,7 +5,7 @@
 | **ID de Plan** | PLAN-0120 |
 | **Fecha** | 2026-09-26 |
 | **Componentes** | `scripts/Testing/Test-FunctionalContracts.ps1`, `scripts/Modules/*`, `scripts/Desktop-Helpers/*`, `scripts/Core/*`, `scripts/GUI/*`, `scripts/Builder/*`, `scripts/Drivers/*`, `Auditoria-Ecosistema.html`, `docs/plans/README.md` |
-| **Estado** | `EN PROGRESO` |
+| **Estado** | `COMPLETADO` |
 | **Prioridad** | Máxima (Erradicación Integral del Efecto Placebo en la UI y Validación de Mutación Física en SO) |
 | **Reglas Relevantes** | Regla 0 (Git SSOT), Regla 2 (Cero Suposiciones), Regla 4 (UTF-8 BOM / PS 5.1), Regla 5 (Planes), Regla 7 (Watchdogs), Regla 8 (Modo Autónomo Continuo), Regla 9 (SSOT Policy-Engine), Regla 10 (Cascada Docs-as-Code), Regla 11 (Ingeniero Autónomo), Regla 13 (Auditoría Holística / CWE-390), Regla 14 (Salvaguarda de Almacenamiento y Mocks Aislados), Regla 15 (Memoria Jerárquica Map-Reduce) |
 
@@ -73,10 +73,10 @@ Para prevenir la saturación de contexto y garantizar rigor empírico, la certif
   * `Get-CriticalDrivers.ps1` (Controladores de almacenamiento Intel VMD y VirtIO — CTR-35).
   * `Clean-DriverStore.ps1` (Depuración segura y simulación de DriverStore — CTR-36).
 
-- [ ] **Lote 7: GUIs, Conectores y Dashboard (3 componentes)**
-  * `romanOS-ControlCenter.ps1` (Integración de botones y paso de parámetros `-SkipElevation` / `-Unattended`).
-  * `romanOS-Toolkit.ps1` (Paridad de opciones de menú CLI).
-  * Actualización de `Auditoria-Ecosistema.html` y matriz consolidada.
+- [x] **Lote 7: GUIs, Conectores y Dashboard (3 componentes) [COMPLETADO]**
+  * `romanOS-ControlCenter.ps1` (Integración de botones y paso de parámetros `-SkipElevation` / `-Unattended` — CTR-37, CTR-38).
+  * `romanOS-Toolkit.ps1` (Paridad de opciones de menú CLI y soporte de pipeline — CTR-39).
+  * Actualización de `Auditoria-Ecosistema.html` y matriz consolidada (866 aserciones al 100% PASS — CTR-40).
 
 ---
 

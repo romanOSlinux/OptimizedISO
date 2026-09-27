@@ -941,6 +941,120 @@ if (Test-Path $cleanDriverScript) {
 
 
 # ==============================================================================
+# CONTRATO 37: Control Center XAML, Controles y Bypass de Elevación (romanOS-ControlCenter.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-37" "romanOS-ControlCenter" "Inicialización de GUI WPF, Enlace de Controles y Parámetros Desatendidos"
+
+$ccScript = Join-Path $guiDir "romanOS-ControlCenter.ps1"
+if (Test-Path $ccScript) {
+    # 1. Comprobar parámetros SkipElevation y Unattended mediante AST
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($ccScript, [ref]$null, [ref]$null)
+    $paramBlock = $ast.ParamBlock
+    $hasSkipElevation = ($paramBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq "SkipElevation" }) -ne $null
+    $hasUnattended = ($paramBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq "Unattended" }) -ne $null
+    
+    Assert-Contract "Assert: romanOS-ControlCenter.ps1 declara formalmente -SkipElevation y -Unattended en param()" {
+        return ($hasSkipElevation -and $hasUnattended)
+    } -ExpectedState "SkipElevation y Unattended declarados en AST" -DetailMessage "SkipElevation: $hasSkipElevation | Unattended: $hasUnattended"
+
+    # 2. Ejecutar con -SkipElevation -WhatIf en subproceso
+    $psOut = & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -STA -NoProfile -ExecutionPolicy Bypass -Command "& '$ccScript' -SkipElevation -WhatIf" 2>&1
+    $exitCode = $LASTEXITCODE
+    Assert-Contract "Assert: romanOS-ControlCenter.ps1 -SkipElevation -WhatIf inicializa XAML y enlaza controles con código 0" {
+        $hasSuccessText = ($psOut | Out-String) -match "romanOS Control Center validado correctamente"
+        return ($exitCode -eq 0 -and $hasSuccessText)
+    } -ExpectedState "ExitCode = 0 y mensaje de validación XAML presente" -DetailMessage "ExitCode: $exitCode"
+} else {
+    Assert-Contract "Existencia de romanOS-ControlCenter.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 38: Control Center Despacho a Módulos y Resolución de Herramientas
+# ==============================================================================
+Write-ContractHeader "CTR-38" "romanOS-ControlCenter Tools" "Resolución de Herramientas y Despacho Seguro de Botones sin Fugas UAC"
+
+if (Test-Path $ccScript) {
+    $ccContent = Get-Content -Path $ccScript -Raw -Encoding UTF8
+    
+    # 1. Función Resolve-ToolScript presente y funcional
+    Assert-Contract "Assert: romanOS-ControlCenter.ps1 contiene función Resolve-ToolScript con rutas canónicas" {
+        return ($ccContent -match 'function\s+Resolve-ToolScript' -and $ccContent -match 'scripts\\Modules' -and $ccContent -match 'scripts\\Core')
+    } -ExpectedState "Resolve-ToolScript implementada con búsqueda en Modules y Core"
+
+    # 2. Mapeo de botones clave a parámetros desatendidos
+    Assert-Contract "Assert: Botones clave de Control Center pasan argumentos -Unattended o -SkipElevation a subprocesos" {
+        $hasDebloatSwitch = $ccContent -match '(?s)Switch-GameDevMode\.ps1.*?-SkipElevation'
+        $hasGamingApps    = $ccContent -match '(?s)Optimize-GamingAndApps\.ps1.*?-SkipElevation'
+        $hasDeployApps    = $ccContent -match '(?s)Deploy-AppProfiles\.ps1.*?-SkipElevation'
+        $hasThermal       = $ccContent -match '(?s)Monitor-ThermalEnergy\.ps1.*?-SkipElevation'
+        return ($hasDebloatSwitch -and $hasGamingApps -and $hasDeployApps -and $hasThermal)
+    } -ExpectedState "Invocaciones de herramientas críticas protegidas con -SkipElevation / -Unattended"
+} else {
+    Assert-Contract "Existencia de romanOS-ControlCenter.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 39: Toolkit Maestro Hub CLI y Paridad de Opciones Repo-Wide (romanOS-Toolkit.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-39" "romanOS-Toolkit" "Soporte No Interactivo, Pipeline y Paridad Exhaustiva de las 24 Opciones del Menú"
+
+$toolkitScript = Join-Path $scriptsDir "romanOS-Toolkit.ps1"
+if (Test-Path $toolkitScript) {
+    # 1. Ejecución con -SkipElevation -WhatIf
+    $tkOut = & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -STA -NoProfile -ExecutionPolicy Bypass -Command "& '$toolkitScript' -SkipElevation -WhatIf" 2>&1
+    $tkExit = $LASTEXITCODE
+    Assert-Contract "Assert: romanOS-Toolkit.ps1 -SkipElevation -WhatIf valida módulos con código 0" {
+        $hasTkWhatIf = ($tkOut | Out-String) -match "romanOS Toolkit Maestro validado correctamente"
+        return ($tkExit -eq 0 -and $hasTkWhatIf)
+    } -ExpectedState "ExitCode = 0 y mensaje de validación presente" -DetailMessage "ExitCode: $tkExit"
+
+    # 2. Ejecución no interactiva con pipeline $null sin error InputObjectNotBound
+    $pipeOut = & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -STA -NoProfile -ExecutionPolicy Bypass -Command "`$null | & '$toolkitScript' -SkipElevation" 2>&1
+    $pipeExit = $LASTEXITCODE
+    Assert-Contract "Assert: romanOS-Toolkit.ps1 admite ejecución desatendida por pipeline sin bloquearse" {
+        $hasNonInteractiveMsg = ($pipeOut | Out-String) -match "Ejecucion no interactiva detectada"
+        return ($pipeExit -eq 0 -and $hasNonInteractiveMsg)
+    } -ExpectedState "ExitCode = 0 y detección de ejecución no interactiva" -DetailMessage "ExitCode: $pipeExit"
+
+    # 3. Paridad de opciones de menú: 24 opciones
+    $tkContent = Get-Content -Path $toolkitScript -Raw -Encoding UTF8
+    Assert-Contract "Assert: romanOS-Toolkit.ps1 mantiene paridad total de 24 opciones de menú y módulos core" {
+        $has24Opts = $tkContent -match '24\s*\{\s*Invoke-ControlCenterGUI'
+        $hasGaming = $tkContent -match '1\s*\{\s*Invoke-GamingModule'
+        $hasSandbox = $tkContent -match '21\s*\{\s*Invoke-SandboxModule'
+        return ($has24Opts -and $hasGaming -and $hasSandbox)
+    } -ExpectedState "24 opciones de menú enlazadas a funciones Invoke-* sin ramas huérfanas"
+} else {
+    Assert-Contract "Existencia de romanOS-Toolkit.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 40: Dashboard Forense Consolidado (Auditoria-Ecosistema.html)
+# ==============================================================================
+Write-ContractHeader "CTR-40" "Auditoria-Ecosistema" "Integridad del Dashboard HTML y Paridad de Métricas de Suites Unitarias"
+
+$htmlReport = Join-Path $workspaceRoot "Auditoria-Ecosistema.html"
+if (Test-Path $htmlReport) {
+    $htmlContent = Get-Content -Path $htmlReport -Raw -Encoding UTF8
+    
+    Assert-Contract "Assert: Auditoria-Ecosistema.html tiene estructura HTML5 válida y codificación UTF-8" {
+        return ($htmlContent -match '<!DOCTYPE html>' -and $htmlContent -match '<meta charset="UTF-8">' -and $htmlContent -match '</html>')
+    } -ExpectedState "HTML5 con meta charset UTF-8"
+
+    Assert-Contract "Assert: Auditoria-Ecosistema.html reporta 100% PASS en matriz de suites unitarias" {
+        $hasSuite = $htmlContent -match 'Test-FunctionalContracts\.ps1'
+        $hasPass = $htmlContent -match '100% PASS \(0 REGRESIONES\)'
+        return ($hasSuite -and $hasPass)
+    } -ExpectedState "Matriz de pruebas unitarias al 100% PASS"
+} else {
+    Assert-Contract "Existencia de Auditoria-Ecosistema.html" { return $false }
+}
+
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan

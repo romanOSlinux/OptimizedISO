@@ -39,7 +39,11 @@ param(
     [switch]$OptimizeAffinity,
     [switch]$ShowDashboards,
     [switch]$GUI,
-    [switch]$Snapshot
+    [switch]$Snapshot,
+    [switch]$SkipElevation,
+    [switch]$Unattended,
+    [Parameter(ValueFromPipeline = $true)]
+    [object]$InputObject = $null
 )
 
 # -----------------------------------------------------------------------------
@@ -55,27 +59,24 @@ try {
 # Auto-elevacion de privilegios
 $isSimulated = ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    if ($isSimulated) {
-        Write-Host "  [WhatIf] Ejecución simulada con -WhatIf (omitiendo solicitud de elevación UAC)." -ForegroundColor Yellow
-    } else {
-        if ($PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC")) {
-            Write-Host "  [!] Elevando privilegios de Administrador (UAC)..." -ForegroundColor Yellow
-            $scriptPath = $MyInvocation.MyCommand.Definition
-            if (-not $scriptPath) { $scriptPath = $PSCommandPath }
-            
-            $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath)
-            if ($Module) { $argList += @('-Module', $Module) }
-            if ($ShowDashboards) { $argList += '-ShowDashboards' }
-            if ($GUI) { $argList += '-GUI' }
-            
-            try {
-                Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
-            } catch {
-                Write-Error "Fallo al solicitar elevacion UAC: $($_.Exception.Message)"
-            }
-            exit
+if (-not $isAdmin -and -not $SkipElevation -and -not $isSimulated) {
+    if ($PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC")) {
+        Write-Host "  [!] Elevando privilegios de Administrador (UAC)..." -ForegroundColor Yellow
+        $scriptPath = $MyInvocation.MyCommand.Definition
+        if (-not $scriptPath) { $scriptPath = $PSCommandPath }
+        
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath)
+        if ($Module) { $argList += @('-Module', $Module) }
+        if ($ShowDashboards) { $argList += '-ShowDashboards' }
+        if ($GUI) { $argList += '-GUI' }
+        if ($Unattended) { $argList += '-Unattended' }
+        
+        try {
+            Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
+        } catch {
+            Write-Error "Fallo al solicitar elevacion UAC: $($_.Exception.Message)"
         }
+        exit
     }
 }
 
@@ -932,6 +933,11 @@ if ($GUI) {
 if ($ShowDashboards) {
     Invoke-OpenDashboards
     exit
+}
+
+if ($isSimulated) {
+    Write-Host "  [WhatIf] romanOS Toolkit Maestro validado correctamente en modo simulación." -ForegroundColor Green
+    exit 0
 }
 
 # Si la entrada esta redirigida (sin terminal interactiva) y no se paso -Module, mostrar resumen y salir

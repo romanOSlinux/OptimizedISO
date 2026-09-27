@@ -17,7 +17,10 @@
 #>
 
 [CmdletBinding(SupportsShouldProcess = $true)]
-param()
+param(
+    [switch]$SkipElevation,
+    [switch]$Unattended
+)
 
 
 # -----------------------------------------------------------------------------
@@ -28,8 +31,9 @@ try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAc
     Write-Warning "[romanOS-ControlCenter] No se pudo establecer ExecutionPolicy: $($_.Exception.Message)"
 }
 
+$isSimulated = ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
+if (-not $isAdmin -and -not $SkipElevation -and -not $isSimulated) {
     $shouldElevate = if ($PSCmdlet) { $PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC") } else { $true }
     if ($shouldElevate) {
         $targetScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Definition }
