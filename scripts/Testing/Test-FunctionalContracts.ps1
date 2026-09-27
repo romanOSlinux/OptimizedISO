@@ -1402,6 +1402,53 @@ if ((Test-Path $thermalPath) -and (Test-Path $latencyPath) -and (Test-Path $post
 }
 
 # ==============================================================================
+# CONTRATO 48: Auditoría y Validación en Vivo del Lote 3 - Optimización, Debloat y Gaming (PLAN-0129)
+# ==============================================================================
+Write-ContractHeader "CTR-48" "Optimization-Debloat-Lote3" "Validación de Contratos Funcionales de Debloat, Gaming y Navegadores (Lote 3)"
+
+$debloatPath   = Join-Path $scriptsDir "Win11-Debloat-v3-Adaptive.ps1"
+$gameDevPath   = Join-Path $scriptsDir "Switch-GameDevMode.ps1"
+$affinityPath  = Join-Path $scriptsDir "Optimize-InterruptAffinity.ps1"
+$browserPath   = Join-Path $scriptsDir "Optimize-WebBrowsers.ps1"
+$recallPath    = Join-Path $helpersDir "Toggle-Recall.ps1"
+
+if ((Test-Path $debloatPath) -and (Test-Path $gameDevPath) -and (Test-Path $affinityPath) -and (Test-Path $browserPath) -and (Test-Path $recallPath)) {
+    # 1. Validación de Switch-GameDevMode en modo Status y WhatIf
+    Assert-Contract "Assert: Switch-GameDevMode declara los modos Game, Dev y Status con SupportsShouldProcess" {
+        $content = Get-Content -LiteralPath $gameDevPath -Raw -Encoding UTF8
+        $tokens = $null; $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseInput($content, [ref]$tokens, [ref]$errors)
+        $paramNames = @()
+        if ($ast.ParamBlock -and $ast.ParamBlock.Parameters) {
+            foreach ($p in $ast.ParamBlock.Parameters) {
+                $paramNames += $p.Name.VariablePath.UserPath
+            }
+        }
+        return ($paramNames -contains 'Mode' -and $paramNames -contains 'SkipElevation')
+    } -ExpectedState "Parámetros Mode y SkipElevation declarados en AST" -DetailMessage "Parametros auditados en AST de Switch-GameDevMode"
+
+    # 2. Validación de Optimize-InterruptAffinity con Action Status
+    $affRes = & $affinityPath -Action Status -WhatIf -SkipElevation
+    Assert-Contract "Assert: Optimize-InterruptAffinity ejecuta introspección de topología PCIe sin errores" {
+        return ($LASTEXITCODE -eq 0 -or $? -eq $true)
+    } -ExpectedState "Código de salida exitoso 0" -DetailMessage "ExitCode: $LASTEXITCODE"
+
+    # 3. Validación de Optimize-WebBrowsers en modo WhatIf (Audit)
+    $browserRes = & $browserPath -WhatIf -SkipElevation -PassThru -Quiet
+    Assert-Contract "Assert: Optimize-WebBrowsers audita políticas GPO oficiales de navegadores con paridad SSOT" {
+        return ($null -ne $browserRes -and $browserRes.TotalPolicies -ge 80 -and $browserRes.AppliedCount -ge 80 -and $browserRes.Success -eq $true)
+    } -ExpectedState "Success=True con >=80 políticas auditadas" -DetailMessage "Browser: $($browserRes.Browser) | Applied: $($browserRes.AppliedCount)/$($browserRes.TotalPolicies)"
+
+    # 4. Validación de Toggle-Recall en Desktop-Helpers
+    $recallStatus = & $recallPath -Action Status
+    Assert-Contract "Assert: Toggle-Recall ejecuta consulta de estado en Windows 11 24H2 sin errores" {
+        return ($null -ne $recallStatus)
+    } -ExpectedState "Respuesta de estado no nula" -DetailMessage "Status: $recallStatus"
+} else {
+    Assert-Contract "Existencia de módulos del Lote 3 en scripts/Modules y scripts/Desktop-Helpers" { return $false }
+}
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan

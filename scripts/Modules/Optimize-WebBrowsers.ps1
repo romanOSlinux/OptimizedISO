@@ -9,7 +9,7 @@
     Auto-eleva privilegios de Administrador automaticamente si es necesario.
     Guarda codificacion UTF-8 con BOM y es 100% compatible con Windows PowerShell 5.1.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param (
     [ValidateSet("All", "Edge", "Chrome", "Firefox", "Brave")]
     [string]$Browser,
@@ -112,7 +112,8 @@ if (-not $uiLoaded) {
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $isInteractive = (-not $Unattended -and -not $Audit -and [string]::IsNullOrEmpty($Browser) -and -not [Console]::IsInputRedirected)
 $targetBrowser = if (-not [string]::IsNullOrEmpty($Browser)) { $Browser } else { "All" }
-$doAudit = [bool]$Audit
+$isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
+$doAudit = ([bool]$Audit -or $isSimulated)
 
 if ($isInteractive) {
     Write-Host "`n==========================================================================" -ForegroundColor Cyan
