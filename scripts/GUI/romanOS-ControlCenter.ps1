@@ -494,6 +494,8 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                     <Button x:Name="btnAuditThermal" Content="Auditar Estado Termico &amp; Throttling" Width="260" Margin="0,0,10,10"/>
                                     <Button x:Name="btnLiveThermalMonitor" Content="Monitoreo en Vivo (5s)" Width="190" Margin="0,0,10,10"/>
                                     <Button x:Name="btnCalibrateUltimateEnergy" Content="Calibrar Maximo Rendimiento (Core Unpark)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnAuditWakeTimers" Content="Auditar Wake Timers &amp; S0ix" Width="220" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnDisableWakeTimers" Content="Neutralizar Wake Timers Parásitos" Width="240" Margin="0,0,10,10" Background="#3D2D1B" BorderBrush="#FFB300" FontWeight="SemiBold"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -1600,6 +1602,22 @@ $window.FindName('btnCalibrateUltimateEnergy').Add_Click({
     $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action CalibrateEnergy -EnergyProfile Ultimate -Unattended" -TaskTitle "Calibracion Energetica & Core Unparking" }
 })
+
+$btnAudWake = $window.FindName('btnAuditWakeTimers')
+if ($btnAudWake) {
+    $btnAudWake.Add_Click({
+        $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
+        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action AuditWakeTimers -SkipElevation" -TaskTitle "Auditoria de Wake Timers y Reposo S0ix" }
+    })
+}
+
+$btnDisWake = $window.FindName('btnDisableWakeTimers')
+if ($btnDisWake) {
+    $btnDisWake.Add_Click({
+        $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
+        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action DisableWakeTimers -Unattended" -TaskTitle "Neutralizacion de Wake Timers Parasitos & Blindaje S0ix" }
+    })
+}
 
 # PCIe Interrupt Affinity & IRQ Priority Handlers
 $window.FindName('btnAuditAffinityGUI').Add_Click({

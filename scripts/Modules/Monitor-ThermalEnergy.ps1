@@ -37,7 +37,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet('Audit', 'Monitor', 'CalibrateEnergy', 'UnparkCores', 'Status')]
+    [ValidateSet('Audit', 'Monitor', 'CalibrateEnergy', 'UnparkCores', 'Status', 'AuditWakeTimers', 'DisableWakeTimers')]
     [string]$Action = 'Status',
 
     [int]$SampleDurationSec = 5,
@@ -51,7 +51,13 @@ param(
 
     [string]$LogPath = '',
 
-    [switch]$Force
+    [switch]$Force,
+
+    [string[]]$MockWakeTimers = $null,
+
+    [string[]]$MockArmedDevices = $null,
+
+    [switch]$PassThru
 )
 
 # -----------------------------------------------------------------------------
@@ -69,7 +75,7 @@ function Test-IsAdministrator {
 }
 
 if (-not $SkipElevation -and -not (Test-IsAdministrator) -and -not $WhatIfPreference) {
-    if ($Action -in @('CalibrateEnergy', 'UnparkCores')) {
+    if ($Action -in @('CalibrateEnergy', 'UnparkCores', 'DisableWakeTimers')) {
         Write-Host "[INFO] Se requieren privilegios de Administrador para modificar la configuracion energetica. Elevando proceso..." -ForegroundColor Yellow
         try {
             $argList = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Action $Action"
@@ -355,6 +361,231 @@ function Set-CalibratedEnergyProfile {
     }
 }
 
+function Get-RomanOSWakeTimerStatus {
+    <#
+    .SYNOPSIS
+        Audita el estado de temporizadores de reactivación (Wake Timers) y dispositivos armados para reactivar el sistema.
+    .DESCRIPTION
+        Inspecciona 'powercfg /waketimers' y 'powercfg /devicequery wake_armed' para identificar
+        disparadores parásitos (como tareas de telemetría de Windows Update u orquestadores)
+        y adaptadores de red que causan drenaje de batería en reposo (S0ix Modern Standby).
+    #>
+    [CmdletBinding()]
+    param(
+        [string[]]$MockWakeTimers = $null,
+        [string[]]$MockArmedDevices = $null
+    )
+
+    $result = [PSCustomObject]@{
+        ActiveWakeTimers        = @()
+        HasParasiticTimers      = $false
+        ParasiticTimers         = @()
+        ArmedDevices            = @()
+        HasArmedNetworkAdapters = $false
+        ArmedNetworkAdapters    = @()
+        StandbyNetworkMode      = "Desconocido"
+        Recommendations         = @()
+    }
+
+    # 1. Auditoría de Wake Timers
+    $rawTimers = @()
+    if ($MockWakeTimers -ne $null) {
+        $rawTimers = $MockWakeTimers
+    } else {
+        try {
+            $wtOut = & powercfg /waketimers 2>&1
+            $rawTimers = @($wtOut)
+        } catch {
+            Write-Verbose "[WakeTimers] Fallo al invocar powercfg /waketimers: $($_.Exception.Message)"
+        }
+    }
+
+    $parasiticPatterns = @(
+        'UpdateOrchestrator',
+        'Universal Orchestrator',
+        'Schedule Scan',
+        'AC Power Download',
+        'Reboot_AC',
+        'Reboot_DU',
+        'Customer Experience Improvement Program',
+        'CEIP',
+        'Diagnostics',
+        'Telemetry'
+    )
+
+    $currentTimer = $null
+    foreach ($line in $rawTimers) {
+        $str = $line.ToString().Trim()
+        if ([string]::IsNullOrWhiteSpace($str) -or $str -match 'Este comando requiere|There are no active|No hay temporizadores') {
+            continue
+        }
+
+        if ($str -match 'Timer set by|Temporizador establecido por') {
+            if ($currentTimer) {
+                $result.ActiveWakeTimers += $currentTimer
+            }
+            $currentTimer = [PSCustomObject]@{
+                Caller      = $str
+                Reason      = ""
+                IsParasitic = $false
+            }
+        } elseif ($str -match 'Reason:|Motivo:' -and $currentTimer) {
+            $currentTimer.Reason = $str
+            foreach ($p in $parasiticPatterns) {
+                if ($str -match $p) {
+                    $currentTimer.IsParasitic = $true
+                    $result.HasParasiticTimers = $true
+                    $result.ParasiticTimers += $str
+                    break
+                }
+            }
+        } elseif ($currentTimer) {
+            foreach ($p in $parasiticPatterns) {
+                if ($str -match $p) {
+                    $currentTimer.IsParasitic = $true
+                    $result.HasParasiticTimers = $true
+                    $result.ParasiticTimers += $str
+                    break
+                }
+            }
+        }
+    }
+    if ($currentTimer) {
+        $result.ActiveWakeTimers += $currentTimer
+    }
+
+    # 2. Auditoría de Dispositivos Armados (wake_armed)
+    $rawDevices = @()
+    if ($MockArmedDevices -ne $null) {
+        $rawDevices = $MockArmedDevices
+    } else {
+        try {
+            $devOut = & powercfg /devicequery wake_armed 2>&1
+            $rawDevices = @($devOut)
+        } catch {
+            Write-Verbose "[WakeTimers] Fallo al invocar powercfg /devicequery: $($_.Exception.Message)"
+        }
+    }
+
+    $netKeywords = @('Ethernet', 'Wi-Fi', 'WLAN', 'Network', 'Red', '802.11', 'Family Controller', 'Gigabit', '2.5GbE', 'Realtek', 'Intel(R) Ethernet', 'Killer')
+    foreach ($d in $rawDevices) {
+        $devName = $d.ToString().Trim()
+        if ([string]::IsNullOrWhiteSpace($devName) -or $devName -eq "NONE" -or $devName -match 'NINGUNO') { continue }
+        $result.ArmedDevices += $devName
+
+        foreach ($nk in $netKeywords) {
+            if ($devName -match [regex]::Escape($nk)) {
+                $result.HasArmedNetworkAdapters = $true
+                $result.ArmedNetworkAdapters += $devName
+                break
+            }
+        }
+    }
+
+    # 3. Recomendaciones
+    if ($result.HasParasiticTimers) {
+        $result.Recommendations += "Se detectaron temporizadores parásitos de Windows Update/Telemetría activos. Se recomienda neutralizarlos."
+    }
+    if ($result.HasArmedNetworkAdapters) {
+        $result.Recommendations += "Hay adaptadores de red armados para reactivación. En laptops, esto drena la batería durante el transporte en reposo S0ix."
+    }
+    if ($result.Recommendations.Count -eq 0) {
+        $result.Recommendations += "Configuración de reactivación y reposo en estado óptimo."
+    }
+
+    return $result
+}
+
+function Disable-RomanOSParasiticWakeTimers {
+    <#
+    .SYNOPSIS
+        Neutraliza temporizadores de reactivación parásitos y calibra el reposo S0ix Modern Standby.
+    .DESCRIPTION
+        - Deshabilita temporizadores de reactivación de telemetría/WU en corriente y batería.
+        - Aplica GPO AUPowerManagement = 0 para impedir que Windows Update reactive el equipo.
+        - Desconecta conectividad de red en reposo durante el uso de batería (S0ix Sleep Shield).
+        - Opcionalmente desarma adaptadores de red armados para reactivación no deseada.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [switch]$DisarmNetworkAdapters,
+        [switch]$DisconnectNetworkInStandby = $true,
+        [switch]$ApplyGpoHardening = $true,
+        [string[]]$MockArmedDevices = $null,
+        [switch]$PassThru
+    )
+
+    $actionsTaken = [System.Collections.Generic.List[string]]::new()
+
+    if ($PSCmdlet.ShouldProcess("Sistema", "Neutralizar Temporizadores de Reactivación y Calibrar S0ix")) {
+        # 1. Allow Wake Timers: AC -> 2 (Important Only), DC -> 0 (Disabled on Battery)
+        try {
+            & powercfg /setacvalueindex scheme_current 238c9fa8-0aad-41ed-83f4-97be242c8f20 bd3b718a-0680-4d9d-8ab2-e1d2b4c5fffb 2 2>&1 | Out-Null
+            & powercfg /setdcvalueindex scheme_current 238c9fa8-0aad-41ed-83f4-97be242c8f20 bd3b718a-0680-4d9d-8ab2-e1d2b4c5fffb 0 2>&1 | Out-Null
+            $actionsTaken.Add("WakeTimers_Configured_AC2_DC0")
+            Write-ThermalLog "[OK] Temporizadores de reactivacion configurados: AC = Solo Importantes (2), Bateria = Deshabilitado (0)." 'OK'
+        } catch {
+            Write-ThermalLog "[WARN] No se pudo configurar Wake Timers en powercfg: $($_.Exception.Message)" 'WARN'
+        }
+
+        # 2. Modern Standby Network Connectivity on Battery -> 0 (Disconnected in Standby)
+        if ($DisconnectNetworkInStandby) {
+            try {
+                & powercfg /setdcvalueindex scheme_current SUB_NONE F15576E8-98B7-4186-B944-EAFA664402D9 0 2>&1 | Out-Null
+                $actionsTaken.Add("S0ix_StandbyNetwork_Disconnected_DC")
+                Write-ThermalLog "[OK] Modern Standby (S0ix): Conectividad de red en reposo desactivada en bateria (Prevencion de sobrecalentamiento en mochilas)." 'OK'
+            } catch {
+                Write-ThermalLog "[WARN] No se pudo configurar conectividad en reposo S0ix: $($_.Exception.Message)" 'WARN'
+            }
+        }
+
+        # 3. Aplicar esquema activo
+        try {
+            & powercfg /setactive scheme_current 2>&1 | Out-Null
+        } catch {
+            Write-Verbose "[WakeTimers] Fallo al activar scheme_current: $($_.Exception.Message)"
+        }
+
+        # 4. GPO Hardening: AUPowerManagement = 0 en HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU
+        if ($ApplyGpoHardening) {
+            try {
+                $wuKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+                if (-not (Test-Path $wuKey)) {
+                    New-Item -Path $wuKey -Force | Out-Null
+                }
+                Set-ItemProperty -Path $wuKey -Name "AUPowerManagement" -Value 0 -Type DWord -Force
+                $actionsTaken.Add("GPO_AUPowerManagement_Disabled")
+                Write-ThermalLog "[OK] GPO AUPowerManagement = 0 aplicada en registro (Windows Update no reactivara el equipo)." 'OK'
+            } catch {
+                Write-ThermalLog "[WARN] No se pudo aplicar GPO AUPowerManagement: $($_.Exception.Message)" 'WARN'
+            }
+        }
+
+        # 5. Desarmar adaptadores de red si se solicita
+        if ($DisarmNetworkAdapters) {
+            $status = Get-RomanOSWakeTimerStatus -MockArmedDevices $MockArmedDevices
+            foreach ($nic in $status.ArmedNetworkAdapters) {
+                try {
+                    & powercfg /devicedisablewake "$nic" 2>&1 | Out-Null
+                    $actionsTaken.Add("Disarmed_NIC_$nic")
+                    Write-ThermalLog "[OK] Adaptador de red desarmado de reactivacion: $nic" 'OK'
+                } catch {
+                    Write-ThermalLog "[WARN] No se pudo desarmar adaptador $($nic): $($_.Exception.Message)" 'WARN'
+                }
+            }
+        }
+    }
+
+    if ($PassThru) {
+        return [PSCustomObject]@{
+            Success      = ($actionsTaken.Count -gt 0)
+            ActionsCount = $actionsTaken.Count
+            Actions      = $actionsTaken
+        }
+    }
+}
+
+
 # -----------------------------------------------------------------------------
 # 4. EJECUCION DE ACCIONES
 # -----------------------------------------------------------------------------
@@ -391,10 +622,17 @@ switch ($Action) {
         }
 
         Write-ThermalLog "`n[3/3] Configuracion de Perfil Energetico:" 'TITLE'
-        Write-ThermalLog "  - Plan de Energia    : $($state.ActiveSchemeName) ($($energy.ActiveSchemeGuid))" 'INFO'
+        Write-ThermalLog "  - Plan de Energia    : $($energy.ActiveSchemeName) ($($energy.ActiveSchemeGuid))" 'INFO'
         Write-ThermalLog "  - Rendimiento Maximo : $(if ($energy.IsUltimate) { 'Activado [OK]' } else { 'No activado' })" $(if ($energy.IsUltimate) { 'OK' } else { 'WARN' })
         Write-ThermalLog "  - Power Throttling   : $(if ($energy.PowerThrottlingOff) { 'Desactivado (Max Latency Shield) [OK]' } else { 'Habilitado por defecto' })" 'INFO'
         Write-ThermalLog "  - Alimentacion       : $(if ($energy.IsOnBattery) { 'Bateria' } else { 'Corriente Alterna (AC) / Desktop' }) ($($energy.BatteryHealth))" 'INFO'
+
+        $wake = Get-RomanOSWakeTimerStatus -MockWakeTimers $MockWakeTimers -MockArmedDevices $MockArmedDevices
+        Write-ThermalLog "`n[4/4] Temporizadores de Reactivacion (Wake Timers) y Reposo S0ix:" 'TITLE'
+        Write-ThermalLog "  - Temporizadores Activos : $($wake.ActiveWakeTimers.Count)" $(if ($wake.HasParasiticTimers) { 'WARN' } else { 'OK' })
+        Write-ThermalLog "  - Timers Parasitos WU/IA : $(if ($wake.HasParasiticTimers) { 'DETECTADOS [ALERTA]' } else { 'Ninguno detectado [OK]' })" $(if ($wake.HasParasiticTimers) { 'WARN' } else { 'OK' })
+        Write-ThermalLog "  - Dispositivos Armados   : $($wake.ArmedDevices.Count) dispositivo(s)" 'INFO'
+        Write-ThermalLog "  - Adaptadores Red Armados: $(if ($wake.HasArmedNetworkAdapters) { "$($wake.ArmedNetworkAdapters.Count) armado(s) [Drenaje S0ix]" } else { 'Ninguno [OK]' })" $(if ($wake.HasArmedNetworkAdapters) { 'WARN' } else { 'OK' })
     }
 
     'Audit' {
@@ -402,8 +640,35 @@ switch ($Action) {
         $cpu = Get-ProcessorThrottlingState
         $energy = Get-EnergyProfileState
         $thermal = Get-ThermalSensorsData
+        $wake = Get-RomanOSWakeTimerStatus -MockWakeTimers $MockWakeTimers -MockArmedDevices $MockArmedDevices
 
-        Write-ThermalLog "[AUDITORIA] CPU: $($cpu.CpuName) | Freq: $($cpu.CurrentClockMHz) MHz | Throttling: $(if ($cpu.IsThrottling) { 'SI' } else { 'NO' }) | Plan: $($energy.ActiveSchemeName)" 'OK'
+        Write-ThermalLog "[AUDITORIA] CPU: $($cpu.CpuName) | Freq: $($cpu.CurrentClockMHz) MHz | Throttling: $(if ($cpu.IsThrottling) { 'SI' } else { 'NO' }) | Plan: $($energy.ActiveSchemeName) | WakeTimers: $($wake.ActiveWakeTimers.Count) | Parasitic: $(if ($wake.HasParasiticTimers) { 'SI' } else { 'NO' })" 'OK'
+        if ($PassThru) { return $wake }
+    }
+
+    'AuditWakeTimers' {
+        $wake = Get-RomanOSWakeTimerStatus -MockWakeTimers $MockWakeTimers -MockArmedDevices $MockArmedDevices
+        Write-ThermalLog "`nAuditoria de Temporizadores de Reactivacion y Reposo S0ix:" 'TITLE'
+        Write-ThermalLog "  - Temporizadores Activos    : $($wake.ActiveWakeTimers.Count)" 'INFO'
+        Write-ThermalLog "  - Temporizadores Parasitos  : $(if ($wake.HasParasiticTimers) { 'DETECTADOS' } else { 'Ninguno' })" $(if ($wake.HasParasiticTimers) { 'WARN' } else { 'OK' })
+        foreach ($t in $wake.ActiveWakeTimers) {
+            Write-ThermalLog "    * $($t.Caller) -> $($t.Reason)" $(if ($t.IsParasitic) { 'WARN' } else { 'INFO' })
+        }
+        Write-ThermalLog "  - Dispositivos Armados (Wake): $($wake.ArmedDevices.Count)" 'INFO'
+        foreach ($dev in $wake.ArmedDevices) {
+            $isNet = ($dev -in $wake.ArmedNetworkAdapters)
+            Write-ThermalLog "    * $dev $(if ($isNet) { '[RED - Riesgo S0ix]' } else { '' })" $(if ($isNet) { 'WARN' } else { 'INFO' })
+        }
+        Write-ThermalLog "`nRecomendaciones:" 'TITLE'
+        foreach ($rec in $wake.Recommendations) {
+            Write-ThermalLog "  - $rec" 'INFO'
+        }
+        if ($PassThru) { return $wake }
+    }
+
+    'DisableWakeTimers' {
+        $disRes = Disable-RomanOSParasiticWakeTimers -DisarmNetworkAdapters -DisconnectNetworkInStandby -ApplyGpoHardening -MockArmedDevices $MockArmedDevices -PassThru:$PassThru
+        if ($PassThru) { return $disRes }
     }
 
     'Monitor' {

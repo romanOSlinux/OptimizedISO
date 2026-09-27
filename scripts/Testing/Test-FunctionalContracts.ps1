@@ -1234,6 +1234,50 @@ if (Get-Command "New-RomanOSUnattendXml" -ErrorAction SilentlyContinue) {
     Assert-Contract "Existencia de New-RomanOSUnattendXml en Policy-Engine.ps1" { return $false }
 }
 
+# ==============================================================================
+# CONTRATO 45: Calibración Modern Standby S0ix y Wake Timers (PLAN-0125)
+# ==============================================================================
+Write-ContractHeader "CTR-45" "Modern-Standby-S0ix" "Auditoría Forense de Wake Timers, Desconexión S0ix y Directiva AUPowerManagement"
+
+$thermalModule = Join-Path $scriptsDir "Monitor-ThermalEnergy.ps1"
+if (Test-Path $thermalModule) {
+    . $thermalModule -Action AuditWakeTimers -SkipElevation
+
+    # 1. Auditoría de Wake Timers y Dispositivos Armados en host físico
+    $wakeHost = Get-RomanOSWakeTimerStatus
+    Assert-Contract "Assert: Get-RomanOSWakeTimerStatus audita temporizadores activos y dispositivos armados sin elevación" {
+        return ($null -ne $wakeHost -and ($null -ne $wakeHost.ActiveWakeTimers) -and ($null -ne $wakeHost.ArmedDevices))
+    } -ExpectedState "Objeto de telemetría no nulo" -DetailMessage "Timers: $($wakeHost.ActiveWakeTimers.Count) | Dispositivos armados: $($wakeHost.ArmedDevices.Count)"
+
+    # 2. Validación de detección de temporizadores parásitos mediante Mocks sintéticos (Rule 14)
+    $mockParasiticTimers = @(
+        "Timer set by [SERVICE] svchost.exe (SystemEventsBroker) expires at 03:00:00.",
+        "Reason: Windows will execute \Microsoft\Windows\UpdateOrchestrator\Universal Orchestrator Start scheduled task that requested waking the computer."
+    )
+    $mockArmedNics = @("Intel(R) Wi-Fi 6 AX200 160MHz", "Mouse compatible con HID")
+    $mockWakeRes = Get-RomanOSWakeTimerStatus -MockWakeTimers $mockParasiticTimers -MockArmedDevices $mockArmedNics
+
+    Assert-Contract "Assert: Get-RomanOSWakeTimerStatus clasifica temporizadores parásitos de UpdateOrchestrator y NICs armadas (Mock)" {
+        $hasParasitic = ($mockWakeRes.HasParasiticTimers -eq $true -and $mockWakeRes.ActiveWakeTimers.Count -ge 1)
+        $hasArmedNic  = ($mockWakeRes.HasArmedNetworkAdapters -eq $true -and $mockWakeRes.ArmedNetworkAdapters -contains "Intel(R) Wi-Fi 6 AX200 160MHz")
+        return ($hasParasitic -and $hasArmedNic)
+    } -ExpectedState "HasParasiticTimers = True y HasArmedNetworkAdapters = True" -DetailMessage "Parasitic: $($mockWakeRes.HasParasiticTimers) | Armed NIC: $($mockWakeRes.HasArmedNetworkAdapters)"
+
+    # 3. Simulación transaccional en -WhatIf de neutralización de temporizadores
+    $disableSim = Disable-RomanOSParasiticWakeTimers -DisarmNetworkAdapters -DisconnectNetworkInStandby -ApplyGpoHardening -MockArmedDevices $mockArmedNics -WhatIf -PassThru
+    Assert-Contract "Assert: Disable-RomanOSParasiticWakeTimers -WhatIf ejecuta simulación sin mutar el sistema" {
+        return ($disableSim -ne $null -and $disableSim.Success -eq $false -and $disableSim.ActionsCount -eq 0)
+    } -ExpectedState "Simulación WhatIf exitosa con 0 mutaciones reales" -DetailMessage "ActionsCount: $($disableSim.ActionsCount)"
+
+    # 4. Verificación de directiva POL_ENERGY_WAKE_TIMERS_AU en Policy-Engine SSOT
+    $wakePolicy = Get-RomanOSPolicies | Where-Object { $_.Id -eq "POL_ENERGY_WAKE_TIMERS_AU" }
+    Assert-Contract "Assert: Directiva POL_ENERGY_WAKE_TIMERS_AU registrada canónicamente en Policy-Engine" {
+        return ($wakePolicy -ne $null -and $wakePolicy.ValueName -eq "AUPowerManagement" -and $wakePolicy.ExpectedValue -eq 0)
+    } -ExpectedState "POL_ENERGY_WAKE_TIMERS_AU con AUPowerManagement = 0" -DetailMessage "Policy: $($wakePolicy.Id) | Value: $($wakePolicy.ExpectedValue)"
+} else {
+    Assert-Contract "Existencia de Monitor-ThermalEnergy.ps1" { return $false }
+}
+
 
 # ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES

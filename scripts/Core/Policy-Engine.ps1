@@ -1445,8 +1445,24 @@ $global:RomanOS_Policies = @(
         Description   = "Forzar Flip Model y optimizaciones de juegos en ventana (AutoHDR, VRR, SwapEffect)"
         OfficialDoc   = "https://devblogs.microsoft.com/directx/demystifying-full-screen-optimizations/"
         UnattendDesc  = "Enable Windowed Game Optimizations and Flip Model"
+    },
+    @{
+        Id            = "POL_ENERGY_WAKE_TIMERS_AU"
+        Module        = "Modulo E - Energia y Reposo"
+        Category      = "Energia y Bateria"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+        ValueName     = "AUPowerManagement"
+        Type          = "REG_DWORD"
+        PSType        = "DWord"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Impedir que tareas automaticas de Windows Update reactiven el equipo desde reposo (Wake Timers)"
+        OfficialDoc   = "https://learn.microsoft.com/windows/deployment/update/waas-wu-settings#aupowermanagement"
+        UnattendDesc  = "Disable Windows Update automatic wake timers (AUPowerManagement)"
     }
 )
+
 
 # -----------------------------------------------------------------------------
 # 1.1 MATRIZ DE DIRECTIVAS GPO DE NAVEGADORES WEB (EDGE, CHROME, FIREFOX, BRAVE)
