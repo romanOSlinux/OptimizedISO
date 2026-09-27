@@ -32,10 +32,12 @@
 param(
     [Parameter(Position = 0)]
     [ValidateRange(1, 300)]
+    [Alias('SamplingSeconds')]
     [int]$DurationSeconds = 5,
 
     [switch]$Continuous,
-    [switch]$ExportReport
+    [switch]$ExportReport,
+    [switch]$SkipElevation
 )
 
 # =============================================================================

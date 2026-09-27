@@ -12,7 +12,8 @@ param(
     [string]$ExpectedProfile = "1",
     [bool]$ExpectedBlockOneDrive = $false,
     [switch]$Quiet,
-    [switch]$PassThru
+    [switch]$PassThru,
+    [switch]$SkipElevation
 )
 
 $ErrorActionPreference = 'Continue'

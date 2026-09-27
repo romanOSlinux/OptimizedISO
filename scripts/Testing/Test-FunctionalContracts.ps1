@@ -1346,6 +1346,62 @@ if ((Test-Path $hwEnginePath) -and (Test-Path $wimLibPath) -and (Test-Path $sysI
 }
 
 # ==============================================================================
+# CONTRATO 47: Auditoría y Validación en Vivo del Lote 2 - Sensores de Hardware y Telemetría (PLAN-0128)
+# ==============================================================================
+Write-ContractHeader "CTR-47" "Sensors-Telemetry-Lote2" "Validación de Contratos Funcionales y Telemetría Forense (Lote 2)"
+
+$thermalPath   = Join-Path $scriptsDir "Monitor-ThermalEnergy.ps1"
+$latencyPath   = Join-Path $scriptsDir "Trace-SystemLatency.ps1"
+$postDiagPath  = Join-Path $scriptsDir "PostInstall-Diagnostics.ps1"
+$auditSysPath  = Join-Path $scriptsDir "Audit-SystemOptimization.ps1"
+$auditCmdPath  = Join-Path $scriptsDir "Audit-SystemOptimization.cmd"
+
+if ((Test-Path $thermalPath) -and (Test-Path $latencyPath) -and (Test-Path $postDiagPath) -and (Test-Path $auditSysPath)) {
+    # 1. Validación de lanzador batch No-BOM para Audit-SystemOptimization
+    Assert-Contract "Assert: Audit-SystemOptimization.cmd existe y es estrictamente No-BOM (Regla 4)" {
+        if (-not (Test-Path $auditCmdPath)) { return $false }
+        $cmdBytes = [System.IO.File]::ReadAllBytes($auditCmdPath)
+        $hasBom = ($cmdBytes.Length -ge 3 -and $cmdBytes[0] -eq 0xEF -and $cmdBytes[1] -eq 0xBB -and $cmdBytes[2] -eq 0xBF)
+        return (-not $hasBom)
+    } -ExpectedState "Archivo .cmd presente sin marca BOM" -DetailMessage "Path: $auditCmdPath"
+
+    # 2. Validación de Trace-SystemLatency con soporte de SamplingSeconds y SkipElevation
+    Assert-Contract "Assert: Trace-SystemLatency declara SamplingSeconds y SkipElevation" {
+        $content = Get-Content -LiteralPath $latencyPath -Raw -Encoding UTF8
+        $tokens = $null; $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseInput($content, [ref]$tokens, [ref]$errors)
+        $paramNames = @()
+        if ($ast.ParamBlock -and $ast.ParamBlock.Parameters) {
+            foreach ($p in $ast.ParamBlock.Parameters) {
+                $paramNames += $p.Name.VariablePath.UserPath
+                foreach ($attr in $p.Attributes) {
+                    if ($attr.TypeName.Name -eq 'Alias') {
+                        foreach ($posArg in $attr.PositionalArguments) {
+                            $paramNames += $posArg.Value
+                        }
+                    }
+                }
+            }
+        }
+        return ($paramNames -contains 'DurationSeconds' -and $paramNames -contains 'SamplingSeconds' -and $paramNames -contains 'SkipElevation')
+    } -ExpectedState "Parámetros DurationSeconds, SamplingSeconds y SkipElevation declarados en AST" -DetailMessage "Parametros auditados en AST"
+
+    # 3. Validación de PostInstall-Diagnostics en modo PassThru
+    $diagRes = & $postDiagPath -OutputDir "C:\OptimizedISO\Log" -PassThru -SkipElevation
+    Assert-Contract "Assert: PostInstall-Diagnostics ejecuta con código 0 y genera reportes" {
+        return ($null -ne $diagRes -and $diagRes.Success -eq $true -and $diagRes.PassedChecks -ge 50 -and (Test-Path $diagRes.MarkdownReport))
+    } -ExpectedState "Success=True con >=50 verificaciones y reporte Markdown" -DetailMessage "Checks: $($diagRes.PassedChecks) | Errors: $($diagRes.CriticalErrors)"
+
+    # 4. Validación de Audit-SystemOptimization en modo PassThru
+    $auditRes = & $auditSysPath -OutputDir "C:\OptimizedISO\Log" -PassThru -SkipElevation
+    Assert-Contract "Assert: Audit-SystemOptimization evalúa directivas oficiales sin fallos críticos" {
+        return ($null -ne $auditRes -and $auditRes.Success -eq $true -and $auditRes.TotalAudited -ge 25 -and $auditRes.FailCount -eq 0)
+    } -ExpectedState "Success=True con TotalAudited>=25 y FailCount=0" -DetailMessage "Audited: $($auditRes.TotalAudited) | Ok: $($auditRes.OkCount) | Fails: $($auditRes.FailCount)"
+} else {
+    Assert-Contract "Existencia de módulos del Lote 2 en scripts/Modules" { return $false }
+}
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan

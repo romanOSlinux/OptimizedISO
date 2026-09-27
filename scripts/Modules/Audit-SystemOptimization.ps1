@@ -36,7 +36,8 @@ param(
     [bool]$ShowRemediation = $true,
     [switch]$NoColor,
     [switch]$Quiet,
-    [switch]$PassThru
+    [switch]$PassThru,
+    [switch]$SkipElevation
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
