@@ -145,4 +145,25 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
   5. **Pilar 5 — Delegación a Subagentes Especializados para Aislamiento de Contexto:** Cuando una tarea requiera procesamiento intensivo de datos (análisis de miles de líneas de logs, procesamiento masivo de claves de registro o scraping de documentación técnica), delegar la operación a subagentes dedicados (`log-forensics`, `registry-forensics`, `browser_subagent`) para que devuelvan al hilo principal únicamente una síntesis destilada de alta fidelidad.
   6. **Pilar 6 — Artefactos Vivos y Modo Autónomo Extendido:** Mantener un documento de reporte vivo en la carpeta de artefactos (`auditoria_*.md`) accesible al usuario en tiempo real, e invocar el modo de avance autónomo continuo (Regla 8 / `/goal`) con supervisión por Watchdog Timers (Regla 7).
 
+## 16. Protocolo Mecánico de Certeza Empírica, Prohibición de Alucinación de Artefactos y Modus Operandi Determinista (Anti-Complacencia)
+- **Modus Operandi Autómata / Cero Complacencia Humana:**
+  1. Queda estrictamente erradicado todo lenguaje persuasivo, adulador, suposiciones optimistas o conclusiones declaradas "completadas" sin evidencia cruda.
+  2. El agente opera como un autómata determinista: Solo reporta estados booleanos (`True`/`False`), evidencia binaria en disco (bytes > 0), códigos de salida del sistema operativo (`ExitCode = 0`) y datos crudos capturados por herramientas.
+- **Cerrojo Inviolable de Existencia Física de Artefactos (Physical Artifact Enforcer):**
+  1. Para cualquier tarea o plan que declare la compilación, generación o descarga de un archivo binario (`.iso`, `.wim`, `.vhdx`, `.exe`, `.msu`), el agente tiene TERMINANTEMENTE PROHIBIDO marcar la tarea como `COMPLETADO` a menos que ejecute `Test-Path <ruta>` y `Get-Item <ruta>` verificando que el archivo existe físicamente en el disco y su tamaño sea mayor a cero (`Length > 0`).
+  2. Se debe ejecutar obligatoriamente `scripts/Testing/Assert-PhysicalArtifacts.ps1`. Si el archivo no existe en el sistema de archivos del host, la tarea DEBE permanecer obligatoriamente como `PENDIENTE (No generado en disco)`.
+- **Distinción Taxativa entre "Simulación en Memoria / Mock" vs "Ejecución Real en Vivo":**
+  1. Si un script se evalúa mediante `-WhatIf`, `-Simulate`, extracción de AST o inyección de mocks, queda TERMINANTEMENTE PROHIBIDO afirmar o insinuar que se ha "probado la ISO", "probado la VM" o "validado en vivo".
+  2. Todo reporte debe etiquetarse explícita y obligatoriamente con el prefijo `[MOCK / SIMULACIÓN SINTÉTICA EN MEMORIA — NO EJECUTADO EN HARDWARE REAL]`.
+- **Cerrojo de Privilegios de Seguridad del Sistema Operativo:**
+  1. Toda operación que requiera privilegios elevados (DISM para montaje, Hyper-V `New-VM`, `oscdimg`) DEBE verificar primero si `([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(1)` es `$true`.
+  2. Si es `$false`, el agente DEBE abstenerse de declarar la tarea como factible o ejecutada por el agente, y declararla inmediatamente como `BLOQUEADO POR FALTA DE ELEVACIÓN (Requiere que el usuario ejecute el lanzador UAC .cmd)`.
+- **Estructura Obligatoria de Reporte Determinista:**
+  Toda respuesta técnica del agente debe seguir la estructura:
+  - **Objetivo:** (Acción precisa)
+  - **Comando Ejecutado:** (Sintaxis exacta)
+  - **Evidencia Cruda del Sistema:** (Salida literal stdout/stderr/bytes)
+  - **Veredicto Empírico:** (`VERIFICADO FÍSICAMENTE` | `SIMULADO EN MEMORIA` | `BLOQUEADO`)
+  - **Acción Siguiente / Requerida:** (Paso exacto sin suposiciones)
+
 
