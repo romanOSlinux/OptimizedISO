@@ -76,7 +76,9 @@ param(
 
     [string]$LogPath = '',
 
-    [switch]$Force
+    [switch]$Force,
+
+    [switch]$PassThru
 )
 
 # -----------------------------------------------------------------------------
@@ -348,6 +350,10 @@ if ($ListCatalog) {
         foreach ($prop in $cat.profiles.psobject.properties) {
             Write-Host ("  - {0,-20} : {1}" -f $prop.Name, $prop.Value.name) -ForegroundColor Cyan
         }
+    }
+
+    if ($PassThru) {
+        return $cat
     }
 
     exit 0
@@ -659,6 +665,9 @@ if ($WhatIfPreference) {
         }
     }
     Write-DeployLog "[OK] Simulacion completada. $($installQueue.Count) paquetes evaluados satisfactoriamente." 'OK'
+    if ($PassThru) {
+        return $installQueue
+    }
     exit 0
 }
 

@@ -667,6 +667,170 @@ if (Test-Path $smbHelper) {
 
 
 # ==============================================================================
+# CONTRATO 27: Motor y Catálogo Centralizado SSOT (Policy-Engine.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-27" "Policy-Engine" "Catálogo SSOT de Directivas, Invariantes y Exportación Unattend"
+
+$policyEngineScript = Join-Path $coreDir "Policy-Engine.ps1"
+if (Test-Path $policyEngineScript) {
+    . $policyEngineScript
+    $policies = Get-RomanOSPolicies -Profile 1
+    $invariants = Get-RomanOSSystemInvariants
+    $unattendCmds = Export-RomanOSUnattendCommands -Profile 1 -StartOrder 10
+
+    Assert-Contract "Assert: Get-RomanOSPolicies retorna catálogo SSOT completo (>50 directivas con schema válido)" {
+        $validSchema = $true
+        if (-not $policies -or $policies.Count -le 50) { $validSchema = $false }
+        foreach ($p in $policies[0..5]) {
+            if (-not $p.Id -or -not $p.RegistryKey -or $null -eq $p.ExpectedValue) {
+                $validSchema = $false
+            }
+        }
+        return $validSchema
+    } -ExpectedState "Políticas > 50 y atributos Id/RegistryKey/ExpectedValue presentes" -DetailMessage "Total políticas cargadas: $($policies.Count)"
+
+    Assert-Contract "Assert: Get-RomanOSSystemInvariants preserva directivas anti-cheat y blindaje de sistema" {
+        $hasDriverBlocklist = ($invariants | Where-Object { $_.Id -eq "INV_SECURITY_DRIVER_BLOCKLIST" -and $_.ExpectedValue -eq 1 }) -ne $null
+        $hasDriverNoWu     = ($invariants | Where-Object { $_.Id -eq "INV_DRIVERS_NO_WU_OVERWRITE" -and $_.ExpectedValue -eq 1 }) -ne $null
+        $hasDriverPolicy   = ($policies | Where-Object { $_.Id -eq "POL_SEC_DRIVER_BLOCKLIST" -and $_.ExpectedValue -eq 1 }) -ne $null
+        return ($hasDriverBlocklist -and $hasDriverNoWu -and $hasDriverPolicy)
+    } -ExpectedState "INV_SECURITY_DRIVER_BLOCKLIST=1 e INV_DRIVERS_NO_WU_OVERWRITE=1 presentes" -DetailMessage "Invariantes evaluados: $($invariants.Count) | Políticas: $($policies.Count)"
+
+    Assert-Contract "Assert: Export-RomanOSUnattendCommands genera comandos XML SynchronousCommand válidos" {
+        return ($unattendCmds -and $unattendCmds.Count -gt 10 -and $unattendCmds.XmlContent -match "<RunSynchronousCommand")
+    } -ExpectedState "Comandos XML generados > 10 con etiqueta RunSynchronousCommand" -DetailMessage "Total comandos Unattend: $($unattendCmds.Count)"
+} else {
+    Assert-Contract "Existencia de Policy-Engine.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 28: Motor de Topología Dinámica y Mocks (Hardware-Engine.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-28" "Hardware-Engine" "Detección Adaptativa Multi-Hardware y Mocks Sintéticos de Scheduler"
+
+$hwEngineScript = Join-Path $coreDir "Hardware-Engine.ps1"
+if (Test-Path $hwEngineScript) {
+    . $hwEngineScript
+    $hwProfile = Get-SystemHardwareProfile
+    $memTier = Get-RomanOSMemoryTier -RamGiB 16.0
+
+    # Inyección de Mock Sintético (Regla 14): Intel Híbrido P/E Cores
+    $intelHybridMock = [PSCustomObject]@{
+        CPU = [PSCustomObject]@{
+            IsHybrid     = $true
+            IsDualCcdX3D = $false
+            Name         = "Intel Core i7-13700K (Mock)"
+        }
+    }
+    $hybridRec = Get-RomanOSSchedulerRecommendation -HardwareInfo $intelHybridMock
+
+    # Inyección de Mock Sintético (Regla 14): CPU Simétrica Tradicional
+    $symmetricMock = [PSCustomObject]@{
+        CPU = [PSCustomObject]@{
+            IsHybrid     = $false
+            IsDualCcdX3D = $false
+            Name         = "AMD Ryzen 5 5600X (Mock)"
+        }
+    }
+    $symmRec = Get-RomanOSSchedulerRecommendation -HardwareInfo $symmetricMock
+
+    Assert-Contract "Assert: Get-SystemHardwareProfile detecta topología de hardware en Medium IL sin elevación" {
+        return ($hwProfile -ne $null -and $hwProfile.CPU -ne $null -and $hwProfile.RAM -ne $null)
+    } -ExpectedState "Perfil no nulo con CPU y RAM" -DetailMessage "CPU: $($hwProfile.CPU.Name) | RAM: $($hwProfile.RAM.TotalGB) GB"
+
+    Assert-Contract "Assert: Get-RomanOSMemoryTier clasifica niveles de RAM y asigna LargeSystemCache=0" {
+        return ($memTier -ne $null -and $memTier.Tier -eq "Balanced" -and $memTier.LargeSystemCache -eq 0)
+    } -ExpectedState "Tier = Balanced y LargeSystemCache = 0" -DetailMessage "Tier: $($memTier.Tier) | DisablePaging: $($memTier.DisablePagingExecutive)"
+
+    Assert-Contract "Assert: Scheduler Recommendation preserva Thread Director en arquitectura híbrida (Mock)" {
+        $hybridPreserved = ($hybridRec.ShouldModifyPrioritySeparation -eq $false -and $hybridRec.RecommendedValue -eq 2)
+        $symmOptimized   = ($symmRec.ShouldModifyPrioritySeparation -eq $true -and $symmRec.RecommendedValue -eq 38)
+        return ($hybridPreserved -and $symmOptimized)
+    } -ExpectedState "Híbrido conserva default (2) y Simétrico optimiza (38)" -DetailMessage "Híbrido: $($hybridRec.TopologyType) ($($hybridRec.RecommendedValue)) | Simétrico: $($symmRec.TopologyType) ($($symmRec.RecommendedValue))"
+} else {
+    Assert-Contract "Existencia de Hardware-Engine.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 29: Gestor de Perfiles de Software (Deploy-AppProfiles.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-29" "Deploy-AppProfiles" "Resolución de Perfiles Winget y Cola de Instalación Silenciosa"
+
+$deployScript = Join-Path $scriptsDir "Deploy-AppProfiles.ps1"
+if (Test-Path $deployScript) {
+    # 1. Inspeccionar catálogo sin elevación
+    $cat = & $deployScript -ListCatalog -PassThru -SkipElevation
+    Assert-Contract "Assert: Deploy-AppProfiles -ListCatalog -PassThru retorna catálogo curado con categorías y runtimes" {
+        return ($cat -ne $null -and $cat.categories -ne $null -and $cat.runtimes -ne $null)
+    } -ExpectedState "Catálogo con categorías y runtimes" -DetailMessage "Categorías: $($cat.categories.psobject.properties.Count) | Runtimes: $($cat.runtimes.Count)"
+
+    # 2. Simulación de cola en -WhatIf
+    $queue = & $deployScript -InstallRuntimesOnly -WhatIf -SkipElevation -PassThru
+    Assert-Contract "Assert: Deploy-AppProfiles -InstallRuntimesOnly -WhatIf evalúa cola sin ejecutar winget" {
+        return ($queue -ne $null -and $queue.Count -gt 0)
+    } -ExpectedState "Cola evaluada con paquetes > 0" -DetailMessage "Paquetes en cola de runtimes: $($queue.Count)"
+} else {
+    Assert-Contract "Existencia de Deploy-AppProfiles.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 30: Entornos Efímeros y Generador WSB (Invoke-LiveSandbox.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-30" "Invoke-LiveSandbox" "Diagnóstico de Entorno y Generación Transaccional de Perfiles .wsb"
+
+$sandboxScript = Join-Path $scriptsDir "Invoke-LiveSandbox.ps1"
+if (Test-Path $sandboxScript) {
+    # 1. Diagnóstico de capacidades sin elevación
+    $diag = & $sandboxScript -Action Status -PassThru -SkipElevation
+    Assert-Contract "Assert: Invoke-LiveSandbox -Action Status retorna capacidades de virtualización del host" {
+        return ($diag -ne $null -and $diag.CPUName -ne $null -and $diag.OverallStatus -ne $null)
+    } -ExpectedState "Diagnóstico no nulo con CPUName y OverallStatus" -DetailMessage "Estado: $($diag.OverallStatus) | Edición Soportada: $($diag.IsSandboxEditionSupported)"
+
+    # 2. Generación de perfil XML .wsb en sandbox
+    $scratchDir = Join-Path $workspaceRoot "scratch"
+    if (-not (Test-Path $scratchDir)) { New-Item -Path $scratchDir -ItemType Directory -Force | Out-Null }
+    $testWsbPath = Join-Path $scratchDir "test_contract_safe_analysis.wsb"
+
+    $genWsb = & $sandboxScript -Action GenerateConfig -Preset SafeAnalysis -SharedFolder $scratchDir -ReadOnlySharedFolder -OutputPath $testWsbPath -SkipElevation
+    $wsbContent = if (Test-Path $testWsbPath) { Get-Content $testWsbPath -Raw } else { "" }
+
+    Assert-Contract "Assert: Invoke-LiveSandbox -Action GenerateConfig genera archivo .wsb con aislamiento estricto" {
+        $hasVgpuDisabled = ($wsbContent -match "<VGpu>Disable</VGpu>")
+        $hasNetDisabled  = ($wsbContent -match "<Networking>Disable</Networking>")
+        $hasReadOnly     = ($wsbContent -match "<ReadOnly>true</ReadOnly>")
+        return ($genWsb -ne $null -and (Test-Path $testWsbPath) -and $hasVgpuDisabled -and $hasNetDisabled -and $hasReadOnly)
+    } -ExpectedState "Archivo .wsb generado con VGpu=Disable, Networking=Disable y ReadOnly=true" -DetailMessage "Archivo: $testWsbPath | Longitud: $($wsbContent.Length) bytes"
+
+    # Teardown: Eliminar artefacto efímero
+    if (Test-Path $testWsbPath) {
+        Remove-Item -Path $testWsbPath -Force -ErrorAction SilentlyContinue
+    }
+} else {
+    Assert-Contract "Existencia de Invoke-LiveSandbox.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 31: Inspección Segura de Cuentas Locales (Migrar-Usuario-W11.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-31" "Migrar-Usuario-W11" "Auditoría de Cuentas de Usuario sin Bloqueo Interactivo"
+
+$migrarScript = Join-Path $scriptsDir "Migrar-Usuario-W11.ps1"
+if (Test-Path $migrarScript) {
+    $cuentas = & $migrarScript -ListOnly -SkipElevation -PassThru
+    Assert-Contract "Assert: Migrar-Usuario-W11 -ListOnly -PassThru audita usuarios locales sin interacción" {
+        $hasCurrent = ($cuentas | Where-Object { $_.Name -eq $env:USERNAME }) -ne $null
+        return ($cuentas -ne $null -and $cuentas.Count -ge 1 -and $hasCurrent)
+    } -ExpectedState "Colección de usuarios locales >= 1 incluyendo usuario actual" -DetailMessage "Usuarios encontrados: $($cuentas.Count) | Incluye $($env:USERNAME): True"
+} else {
+    Assert-Contract "Existencia de Migrar-Usuario-W11.ps1" { return $false }
+}
+
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan

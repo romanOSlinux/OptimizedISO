@@ -12,7 +12,8 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [switch]$ListOnly,
-    [switch]$SkipElevation
+    [switch]$SkipElevation,
+    [switch]$PassThru
 )
 
 # ============================================================
@@ -71,8 +72,10 @@ function Confirmar-NombresUsuario {
 
 function Mostrar-EstadoCuentas {
     Write-Titulo "Estado de cuentas locales"
-    Get-LocalUser | Select-Object Name, Enabled, LastLogon | Format-Table -AutoSize
+    $cuentas = Get-LocalUser | Select-Object Name, Enabled, LastLogon
+    $cuentas | Format-Table -AutoSize
     Pausar
+    if ($PassThru) { return $cuentas }
 }
 
 function Crear-CuentaNueva {
@@ -268,7 +271,8 @@ function Mostrar-Menu {
 }
 
 if ($ListOnly -or [Console]::IsInputRedirected -or $isSimulated) {
-    Mostrar-EstadoCuentas
+    $res = Mostrar-EstadoCuentas
+    if ($PassThru) { return $res }
     exit 0
 }
 

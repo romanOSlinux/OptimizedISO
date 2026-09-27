@@ -71,7 +71,8 @@ param(
     [string]$LogonCommand,
     [string]$OutputPath,
     [switch]$Unattended,
-    [switch]$SkipElevation
+    [switch]$SkipElevation,
+    [switch]$PassThru
 )
 
 $ErrorActionPreference = 'Continue'
@@ -435,6 +436,10 @@ switch ($Action) {
 
         $dur = [math]::Round(((Get-Date) - $startTime).TotalSeconds, 2)
         Show-UnifiedSummary -Title "DIAGNÓSTICO LIVE SANDBOX" -Status $(if ($diag.OverallStatus -eq "Ready") { "SUCCESS" } else { "ATTENTION_REQUIRED" }) -DurationSeconds $dur -ErrorsCount $(if ($diag.OverallStatus -eq "VirtualizationDisabledInBIOS") { 1 } else { 0 }) -WarnsCount $(if ($diag.OverallStatus -ne "Ready" -and $diag.OverallStatus -ne "VirtualizationDisabledInBIOS") { 1 } else { 0 }) -Logs @{}
+
+        if ($PassThru) {
+            return $diag
+        }
     }
 
     "GenerateConfig" {

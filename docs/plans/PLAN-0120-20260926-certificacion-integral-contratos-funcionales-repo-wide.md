@@ -59,12 +59,12 @@ Para prevenir la saturación de contexto y garantizar rigor empírico, la certif
   * `Toggle-Printing.ps1` (Servicio Spooler y dependencias — CTR-25).
   * `Toggle-FileSharing.ps1` (SMBv1/LanmanServer — CTR-26).
 
-- [ ] **Lote 5: Core Engines & Orquestación (5 scripts)**
-  * `Policy-Engine.ps1` (Invariantes, exportación Unattend y catálogo SSOT).
-  * `Hardware-Engine.ps1` (Detección dinámica de topología CPU/GPU/Almacenamiento).
-  * `Deploy-AppProfiles.ps1` (Instalador Winget desatendido).
-  * `Invoke-LiveSandbox.ps1` (Generación de configuraciones .wsb).
-  * `Migrar-Usuario-W11.ps1` (Migración de perfiles y carpetas).
+- [x] **Lote 5: Core Engines & Orquestación (5 scripts) [COMPLETADO]**
+  * `Policy-Engine.ps1` (Invariantes, exportación Unattend y catálogo SSOT — CTR-27).
+  * `Hardware-Engine.ps1` (Detección dinámica de topología CPU/GPU/Almacenamiento y Mocks — CTR-28).
+  * `Deploy-AppProfiles.ps1` (Instalador Winget desatendido y catálogo curado — CTR-29).
+  * `Invoke-LiveSandbox.ps1` (Generación de configuraciones .wsb con aislamiento estricto — CTR-30).
+  * `Migrar-Usuario-W11.ps1` (Migración y auditoría de cuentas locales sin bloqueo interactivo — CTR-31).
 
 - [ ] **Lote 6: Builder Pipeline & Drivers (5 scripts)**
   * `New-OptimizedWindowsISO-v2.ps1` (Estructura de montaje, $OEM$, Unattend y WIM).
