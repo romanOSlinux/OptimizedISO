@@ -1396,17 +1396,17 @@ $window.FindName('btnOpenHelpersFolder').Add_Click({
 # --- Pestaña 2: Gaming & Bimodal ---
 $window.FindName('btnGameAggressive').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Profile Aggressive -Unattended" -TaskTitle "Conmutador: Modo Juego Agresivo (Poda RAM APU)" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Profile Aggressive -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Juego Agresivo (Poda RAM APU)" }
 })
 
 $window.FindName('btnGameLight').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Profile Light -Unattended" -TaskTitle "Conmutador: Modo Juego Ligero" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Profile Light -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Juego Ligero" }
 })
 
 $window.FindName('btnDevMode').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Dev -Unattended" -TaskTitle "Conmutador: Modo Desarrollo (Hyper-V / Docker)" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Dev -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Desarrollo (Hyper-V / Docker)" }
 })
 
 $window.FindName('btnToggleHypervisor').Add_Click({

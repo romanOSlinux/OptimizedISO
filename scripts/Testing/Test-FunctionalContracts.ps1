@@ -283,6 +283,73 @@ Assert-Contract "Assert: Servicio BAM (Background Activity Moderator) NO está d
 
 
 # ==============================================================================
+# CONTRATO 8: Conmutador Game/Dev -> Auditoría de Estado e Inferencia Bimodal
+# ==============================================================================
+Write-ContractHeader "CTR-08" "Conmutador Game/Dev" "Auditoría de Estado e Inferencia Bimodal (Switch-GameDevMode.ps1)"
+
+$switchScript = Join-Path $scriptsDir "Switch-GameDevMode.ps1"
+if (Test-Path $switchScript) {
+    $statusObj = & $switchScript -Mode Status -PassThru -Unattended -Quiet
+    Assert-Contract "Assert: Switch-GameDevMode -Mode Status retorna objeto de diagnóstico sin elevación" {
+        return ($statusObj -ne $null)
+    } -ExpectedState "Objeto no nulo"
+    
+    Assert-Contract "Assert: Diagnóstico contiene métricas de RAM y estado de Hyper-V" {
+        return ($statusObj.Mode -ne $null -and $statusObj.HyperVActive -ne $null)
+    } -ExpectedState "Propiedades Mode e HyperVActive presentes" -DetailMessage "Modo detectado: $($statusObj.Mode) | Total RAM: $($statusObj.TotalRAMGB) GB"
+} else {
+    Assert-Contract "Existencia de Switch-GameDevMode.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 9: Conmutador Game/Dev -> Ejecución de Modo Juego Ligero
+# ==============================================================================
+Write-ContractHeader "CTR-09" "Conmutador Game/Dev" "Ejecución Resiliente con -SkipElevation (Switch-GameDevMode.ps1)"
+
+if (Test-Path $switchScript) {
+    $gameRun = & $switchScript -Mode Game -Profile Light -SkipElevation -Unattended -PassThru -Quiet
+    Assert-Contract "Assert: Switch-GameDevMode ejecuta Modo Juego con -SkipElevation sin abortar" {
+        return ($gameRun -ne $null -and $gameRun.Profile -eq "Light" -and $gameRun.Mode -eq "Game")
+    } -ExpectedState "Profile = Light y Mode = Game" -DetailMessage "Modo: $($gameRun.Mode) | RAM Reclamada: $($gameRun.PmemReclaimedMB) MB"
+}
+
+
+# ==============================================================================
+# CONTRATO 10: Profiler de Latencia DPC/ISR -> Telemetría de Kernel (Trace-SystemLatency)
+# ==============================================================================
+Write-ContractHeader "CTR-10" "Profiler Forense Latencia" "Muestreo de Kernel y Presupuesto de Frame (Trace-SystemLatency.ps1)"
+
+$traceScript = Join-Path $scriptsDir "Trace-SystemLatency.ps1"
+if (Test-Path $traceScript) {
+    $traceOutput = & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -STA -NoProfile -ExecutionPolicy Bypass -Command "& '$traceScript' -DurationSeconds 1"
+    $traceClean = ($LASTEXITCODE -eq 0) -and ($traceOutput -match "RESUMEN FORENSE DE LATENCIA" -or $traceOutput -match "ISR|DPC")
+    Assert-Contract "Assert: Trace-SystemLatency ejecuta muestreo de interrupciones de kernel sin error" {
+        return $traceClean
+    } -ExpectedState "ExitCode = 0 y telemetría generada"
+}
+
+
+# ==============================================================================
+# CONTRATO 11: Optimizador de Memoria de Procesos -> Poda EmptyWorkingSet
+# ==============================================================================
+Write-ContractHeader "CTR-11" "Optimizador de Memoria" "Poda de Working Set de Procesos de Usuario (Optimize-ProcessMemory.ps1)"
+
+$memScript = Join-Path $scriptsDir "Optimize-ProcessMemory.ps1"
+if (Test-Path $memScript) {
+    # Probar con un proceso que siempre existe en la sesión de usuario
+    $memRun = & $memScript -ProcessNames 'explorer' -SkipElevation -PassThru -Unattended -Quiet
+    Assert-Contract "Assert: Optimize-ProcessMemory ejecuta EmptyWorkingSet con -SkipElevation sin error" {
+        return ($memRun -ne $null -and @($memRun).Count -gt 0)
+    } -ExpectedState "Retorna métricas de poda" -DetailMessage "Procesos podados: $(@($memRun).Count)"
+    
+    Assert-Contract "Assert: Métricas reportan WorkingSet inicial y final numéricamente válidos" {
+        return ($memRun[0].InitialMB -gt 0 -and $memRun[0].Success -eq $true)
+    } -ExpectedState "InitialMB > 0 y Success = True" -DetailMessage "Initial: $($memRun[0].InitialMB) MB | Reclaimed: $($memRun[0].ReclaimedMB) MB"
+}
+
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan

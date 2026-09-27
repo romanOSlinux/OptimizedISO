@@ -62,7 +62,8 @@ param(
     [switch]$ForceKillEdge,
     [switch]$Quiet,
     [switch]$PassThru,
-    [switch]$Unattended
+    [switch]$Unattended,
+    [switch]$SkipElevation
 )
 
 if ($Aggressive) { $Profile = "Aggressive" }
@@ -77,7 +78,7 @@ try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAc
 }
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin -and $Mode -ne 'Status') {
+if (-not $isAdmin -and $Mode -ne 'Status' -and -not $SkipElevation) {
     if ($PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC")) {
         Write-Host "  [!] Solicitando elevacion de privilegios de Administrador (UAC)..." -ForegroundColor Yellow
         $scriptPath = $MyInvocation.MyCommand.Definition
@@ -92,11 +93,11 @@ if (-not $isAdmin -and $Mode -ne 'Status') {
         if ($Unattended) { $argList += '-Unattended' }
         
         try {
-            Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
+            Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs -ErrorAction Stop
+            exit
         } catch {
-            Write-Error "Fallo al solicitar elevacion UAC: $($_.Exception.Message)"
+            Write-Warning "No se pudo elevar UAC ($($_.Exception.Message)). Continuando en modo estandar con optimizaciones de usuario..."
         }
-        exit
     }
 }
 
@@ -416,6 +417,18 @@ if ($Mode -eq "Status") {
             $null = [System.Console]::ReadKey($true)
         } catch {
             Write-Verbose "No se pudo leer entrada de consola interactiva: $($_.Exception.Message)"
+        }
+    }
+    
+    if ($PassThru) {
+        return [PSCustomObject]@{
+            Mode           = if ($vmms -and $vmms.Status -eq 'Running') { "Dev" } else { "Game" }
+            TotalRAMGB     = $mem.TotalGB
+            UsedRAMGB      = $mem.UsedGB
+            FreeRAMGB      = $mem.FreeGB
+            HyperVActive   = [bool]($vmms -and $vmms.Status -eq 'Running')
+            VmswitchActive = [bool]$vEthernet
+            EdgeProcesses  = $edgeProcs.Count
         }
     }
     return

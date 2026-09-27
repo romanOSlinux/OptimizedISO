@@ -31,13 +31,13 @@ param(
     [string[]]$ProcessNames = @('SearchHost', 'msedgewebview2', 'ShellExperienceHost', 'StartMenuExperienceHost'),
     [switch]$Quiet,
     [switch]$PassThru,
-    [switch]$Unattended
+    [switch]$Unattended,
+    [switch]$SkipElevation
 )
 
 function Ensure-Elevation {
     $isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
-    if ($isSimulated) {
-        Write-Host "[WhatIf] Modo simulado detectado: omitiendo elevación UAC en Ensure-Elevation." -ForegroundColor Yellow
+    if ($isSimulated -or $SkipElevation) {
         return
     }
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -55,13 +55,13 @@ function Ensure-Elevation {
                 }
             }
         }
-        Write-Warning "Este script requiere privilegios de Administrador para abrir handles de procesos del sistema. Elevando..."
+        Write-Warning "Este script puede requerir privilegios de Administrador para abrir handles de procesos del sistema protegidos. Intentando elevar..."
         try {
-            Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs
+            Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs -ErrorAction Stop
+            exit
         } catch {
-            Write-Error "No se pudo obtener privilegios de Administrador: $($_.Exception.Message)"
+            Write-Warning "No se pudo obtener privilegios de Administrador ($($_.Exception.Message)). Continuando con la poda de procesos del usuario actual..."
         }
-        exit
     }
 }
 Ensure-Elevation

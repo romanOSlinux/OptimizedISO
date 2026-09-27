@@ -135,6 +135,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0117 | [PLAN-0117-20260926-fase-2-winutil-software-manager-dns-optimizador-y-wim-metadata.md](PLAN-0117-20260926-fase-2-winutil-software-manager-dns-optimizador-y-wim-metadata.md) | 2026-09-26 | Fase 2 - Inspiración Chris Titus Tech WinUtil: Gestor de Software Desatendido, Conmutador DNS Inteligente y Servicing WIM | COMPLETADO |
 | 0118 | [PLAN-0118-20260926-fase-3-msmg-toolkit-componentes-dism-resetbase-y-certificacion-ecosistema.md](PLAN-0118-20260926-fase-3-msmg-toolkit-componentes-dism-resetbase-y-certificacion-ecosistema.md) | 2026-09-26 | Fase 3 - Inspiración MSMG Toolkit: Catálogo Canónico de Componentes Opcionales DISM, Reducción de Huella WIM (/ResetBase Seguro) y Certificación Integral del Ecosistema | COMPLETADO |
 | 0119 | [PLAN-0119-20260926-matriz-pruebas-funcionales-de-contrato-gui-y-mutacion-sistema.md](PLAN-0119-20260926-matriz-pruebas-funcionales-de-contrato-gui-y-mutacion-sistema.md) | 2026-09-26 | Framework de Pruebas Funcionales de Contrato (Behavioral & State Mutation Testing) para Botones de Control Center, Toolkit y Módulos | COMPLETADO |
+| 0120 | [PLAN-0120-20260926-certificacion-integral-contratos-funcionales-repo-wide.md](PLAN-0120-20260926-certificacion-integral-contratos-funcionales-repo-wide.md) | 2026-09-26 | Certificación Integral de Contratos Funcionales y Mutación de Estado Repo-Wide (Behavioral & State Mutation Testing) | EN PROGRESO |
 
 
 
