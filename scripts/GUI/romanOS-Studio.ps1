@@ -5,7 +5,9 @@
     Actua estrictamente como Frontend. Genera un JSON y delega el trabajo pesado a New-OptimizedWindowsISO-v2.ps1
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
-param()
+param(
+    [switch]$SkipElevation
+)
 
 $isSimulated = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 if ($isSimulated) {
@@ -15,7 +17,7 @@ if ($isSimulated) {
 
 # Auto-elevación obligatoria para operaciones DISM y permisos de administrador
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
+if (-not $isAdmin -and -not $SkipElevation) {
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = "powershell.exe"
     $targetPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Definition }

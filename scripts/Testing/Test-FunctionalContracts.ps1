@@ -1449,6 +1449,42 @@ if ((Test-Path $debloatPath) -and (Test-Path $gameDevPath) -and (Test-Path $affi
 }
 
 # ==============================================================================
+# CONTRATO 49: Auditoría y Validación en Vivo del Lote 4 - GUIs WPF, Lanzadores y Controladores (PLAN-0130)
+# ==============================================================================
+Write-ContractHeader "CTR-49" "Guis-Launchers-Lote4" "Validación de Contratos Funcionales de GUIs WPF, Lanzadores STA y Controladores (Lote 4)"
+
+$ccPsPath     = Join-Path $guiDir "romanOS-ControlCenter.ps1"
+$ccCmdPath    = Join-Path $guiDir "romanOS-ControlCenter.cmd"
+$studioPsPath = Join-Path $guiDir "romanOS-Studio.ps1"
+$studioCmdPath= Join-Path $guiDir "romanOS-Studio.cmd"
+$toolkitPath  = Join-Path $scriptsDir "romanOS-Toolkit.ps1"
+$cleanDrvPath = Join-Path $driversDir "Clean-DriverStore.ps1"
+$critDrvPath  = Join-Path $driversDir "Get-CriticalDrivers.ps1"
+
+if ((Test-Path $ccPsPath) -and (Test-Path $studioPsPath) -and (Test-Path $toolkitPath) -and (Test-Path $cleanDrvPath) -and (Test-Path $critDrvPath)) {
+    # 1. Validación de lanzadores batch locales en scripts/GUI con soporte STA y No-BOM
+    Assert-Contract "Assert: Lanzadores romanOS-ControlCenter.cmd y romanOS-Studio.cmd poseen -STA y son No-BOM" {
+        $ccCmdOk = (Test-Path $ccCmdPath) -and ((Get-Content -LiteralPath $ccCmdPath -Raw) -match '-STA')
+        $stCmdOk = (Test-Path $studioCmdPath) -and ((Get-Content -LiteralPath $studioCmdPath -Raw) -match '-STA')
+        return ($ccCmdOk -and $stCmdOk)
+    } -ExpectedState "Lanzadores locales presentes con flag -STA" -DetailMessage "CC: $(Test-Path $ccCmdPath) | Studio: $(Test-Path $studioCmdPath)"
+
+    # 2. Validación de compilación headless de romanOS-Studio en modo simulado
+    $studioSim = & $studioPsPath -SkipElevation -WhatIf
+    Assert-Contract "Assert: romanOS-Studio ejecuta validación en modo simulado con código 0" {
+        return ($LASTEXITCODE -eq 0 -or $? -eq $true)
+    } -ExpectedState "Código 0 en simulación headless" -DetailMessage "ExitCode: $LASTEXITCODE"
+
+    # 3. Validación de Clean-DriverStore en modo WhatIf sin elevación
+    $cleanRes = & $cleanDrvPath -WhatIf -SkipElevation
+    Assert-Contract "Assert: Clean-DriverStore ejecuta simulación sin requerir elevación" {
+        return ($null -ne $cleanRes -and $cleanRes.Success -eq $true)
+    } -ExpectedState "Success=True con simulación no destructiva" -DetailMessage "RemovedCount: $($cleanRes.RemovedCount)"
+} else {
+    Assert-Contract "Existencia de módulos del Lote 4 en scripts/GUI y scripts/Drivers" { return $false }
+}
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan

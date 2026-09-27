@@ -24,7 +24,10 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [Parameter()]
-    [switch]$Force
+    [switch]$Force,
+
+    [Parameter()]
+    [switch]$SkipElevation
 )
 
 $ErrorActionPreference = 'Continue'
