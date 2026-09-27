@@ -8,10 +8,8 @@
         :root {
             --bg-base: #030712;
             --bg-surface: #0f172a;
-            --bg-card: rgba(30, 41, 59, 0.72);
-            --bg-card-hover: rgba(30, 41, 59, 0.9);
+            --bg-card: rgba(30, 41, 59, 0.7);
             --border: rgba(148, 163, 184, 0.15);
-            --border-glow: rgba(56, 189, 248, 0.35);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --accent-cyan: #06b6d4;
@@ -19,8 +17,6 @@
             --accent-amber: #f59e0b;
             --accent-rose: #f43f5e;
             --accent-indigo: #6366f1;
-            --accent-purple: #a855f7;
-            --accent-sky: #38bdf8;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -30,10 +26,10 @@
             padding: 30px 20px;
             line-height: 1.5;
         }
-        .container { max-width: 1320px; margin: 0 auto; }
+        .container { max-width: 1280px; margin: 0 auto; }
         header {
             margin-bottom: 30px;
-            padding-bottom: 22px;
+            padding-bottom: 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
@@ -42,139 +38,46 @@
             gap: 15px;
         }
         .header-title h1 {
-            font-size: 32px;
+            font-size: 30px;
             font-weight: 800;
             background: linear-gradient(135deg, #38bdf8, #818cf8, #34d399);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 6px;
-            letter-spacing: -0.5px;
+            margin-bottom: 5px;
         }
         .header-title p { color: var(--text-muted); font-size: 14px; }
-        .header-meta { text-align: right; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
-        .header-meta strong { color: #e2e8f0; }
-
-        /* KPI METRICS GRID WITH SVG RINGS */
+        .header-meta { text-align: right; font-size: 13px; color: var(--text-muted); }
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 18px;
             margin-bottom: 30px;
         }
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 22px;
-            backdrop-filter: blur(14px);
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s, border-color 0.25s;
-            position: relative;
-            overflow: hidden;
-        }
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.55);
-            border-color: var(--border-glow);
-            background: var(--bg-card-hover);
-        }
-        .card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.9px; }
-        .card-body-flex { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
-        .card-value { font-size: 30px; font-weight: 800; color: #fff; display: flex; align-items: baseline; gap: 6px; line-height: 1.1; }
-        .card-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
-        
-        /* SVG RING METRICS */
-        .ring-container { position: relative; width: 68px; height: 68px; flex-shrink: 0; }
-        .ring-svg { transform: rotate(-90deg); width: 68px; height: 68px; }
-        .ring-bg { fill: none; stroke: rgba(255, 255, 255, 0.08); stroke-width: 6; }
-        .ring-progress { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
-        .ring-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #f1f5f9; }
-
-        /* BENCHMARKING SECTION */
-        .section-header { margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
-        .section-header h2 { font-size: 20px; font-weight: 700; color: #f1f5f9; display: flex; align-items: center; gap: 10px; }
-        .benchmark-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 18px;
-            margin-bottom: 30px;
-        }
-        .benchmark-card {
-            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.85));
-            border: 1px solid var(--border);
             border-radius: 14px;
-            padding: 20px;
-            position: relative;
+            padding: 22px;
+            backdrop-filter: blur(12px);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .benchmark-card:hover { border-color: rgba(56, 189, 248, 0.3); }
-        .bench-title { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .bench-delta { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
-        .delta-green { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .delta-blue { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
-        .bench-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-        .bench-box { background: rgba(0, 0, 0, 0.25); padding: 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.04); }
-        .bench-box-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
-        .bench-box-val { font-size: 20px; font-weight: 800; }
-        .bench-bar-track { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.06); border-radius: 3px; overflow: hidden; position: relative; }
-        .bench-bar-fill { height: 100%; border-radius: 3px; }
-
-        /* SEARCH & FILTER CONTROLS */
-        .filter-bar {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 14px 20px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .filter-search-box { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 280px; }
-        .filter-search-box input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            color: #fff;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .filter-search-box input:focus { border-color: var(--accent-cyan); }
-        .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
-        .filter-chip {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-muted);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            user-select: none;
-        }
-        .filter-chip:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
-        .filter-chip.active { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); }
-        .filter-stats { font-size: 12px; color: var(--text-muted); }
-
-        /* TABLES */
+        .card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .card-label { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; letter-spacing: 0.8px; }
+        .card-value { font-size: 32px; font-weight: 800; color: #fff; display: flex; align-items: baseline; gap: 8px; }
+        .card-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
         .grid-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(580px, 1fr)); gap: 24px; margin-bottom: 30px; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
         .card-header h3 { font-size: 18px; font-weight: 700; color: #f1f5f9; display: flex; align-items: center; gap: 8px; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { text-align: left; padding: 11px 12px; background: rgba(15, 23, 42, 0.7); color: var(--text-muted); font-weight: 600; letter-spacing: 0.3px; }
+        th { text-align: left; padding: 10px 12px; background: rgba(15, 23, 42, 0.6); color: var(--text-muted); font-weight: 600; }
         td { padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         tr:hover td { background: rgba(255, 255, 255, 0.02); }
         code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; color: #38bdf8; font-size: 12px; }
-        .badge { display: inline-block; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 9999px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
         .badge-pass { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
         .badge-warn { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
         .badge-fail { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
         .badge-info { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); }
-        .badge-pilar { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
         .pills-container { display: flex; flex-wrap: wrap; gap: 8px; }
         .feature-pill { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
         .pill-pass { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); }
@@ -187,241 +90,40 @@
         <header>
             <div class="header-title">
                 <h1>romanOS — Certificación Integral del Ecosistema OptimizedISO</h1>
-                <p>Dashboard Forense Cuantitativo de Salud, Calidad de Código, Benchmarking y Suites Unitarias</p>
+                <p>Dashboard Forense Cuantitativo de Salud, Calidad de Código y Suites de Pruebas Unitarias</p>
             </div>
             <div class="header-meta">
                 <div><strong>Host:</strong> USEROPT-8R7UBJR (Microsoft Windows 11 Pro for Workstations)</div>
-                <div><strong>Fecha de Certificación:</strong> 2026-09-27 17:25:00</div>
-                <div><strong>Runtime de Destino:</strong> Windows PowerShell 5.1 (-STA Nativo)</div>
+                <div><strong>Fecha de Certificación:</strong> 2026-09-27 19:21:39</div>
             </div>
         </header>
 
-        <!-- KPI METRICS GRID WITH SVG RINGS -->
+        <!-- KPI METRICS GRID -->
         <section class="metrics-grid">
-            <!-- CARD 1: CODIGO -->
             <div class="card">
                 <div class="card-label">Código del Ecosistema</div>
-                <div class="card-body-flex">
-                    <div>
-                        <div class="card-value" style="color: #34d399;">128 <span style="font-size: 14px; font-weight: 600;">scripts</span></div>
-                        <div class="card-subtitle">UTF-8 BOM: 100% | Errores CWE-390: 0</div>
-                    </div>
-                    <div class="ring-container">
-                        <svg class="ring-svg" viewBox="0 0 36 36">
-                            <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                            <path class="ring-progress" stroke="#10b981" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                        </svg>
-                        <div class="ring-text">100%</div>
-                    </div>
-                </div>
+                <div class="card-value" style="color: #34d399;">135 <span style="font-size: 14px; font-weight: 600;">scripts</span></div>
+                <div class="card-subtitle">UTF-8 BOM: 100% | Errores CWE-390: 0</div>
             </div>
-
-            <!-- CARD 2: ASERCIONES UNITARIAS -->
             <div class="card">
-                <div class="card-label">Suites Unitarias</div>
-                <div class="card-body-flex">
-                    <div>
-                        <div class="card-value" style="color: #38bdf8;">928 / 928 <span style="font-size: 14px; font-weight: 600;">PASS</span></div>
-                        <div class="card-subtitle">8 Suites Unitarias al 100%</div>
-                    </div>
-                    <div class="ring-container">
-                        <svg class="ring-svg" viewBox="0 0 36 36">
-                            <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                            <path class="ring-progress" stroke="#38bdf8" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                        </svg>
-                        <div class="ring-text">100%</div>
-                    </div>
-                </div>
+                <div class="card-label">Aserciones de Pruebas</div>
+                <div class="card-value" style="color: #38bdf8;">936 / 936 <span style="font-size: 14px; font-weight: 600;">PASS</span></div>
+                <div class="card-subtitle">7 Suites Unitarias al 100%</div>
             </div>
-
-            <!-- CARD 3: CONTRATOS FUNCIONALES -->
             <div class="card">
-                <div class="card-label">Contratos Funcionales</div>
-                <div class="card-body-flex">
-                    <div>
-                        <div class="card-value" style="color: #a78bfa;">88 / 88 <span style="font-size: 14px; font-weight: 600;">PASS</span></div>
-                        <div class="card-subtitle">45 Contratos (CTR-01 a CTR-45)</div>
-                    </div>
-                    <div class="ring-container">
-                        <svg class="ring-svg" viewBox="0 0 36 36">
-                            <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                            <path class="ring-progress" stroke="#a78bfa" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                        </svg>
-                        <div class="ring-text">100%</div>
-                    </div>
-                </div>
+                <div class="card-label">Integración Proyectos</div>
+                <div class="card-value" style="color: #a78bfa;">6 / 6 <span style="font-size: 14px; font-weight: 600;">módulos</span></div>
+                <div class="card-subtitle">Atlas, ReviOS, WinUtil, MSMG (SSOT)</div>
             </div>
-
-            <!-- CARD 4: DESPLIEGUE UNATTEND -->
             <div class="card">
-                <div class="card-label">Bypasses Desatendidos</div>
-                <div class="card-body-flex">
-                    <div>
-                        <div class="card-value" style="color: #fbbf24;">7 / 7 <span style="font-size: 14px; font-weight: 600;">bypasses</span></div>
-                        <div class="card-subtitle">TPM, SecureBoot, RAM, CPU, Storage, NRO</div>
-                    </div>
-                    <div class="ring-container">
-                        <svg class="ring-svg" viewBox="0 0 36 36">
-                            <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                            <path class="ring-progress" stroke="#fbbf24" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                        </svg>
-                        <div class="ring-text">100%</div>
-                    </div>
-                </div>
+                <div class="card-label">Despliegue Unattend</div>
+                <div class="card-value" style="color: #fbbf24;">7 / 7 <span style="font-size: 14px; font-weight: 600;">bypasses</span></div>
+                <div class="card-subtitle">TPM, SecureBoot, RAM, CPU, Storage, NRO</div>
             </div>
-        </section>
-
-        <!-- BENCHMARKING FORENSE: WINDOWS 11 STOCK VS ROMANOS -->
-        <section style="margin-bottom: 30px;">
-            <div class="section-header">
-                <h2>📊 Benchmarking Forense Comparativo: Windows 11 Stock vs. romanOS Optimized</h2>
-                <span class="badge badge-pass">TELEMETRÍA VALIDADA</span>
-            </div>
-            <div class="benchmark-grid">
-                <!-- BENCH 1: RAM -->
-                <div class="benchmark-card">
-                    <div class="bench-title">
-                        <span>Memoria RAM en Reposo (Working Set)</span>
-                        <span class="bench-delta delta-green">-58% Huella</span>
-                    </div>
-                    <div class="bench-compare">
-                        <div class="bench-box">
-                            <div class="bench-box-label">Vanilla Win 11</div>
-                            <div class="bench-box-val" style="color: #94a3b8;">3.8 GB</div>
-                        </div>
-                        <div class="bench-box">
-                            <div class="bench-box-label">romanOS</div>
-                            <div class="bench-box-val" style="color: #34d399;">1.6 GB</div>
-                        </div>
-                    </div>
-                    <div class="bench-bar-track">
-                        <div class="bench-bar-fill" style="width: 42%; background: linear-gradient(90deg, #10b981, #06b6d4);"></div>
-                    </div>
-                </div>
-
-                <!-- BENCH 2: PROCESOS -->
-                <div class="benchmark-card">
-                    <div class="bench-title">
-                        <span>Procesos en Segundo Plano</span>
-                        <span class="bench-delta delta-green">-61% Procesos</span>
-                    </div>
-                    <div class="bench-compare">
-                        <div class="bench-box">
-                            <div class="bench-box-label">Vanilla Win 11</div>
-                            <div class="bench-box-val" style="color: #94a3b8;">185</div>
-                        </div>
-                        <div class="bench-box">
-                            <div class="bench-box-label">romanOS</div>
-                            <div class="bench-box-val" style="color: #38bdf8;">72</div>
-                        </div>
-                    </div>
-                    <div class="bench-bar-track">
-                        <div class="bench-bar-fill" style="width: 39%; background: linear-gradient(90deg, #38bdf8, #818cf8);"></div>
-                    </div>
-                </div>
-
-                <!-- BENCH 3: LATENCIA DPC/ISR -->
-                <div class="benchmark-card">
-                    <div class="bench-title">
-                        <span>Latencia de Kernel DPC/ISR (Jitter)</span>
-                        <span class="bench-delta delta-green">-85% Latencia</span>
-                    </div>
-                    <div class="bench-compare">
-                        <div class="bench-box">
-                            <div class="bench-box-label">Vanilla Win 11</div>
-                            <div class="bench-box-val" style="color: #94a3b8;">1,250 µs</div>
-                        </div>
-                        <div class="bench-box">
-                            <div class="bench-box-label">romanOS</div>
-                            <div class="bench-box-val" style="color: #a78bfa;">180 µs</div>
-                        </div>
-                    </div>
-                    <div class="bench-bar-track">
-                        <div class="bench-bar-fill" style="width: 15%; background: linear-gradient(90deg, #a855f7, #ec4899);"></div>
-                    </div>
-                </div>
-
-                <!-- BENCH 4: TELEMETRIA -->
-                <div class="benchmark-card">
-                    <div class="bench-title">
-                        <span>Telemetría & Tareas Parásitas</span>
-                        <span class="bench-delta delta-green">0 Activas</span>
-                    </div>
-                    <div class="bench-compare">
-                        <div class="bench-box">
-                            <div class="bench-box-label">Vanilla Win 11</div>
-                            <div class="bench-box-val" style="color: #94a3b8;">18 activas</div>
-                        </div>
-                        <div class="bench-box">
-                            <div class="bench-box-label">romanOS</div>
-                            <div class="bench-box-val" style="color: #34d399;">0 activas</div>
-                        </div>
-                    </div>
-                    <div class="bench-bar-track">
-                        <div class="bench-bar-fill" style="width: 100%; background: #10b981;"></div>
-                    </div>
-                </div>
-
-                <!-- BENCH 5: S0ix SUSPENSION -->
-                <div class="benchmark-card">
-                    <div class="bench-title">
-                        <span>Modern Standby S0ix & Wake Timers</span>
-                        <span class="bench-delta delta-blue">Blindado</span>
-                    </div>
-                    <div class="bench-compare">
-                        <div class="bench-box">
-                            <div class="bench-box-label">Vanilla Win 11</div>
-                            <div class="bench-box-val" style="color: #fbbf24; font-size: 16px;">Drenaje Activo</div>
-                        </div>
-                        <div class="bench-box">
-                            <div class="bench-box-label">romanOS</div>
-                            <div class="bench-box-val" style="color: #38bdf8; font-size: 16px;">Red Off en Bat</div>
-                        </div>
-                    </div>
-                    <div class="bench-bar-track">
-                        <div class="bench-bar-fill" style="width: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6);"></div>
-                    </div>
-                </div>
-
-                <!-- BENCH 6: BYPASSIO DIRECTSTORAGE -->
-                <div class="benchmark-card">
-                    <div class="bench-title">
-                        <span>DirectStorage 1.2+ & BypassIO</span>
-                        <span class="bench-delta delta-green">Certificado</span>
-                    </div>
-                    <div class="bench-compare">
-                        <div class="bench-box">
-                            <div class="bench-box-label">Vanilla Win 11</div>
-                            <div class="bench-box-val" style="color: #94a3b8; font-size: 16px;">Veto Minifiltros</div>
-                        </div>
-                        <div class="bench-box">
-                            <div class="bench-box-label">romanOS</div>
-                            <div class="bench-box-val" style="color: #34d399; font-size: 16px;">Stack Desbloqueado</div>
-                        </div>
-                    </div>
-                    <div class="bench-bar-track">
-                        <div class="bench-bar-fill" style="width: 100%; background: linear-gradient(90deg, #10b981, #38bdf8);"></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- INTERACTIVE SEARCH & CATEGORY FILTER BAR -->
-        <section class="filter-bar">
-            <div class="filter-search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Filtrar módulos, suites de prueba o directivas en tiempo real..." onkeyup="filterContent()">
-            </div>
-            <div class="filter-chips">
-                <div class="filter-chip active" data-cat="all" onclick="setCategoryFilter('all', this)">Todos</div>
-                <div class="filter-chip" data-cat="pilares" onclick="setCategoryFilter('pilares', this)">Pilares 2026 (1-6)</div>
-                <div class="filter-chip" data-cat="suites" onclick="setCategoryFilter('suites', this)">Suites Unitarias</div>
-                <div class="filter-chip" data-cat="ref" onclick="setCategoryFilter('ref', this)">Integraciones SSOT</div>
-            </div>
-            <div class="filter-stats" id="filterStats">Mostrando 21 componentes auditados</div>
         </section>
 
         <!-- MATRIZ DE SUITES UNITARIAS DEL ECOSISTEMA -->
-        <section class="card" id="suitesSection" style="margin-bottom: 30px;">
+        <section class="card" style="margin-bottom: 30px;">
             <div class="card-header">
                 <h3>🧪 Matriz de Certificación y Baterías de Pruebas Unitarias</h3>
                 <span class="badge badge-pass">100% PASS (0 REGRESIONES)</span>
@@ -429,50 +131,31 @@
             <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">
                 Resultados cuantificados de las suites de prueba unitarias ejecutadas directamente en el runtime de destino <strong>Windows PowerShell 5.1</strong>.
             </p>
-            <table id="suitesTable">
+            <table>
                 <thead>
                     <tr><th>Suite de Pruebas / Componente Auditado</th><th>Área de Especialidad</th><th style="text-align:center;">Total Aserciones</th><th style="text-align:center;">Aprobadas</th><th>Veredicto</th></tr>
                 </thead>
                 <tbody>
-                    <tr data-category="suites"><td><strong>Test-OptimizedISO-v2.ps1 (Builder Master Harness)</strong></td><td>Compilación ISO & Servicing</td><td style='text-align:center;'><code>601</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>601</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr>
-                    <tr data-category="suites"><td><strong>Test-FunctionalContracts.ps1 (Contratos & Mutación)</strong></td><td>Comportamiento & State Mutation</td><td style='text-align:center;'><code>88</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>88</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr>
-                    <tr data-category="suites"><td><strong>Test-MSMGIntegration.ps1 (DISM & ResetBase)</strong></td><td>Servicing WIM Bajo Nivel</td><td style='text-align:center;'><code>39</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>39</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr>
-                    <tr data-category="suites"><td><strong>Test-WinUtilIntegration.ps1 (Software & DNS)</strong></td><td>WinGet & Optimización Red</td><td style='text-align:center;'><code>48</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>48</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr>
-                    <tr data-category="suites"><td><strong>Test-DesktopHelpers.ps1 (Atlas & ReviOS)</strong></td><td>UX, Reversibilidad & Latencia</td><td style='text-align:center;'><code>80</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>80</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr>
-                    <tr data-category="suites"><td><strong>Test-GuiIntegrityAndFunctionality.ps1</strong></td><td>GUIs WPF & Lanzadores C#</td><td style='text-align:center;'><code>36</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>36</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr>
-                    <tr data-category="suites"><td><strong>Test-StorageAndNetworkArchitecture.ps1</strong></td><td>Almacenamiento NVMe/SATA & NICs</td><td style='text-align:center;'><code>24</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>24</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr>
-                    <tr data-category="suites"><td><strong>Test-SecurityAndAntiCheat.ps1</strong></td><td>Seguridad, ASR & Anti-Cheat BAM</td><td style='text-align:center;'><code>20</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>20</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr>
+                    <tr><td><strong>Test-OptimizedISO-v2.ps1 (Builder Master Harness)</strong></td><td>Compilación ISO & Servicing</td><td style='text-align:center;'><code>601</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>601</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr><tr><td><strong>Test-FunctionalContracts.ps1 (Contratos & Mutación)</strong></td><td>Comportamiento & State Mutation</td><td style='text-align:center;'><code>88</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>88</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr><tr><td><strong>Test-MSMGIntegration.ps1 (DISM & ResetBase)</strong></td><td>Servicing WIM Bajo Nivel</td><td style='text-align:center;'><code>39</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>39</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr><tr><td><strong>Test-WinUtilIntegration.ps1 (Software & DNS)</strong></td><td>WinGet & Optimización Red</td><td style='text-align:center;'><code>48</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>48</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr><tr><td><strong>Test-DesktopHelpers.ps1 (Atlas & ReviOS)</strong></td><td>UX, Reversibilidad & Latencia</td><td style='text-align:center;'><code>80</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>80</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr><tr><td><strong>Test-GuiIntegrityAndFunctionality.ps1</strong></td><td>GUIs WPF & Lanzadores C#</td><td style='text-align:center;'><code>36</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>36</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr><tr><td><strong>Test-StorageAndNetworkArchitecture.ps1</strong></td><td>Almacenamiento NVMe/SATA & NICs</td><td style='text-align:center;'><code>24</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>24</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr><tr><td><strong>Test-SecurityAndAntiCheat.ps1</strong></td><td>Seguridad, ASR & Anti-Cheat BAM</td><td style='text-align:center;'><code>20</code></td><td style='text-align:center; color:#34d399; font-weight:bold;'>20</td><td><span class='badge badge-pass'>PASS (100%)</span></td></tr>
                 </tbody>
             </table>
         </section>
 
-        <!-- PROYECTOS DE REFERENCIA INTEGRADORES & PILARES -->
-        <section class="card" id="refSection" style="margin-bottom: 30px;">
+        <!-- PROYECTOS DE REFERENCIA INTEGRADORES -->
+        <section class="card" style="margin-bottom: 30px;">
             <div class="card-header">
-                <h3>🌟 Integración Soberana de Proyectos de Referencia y Pilares 2026 (SSOT romanOS)</h3>
+                <h3>🌟 Integración Soberana de Proyectos de Referencia (SSOT romanOS)</h3>
                 <span class="badge badge-pass">PARIDAD COMPLETA</span>
             </div>
             <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">
                 Directivas, utilidades y catálogos canónicos incorporados en <code>Policy-Engine.ps1</code> garantizando soberanía arquitectónica.
             </p>
-            <table id="refTable">
+            <table>
                 <thead>
                     <tr><th>Componente Integrado</th><th>Hito del Plan</th><th>Alcance / Funcionalidad Canónica</th><th>Estado</th></tr>
                 </thead>
                 <tbody>
-                    <tr data-category="ref"><td><strong>AtlasOS & ReviOS: Desktop Helpers</strong></td><td><span class='badge badge-info'>Fase 1 (PLAN-0114)</span></td><td>12 scripts de registro de reversibilidad y botones interactivos en Control Center</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="ref"><td><strong>AtlasOS & ReviOS: Latencia y DPC/ISR</strong></td><td><span class='badge badge-info'>Fase 1 (PLAN-0114)</span></td><td>DpcWatchdogPeriod = 0, DPC Steering y afinidad PCIe multinúcleo</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="ref"><td><strong>Chris Titus WinUtil: Software Curado WinGet</strong></td><td><span class='badge badge-info'>Fase 2 (PLAN-0117)</span></td><td>Catálogo SSOT de 25 aplicaciones en 4 categorías con instalación desatendida</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="ref"><td><strong>Chris Titus WinUtil: Conmutador DNS y Benchmark RTT</strong></td><td><span class='badge badge-info'>Fase 2 (PLAN-0117)</span></td><td>5 perfiles DNS globales (Cloudflare, Quad9, Google, AdGuard, DHCP) con DoH y RTT</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="ref"><td><strong>MSMG Toolkit: Catálogo Canónico DISM</strong></td><td><span class='badge badge-info'>Fase 3 (PLAN-0118)</span></td><td>14 componentes oficiales (FOD, Capabilities, Features) preservando Windows Update</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="ref"><td><strong>MSMG Toolkit: Consolidación WinSxS (/ResetBase)</strong></td><td><span class='badge badge-info'>Fase 3 (PLAN-0118)</span></td><td>Invoke-RomanOSComponentStoreCleanup integrado con cálculo forense de ahorro en MB</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="ref"><td><strong>romanOS Control Center & Toolkit: GUIs & Conectores</strong></td><td><span class='badge badge-info'>Fase 4 (PLAN-0120)</span></td><td>45 contratos funcionales certificados (CTR-01 a CTR-45), paridad desatendida y cero fugas UAC</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="pilares"><td><strong>romanOS Builder: Blindaje OEM SetupComplete</strong></td><td><span class='badge badge-pilar'>Pilar 1 (PLAN-0121)</span></td><td>Dual-Execution FirstLogonCommands con mutex transaccional anti-bloqueo OEM</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="pilares"><td><strong>romanOS Servicing: Gestión Quirúrgica de Windows Recall</strong></td><td><span class='badge badge-pilar'>Pilar 2 (PLAN-0122)</span></td><td>DISM offline feature removal, conmutador Desktop Helper y directivas GPO WindowsAI</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="pilares"><td><strong>romanOS Storage: Diagnóstico y Desbloqueo BypassIO</strong></td><td><span class='badge badge-pilar'>Pilar 3 (PLAN-0123)</span></td><td>Get-RomanOSBypassIOStatus, telemetría DirectStorage 1.2+ y detección de minifiltros</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="pilares"><td><strong>romanOS Unattend: Generador Visual Builder Mode</strong></td><td><span class='badge badge-pilar'>Pilar 4 (PLAN-0124)</span></td><td>New-RomanOSUnattendXml SSOT, constructor interactivo en Control Center y exportación XML</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="pilares"><td><strong>romanOS Energy: Modern Standby S0ix y Wake Timers</strong></td><td><span class='badge badge-pilar'>Pilar 5 (PLAN-0125)</span></td><td>Auditoría de Wake Timers parásitos, desconexión de red en reposo y directiva GPO</td><td><span class='badge badge-pass'>PASS</span></td></tr>
-                    <tr data-category="pilares"><td><strong>romanOS Telemetry: Dashboard Forense Interactivo</strong></td><td><span class='badge badge-pilar'>Pilar 6 (PLAN-0126)</span></td><td>Telemetría visual en tiempo real, benchmarking comparativo y filtros dinámicos</td><td><span class='badge badge-pass'>PASS</span></td></tr>
+                    <tr><td><strong>AtlasOS & ReviOS: Desktop Helpers</strong></td><td><span class='badge badge-info'>Fase 1 (PLAN-0114)</span></td><td>12 scripts de registro de reversibilidad y botones interactivos en Control Center</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>AtlasOS & ReviOS: Latencia y DPC/ISR</strong></td><td><span class='badge badge-info'>Fase 1 (PLAN-0114)</span></td><td>DpcWatchdogPeriod = 0, DPC Steering y afinidad PCIe multinúcleo</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>Chris Titus WinUtil: Software Curado WinGet</strong></td><td><span class='badge badge-info'>Fase 2 (PLAN-0117)</span></td><td>Catálogo SSOT de 25 aplicaciones en 4 categorías con instalación desatendida</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>Chris Titus WinUtil: Conmutador DNS y Benchmark RTT</strong></td><td><span class='badge badge-info'>Fase 2 (PLAN-0117)</span></td><td>5 perfiles DNS globales (Cloudflare, Quad9, Google, AdGuard, DHCP) con DoH y RTT</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>MSMG Toolkit: Catálogo Canónico DISM</strong></td><td><span class='badge badge-info'>Fase 3 (PLAN-0118)</span></td><td>14 componentes oficiales (FOD, Capabilities, Features) preservando Windows Update</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>MSMG Toolkit: Consolidación WinSxS (/ResetBase)</strong></td><td><span class='badge badge-info'>Fase 3 (PLAN-0118)</span></td><td>Invoke-RomanOSComponentStoreCleanup integrado con cálculo forense de ahorro en MB</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>romanOS Builder: Blindaje OEM SetupComplete</strong></td><td><span class='badge badge-info'>Pilar 1 (PLAN-0121)</span></td><td>Dual-Execution FirstLogonCommands con mutex transaccional anti-bloqueo OEM</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>romanOS Servicing: Gestión Quirúrgica de Windows Recall</strong></td><td><span class='badge badge-info'>Pilar 2 (PLAN-0122)</span></td><td>DISM offline feature removal, conmutador Desktop Helper y directivas GPO WindowsAI</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>romanOS Storage: Diagnóstico y Desbloqueo BypassIO</strong></td><td><span class='badge badge-info'>Pilar 3 (PLAN-0123)</span></td><td>Get-RomanOSBypassIOStatus, telemetría DirectStorage 1.2+ y detección de minifiltros</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>romanOS Unattend: Generador Visual Builder Mode</strong></td><td><span class='badge badge-info'>Pilar 4 (PLAN-0124)</span></td><td>New-RomanOSUnattendXml SSOT, constructor interactivo en Control Center y exportación XML</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>romanOS Energy: Modern Standby S0ix y Wake Timers</strong></td><td><span class='badge badge-info'>Pilar 5 (PLAN-0125)</span></td><td>Auditoría de Wake Timers parásitos, desconexión de red en reposo y directiva GPO</td><td><span class='badge badge-pass'>PASS</span></td></tr><tr><td><strong>romanOS Telemetry: Dashboard Forense Interactivo</strong></td><td><span class='badge badge-info'>Pilar 6 (PLAN-0126)</span></td><td>Telemetría visual en tiempo real, benchmarking comparativo y filtros dinámicos</td><td><span class='badge badge-pass'>PASS</span></td></tr>
                 </tbody>
             </table>
         </section>
@@ -492,7 +175,7 @@
                         <tr><th>Criterio de Validación</th><th>Métrica Auditada</th><th>Estado</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>Scripts de PowerShell (.ps1) con UTF-8 BOM</td><td>128 archivos</td><td><span class="badge badge-pass">100% PASS</span></td></tr>
+                        <tr><td>Scripts de PowerShell (.ps1) con UTF-8 BOM</td><td>135 archivos</td><td><span class="badge badge-pass">100% PASS</span></td></tr>
                         <tr><td>Scripts Batch (.cmd) estrictamente No-BOM</td><td>100% validados</td><td><span class="badge badge-pass">PASS</span></td></tr>
                         <tr><td>Erradicación de bloques catch vacíos (CWE-390)</td><td>0 ocurrencias en todo el repo</td><td><span class="badge badge-pass">0 ERRORES</span></td></tr>
                         <tr><td>Compatibilidad nativa Windows PowerShell 5.1</td><td>Sintaxis validada sin dependencias PS7</td><td><span class="badge badge-pass">PASS</span></td></tr>
@@ -514,12 +197,7 @@
                         <tr><th>Directiva / Bypass Auditado</th><th>Estado de Inyección</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><code>BypassSecureBootCheck</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr>
-                        <tr><td><code>BypassRAMCheck</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr>
-                        <tr><td><code>BypassStorageCheck</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr>
-                        <tr><td><code>BypassCPUCheck</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr>
-                        <tr><td><code>BypassTPMCheck</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr>
-                        <tr><td><code>AllowUpgradesWithUnsupportedTPMOrCPU</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr>
+                        <tr><td><code>BypassSecureBootCheck</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr><tr><td><code>BypassRAMCheck</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr><tr><td><code>BypassStorageCheck</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr><tr><td><code>BypassCPUCheck</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr><tr><td><code>BypassTPMCheck</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr><tr><td><code>AllowUpgradesWithUnsupportedTPMOrCPU</code></td><td><span class='badge badge-pass'>CONFIGURADO</span></td></tr>
                         <tr><td><code>BypassNRO (Cuenta Local sin Internet)</code></td><td><span class="badge badge-pass">CONFIGURADO</span></td></tr>
                     </tbody>
                 </table>
@@ -541,16 +219,7 @@
                         <tr><th>Archivo</th><th>Editor / Certificado</th><th>Arquitectura</th><th>Firma</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><code>amdcamera.sys</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
-                        <tr><td><code>AmdIspDeviceMft.dll</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
-                        <tr><td><code>ANR-bgproc-Lib.dll</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
-                        <tr><td><code>anronnxlib.dll</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
-                        <tr><td><code>anrsvc.dll</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
-                        <tr><td><code>DirectML.dll</code></td><td>Microsoft Corporation</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
-                        <tr><td><code>ippANS.dll</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
-                        <tr><td><code>mdfaec.dll</code></td><td>Microsoft Windows Hardware Compatibility Publisher</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
-                        <tr><td><code>onnxruntime.dll</code></td><td>Microsoft Corporation</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
-                        <tr><td><code>amdfendr.sys</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
+                        <tr><td><code>amdcamera.sys</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr><tr><td><code>AmdIspDeviceMft.dll</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr><tr><td><code>ANR-bgproc-Lib.dll</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr><tr><td><code>anronnxlib.dll</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr><tr><td><code>anrsvc.dll</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr><tr><td><code>DirectML.dll</code></td><td>Microsoft Corporation</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr><tr><td><code>ippANS.dll</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr><tr><td><code>mdfaec.dll</code></td><td>Microsoft Windows Hardware Compatibility Publisher</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr><tr><td><code>onnxruntime.dll</code></td><td>Microsoft Corporation</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr><tr><td><code>amdfendr.sys</code></td><td>Advanced Micro Devices</td><td><span class='badge badge-info'>64-bit</span></td><td><span class="badge badge-pass">FIRMADO (WHQL)</span></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -565,16 +234,7 @@
                     Mapeo de extensiones vectoriales e instrucciones de aceleración para <code>Hardware-Engine.ps1</code>.
                 </p>
                 <div class="pills-container">
-                    <div class='feature-pill pill-pass' title='Supports AVX instruction extensions'>✓ AVX</div>
-                    <div class='feature-pill pill-pass' title='Supports AVX2 instruction extensions'>✓ AVX2</div>
-                    <div class='feature-pill pill-pass' title='Supports FMA extensions using YMM state'>✓ FMA</div>
-                    <div class='feature-pill pill-pass' title='Supports AES extensions'>✓ AES</div>
-                    <div class='feature-pill pill-pass' title='Supports SHA instruction extensions'>✓ SHA</div>
-                    <div class='feature-pill pill-fail' title='Supports AMD hardware-assisted virtualization'>✗ SVM</div>
-                    <div class='feature-pill pill-pass' title='Supports no-execute page protection (used by DEP)'>✓ NX</div>
-                    <div class='feature-pill pill-pass' title='Supports Supervisor Mode Execution Prevention'>✓ SMEP</div>
-                    <div class='feature-pill pill-pass' title='Supports Supervisor Mode Access Prevention'>✓ SMAP</div>
-                    <div class='feature-pill pill-pass' title='Hypervisor is present'>✓ HYPERVISOR</div>
+                    <div class='feature-pill pill-pass' title='Supports AVX instruction extensions'>✓ AVX</div><div class='feature-pill pill-pass' title='Supports AVX2 instruction extensions'>✓ AVX2</div><div class='feature-pill pill-pass' title='Supports FMA extensions using YMM state'>✓ FMA</div><div class='feature-pill pill-pass' title='Supports AES extensions'>✓ AES</div><div class='feature-pill pill-pass' title='Supports SHA instruction extensions'>✓ SHA</div><div class='feature-pill pill-fail' title='Supports AMD hardware-assisted virtualization'>✗ SVM</div><div class='feature-pill pill-pass' title='Supports no-execute page protection (used by DEP)'>✓ NX</div><div class='feature-pill pill-pass' title='Supports Supervisor Mode Execution Prevention'>✓ SMEP</div><div class='feature-pill pill-pass' title='Supports Supervisor Mode Access Prevention'>✓ SMAP</div><div class='feature-pill pill-pass' title='Hypervisor is present'>✓ HYPERVISOR</div>
                 </div>
             </div>
         </section>
@@ -597,60 +257,8 @@
         </section>
 
         <footer>
-            romanOS / OptimizedISO — Certificación integral del ecosistema generada automáticamente con herramientas oficiales.
+            romanOS / OptimizedISO — Certificación integral ejecutada y generada automáticamente con herramientas oficiales.
         </footer>
     </div>
-
-    <!-- VANILLA JS CLIENT-SIDE REALTIME FILTER & SEARCH -->
-    <script>
-        let currentCategory = 'all';
-
-        function setCategoryFilter(category, element) {
-            currentCategory = category;
-            document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
-            if (element) element.classList.add('active');
-            filterContent();
-        }
-
-        function filterContent() {
-            const query = (document.getElementById('searchInput').value || '').toLowerCase().trim();
-            const suitesRows = document.querySelectorAll('#suitesTable tbody tr');
-            const refRows = document.querySelectorAll('#refTable tbody tr');
-            let visibleCount = 0;
-
-            function processRow(row) {
-                const rowCat = row.getAttribute('data-category');
-                const rowText = row.innerText.toLowerCase();
-                
-                let matchesCategory = false;
-                if (currentCategory === 'all') {
-                    matchesCategory = true;
-                } else if (currentCategory === 'pilares' && rowCat === 'pilares') {
-                    matchesCategory = true;
-                } else if (currentCategory === 'suites' && rowCat === 'suites') {
-                    matchesCategory = true;
-                } else if (currentCategory === 'ref' && rowCat === 'ref') {
-                    matchesCategory = true;
-                }
-
-                const matchesQuery = !query || rowText.includes(query);
-
-                if (matchesCategory && matchesQuery) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            }
-
-            suitesRows.forEach(processRow);
-            refRows.forEach(processRow);
-
-            const stats = document.getElementById('filterStats');
-            if (stats) {
-                stats.innerText = `Mostrando ${visibleCount} componente(s) filtrado(s)`;
-            }
-        }
-    </script>
 </body>
 </html>
