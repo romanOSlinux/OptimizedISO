@@ -225,6 +225,25 @@ if (Test-Path $menuScript) {
     Assert-Contract "Assert: Restaurar Menú Moderno elimina el CLSID {86ca1aa0-...}" {
         return $classicKeyGone
     } -ExpectedState "Clave CLSID eliminada por completo"
+    
+    # 3. Act 3: Registrar Menús en Cascada en Ámbito CurrentUser
+    & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -STA -NoProfile -ExecutionPolicy Bypass -Command "& '$menuScript' -Apply -Scope CurrentUser -Quiet" | Out-Null
+    
+    $gamerKey = "HKCU:\Software\Classes\Directory\Background\shell\GamerTools"
+    $gamerVerb = (Get-ItemProperty -Path $gamerKey -ErrorAction SilentlyContinue).MUIVerb
+    $powerMaxKey = "$gamerKey\shell\01_PowerMax"
+    
+    Assert-Contract "Assert: Suite de menús registra submenú en cascada GamerTools en HKCU" {
+        return ((Test-Path $gamerKey) -and ($gamerVerb -match "Gaming") -and (Test-Path $powerMaxKey))
+    } -ExpectedState "GamerTools y subcomandos creados en HKCU" -DetailMessage "MUIVerb: $gamerVerb"
+    
+    # 4. Act 4: Desinstalar Suite de Menús
+    & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -STA -NoProfile -ExecutionPolicy Bypass -Command "& '$menuScript' -Remove -Scope CurrentUser -Quiet" | Out-Null
+    
+    $gamerKeyGone = -not (Test-Path $gamerKey)
+    Assert-Contract "Assert: Suite de menús desinstala limpiamente las claves en cascada de HKCU" {
+        return $gamerKeyGone
+    } -ExpectedState "GamerTools eliminado de HKCU"
 } else {
     Assert-Contract "Verificación de script Add-OptimizedContextMenus.ps1" { return $false } -DetailMessage "No se encontro Add-OptimizedContextMenus.ps1"
 }
@@ -346,6 +365,105 @@ if (Test-Path $memScript) {
     Assert-Contract "Assert: Métricas reportan WorkingSet inicial y final numéricamente válidos" {
         return ($memRun[0].InitialMB -gt 0 -and $memRun[0].Success -eq $true)
     } -ExpectedState "InitialMB > 0 y Success = True" -DetailMessage "Initial: $($memRun[0].InitialMB) MB | Reclaimed: $($memRun[0].ReclaimedMB) MB"
+}
+
+
+# ==============================================================================
+# CONTRATO 12: Auditoría y Políticas de Navegadores Web (Optimize-WebBrowsers.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-12" "Optimizador de Navegadores" "Auditoría Oficial GPO de Edge y Chrome (Optimize-WebBrowsers.ps1)"
+
+$browserScript = Join-Path $scriptsDir "Optimize-WebBrowsers.ps1"
+if (Test-Path $browserScript) {
+    $edgeAudit = & $browserScript -Audit -Browser Edge -PassThru -Quiet
+    Assert-Contract "Assert: Optimize-WebBrowsers -Audit retorna informe de directivas sin requerir elevación" {
+        return ($edgeAudit -ne $null -and $edgeAudit.Mode -eq "Audit" -and $edgeAudit.TotalPolicies -gt 0)
+    } -ExpectedState "Mode = Audit y TotalPolicies > 0" -DetailMessage "Navegador: $($edgeAudit.Browser) | Políticas Evaluadas: $($edgeAudit.TotalPolicies)"
+} else {
+    Assert-Contract "Existencia de Optimize-WebBrowsers.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 13: Auditoría Forense de Seguridad (Invoke-WindowsSecurityHardening.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-13" "Auditoría de Hardening de Seguridad" "Evaluación ASR, LSA y Reducción de Superficie de Ataque"
+
+$secScript = Join-Path $scriptsDir "Invoke-WindowsSecurityHardening.ps1"
+if (Test-Path $secScript) {
+    $secAudit = & $secScript -AuditOnly -PassThru -NonInteractive
+    Assert-Contract "Assert: Invoke-WindowsSecurityHardening -AuditOnly ejecuta auditoría en modo estándar sin UAC" {
+        return ($secAudit -ne $null -and $secAudit.TotalAudits -gt 0)
+    } -ExpectedState "TotalAudits > 0 y objeto retornado" -DetailMessage "Auditorías Totales: $($secAudit.TotalAudits) | Pasadas: $($secAudit.PassedCount)"
+} else {
+    Assert-Contract "Existencia de Invoke-WindowsSecurityHardening.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 14: Gestión de Instantáneas Transaccionales (Manage-SystemSnapshots.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-14" "Motor de Instantáneas romanOS" "Captura Atómica de Manifiesto y Criptografía SHA-256"
+
+$snapScript = Join-Path $scriptsDir "Manage-SystemSnapshots.ps1"
+if (Test-Path $snapScript) {
+    $snapTestDir = Join-Path $workspaceRoot "scratch\test_snapshots"
+    if (Test-Path $snapTestDir) { Remove-Item -Path $snapTestDir -Recurse -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory -Path $snapTestDir -Force | Out-Null
+
+    try {
+        $snapObj = & $snapScript -Action Create -Name "ContractTestSnap" -SnapshotDirectory $snapTestDir -SkipElevation -Unattended
+        
+        $snapSubDirs = Get-ChildItem -Path $snapTestDir -Directory -ErrorAction SilentlyContinue
+        $createdSnapDir = if ($snapSubDirs) { $snapSubDirs[0].FullName } else { $null }
+        $manifestFile = if ($createdSnapDir) { Join-Path $createdSnapDir "manifest.json" } else { $null }
+        
+        Assert-Contract "Assert: Manage-SystemSnapshots crea snapshot y genera manifest.json verificado" {
+            return ($manifestFile -ne $null -and (Test-Path $manifestFile))
+        } -ExpectedState "manifest.json generado físicamente" -DetailMessage "Ruta: $manifestFile"
+
+        if (Test-Path $manifestFile) {
+            $manifestData = Get-Content -Path $manifestFile -Raw -Encoding UTF8 | ConvertFrom-Json
+            Assert-Contract "Assert: Manifiesto contiene SnapshotId, artefactos y hashes SHA-256" {
+                return ($manifestData.SnapshotId -ne $null -and $manifestData.Artifacts.Count -gt 0)
+            } -ExpectedState "SnapshotId no nulo y Artifacts.Count > 0" -DetailMessage "ID: $($manifestData.SnapshotId) | Artefactos: $($manifestData.Artifacts.Count)"
+        }
+    } finally {
+        if (Test-Path $snapTestDir) {
+            Remove-Item -Path $snapTestDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+} else {
+    Assert-Contract "Existencia de Manage-SystemSnapshots.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 15: Purga de Shaders de GPU y Rendimiento (Invoke-WindowsMaintenance.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-15" "Motor Integral de Mantenimiento" "Purga de Shaders de GPU y Caches sin Elevación Obligatoria"
+
+$maintScript = Join-Path $scriptsDir "Invoke-WindowsMaintenance.ps1"
+if (Test-Path $maintScript) {
+    # Crear archivo dummy en el directorio de shader cache del usuario actual
+    $d3dCacheDir = Join-Path $env:LOCALAPPDATA "D3DSCache"
+    if (-not (Test-Path $d3dCacheDir)) { New-Item -ItemType Directory -Path $d3dCacheDir -Force | Out-Null }
+    $dummyShaderFile = Join-Path $d3dCacheDir "contract_test_dummy_shader.bin"
+    [System.IO.File]::WriteAllBytes($dummyShaderFile, [byte[]]@(0xDE, 0xAD, 0xBE, 0xEF))
+    
+    $dummyExistsBefore = Test-Path $dummyShaderFile
+    Assert-Contract "Assert: Fixture de shader dummy creado en cache de usuario antes del test" {
+        return $dummyExistsBefore
+    } -ExpectedState "Dummy shader presente en $d3dCacheDir"
+    
+    $maintRun = & $maintScript -ShadersOnly -SkipElevation -Unattended -PassThru -Quiet
+    
+    $dummyExistsAfter = Test-Path $dummyShaderFile
+    Assert-Contract "Assert: Invoke-WindowsMaintenance -ShadersOnly purga físicamente el cache de shaders" {
+        return (-not $dummyExistsAfter -and $maintRun -ne $null -and $maintRun.Success -eq $true)
+    } -ExpectedState "Dummy shader purgado (-not Test-Path) y Success = True" -DetailMessage "Shader purgado: $( -not $dummyExistsAfter)"
+} else {
+    Assert-Contract "Existencia de Invoke-WindowsMaintenance.ps1" { return $false }
 }
 
 

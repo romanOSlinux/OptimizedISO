@@ -30,19 +30,19 @@ A ningún script se le otorgará el veredicto de "Funcional" únicamente por com
 
 Para prevenir la saturación de contexto y garantizar rigor empírico, la certificación se divide en **7 Lotes Metodológicos (3 a 5 scripts por iteración)**:
 
-- [ ] **Lote 1: Modules — Gaming, Latencia y CPU (5 scripts)**
-  * `Optimize-GamingAndApps.ps1` (Ratificación completa VRAM/Electron/Shaders/WDDM).
-  * `Switch-GameDevMode.ps1` (Conmutación de servicios de desarrollo y perfiles energéticos).
-  * `Optimize-InterruptAffinity.ps1` (Aislamiento de Core 0 y prioridad IRQ).
-  * `Trace-SystemLatency.ps1` (Recolección de telemetría DPC/ISR).
-  * `Optimize-ProcessMemory.ps1` (Afinamiento y vaciado de WorkingSet).
+- [x] **Lote 1: Modules — Gaming, Latencia y CPU (5 scripts) [COMPLETADO]**
+  * `Optimize-GamingAndApps.ps1` (Ratificación completa VRAM/Electron/Shaders/WDDM — CTR-01..04).
+  * `Switch-GameDevMode.ps1` (Conmutación de servicios y perfiles energéticos — CTR-08..09).
+  * `Optimize-InterruptAffinity.ps1` (Aislamiento de Core 0 y prioridad IRQ — CTR-07).
+  * `Trace-SystemLatency.ps1` (Recolección de telemetría DPC/ISR — CTR-10).
+  * `Optimize-ProcessMemory.ps1` (Afinamiento y vaciado de WorkingSet — CTR-11).
 
-- [ ] **Lote 2: Modules — Navegadores, Menús y Seguridad (5 scripts)**
-  * `Optimize-WebBrowsers.ps1` (Políticas de navegadores Chromium/Firefox).
-  * `Add-OptimizedContextMenus.ps1` (Inyección de CLSID clásico y menús en cascada).
-  * `Invoke-WindowsSecurityHardening.ps1` (Reglas ASR, LSA PPL y Defender).
-  * `Manage-SystemSnapshots.ps1` (Creación de instantáneas y reversión atómica).
-  * `Invoke-WindowsMaintenance.ps1` (Saneamiento transaccional, TRIM y WinSxS).
+- [x] **Lote 2: Modules — Navegadores, Menús y Seguridad (5 scripts) [COMPLETADO]**
+  * `Optimize-WebBrowsers.ps1` (Políticas de navegadores Chromium/Firefox — CTR-12).
+  * `Add-OptimizedContextMenus.ps1` (Inyección de CLSID clásico y menús en cascada con -LiteralPath — CTR-05).
+  * `Invoke-WindowsSecurityHardening.ps1` (Reglas ASR, LSA PPL y Defender sin elevación — CTR-13).
+  * `Manage-SystemSnapshots.ps1` (Creación de instantáneas y manifiesto SHA-256 — CTR-14).
+  * `Invoke-WindowsMaintenance.ps1` (Saneamiento transaccional de shaders sin elevación — CTR-15).
 
 - [ ] **Lote 3: Modules — Red, Debloat y Supervisión (5 scripts)**
   * `Win11-Network-Diagnostics-Optimizer.ps1` (Afinamiento TCPIP, Nagle, QoS, DoH).

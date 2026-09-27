@@ -58,7 +58,10 @@ param(
     [switch]$SkipBrowsers,
     [switch]$ResetBase,
     [switch]$ShadersOnly,
-    [switch]$TrimOnly
+    [switch]$TrimOnly,
+    [switch]$Quiet,
+    [switch]$PassThru,
+    [switch]$SkipElevation
 )
 
 # Modo simulado -WhatIf
@@ -80,7 +83,7 @@ $ErrorActionPreference = 'Continue'
 
 # Verificar privilegios de Administrador y auto-elevar con Bypass de ExecutionPolicy
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
+if (-not $isAdmin -and -not $ShadersOnly -and -not $SkipElevation) {
     Write-Host "Elevando privilegios a Administrador (Bypass ExecutionPolicy)..." -ForegroundColor Yellow
     $myScript = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
     $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -96,12 +99,12 @@ if (-not $isAdmin) {
         if ($ResetBase)        { $argList += "-ResetBase" }
         if ($ShadersOnly)      { $argList += "-ShadersOnly" }
         if ($TrimOnly)         { $argList += "-TrimOnly" }
+        if ($Quiet)            { $argList += "-Quiet" }
 
-        Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs
+        Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs -ErrorAction Stop
         exit 0
     } catch {
-        Write-Error "No se pudo elevar privilegios. Ejecute PowerShell como Administrador."
-        exit 1
+        Write-Warning "No se pudo elevar privilegios ($($_.Exception.Message)). Continuando en modo estandar con tareas de usuario..."
     }
 }
 
@@ -435,6 +438,9 @@ if ($runMod4) {
     # 4.A Shaders de GPU (DirectX, NVIDIA, AMD)
     Write-SubStep "Purgando caches de shaders de GPU (resuelve micro-stuttering en juegos)..."
     $userProfiles = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special -and $_.LocalPath }
+    if (-not $userProfiles -or @($userProfiles).Count -eq 0) {
+        $userProfiles = @([PSCustomObject]@{ LocalPath = $env:USERPROFILE })
+    }
     
     foreach ($prof in $userProfiles) {
         $shaderPaths = @(
@@ -690,4 +696,13 @@ Write-OK "Proceso de mantenimiento y reparacion completado con exito."
 
 try { Stop-Transcript | Out-Null } catch {
     Write-Info "Transcript finalizado: $($_.Exception.Message)"
+}
+
+if ($PassThru) {
+    return [PSCustomObject]@{
+        InitialFreeBytes = $initialFreeBytes
+        FinalFreeBytes   = $finalFreeBytes
+        FreedBytes       = $freedBytes
+        Success          = $true
+    }
 }

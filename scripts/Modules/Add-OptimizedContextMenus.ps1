@@ -204,12 +204,12 @@ function Remove-ShellVerb {
         if ($psPath -notmatch '^[a-zA-Z]+:' -and $psPath -notmatch '^Registry::') {
             $psPath = $psPath -replace '^HKLM\\', 'HKLM:\' -replace '^HKCU\\', 'HKCU:\' -replace '^HKU\\', 'Registry::HKEY_USERS\'
         }
-        if (Test-Path $psPath) {
-            Remove-Item -Path $psPath -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $psPath) {
+            Remove-Item -LiteralPath $psPath -Recurse -Force -ErrorAction SilentlyContinue
         }
         $cuPath = $psPath -replace '^HKLM:\\SOFTWARE\\Classes', 'HKCU:\Software\Classes'
-        if ($cuPath -ne $psPath -and (Test-Path $cuPath)) {
-            Remove-Item -Path $cuPath -Recurse -Force -ErrorAction SilentlyContinue
+        if ($cuPath -ne $psPath -and (Test-Path -LiteralPath $cuPath)) {
+            Remove-Item -LiteralPath $cuPath -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 }

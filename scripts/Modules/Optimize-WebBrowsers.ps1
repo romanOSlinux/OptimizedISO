@@ -16,12 +16,15 @@ param (
     
     [switch]$Audit,
     [switch]$Unattended,
-    [switch]$Quiet
+    [switch]$Quiet,
+    [switch]$PassThru,
+    [switch]$SkipElevation
 )
 
 $ErrorActionPreference = "Continue"
 
 function Ensure-Elevation {
+    if ($SkipElevation) { return }
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) {
         $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -37,13 +40,13 @@ function Ensure-Elevation {
                 }
             }
         }
-        Write-Warning "Este script requiere privilegios de Administrador. Reiniciando de forma elevada..."
+        Write-Warning "Este script requiere privilegios de Administrador para directivas de maquina (HKLM). Intentando elevar..."
         try {
-            Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs
+            Start-Process -FilePath $ps51 -ArgumentList $argArray -Verb RunAs -ErrorAction Stop
+            exit 0
         } catch {
-            Write-Error "No se pudo obtener privilegios de Administrador: $($_.Exception.Message)"
+            Write-Warning "No se pudo obtener privilegios de Administrador ($($_.Exception.Message)). Continuando en modo estandar..."
         }
-        exit
     }
 }
 
@@ -191,6 +194,15 @@ if ($doAudit) {
         Write-Host ""
         Read-Host "  Presione ENTER para volver o cerrar..."
     }
+    if ($PassThru) {
+        return [PSCustomObject]@{
+            Mode          = "Audit"
+            Browser       = $targetBrowser
+            TotalPolicies = $policies.Count
+            AppliedCount  = $appliedCount
+            Success       = ($appliedCount -gt 0)
+        }
+    }
     if ($appliedCount -eq $policies.Count) { exit 0 } else { exit 1 }
 }
 
@@ -245,6 +257,17 @@ Show-UnifiedSummary -Title "Optimizacion de Navegadores ($targetBrowser)" -Statu
 if ($isInteractive) {
     Write-Host ""
     Read-Host "  Presione ENTER para salir..."
+}
+
+if ($PassThru) {
+    return [PSCustomObject]@{
+        Mode          = "Apply"
+        Browser       = $targetBrowser
+        ErrorsCount   = $errorsCount
+        WarnsCount    = $warnsCount
+        Status        = $finalStatus
+        Success       = ($errorsCount -eq 0)
+    }
 }
 
 exit 0

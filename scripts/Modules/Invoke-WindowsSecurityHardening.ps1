@@ -44,7 +44,9 @@ param(
     [switch]$ApplyStrictHardening,
     [string]$OutputDir,
     [switch]$ShowReport,
-    [switch]$NonInteractive
+    [switch]$NonInteractive,
+    [switch]$PassThru,
+    [switch]$SkipElevation
 )
 
 # -----------------------------------------------------------------------------
@@ -57,7 +59,7 @@ try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAc
 
 # Comprobar privilegios de Administrador
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin -and ($ApplySafeHardening -or $ApplyStrictHardening)) {
+if (-not $isAdmin -and ($ApplySafeHardening -or $ApplyStrictHardening) -and -not $SkipElevation) {
     if ($PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC")) {
         Write-Host "[!] Elevando privilegios de Administrador para aplicar directivas (UAC)..." -ForegroundColor Yellow
         $scriptPath = $MyInvocation.MyCommand.Definition
@@ -72,11 +74,11 @@ if (-not $isAdmin -and ($ApplySafeHardening -or $ApplyStrictHardening)) {
         if ($NonInteractive) { $argList += '-NonInteractive' }
         
         try {
-            Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
+            Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs -ErrorAction Stop
+            exit
         } catch {
-            Write-Error "Fallo al solicitar elevacion UAC: $($_.Exception.Message)"
+            Write-Warning "Fallo al solicitar elevacion UAC ($($_.Exception.Message)). Continuando en modo estandar..."
         }
-        exit
     }
 }
 
@@ -740,3 +742,13 @@ if ($ApplySafeHardening) {
 }
 
 Write-OK "Proceso de auditoria y hardening finalizado exitosamente."
+
+if ($PassThru) {
+    return [PSCustomObject]@{
+        TotalAudits  = $script:auditResults.Count
+        PassedCount  = $script:passedCount
+        WarningCount = $script:warningCount
+        DangerCount  = $script:dangerCount
+        Results      = $script:auditResults
+    }
+}
