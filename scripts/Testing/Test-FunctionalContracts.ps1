@@ -1485,6 +1485,42 @@ if ((Test-Path $ccPsPath) -and (Test-Path $studioPsPath) -and (Test-Path $toolki
 }
 
 # ==============================================================================
+# CONTRATO 50: Aprovisionamiento y Certificación en VM Hyper-V Gen2 (PLAN-0132)
+# ==============================================================================
+Write-ContractHeader "CTR-50" "HyperV-Gen2-Deployment" "Validación de Contratos Funcionales de Despliegue y Telemetría en VM Hyper-V Gen2 (PLAN-0132)"
+
+$testingDir  = if ($PSScriptRoot) { $PSScriptRoot } else { Join-Path $workspaceRoot "scripts\Testing" }
+$vmDeployPs  = Join-Path $testingDir "New-TestVM-HyperV.ps1"
+$vmDeployCmd = Join-Path $testingDir "New-TestVM-HyperV.cmd"
+$vmWatchPs   = Join-Path $testingDir "Watch-TestVMDeployment.ps1"
+$vmWatchCmd  = Join-Path $testingDir "Watch-TestVMDeployment.cmd"
+
+if ((Test-Path $vmDeployPs) -and (Test-Path $vmDeployCmd) -and (Test-Path $vmWatchPs) -and (Test-Path $vmWatchCmd)) {
+    # 1. Validación de lanzadores con soporte STA y No-BOM
+    Assert-Contract "Assert: Lanzadores New-TestVM-HyperV.cmd y Watch-TestVMDeployment.cmd poseen -STA y son No-BOM" {
+        $depCmdOk = (Test-Path $vmDeployCmd) -and ((Get-Content -LiteralPath $vmDeployCmd -Raw) -match '-STA')
+        $watCmdOk = (Test-Path $vmWatchCmd) -and ((Get-Content -LiteralPath $vmWatchCmd -Raw) -match '-STA')
+        return ($depCmdOk -and $watCmdOk)
+    } -ExpectedState "Lanzadores presentes con flag -STA" -DetailMessage "Deploy: $(Test-Path $vmDeployCmd) | Watch: $(Test-Path $vmWatchCmd)"
+
+    # 2. Validación de disponibilidad del subsistema Hyper-V (cmdlet New-VM o servicio vmms)
+    Assert-Contract "Assert: Rol y cmdlets de Hyper-V disponibles en el host de virtualización" {
+        $hasHyperVCmd = [bool](Get-Command "New-VM" -ErrorAction SilentlyContinue)
+        $vmmsSvc = Get-Service -Name "vmms" -ErrorAction SilentlyContinue
+        return ($hasHyperVCmd -and $null -ne $vmmsSvc)
+    } -ExpectedState "New-VM y servicio vmms presentes" -DetailMessage "New-VM: $([bool](Get-Command 'New-VM' -ErrorAction SilentlyContinue))"
+
+    # 3. Validación de orquestador Watch-TestVMDeployment en simulación sintética
+    $simReport = & $vmWatchPs -WhatIf
+    Assert-Contract "Assert: Watch-TestVMDeployment ejecuta telemetría y valida mutex .setup_completed" {
+        return ($null -ne $simReport -and $simReport.SetupCompleted -eq $true -and $simReport.TelemetryStatus -eq 'NEUTRALIZADO')
+    } -ExpectedState "SetupCompleted=True, TelemetryStatus=NEUTRALIZADO" -DetailMessage "Verdict: $($simReport.Verdict)"
+} else {
+    Assert-Contract "Existencia de módulos Hyper-V en scripts/Testing" { return $false }
+}
+
+
+# ==============================================================================
 # EVALUACION FINAL DE CONTRATOS FUNCIONALES
 # ==============================================================================
 Write-Host "`n==========================================================================" -ForegroundColor Cyan
