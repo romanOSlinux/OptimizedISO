@@ -32,7 +32,7 @@
     .\Get-EssentialRuntimes.ps1 -Force -SkipDirectX
 #>
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [Parameter(Position = 0)]
     [Alias("DownloadDir", "Path", "OutDir")]
@@ -48,7 +48,10 @@ param(
     [switch]$SkipDirectX,
 
     [Parameter()]
-    [switch]$Unattended
+    [switch]$Unattended,
+
+    [Parameter()]
+    [switch]$PassThru
 )
 
 $ErrorActionPreference = 'Stop'
@@ -331,6 +334,13 @@ if ($IncludeLegacy) {
         FileName = "vcredist_2008_x86.exe"
         Url      = "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe"
     })
+}
+
+# Retorno temprano de catálogo para pruebas funcionales y simulación
+if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference -or $PassThru) {
+    if ($PassThru) {
+        return $runtimes
+    }
 }
 
 # 1. Descarga de Visual C++ Redistributables

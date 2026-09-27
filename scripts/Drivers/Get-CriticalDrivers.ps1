@@ -28,7 +28,10 @@ param(
     [string]$Package = "All",
 
     [Parameter()]
-    [string]$DestinationPath = ""
+    [string]$DestinationPath = "",
+
+    [Parameter()]
+    [switch]$PassThru
 )
 
 $ErrorActionPreference = 'Stop'
@@ -153,3 +156,7 @@ foreach ($pkg in $packagesToProcess) {
 Write-Host ""
 Write-Host "  Operación de controladores finalizada. Carpeta lista: $storageDir" -ForegroundColor Cyan
 Write-Host ""
+
+if ($PassThru) {
+    return $packagesToProcess
+}

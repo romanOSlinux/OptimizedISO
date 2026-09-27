@@ -77,7 +77,13 @@ param(
     [int]$DownloadTimeoutSeconds = 1800,
 
     [Parameter()]
-    [string]$SourceWIM = ""   # Ruta a install.wim para auditar KB instalados antes de descargar
+    [string]$SourceWIM = "",   # Ruta a install.wim para auditar KB instalados antes de descargar
+
+    [Parameter()]
+    [switch]$SkipElevation,
+
+    [Parameter()]
+    [switch]$PassThru
 )
 
 # -----------------------------------------------------------------------------
@@ -90,8 +96,9 @@ try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAc
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # Auto-elevación si es requerida para manipulación de carpetas protegidas
+$isSimulated = ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin -and -not $Unattended) {
+if (-not $isAdmin -and -not $Unattended -and -not $SkipElevation -and -not $isSimulated) {
     Write-Host "  [!] Elevando privilegios de Administrador (UAC)..." -ForegroundColor Yellow
     $scriptPath = $MyInvocation.MyCommand.Definition
     if (-not $scriptPath) { $scriptPath = $PSCommandPath }
@@ -590,6 +597,21 @@ $searchMatrix = switch ($Version) {
             SafeOS = "Safe OS Dynamic Update for Windows 11, version 23H2 for $archTag"
         }
     }
+}
+
+if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference) {
+    Write-Host "  [WhatIf] Matriz de consultas para $Version ($Architecture):" -ForegroundColor Cyan
+    if ($searchMatrix) {
+        $searchMatrix.GetEnumerator() | ForEach-Object { Write-Host "    - $($_.Key): $($_.Value)" -ForegroundColor Gray }
+    }
+    if ($PassThru) {
+        return [PSCustomObject]@{
+            Version      = $Version
+            Architecture = $Architecture
+            SearchMatrix = $searchMatrix
+        }
+    }
+    return
 }
 
 # -----------------------------------------------------------------------------

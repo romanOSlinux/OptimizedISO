@@ -66,12 +66,12 @@ Para prevenir la saturación de contexto y garantizar rigor empírico, la certif
   * `Invoke-LiveSandbox.ps1` (Generación de configuraciones .wsb con aislamiento estricto — CTR-30).
   * `Migrar-Usuario-W11.ps1` (Migración y auditoría de cuentas locales sin bloqueo interactivo — CTR-31).
 
-- [ ] **Lote 6: Builder Pipeline & Drivers (5 scripts)**
-  * `New-OptimizedWindowsISO-v2.ps1` (Estructura de montaje, $OEM$, Unattend y WIM).
-  * `Get-WindowsUpdates.ps1` (Descarga y validación de SSUs/LCUs).
-  * `Get-EssentialRuntimes.ps1` (Librerías C++ y DirectX).
-  * `Get-CriticalDrivers.ps1` (Gestión de controladores de almacenamiento/red).
-  * `Clean-DriverStore.ps1` (Depuración de controladores obsoletos).
+- [x] **Lote 6: Builder Pipeline & Drivers (5 scripts) [COMPLETADO]**
+  * `New-OptimizedWindowsISO-v2.ps1` (Estructura de montaje, $OEM$, funciones AST y WIM — CTR-32).
+  * `Get-WindowsUpdates.ps1` (Descarga y validación de SSUs/LCUs/SafeOS — CTR-33).
+  * `Get-EssentialRuntimes.ps1` (Librerías C++ y DirectX para inyección offline — CTR-34).
+  * `Get-CriticalDrivers.ps1` (Controladores de almacenamiento Intel VMD y VirtIO — CTR-35).
+  * `Clean-DriverStore.ps1` (Depuración segura y simulación de DriverStore — CTR-36).
 
 - [ ] **Lote 7: GUIs, Conectores y Dashboard (3 componentes)**
   * `romanOS-ControlCenter.ps1` (Integración de botones y paso de parámetros `-SkipElevation` / `-Unattended`).

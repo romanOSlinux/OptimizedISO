@@ -77,6 +77,8 @@ $scriptsDir    = Join-Path $workspaceRoot "scripts\Modules"
 $helpersDir    = Join-Path $workspaceRoot "scripts\Desktop-Helpers"
 $coreDir       = Join-Path $workspaceRoot "scripts\Core"
 $guiDir        = Join-Path $workspaceRoot "scripts\GUI"
+$builderDir    = Join-Path $workspaceRoot "scripts\Builder"
+$driversDir    = Join-Path $workspaceRoot "scripts\Drivers"
 
 # ==============================================================================
 # CONTRATO 1: Botón "Optimizar Juegos y Apps" -> Supresión de Auto-arranque Discord
@@ -827,6 +829,114 @@ if (Test-Path $migrarScript) {
     } -ExpectedState "Colección de usuarios locales >= 1 incluyendo usuario actual" -DetailMessage "Usuarios encontrados: $($cuentas.Count) | Incluye $($env:USERNAME): True"
 } else {
     Assert-Contract "Existencia de Migrar-Usuario-W11.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 32: Constructor de Imágenes ISO y Arquitectura WIM/OEM (New-OptimizedWindowsISO-v2.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-32" "Builder" "Estructura de Compilación ISO, Funciones AST e Inyección OEM"
+
+$builderScript = Join-Path $builderDir "New-OptimizedWindowsISO-v2.ps1"
+if (Test-Path $builderScript) {
+    # 1. Comprobar UTF-8 con BOM
+    $bBytes = [System.IO.File]::ReadAllBytes($builderScript)[0..2]
+    $bHasBOM = ($bBytes[0] -eq 0xEF -and $bBytes[1] -eq 0xBB -and $bBytes[2] -eq 0xBF)
+    Assert-Contract "Assert: New-OptimizedWindowsISO-v2.ps1 codificado en UTF-8 con BOM (Regla 4)" {
+        return $bHasBOM
+    } -ExpectedState "Primeros bytes = 0xEF-BB-BF" -DetailMessage "BOM: $bHasBOM"
+
+    # 2. Análisis sintáctico AST y extracción de funciones
+    $parseErrors = $null
+    $tokens = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($builderScript, [ref]$tokens, [ref]$parseErrors)
+    Assert-Contract "Assert: Parser AST de New-OptimizedWindowsISO-v2.ps1 sin errores sintácticos" {
+        return ($parseErrors.Count -eq 0)
+    } -ExpectedState "Errores AST = 0" -DetailMessage "Errores detectados: $($parseErrors.Count)"
+
+    # 3. Verificar funciones críticas de metadatos WIM e inyección
+    $funcNames = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true) | ForEach-Object { $_.Name }
+    Assert-Contract "Assert: Funciones maestras de metadatos WIM y logging residen en New-OptimizedWindowsISO-v2.ps1" {
+        $hasMeta     = $funcNames -contains "Get-RomanOSWimMetadata"
+        $hasAssert   = $funcNames -contains "Assert-RomanOSWimMetadata"
+        $hasInitLog  = $funcNames -contains "Initialize-Log"
+        $hasWriteLog = $funcNames -contains "Write-LogEntry"
+        return ($hasMeta -and $hasAssert -and $hasInitLog -and $hasWriteLog)
+    } -ExpectedState "Funciones Get/Assert-RomanOSWimMetadata y Initialize/Write-LogEntry presentes" -DetailMessage "Total funciones en Builder: $($funcNames.Count)"
+} else {
+    Assert-Contract "Existencia de New-OptimizedWindowsISO-v2.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 33: Descargador Oficial de Actualizaciones Microsoft (Get-WindowsUpdates.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-33" "Get-WindowsUpdates" "Resolución de Matriz de Actualizaciones Microsoft en Modo Simulación"
+
+$winUpdatesScript = Join-Path $builderDir "Get-WindowsUpdates.ps1"
+if (Test-Path $winUpdatesScript) {
+    $resUpdates = & $winUpdatesScript -Version "11_24H2" -Architecture "amd64" -WhatIf -PassThru -SkipElevation -Unattended
+    Assert-Contract "Assert: Get-WindowsUpdates -WhatIf -PassThru resuelve matriz de actualización para Windows 11 24H2" {
+        $matrix = $resUpdates.SearchMatrix
+        $hasLcu = ($matrix -ne $null -and $matrix.LCU -match "Cumulative Update Windows 11 24H2 x64")
+        $hasCheckpoint = ($matrix -ne $null -and $matrix.Checkpoint -match "KB5043080 x64")
+        return ($resUpdates -ne $null -and $resUpdates.Version -eq "11_24H2" -and $hasLcu -and $hasCheckpoint)
+    } -ExpectedState "Versión 11_24H2 con LCU y Checkpoint KB5043080 x64" -DetailMessage "LCU: $($resUpdates.SearchMatrix.LCU) | Checkpoint: $($resUpdates.SearchMatrix.Checkpoint)"
+} else {
+    Assert-Contract "Existencia de Get-WindowsUpdates.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 34: Descargador de Runtimes Oficiales C++ y DirectX (Get-EssentialRuntimes.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-34" "Get-EssentialRuntimes" "Catálogo Oficial de Runtimes C++ y DirectX para Inyección Offline"
+
+$runtimesScript = Join-Path $builderDir "Get-EssentialRuntimes.ps1"
+if (Test-Path $runtimesScript) {
+    $rtList = & $runtimesScript -IncludeLegacy -WhatIf -PassThru
+    Assert-Contract "Assert: Get-EssentialRuntimes -WhatIf -PassThru retorna catálogo completo de runtimes oficiales" {
+        $hasVcLatest = ($rtList | Where-Object { $_.FileName -eq "vc_redist.x64.exe" }) -ne $null
+        $hasVc2013   = ($rtList | Where-Object { $_.FileName -eq "vcredist_2013_x64.exe" }) -ne $null
+        $hasVcLegacy = ($rtList | Where-Object { $_.FileName -eq "vcredist_2010_x64.exe" }) -ne $null
+        return ($rtList -ne $null -and $rtList.Count -ge 8 -and $hasVcLatest -and $hasVc2013 -and $hasVcLegacy)
+    } -ExpectedState "Catálogo >= 8 paquetes con VC++ 2015-2022, 2013 y 2010 presentes" -DetailMessage "Total paquetes catalogados: $($rtList.Count)"
+} else {
+    Assert-Contract "Existencia de Get-EssentialRuntimes.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 35: Gestor de Controladores Críticos de Almacenamiento (Get-CriticalDrivers.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-35" "Get-CriticalDrivers" "Resolución de Controladores de Almacenamiento Intel VMD y VirtIO"
+
+$critDriversScript = Join-Path $driversDir "Get-CriticalDrivers.ps1"
+if (Test-Path $critDriversScript) {
+    $driverPkgs = & $critDriversScript -Package All -WhatIf -PassThru
+    Assert-Contract "Assert: Get-CriticalDrivers -WhatIf -PassThru resuelve paquetes Intel VMD y VirtIO" {
+        $hasVmd    = ($driverPkgs | Where-Object { $_.Id -eq "IntelVMD" -and $_.TestInf -eq "iaStorVD.inf" }) -ne $null
+        $hasVirtIo = ($driverPkgs | Where-Object { $_.Id -eq "VirtIO" -and $_.TestInf -eq "viostor.inf" }) -ne $null
+        return ($driverPkgs -ne $null -and $driverPkgs.Count -eq 2 -and $hasVmd -and $hasVirtIo)
+    } -ExpectedState "2 paquetes resueltos con iaStorVD.inf y viostor.inf" -DetailMessage "Paquetes: $(($driverPkgs | ForEach-Object { $_.Id }) -join ', ')"
+} else {
+    Assert-Contract "Existencia de Get-CriticalDrivers.ps1" { return $false }
+}
+
+
+# ==============================================================================
+# CONTRATO 36: Depuración Segura de DriverStore (Clean-DriverStore.ps1)
+# ==============================================================================
+Write-ContractHeader "CTR-36" "Clean-DriverStore" "Mantenimiento y Depuración Segura del DriverStore sin Elevación"
+
+$cleanDriverScript = Join-Path $driversDir "Clean-DriverStore.ps1"
+if (Test-Path $cleanDriverScript) {
+    $cleanResult = & $cleanDriverScript -WhatIf
+    Assert-Contract "Assert: Clean-DriverStore -WhatIf ejecuta simulación de depuración en modo solo lectura" {
+        return ($cleanResult -ne $null -and $cleanResult.Success -eq $true)
+    } -ExpectedState "Success = True en modo WhatIf sin mutaciones destructivas" -DetailMessage "Success: $($cleanResult.Success) | RemovedCount: $($cleanResult.RemovedCount)"
+} else {
+    Assert-Contract "Existencia de Clean-DriverStore.ps1" { return $false }
 }
 
 
