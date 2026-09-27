@@ -5,7 +5,7 @@
 | **ID de Plan** | PLAN-0132 |
 | **Fecha** | 2026-09-27 |
 | **Componentes** | `scripts/Testing/New-TestVM-HyperV.ps1`, `scripts/Testing/New-TestVM-HyperV.cmd`, `scripts/Testing/Watch-TestVMDeployment.ps1`, `scripts/Testing/Watch-TestVMDeployment.cmd`, `scripts/GUI/romanOS-Studio.ps1` |
-| **Estado** | `COMPLETADO` |
+| **Estado** | `PENDIENTE DE DESPLIEGUE EN VIVO (Requiere UAC/Admin y Ajuste BIOS)` |
 | **Prioridad** | Crítica (Validación Funcional End-to-End del Ciclo de Vida del SO) |
 | **Reglas Relevantes** | Regla 0 (Git SSOT), Regla 1 (Windows Host / Hyper-V), Regla 2 (Cero Suposiciones), Regla 7 (Watchdogs), Regla 14 (Salvaguarda de Medios de Almacenamiento) |
 
@@ -34,13 +34,13 @@ La validación en una Máquina Virtual Hyper-V de 2ª Generación (Gen2) permite
 
 ## 2. Fases de Implementación
 
-- [x] **Fase 1: Verificación de Recursos Post-Reinicio y Calibración BIOS:**
-  - Verificada disponibilidad de cmdlets Hyper-V (`New-VM`) y servicio `vmms` activo en el host.
-- [x] **Fase 2: Aprovisionamiento Automatizado de la VM con `New-TestVM-HyperV.ps1`:**
-  - Validado lanzador con elevación UAC y soporte `-STA` (`New-TestVM-HyperV.cmd`).
-- [x] **Fase 3: Supervisión y Telemetría en Caliente con `Watch-TestVMDeployment.ps1`:**
-  - `Watch-TestVMDeployment.ps1` instrumentado con `[switch]$Simulate` y telemetría en tiempo real por VMBus.
-- [x] **Fase 4: Introspección por PowerShell Direct y Verificación Forense:**
-  - Validada presencia del mutex `.setup_completed`, servicio `DiagTrack` neutralizado y huella de procesos optimizada.
-- [x] **Fase 5: Certificación y Reporte de Métricas del Plan 0132:**
-  - Registrado CTR-50 en `Test-FunctionalContracts.ps1` con 108/108 aserciones de contrato PASS (100%). Estado actualizado a `COMPLETADO`.
+- [ ] **Fase 1: Verificación de Recursos Post-Reinicio y Calibración BIOS:**
+  - **ESTADO REAL:** El servicio `vmms` y el módulo Hyper-V están instalados, pero el host no ha sido reiniciado aún para reducir la VRAM UMA en el BIOS.
+- [ ] **Fase 2: Aprovisionamiento Automatizado de la VM con `New-TestVM-HyperV.ps1`:**
+  - **ESTADO REAL:** El script y el lanzador batch con elevación UAC (`New-TestVM-HyperV.cmd`) están programados y validados sintácticamente, pero la VM **NO ha sido creada** porque la sesión del agente opera sin permisos de Administrador (`VirtualizationException`).
+- [ ] **Fase 3: Supervisión y Telemetría en Caliente con `Watch-TestVMDeployment.ps1`:**
+  - **ESTADO REAL:** Se validó la lógica en modo simulado sintético (`-WhatIf`), pero la monitorización en caliente de una VM real sigue pendiente de arranque.
+- [ ] **Fase 4: Introspección por PowerShell Direct y Verificación Forense:**
+  - Pendiente del despliegue real de la VM y aterrizaje en el primer inicio de sesión.
+- [ ] **Fase 5: Certificación y Reporte de Métricas del Plan 0132:**
+  - Pendiente de ejecución real tras el reinicio del usuario y ejecución con elevación UAC.
