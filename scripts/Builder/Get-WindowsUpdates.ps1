@@ -612,7 +612,8 @@ $searchMatrix = switch ($Version) {
     "11_25H2" {
         @{
             LCU        = "Cumulative Update Windows 11 25H2 $archTag"
-            Checkpoint = "KB5043080 $archTag"   # Checkpoint CU obligatorio para 25H2
+            # NOTA DE INGENIERÍA (PLAN-0141): Windows 11 25H2 (Build 26200+) tiene su propia base RTM acumulativa.
+            # NO requiere ni es compatible con el Checkpoint KB5043080 de 24H2 (evita Win32 Error 552 / 0x80070228).
             DotNet     = "Cumulative Update .NET Framework Windows 11 25H2 $archTag"
             SafeOS     = "Safe OS Dynamic Update Windows 11 25H2 $archTag"
         }
@@ -750,7 +751,7 @@ if ($PackageType -in @("All", "DotNetOnly")) {
     }
 }
 
-# 2b. Búsqueda de Checkpoint Cumulative Update (KB5043080) — obligatorio para 24H2/25H2/LTSC 2024
+# 2b. Búsqueda de Checkpoint Cumulative Update (KB5043080) — obligatorio para 24H2 / LTSC 2024
 if ($searchMatrix.ContainsKey('Checkpoint') -and $PackageType -in @("All", "LCUOnly", "CheckpointOnly")) {
     Write-SubStep "Buscando Checkpoint CU (KB5043080) — prerequisito obligatorio para LCU..."
     $chkItems = Search-MicrosoftUpdateCatalog -Query $searchMatrix.Checkpoint

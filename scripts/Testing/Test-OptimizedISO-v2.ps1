@@ -1804,6 +1804,36 @@ Assert-True "PLAN-0121: Template SetupComplete.cmd incluye cerrojo mutex .setup_
 Assert-True "PLAN-0121: Template SetupComplete.cmd registra testigo de finalización" ([bool]($builderFreshContent121 -match 'echo romanOS Setup Completed.*?> "%SCRIPTS_DIR%\\\.setup_completed"'))
 Assert-True "PLAN-0121: FirstLogonCommands incluye contingencia OEM para invocar SetupComplete.cmd" ([bool]($builderFreshContent121 -match 'cmd\.exe /c if not exist "%WINDIR%\\Setup\\Scripts\\\.setup_completed" call "%WINDIR%\\Setup\\Scripts\\SetupComplete\.cmd"'))
 
+# Validación de Correcciones de Ingeniería de Servicing (PLAN-0141)
+Write-HarnessHeader2 "FASE 2X: Correcciones de Ingeniería de Servicing (PLAN-0141)"
+$updatesScriptPath = Join-Path $PSScriptRoot "..\Builder\Get-WindowsUpdates.ps1"
+$updatesContent = Get-Content $updatesScriptPath -Raw
+$match25H2 = [regex]::Match($updatesContent, '(?s)"11_25H2"\s*\{\s*@\{(.*?)\}')
+$hasCheckpointIn25H2 = $match25H2.Success -and ($match25H2.Groups[1].Value -match 'Checkpoint\s*=')
+Assert-False "PLAN-0141: Get-WindowsUpdates.ps1 matriz 11_25H2 NO incluye Checkpoint KB5043080" $hasCheckpointIn25H2
+
+$match24H2 = [regex]::Match($updatesContent, '(?s)"11_24H2"\s*\{\s*@\{(.*?)\}')
+$hasCheckpointIn24H2 = $match24H2.Success -and ($match24H2.Groups[1].Value -match 'Checkpoint\s*=\s*"KB5043080')
+Assert-True "PLAN-0141: Get-WindowsUpdates.ps1 matriz 11_24H2 sí incluye Checkpoint KB5043080" $hasCheckpointIn24H2
+
+$matchLtsc = [regex]::Match($updatesContent, '(?s)"11_LTSC_2024"\s*\{\s*@\{(.*?)\}')
+$hasCheckpointInLtsc = $matchLtsc.Success -and ($matchLtsc.Groups[1].Value -match 'Checkpoint\s*=\s*"KB5043080')
+Assert-True "PLAN-0141: Get-WindowsUpdates.ps1 matriz 11_LTSC_2024 sí incluye Checkpoint KB5043080" $hasCheckpointInLtsc
+
+$builderFreshContent141 = Get-Content $TargetScript -Raw
+Assert-True "PLAN-0141: Builder gestiona ExitCode 87 y no reconocimiento como SKIP en capabilities" `
+    ([bool]($builderFreshContent141 -match '\$procRes\.ExitCode -in @\(87,' -and $builderFreshContent141 -match 'no se reconoci'))
+
+Assert-True "PLAN-0141: Builder gestiona CBS_E_PENDING / 0x800F0806 con IsDeferred en WinSxS cleanup" `
+    ([bool]($builderFreshContent141 -match 'IsDeferred\s*=\s*\$true' -and $builderFreshContent141 -match '0x800F0806'))
+
+Assert-True "PLAN-0141: Builder asigna SKIP en auditoría cuando consolidación WinSxS es diferida" `
+    ([bool]($builderFreshContent141 -match 'elseif\s*\(\$cleanupRes\.IsDeferred\)\s*\{\s*"SKIP"\s*\}'))
+
+$mockCleanupTest = Invoke-RomanOSComponentStoreCleanup -MountDir "C:\NonExistent_Mount_Dir_Mock"
+Assert-False "PLAN-0141: Invoke-RomanOSComponentStoreCleanup inicializa IsDeferred como false" $mockCleanupTest.IsDeferred
+
+
 # --- LIMPIEZA TEMPORAL ---
 try {
     if (Test-Path $TEMP_ROOT) { Remove-Item -Path $TEMP_ROOT -Recurse -Force -ErrorAction Stop }

@@ -2100,10 +2100,14 @@ function Invoke-RomanOSDismComponentRemoval {
                     -TimeoutSeconds $TimeoutSeconds `
                     -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
+                $isNotPresent = ($procRes.ExitCode -in @(87, 0x57, 0x800f080c, -2146498548, 0x800f0954, -2146498476)) -or
+                                ($procRes.StdOut -match "(0x800f080c|not found|no se encuentra|0x800f0954|no se reconoci|not recognized|0x00000057|\b87\b)") -or
+                                ($procRes.StdErr -match "(0x800f080c|not found|no se encuentra|0x800f0954|no se reconoci|not recognized|0x00000057|\b87\b)")
+
                 if ($procRes.Success) {
                     $removed = $true
-                } elseif ($procRes.StdOut -match "(0x800f080c|not found|no se encuentra|0x800f0954)") {
-                    Write-Info "Capability '$target' no presente en la imagen. Omitiendo."
+                } elseif ($isNotPresent) {
+                    Write-Info "Capability '$target' no presente en la imagen (ExitCode: $($procRes.ExitCode)). Omitiendo."
                     $result.SkippedCount++
                     $result.Details.Add("SKIP: $target (No presente)")
                     continue
@@ -2130,10 +2134,14 @@ function Invoke-RomanOSDismComponentRemoval {
                     -TimeoutSeconds $TimeoutSeconds `
                     -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
 
+                $isNotPresent = ($procRes.ExitCode -in @(87, 0x57, 0x800f080c, -2146498548, 0x800f0954, -2146498476)) -or
+                                ($procRes.StdOut -match "(0x800f080c|not found|no se encuentra|0x800f0954|no se reconoci|not recognized|0x00000057|\b87\b)") -or
+                                ($procRes.StdErr -match "(0x800f080c|not found|no se encuentra|0x800f0954|no se reconoci|not recognized|0x00000057|\b87\b)")
+
                 if ($procRes.Success) {
                     $removed = $true
-                } elseif ($procRes.StdOut -match "(0x800f080c|not found|no se encuentra)") {
-                    Write-Info "Feature '$target' no presente en la imagen. Omitiendo."
+                } elseif ($isNotPresent) {
+                    Write-Info "Feature '$target' no presente en la imagen (ExitCode: $($procRes.ExitCode)). Omitiendo."
                     $result.SkippedCount++
                     $result.Details.Add("SKIP: $target (No presente)")
                     continue
@@ -2242,6 +2250,7 @@ function Invoke-RomanOSComponentStoreCleanup {
 
     $result = [PSCustomObject]@{
         Success      = $false
+        IsDeferred   = $false
         ExitCode     = -1
         ResetBase    = [bool]$ResetBase
         SizeBeforeMB = 0.0
@@ -2316,10 +2325,21 @@ function Invoke-RomanOSComponentStoreCleanup {
             Write-OK $result.Summary
         } else {
             $errInfo = Get-RomanOSErrorCodeDetails -ExitCode $result.ExitCode
-            $result.Summary = "ComponentStoreCleanup finalizo con ExitCode: $($result.ExitCode) [$($errInfo.ExitCodeHex)]"
-            if ($procRes.StdErr) { $result.Summary += " // STDERR: $($procRes.StdErr)" }
-            elseif ($procRes.StdOut) { $result.Summary += " // STDOUT: $($procRes.StdOut)" }
-            Write-Warn $result.Summary
+            $isPending = ($result.ExitCode -in @(-2146498554, 0x800F0806, [int][uint32]0x800F0806)) -or
+                         ($errInfo.ExitCodeHex -eq '0x800F0806') -or
+                         ($procRes.StdOut -match "(0x800f0806|CBS_E_PENDING)") -or
+                         ($procRes.StdErr -match "(0x800f0806|CBS_E_PENDING)")
+
+            if ($isPending) {
+                $result.IsDeferred = $true
+                $result.Summary = "Consolidacion WinSxS /ResetBase aplazada: DISM detecto transacciones pendientes tras el slipstream (0x800F0806). Se consolidara automaticamente en el primer inicio de Windows."
+                Write-Info $result.Summary
+            } else {
+                $result.Summary = "ComponentStoreCleanup finalizo con ExitCode: $($result.ExitCode) [$($errInfo.ExitCodeHex)]"
+                if ($procRes.StdErr) { $result.Summary += " // STDERR: $($procRes.StdErr)" }
+                elseif ($procRes.StdOut) { $result.Summary += " // STDOUT: $($procRes.StdOut)" }
+                Write-Warn $result.Summary
+            }
         }
     } catch {
         $result.Summary = "Excepcion ejecutando ComponentStoreCleanup: $($_.Exception.Message)"
@@ -7310,7 +7330,7 @@ if ($wimFile) {
                             Write-Host "    Ejecutando ResetBase / StartComponentCleanup..." -ForegroundColor Cyan
 
                             $cleanupRes = Invoke-RomanOSComponentStoreCleanup -MountDir $WimMountDir -ResetBase -ScratchDir $ScratchDir -HeartbeatIntervalSeconds $HeartbeatIntervalSeconds
-                            $cleanupStatus = if ($cleanupRes.Success) { "OK" } else { "WARN" }
+                            $cleanupStatus = if ($cleanupRes.Success) { "OK" } elseif ($cleanupRes.IsDeferred) { "SKIP" } else { "WARN" }
                             Add-AuditRecord -Resource "Consolidacion WinSxS" -Target "WIM Idx $wimIndex" `
                                             -Status $cleanupStatus `
                                             -Details $cleanupRes.Summary
