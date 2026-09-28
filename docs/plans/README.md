@@ -150,6 +150,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0132 | [PLAN-0132-20260927-aprovisionamiento-y-certificacion-en-vm-hyperv-gen2.md](PLAN-0132-20260927-aprovisionamiento-y-certificacion-en-vm-hyperv-gen2.md) | 2026-09-27 | Aprovisionamiento, Instalación Desatendida Zero-Touch y Certificación en VM Hyper-V Gen2 (New-TestVM-HyperV, Post-Reinicio VRAM BIOS) | PENDIENTE (Requiere UAC/Admin) |
 | 0133 | [PLAN-0133-20260927-harness-evaluacion-holistica-y-aseguramiento-industrial.md](PLAN-0133-20260927-harness-evaluacion-holistica-y-aseguramiento-industrial.md) | 2026-09-27 | Harness Industrial de Evaluación Holística y Aseguramiento E2E del Ecosistema romanOS (SWE-bench / Anthropic Evals) | COMPLETADO |
 | 0134 | [PLAN-0134-20260928-soberania-herramientas-locales-regla-18-y-blindaje-mecanico.md](PLAN-0134-20260928-soberania-herramientas-locales-regla-18-y-blindaje-mecanico.md) | 2026-09-28 | Soberanía de Herramientas Locales, Regla 18 y Blindaje Mecánico Anti-Desvío del Agente | COMPLETADO |
+| 0135 | [PLAN-0135-20260928-marco-operativo-gobernanza-total-agentic-os.md](PLAN-0135-20260928-marco-operativo-gobernanza-total-agentic-os.md) | 2026-09-28 | Formalización del Marco Maestro de Gobernanza Operativa Total (Agentic OS & Lifecycle Matrix) | COMPLETADO |
 
 
 

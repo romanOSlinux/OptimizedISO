@@ -1,5 +1,9 @@
 # Reglas Estrictas del Agente (.agents/AGENTS.md)
 
+> **MARCO DE GOBERNANZA OPERATIVA VINCULANTE (Agentic OS):**  
+> Todo flujo de trabajo en este repositorio está subordinado a la **Matriz Maestra de Gobernanza Operativa**: [`.agents/GOVERNANCE-MATRIX.md`](GOVERNANCE-MATRIX.md).  
+> El agente debe clasificar cada tarea en su fase del ciclo de vida (`DEFINE` → `PLAN` → `BUILD` → `VERIFY` → `REVIEW` → `SHIP`) y activar los Servidores MCP, Skills y Binarios de `tools/` asignados obligatoriamente.
+
 Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualquier agente que trabaje en este proyecto.
 
 ## 0. Git como Fuente de Verdad y Trazabilidad Obligatoria

@@ -2,7 +2,7 @@
 
 > **REGLA DE GOBERNANZA VINCULANTE:**  
 > *Read `CONSTRAINTS.md` before writing code. Do not weaken it to make a change pass.*  
-> Este contrato define los estándares de calidad inmutables del proyecto. Queda terminantemente prohibido para cualquier agente humano o de IA debilitar, omitir, silenciar o relajar estos umbrales para obtener un estado verde artificial (*lazy green*).
+> Este contrato define los estándares de calidad inmutables del proyecto, articulados a través de la **Matriz Maestra de Gobernanza Operativa**: [`.agents/GOVERNANCE-MATRIX.md`](.agents/GOVERNANCE-MATRIX.md). Queda terminantemente prohibido para cualquier agente humano o de IA debilitar, omitir, silenciar o relajar estos umbrales para obtener un estado verde artificial (*lazy green*).
 
 ---
 
