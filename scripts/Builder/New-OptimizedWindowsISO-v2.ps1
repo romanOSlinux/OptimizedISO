@@ -6371,7 +6371,7 @@ if ($wimFile) {
                 $indexesToProcess = $allWimImages | ForEach-Object { $_.Index }
                 Write-Host "    Procesando TODAS las ediciones por parámetro (-TargetWimIndex all)." -ForegroundColor Gray
             } else {
-                $indexesToProcess = $TargetWimIndex -split ',' | ForEach-Object { $_.Trim() }
+                $indexesToProcess = @($TargetWimIndex -split ',' | ForEach-Object { $_.Trim() })
                 Write-Host "    Procesando índice(s) especificado(s): $($indexesToProcess -join ', ')." -ForegroundColor Gray
             }
         } elseif ($allWimImages.Count -eq 1) {
@@ -6419,8 +6419,8 @@ if ($wimFile) {
             exit 1
         }
 
-        if ($indexesToProcess.Count -eq 1) {
-            $selectedSingleIndex = $indexesToProcess[0]
+        if (@($indexesToProcess).Count -eq 1) {
+            $selectedSingleIndex = [string]@($indexesToProcess)[0]
         }
 
         # Preparar directorio scratch.
@@ -8426,12 +8426,26 @@ if (-not $branchTag) {
 # 3. Detección de Edición Única (si se seleccionó un único índice WIM)
 $editionPart = ""
 $editionLabelTag = ""
-if ($indexesToProcess -and $indexesToProcess.Count -eq 1) {
-    $singleIdx = $indexesToProcess[0]
-    $matchedImg = $allWimImages | Where-Object { $_.Index -eq $singleIdx } | Select-Object -First 1
-    if (-not $matchedImg -and $allWimImages -and $allWimImages.Count -gt 0) {
-        $matchedImg = $allWimImages[0]
+$targetList = @($indexesToProcess)
+if ($targetList.Count -eq 1) {
+    $singleIdx = [string]$targetList[0]
+    $matchedImg = $allWimImages | Where-Object { [string]$_.Index -eq $singleIdx } | Select-Object -First 1
+
+    # Si tras exportación el WIM fue consolidado a índice 1, consultar el nombre directamente
+    if (-not $matchedImg -and $wimFile -and (Test-Path $wimFile.FullName)) {
+        try {
+            $wimPostMeta = Get-RomanOSWimMetadata -WimPath $wimFile.FullName -Index 1
+            if ($wimPostMeta -and $wimPostMeta.Name) {
+                $matchedImg = [PSCustomObject]@{
+                    Index = "1"
+                    Name  = $wimPostMeta.Name
+                }
+            }
+        } catch {
+            Write-Debug "Consulta de metadatos post-exportación omitida: $($_.Exception.Message)"
+        }
     }
+
     if ($matchedImg -and $matchedImg.Name) {
         $rawEd = $matchedImg.Name
         $cleanEd = $rawEd -replace '(?i)^Windows\s*(10|11)?\s*', ''
