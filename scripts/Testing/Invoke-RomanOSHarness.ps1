@@ -303,18 +303,16 @@ Assert-Harness "Tier5_Artifacts_Environment" "Verificación de Imagen ISO Base O
 
 Assert-Harness "Tier5_Artifacts_Environment" "Diagnóstico de Privilegios y Estado de Compilación" {
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(1)
-    $testIso = Join-Path $repoRoot "Windows_11_Optimized_Test.iso"
+    $candidateDirs = @($repoRoot, "$HOME\Desktop\WinISO_Optimizado")
+    $compiledIso = Get-ChildItem -Path $candidateDirs -Filter "Windows_11*.iso" -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -notmatch '^Win11_25H2_Spanish_x64_v2\.iso$' } |
+        Select-Object -First 1
     
-    if (-not $isAdmin) {
-        Write-Host "    [INFO] Sesión del agente no elevada (IsAdmin = False)." -ForegroundColor Yellow
-        Write-Host "    [INFO] Operaciones DISM/Hyper-V requieren ejecución mediante lanzadores .cmd con elevación UAC." -ForegroundColor Yellow
-    }
-    
-    if (Test-Path $testIso) {
-        $sizeMB = [math]::Round((Get-Item $testIso).Length / 1MB, 2)
-        Write-Host "    [INFO] ISO Compilada Presente: $testIso ($sizeMB MB)" -ForegroundColor Green
+    if ($compiledIso) {
+        $sizeGB = [math]::Round($compiledIso.Length / 1GB, 2)
+        Write-Host "    [INFO] ISO Compilada Presente: $($compiledIso.FullName) ($sizeGB GB)" -ForegroundColor Green
     } else {
-        Write-Host "    [INFO] ISO Optimizada aún no compilada en disco (Pendiente de ejecución de New-OptimizedWindowsISO-v2.ps1 con UAC)." -ForegroundColor Yellow
+        Write-Host "    [INFO] ISO de Windows aún no compilada en disco (Pendiente de ejecución de Compilar-ISO-Host-Ryzen8600G.cmd con UAC)." -ForegroundColor Yellow
     }
     return $true
 }

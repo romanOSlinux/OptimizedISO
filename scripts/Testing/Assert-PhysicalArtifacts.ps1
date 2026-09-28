@@ -36,8 +36,18 @@ $report = [ordered]@{
 }
 
 # 1. Comprobación Física de la Imagen ISO Compilada
-if (Test-Path -LiteralPath $ExpectedISOPath) {
-    $item = Get-Item -LiteralPath $ExpectedISOPath
+$targetIso = $ExpectedISOPath
+if (-not (Test-Path -LiteralPath $targetIso)) {
+    $autoIso = Get-ChildItem -Path "C:\OptimizedISO", "$HOME\Desktop\WinISO_Optimizado" -Filter "Windows_11*.iso" -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -notmatch '^Win11_25H2_Spanish_x64_v2\.iso$' } |
+        Select-Object -First 1
+    if ($autoIso) {
+        $targetIso = $autoIso.FullName
+    }
+}
+
+if (Test-Path -LiteralPath $targetIso) {
+    $item = Get-Item -LiteralPath $targetIso
     if ($item.Length -gt 100MB) {
         $report.ISOFileExists = $true
         $report.ISOSizeBytes  = $item.Length
@@ -47,7 +57,7 @@ if (Test-Path -LiteralPath $ExpectedISOPath) {
         Write-Host "  [!] ISO Incompleta o Vacía: $($item.Length) bytes" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "  [-] ISO NO EXISTE EN DISCO: $ExpectedISOPath" -ForegroundColor Red
+    Write-Host "  [-] ISO NO EXISTE EN DISCO: $targetIso" -ForegroundColor Red
 }
 
 # 2. Comprobación del Hipervisor y Máquina Virtual

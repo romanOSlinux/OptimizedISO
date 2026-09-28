@@ -8372,35 +8372,144 @@ if (-not (Test-Path $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 }
 
-# Nombre de ISO final.
-$versionTag = if ($detectedVersion) {
-    $detectedVersion
-} else {
-    "Windows"
+#------------------------------------------------------------------------------
+# NOMENCLATURA ESTANDARIZADA OEM / ENTERPRISE DE LA ISO Y ETIQUETA DE VOLUMEN
+#------------------------------------------------------------------------------
+# 1. Versión principal (ej. "11" o "10")
+$majorVer = if ($detectedVersion) { $detectedVersion } else { "11" }
+
+# 2. Detección de Rama / Release (25H2, 24H2, 23H2, 22H2, etc.)
+$branchTag = $null
+
+# Intento 2a: Metadatos del WIM montado o archivo install.wim
+if ($wimFile -and (Test-Path $wimFile.FullName)) {
+    try {
+        $sampleMeta = Get-RomanOSWimMetadata -WimPath $wimFile.FullName -Index 1
+        if ($sampleMeta -and $sampleMeta.Version -match '(\d+)\.(\d+)\.(\d+)') {
+            $bNum = [int]$Matches[3]
+            if ($bNum -ge 26200) { $branchTag = "25H2" }
+            elseif ($bNum -ge 26100) { $branchTag = "24H2" }
+            elseif ($bNum -ge 22631) { $branchTag = "23H2" }
+            elseif ($bNum -ge 22621) { $branchTag = "22H2" }
+            elseif ($bNum -ge 22000) { $branchTag = "21H2" }
+            elseif ($bNum -ge 19045) { $branchTag = "22H2" }
+        }
+    } catch {
+        Write-Debug "Extracción de branchTag desde WIM omitida: $($_.Exception.Message)"
+    }
 }
 
-$isoName = "Windows_${versionTag}_Optimized_$(Get-Date -Format 'yyyyMMdd_HHmmss').iso"
+# Intento 2b: Parámetro DownloadVersion (ej. "11_25H2" o "11_LTSC_2024")
+if (-not $branchTag -and $DownloadVersion) {
+    if ($DownloadVersion -match '(\d{2}H\d)') {
+        $branchTag = $Matches[1].ToUpper()
+    } elseif ($DownloadVersion -match '2024') {
+        $branchTag = "24H2"
+    } elseif ($DownloadVersion -match '2021') {
+        $branchTag = "21H2"
+    }
+}
+
+# Intento 2c: Nombre del medio origen ($SourceISO)
+if (-not $branchTag -and $SourceISO) {
+    $srcLeaf = Split-Path $SourceISO -Leaf
+    if ($srcLeaf -match '(?i)(2[1-9]H2)') {
+        $branchTag = $Matches[1].ToUpper()
+    }
+}
+
+# Fallback canónico de rama según versión principal
+if (-not $branchTag) {
+    $branchTag = if ($majorVer -eq "10") { "22H2" } else { "25H2" }
+}
+
+# 3. Detección de Edición Única (si se seleccionó un único índice WIM)
+$editionPart = ""
+$editionLabelTag = ""
+if ($indexesToProcess -and $indexesToProcess.Count -eq 1) {
+    $singleIdx = $indexesToProcess[0]
+    $matchedImg = $allWimImages | Where-Object { $_.Index -eq $singleIdx } | Select-Object -First 1
+    if (-not $matchedImg -and $allWimImages -and $allWimImages.Count -gt 0) {
+        $matchedImg = $allWimImages[0]
+    }
+    if ($matchedImg -and $matchedImg.Name) {
+        $rawEd = $matchedImg.Name
+        $cleanEd = $rawEd -replace '(?i)^Windows\s*(10|11)?\s*', ''
+        $cleanEd = $cleanEd -replace '(?i)\s*Edition\b', ''
+        $cleanEd = $cleanEd -replace '(?i)\s*\(x64\)', ''
+        $cleanEd = ($cleanEd.Trim() -replace '\s+', '_') -replace '[^A-Za-z0-9_]', ''
+        if ($cleanEd) {
+            $editionPart = "_$cleanEd"
+            $editionLabelTag = ($cleanEd -replace '_', '').ToUpper()
+            if ($editionLabelTag.Length -gt 6) { $editionLabelTag = $editionLabelTag.Substring(0, 6) }
+        }
+    }
+}
+
+# 4. Detección de Arquitectura (x64, ARM64, x86)
+$archPart = "x64"
+if ($Architecture -match '(?i)arm64') {
+    $archPart = "ARM64"
+} elseif ($Architecture -match '(?i)x86|32') {
+    $archPart = "x86"
+}
+
+# 5. Detección de Idioma (Spanish / English / Localizado)
+$langPart = "Spanish"
+$langCode = "ES"
+if ($DownloadLanguage) {
+    if ($DownloadLanguage -match '(?i)span|españ') {
+        $langPart = "Spanish"; $langCode = "ES"
+    } elseif ($DownloadLanguage -match '(?i)engl|ingl') {
+        $langPart = "English"; $langCode = "EN"
+    } else {
+        $langPart = ($DownloadLanguage.Trim() -replace '\s+', '_') -replace '[^A-Za-z0-9_]', ''
+        $langCode = ($langPart.Substring(0, [math]::Min(2, $langPart.Length))).ToUpper()
+    }
+} elseif ($Language) {
+    if ($Language -match '(?i)^es') {
+        $langPart = "Spanish"; $langCode = "ES"
+    } elseif ($Language -match '(?i)^en') {
+        $langPart = "English"; $langCode = "EN"
+    } else {
+        $langPart = ($Language.Trim() -replace '\s+', '_') -replace '[^A-Za-z0-9_]', ''
+        $langCode = ($langPart.Substring(0, [math]::Min(2, $langPart.Length))).ToUpper()
+    }
+}
+
+# 6. Nombre de archivo ISO final oficial
+$isoName = "Windows_${majorVer}${editionPart}_${branchTag}_${archPart}_${langPart}.iso"
 $outputISO = Join-Path $OutputDir $isoName
 
-# Si ya existe un archivo destino con ese nombre, eliminarlo para evitar fallos.
+# Si ya existe un archivo destino con ese nombre, intentar eliminarlo; si está bloqueado, usar fallback con timestamp
 if (Test-Path $outputISO) {
-    Remove-Item -Path $outputISO -Force -ErrorAction SilentlyContinue
+    try {
+        Remove-Item -Path $outputISO -Force -ErrorAction Stop
+    } catch {
+        Write-Warn "El archivo destino '$isoName' existe y no pudo ser sobrescrito (posiblemente montado o bloqueado). Se generará con marca temporal."
+        $isoName = "Windows_${majorVer}${editionPart}_${branchTag}_${archPart}_${langPart}_$(Get-Date -Format 'yyyyMMdd_HHmmss').iso"
+        $outputISO = Join-Path $OutputDir $isoName
+    }
 }
 
 $oscdimg    = Test-OSCDImgInstalled
 $isoCreated = $false
 
 #------------------------------------------------------------------------------
-# ETIQUETA ISO
+# ETIQUETA ISO (ESTÁNDAR OEM / EL TORITO / UDF <= 32 CARACTERES)
 #------------------------------------------------------------------------------
 
-$isoLabel = "WIN${versionTag}_OPT"
+$isoLabel = if ($editionLabelTag) {
+    "W${majorVer}_${editionLabelTag}_${branchTag}_${langCode}"
+} else {
+    "W${majorVer}_${branchTag}_${langCode}"
+}
 
-# Sanitizar etiqueta: solo caracteres seguros, mayúsculas, longitud controlada.
-$isoLabel = ($isoLabel -replace '[^A-Za-z0-9_-]', '').ToUpper()
+# Sanitizar etiqueta: solo mayúsculas, números y guiones bajos (<= 32 caracteres)
+$isoLabel = ($isoLabel -replace '[^A-Za-z0-9_]', '').ToUpper()
 
 if ([string]::IsNullOrWhiteSpace($isoLabel)) {
-    $isoLabel = "WIN_OPT"
+    $isoLabel = "W11_25H2_ES"
 }
 
 if ($isoLabel.Length -gt 32) {
