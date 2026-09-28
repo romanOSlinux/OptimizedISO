@@ -354,21 +354,6 @@ if (-not $uiLoaded) {
     function Prompt-UnifiedYesNo { param($Prompt, [bool]$Default = $true) $d = if ($Default) { "S" } else { "N" }; $r = Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if ([string]::IsNullOrWhiteSpace($r)) { return $Default }; return ($r -match '^(s|si|y|yes)$') }
     function Show-UnifiedMenu    { param($Title, $Options, [int]$DefaultChoice = 1, [switch]$AllowCancel, [string]$CancelText = "Salir") for ($i = 0; $i -lt $Options.Count; $i++) { Write-Host "  [$($i+1)] $($Options[$i])" }; if ($AllowCancel) { Write-Host "  [0] $CancelText" }; $r = Read-Host "  Opción"; if (-not $r) { return $DefaultChoice }; return [int]$r }
     function Show-UnifiedSummary { param($Title, $Status, $DurationSeconds, $ErrorsCount, $WarnsCount, $Logs) Write-Host "`n=== $Title : $Status ($($DurationSeconds)s) ===`n" -ForegroundColor Cyan }
-    function Write-ForensicException {
-        param($Record, [string]$Context = "", [string]$SuggestedAction = "")
-        $msg = if ($Record -is [System.Management.Automation.ErrorRecord]) { $Record.Exception.Message } else { "$Record" }
-        $ln = if ($Record -is [System.Management.Automation.ErrorRecord] -and $Record.InvocationInfo) { $Record.InvocationInfo.ScriptLineNumber } else { 1 }
-        $lc = if ($Record -is [System.Management.Automation.ErrorRecord] -and $Record.InvocationInfo) { $Record.InvocationInfo.Line.Trim() } else { "" }
-        Write-Host "  [ERROR FORENSE] [$Context] $msg" -ForegroundColor Red
-        return [PSCustomObject]@{
-            Header          = "[$Context] $msg"
-            LineNumber      = $ln
-            LineCode        = $lc
-            ScriptName      = "Fallback"
-            SuggestedAction = $SuggestedAction
-            Message         = $msg
-        }
-    }
     function Assert-ResourceCommitment {
         param($ResourceName, $PreflightFound, $ExecutionApplied, $ExpectedPath = "", $FailureReason = "", [switch]$Fatal)
         if ($PreflightFound -and -not $ExecutionApplied) {
@@ -381,14 +366,33 @@ if (-not $uiLoaded) {
         param([long]$ExitCode)
         $intVal = try { [int32]$ExitCode } catch { [int32]($ExitCode -band 0xFFFFFFFFL) }
         $hexStr = "0x{0:X8}" -f $intVal
-        return [PSCustomObject]@{ ExitCodeDecimal = $ExitCode; ExitCodeHex = $hexStr; SymbolicName = "ERROR_$hexStr"; Meaning = "Código $ExitCode ($hexStr)"; IsKnown = $false }
+        return [PSCustomObject]@{
+            ExitCodeDecimal = $ExitCode
+            ExitCodeHex     = $hexStr
+        }
     }
     function Write-ForensicProcessFailure {
-        param($TaskDescription, $FilePath, [long]$ExitCode, [string]$StdOut = "", [string]$StdErr = "", [string]$LogFilePath = "", [string]$Context = "", [string]$SuggestedAction = "", [switch]$IsWarningOnly)
+        param($TaskDescription, $FilePath, [long]$ExitCode, [string]$CommandLine = "", [string]$StdOut = "", [string]$StdErr = "", [string]$LogFilePath = "", [switch]$IsWarningOnly)
         $level = if ($IsWarningOnly) { "WARN" } else { "ERROR" }
-        $diag = if ($StdErr) { $StdErr } else { $StdOut }
-        Write-Host "  [$level] Proceso '$TaskDescription' falló (ExitCode: $ExitCode). $diag" -ForegroundColor $(if($IsWarningOnly){"Yellow"}else{"Red"})
-        return [PSCustomObject]@{ Header = "[$level] $TaskDescription"; ExitCode = $ExitCode; ExitCodeHex = "0x{0:X8}" -f ([int32]$ExitCode); SymbolicName = "ERR_$ExitCode"; Meaning = $diag; DiagnosticText = $diag; DiagnosticLines = @($diag) }
+        $hexStr = "0x{0:X8}" -f ([int32]$ExitCode)
+        $header = "[$level] Fallo en proceso '$TaskDescription' | ExitCode: $ExitCode ($hexStr)"
+        Write-Host "  $header" -ForegroundColor $(if($IsWarningOnly){"Yellow"}else{"Red"})
+        return [PSCustomObject]@{
+            Header          = $header
+            ExitCode        = $ExitCode
+            ExitCodeHex     = $hexStr
+            CommandLine     = $CommandLine
+            StdOut          = $StdOut
+            StdErr          = $StdErr
+            FullPlainReport = "$header`n$StdOut`n$StdErr".Trim()
+        }
+    }
+    function Write-ForensicException {
+        param($Record, [string]$Context = "")
+        $msg = if ($Record -is [System.Management.Automation.ErrorRecord]) { $Record.Exception.Message } else { "$Record" }
+        $header = "[ERROR] $(if($Context){"[$Context] "})$msg"
+        Write-Host "  $header" -ForegroundColor Red
+        return [PSCustomObject]@{ Header = $header; FullPlainReport = $header }
     }
 }
 
@@ -998,6 +1002,7 @@ function Invoke-MonitoredProcess {
 
         $failureReport = Write-ForensicProcessFailure -TaskDescription $TaskDescription `
             -FilePath $FilePath `
+            -CommandLine $argumentsString `
             -ExitCode $exitCode `
             -StdOut $stdout `
             -StdErr $stderr `
@@ -1013,12 +1018,10 @@ function Invoke-MonitoredProcess {
         TimedOut          = $timedOut
         ExitCode          = $exitCode
         ExitCodeHex       = if ($failureReport) { $failureReport.ExitCodeHex } else { "0x{0:X8}" -f ([int32]$exitCode) }
-        SymbolicName      = if ($failureReport) { $failureReport.SymbolicName } else { "SUCCESS" }
-        Meaning           = if ($failureReport) { $failureReport.Meaning } else { "" }
-        DiagnosticText    = if ($failureReport) { $failureReport.DiagnosticText } else { "" }
-        DiagnosticLines   = if ($failureReport) { $failureReport.DiagnosticLines } else { @() }
+        CommandLine       = $argumentsString
         StdOut            = $stdout
         StdErr            = $stderr
+        FullPlainReport   = if ($failureReport) { $failureReport.FullPlainReport } else { "" }
         ElapsedSeconds    = $elapsedTotal
         DurationSeconds   = $elapsedTotal
         Task              = $TaskDescription
@@ -2086,11 +2089,12 @@ function Invoke-RomanOSDismComponentRemoval {
                     continue
                 } else {
                     $errInfo = Get-RomanOSErrorCodeDetails -ExitCode $procRes.ExitCode
-                    $failMsg = "Fallo al remover Capability '$target' (ExitCode: $($procRes.ExitCode) [$($errInfo.ExitCodeHex)] - $($errInfo.SymbolicName): $($errInfo.Meaning))"
-                    if ($procRes.DiagnosticText) { $failMsg += " // Detalle: $($procRes.DiagnosticText)" }
+                    $failMsg = "Fallo al remover Capability '$target' (ExitCode: $($procRes.ExitCode) [$($errInfo.ExitCodeHex)])"
+                    if ($procRes.StdErr) { $failMsg += " // STDERR: $($procRes.StdErr)" }
+                    elseif ($procRes.StdOut) { $failMsg += " // STDOUT: $($procRes.StdOut)" }
                     Write-Warn $failMsg
                     $result.FailedCount++
-                    $result.Details.Add("FAIL: $target (ExitCode: $($procRes.ExitCode) - $($errInfo.SymbolicName))")
+                    $result.Details.Add("FAIL: $target (ExitCode: $($procRes.ExitCode) [$($errInfo.ExitCodeHex)])")
                     continue
                 }
             }
@@ -2115,11 +2119,12 @@ function Invoke-RomanOSDismComponentRemoval {
                     continue
                 } else {
                     $errInfo = Get-RomanOSErrorCodeDetails -ExitCode $procRes.ExitCode
-                    $failMsg = "Fallo al remover Feature '$target' (ExitCode: $($procRes.ExitCode) [$($errInfo.ExitCodeHex)] - $($errInfo.SymbolicName): $($errInfo.Meaning))"
-                    if ($procRes.DiagnosticText) { $failMsg += " // Detalle: $($procRes.DiagnosticText)" }
+                    $failMsg = "Fallo al remover Feature '$target' (ExitCode: $($procRes.ExitCode) [$($errInfo.ExitCodeHex)])"
+                    if ($procRes.StdErr) { $failMsg += " // STDERR: $($procRes.StdErr)" }
+                    elseif ($procRes.StdOut) { $failMsg += " // STDOUT: $($procRes.StdOut)" }
                     Write-Warn $failMsg
                     $result.FailedCount++
-                    $result.Details.Add("FAIL: $target (ExitCode: $($procRes.ExitCode) - $($errInfo.SymbolicName))")
+                    $result.Details.Add("FAIL: $target (ExitCode: $($procRes.ExitCode) [$($errInfo.ExitCodeHex)])")
                     continue
                 }
             }
@@ -2291,8 +2296,9 @@ function Invoke-RomanOSComponentStoreCleanup {
             Write-OK $result.Summary
         } else {
             $errInfo = Get-RomanOSErrorCodeDetails -ExitCode $result.ExitCode
-            $result.Summary = "ComponentStoreCleanup finalizo con ExitCode: $($result.ExitCode) [$($errInfo.ExitCodeHex)] - $($errInfo.SymbolicName): $($errInfo.Meaning)"
-            if ($procRes.DiagnosticText) { $result.Summary += " // Detalle: $($procRes.DiagnosticText)" }
+            $result.Summary = "ComponentStoreCleanup finalizo con ExitCode: $($result.ExitCode) [$($errInfo.ExitCodeHex)]"
+            if ($procRes.StdErr) { $result.Summary += " // STDERR: $($procRes.StdErr)" }
+            elseif ($procRes.StdOut) { $result.Summary += " // STDOUT: $($procRes.StdOut)" }
             Write-Warn $result.Summary
         }
     } catch {
@@ -6845,8 +6851,9 @@ if ($wimFile) {
                                                 } else {
                                                     $failCount++
                                                     $errDetails = Get-RomanOSErrorCodeDetails -ExitCode $dismPsfRes.ExitCode
-                                                    $psfErrMsg = "ERROR PSF en '$($pkg.Name)': $($dismPsfRes.ExitCode) [$($errDetails.ExitCodeHex)] - $($errDetails.SymbolicName): $($errDetails.Meaning)"
-                                                    if ($dismPsfRes.DiagnosticText) { $psfErrMsg += " // $($dismPsfRes.DiagnosticText)" }
+                                                    $psfErrMsg = "ERROR PSF en '$($pkg.Name)': ExitCode $($dismPsfRes.ExitCode) [$($errDetails.ExitCodeHex)]"
+                                                    if ($dismPsfRes.StdErr) { $psfErrMsg += " // STDERR: $($dismPsfRes.StdErr)" }
+                                                    elseif ($dismPsfRes.StdOut) { $psfErrMsg += " // STDOUT: $($dismPsfRes.StdOut)" }
                                                     Write-Host "      $psfErrMsg" -ForegroundColor Red
                                                     Write-LogEntry -Level "WARN" -Message $psfErrMsg
                                                 }
@@ -6877,8 +6884,9 @@ if ($wimFile) {
                                                     } else {
                                                         $failCount++
                                                         $errDetails = Get-RomanOSErrorCodeDetails -ExitCode $dismCabRes.ExitCode
-                                                        $cabErrMsg = "ERROR .cab en '$($pkg.Name)': $($dismCabRes.ExitCode) [$($errDetails.ExitCodeHex)] - $($errDetails.SymbolicName): $($errDetails.Meaning)"
-                                                        if ($dismCabRes.DiagnosticText) { $cabErrMsg += " // $($dismCabRes.DiagnosticText)" }
+                                                        $cabErrMsg = "ERROR .cab en '$($pkg.Name)': ExitCode $($dismCabRes.ExitCode) [$($errDetails.ExitCodeHex)]"
+                                                        if ($dismCabRes.StdErr) { $cabErrMsg += " // STDERR: $($dismCabRes.StdErr)" }
+                                                        elseif ($dismCabRes.StdOut) { $cabErrMsg += " // STDOUT: $($dismCabRes.StdOut)" }
                                                         Write-Host "      $cabErrMsg" -ForegroundColor Red
                                                         Write-LogEntry -Level "WARN" -Message $cabErrMsg
                                                     }
@@ -6895,7 +6903,7 @@ if ($wimFile) {
                                 } catch {
                                     $failCount++
                                     Write-Host " ERROR: $($_.Exception.Message)." -ForegroundColor Red
-                                    Write-ForensicException -Record $_ -Context "Slipstream Update ($($pkg.Name))" -SuggestedAction "Verifique la compatibilidad del paquete KB con la version de Windows en el WIM"
+                                    Write-ForensicException -Record $_ -Context "Slipstream Update ($($pkg.Name))"
                                 }
                             }
 
@@ -6986,7 +6994,7 @@ if ($wimFile) {
                                                     -Details "DISM Add-Driver falló con exit code: $($dismDrv.ExitCode)"
                                 }
                             } catch {
-                                Write-ForensicException -Record $_ -Context "Inyeccion Drivers Offline (WIM Idx $wimIndex)" -SuggestedAction "Verifique que los archivos .inf sean validos y compatibles con la arquitectura $Architecture"
+                                Write-ForensicException -Record $_ -Context "Inyeccion Drivers Offline (WIM Idx $wimIndex)"
                                 Add-AuditRecord -Resource "Drivers INF offline" -Target "WIM Idx $wimIndex" `
                                                 -Status "FAIL" `
                                                 -Details $_.Exception.Message
@@ -8204,7 +8212,7 @@ if ($wimFile) {
                          Remove-Item -Path $WimMountDir -Recurse -Force -ErrorAction SilentlyContinue
                      }
                  } catch {
-                     Write-ForensicException -Record $_ -Context "Inyeccion en WIM indice ${wimIndex}" -SuggestedAction "Revise los parametros y rutas de modulos inyectados antes de desmontar el WIM"
+                     Write-ForensicException -Record $_ -Context "Inyeccion en WIM indice ${wimIndex}"
                      Add-AuditRecord -Resource "WIM Servicing" -Target "WIM Idx $wimIndex" `
                                      -Status "FAIL" -Details $_.Exception.Message
 
@@ -8784,7 +8792,7 @@ if (-not $oscdimg) {
                             -Details "oscdimg falló con exit code: $($oscdRes.ExitCode)"
         }
     } catch {
-        Write-ForensicException -Record $_ -Context "Compilacion ISO (oscdimg)" -SuggestedAction "Verifique que oscdimg.exe este operativo y no haya bloqueos en $outputISO"
+        Write-ForensicException -Record $_ -Context "Compilacion ISO (oscdimg)"
         Add-AuditRecord -Resource "ISO Final" -Target $outputISO -Status "FAIL" `
                         -Details $_.Exception.Message
     } finally {

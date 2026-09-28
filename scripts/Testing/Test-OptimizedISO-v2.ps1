@@ -403,6 +403,18 @@ Assert-True "Write-LogSummary: MD contiene encabezado Status" ($mdContent -match
 Assert-True "Write-LogSummary: MD contiene tabla de pasos" ($mdContent -match '\| Step \|')
 Assert-True "Write-LogSummary: MD contiene campo Duration" ($mdContent -match "Duration")
 
+# Pruebas de Diagnóstico Forense Crudo y Normalización de Errores (PLAN-0140)
+$errNorm = Get-RomanOSErrorCodeDetails -ExitCode -2146498554
+Assert-Equal "Get-RomanOSErrorCodeDetails: ExitCode decimal preservado" $errNorm.ExitCodeDecimal -2146498554
+Assert-Equal "Get-RomanOSErrorCodeDetails: ExitCodeHex unsigned 32-bit" $errNorm.ExitCodeHex "0x800F0806"
+Assert-True "Get-RomanOSErrorCodeDetails: sin campos basura SymbolicName" ($null -eq $errNorm.PSObject.Properties['SymbolicName'])
+
+$procFail = Write-ForensicProcessFailure -TaskDescription "Prueba Proceso" -FilePath "test.exe" -CommandLine "/arg1 /arg2" -ExitCode 87 -StdOut "Linea StdOut" -StdErr "Linea StdErr" -IsWarningOnly
+Assert-NotNull "Write-ForensicProcessFailure: genera reporte no nulo" $procFail
+Assert-Equal "Write-ForensicProcessFailure: ExitCodeHex correcto" $procFail.ExitCodeHex "0x00000057"
+Assert-True "Write-ForensicProcessFailure: FullPlainReport contiene salida cruda" ($procFail.FullPlainReport -match "Linea StdOut" -and $procFail.FullPlainReport -match "Linea StdErr")
+Assert-True "Write-ForensicProcessFailure: sin campos basura SymbolicName" ($null -eq $procFail.PSObject.Properties['SymbolicName'])
+
 # --- FASE 2B: DIAGNOSTICO Y AMBIENTE ---
 Write-HarnessHeader2 "FASE 2B: Diagnostico y Entorno"
 $adminCheck = Test-Admin
@@ -1185,7 +1197,7 @@ try {
     $nullObj = $null
     $nullObj.NonExistentMethod()
 } catch {
-    $forensicTestResult = Write-ForensicException -Record $_ -Context "TestHarness" -SuggestedAction "Accion de prueba"
+    $forensicTestResult = Write-ForensicException -Record $_ -Context "TestHarness"
 }
 Assert-NotNull "PLAN-0054: Write-ForensicException retorna objeto de diagnostico estructurado" $forensicTestResult
 Assert-True "PLAN-0054: Write-ForensicException captura numero de linea (>0)" ([bool]($forensicTestResult.LineNumber -gt 0))

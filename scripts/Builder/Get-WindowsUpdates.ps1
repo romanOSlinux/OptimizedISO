@@ -148,6 +148,35 @@ if (-not $uiLoaded) {
     function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
     function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
     function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
+    function Get-RomanOSErrorCodeDetails {
+        param([long]$ExitCode)
+        $intVal = try { [int32]$ExitCode } catch { [int32]($ExitCode -band 0xFFFFFFFFL) }
+        $hexStr = "0x{0:X8}" -f $intVal
+        return [PSCustomObject]@{ ExitCodeDecimal = $ExitCode; ExitCodeHex = $hexStr }
+    }
+    function Write-ForensicProcessFailure {
+        param($TaskDescription, $FilePath, [long]$ExitCode, [string]$CommandLine = "", [string]$StdOut = "", [string]$StdErr = "", [string]$LogFilePath = "", [switch]$IsWarningOnly)
+        $level = if ($IsWarningOnly) { "WARN" } else { "ERROR" }
+        $hexStr = "0x{0:X8}" -f ([int32]$ExitCode)
+        $header = "[$level] Fallo en proceso '$TaskDescription' | ExitCode: $ExitCode ($hexStr)"
+        Write-Host "  $header" -ForegroundColor $(if($IsWarningOnly){"Yellow"}else{"Red"})
+        return [PSCustomObject]@{
+            Header          = $header
+            ExitCode        = $ExitCode
+            ExitCodeHex     = $hexStr
+            CommandLine     = $CommandLine
+            StdOut          = $StdOut
+            StdErr          = $StdErr
+            FullPlainReport = "$header`n$StdOut`n$StdErr".Trim()
+        }
+    }
+    function Write-ForensicException {
+        param($Record, [string]$Context = "")
+        $msg = if ($Record -is [System.Management.Automation.ErrorRecord]) { $Record.Exception.Message } else { "$Record" }
+        $header = "[ERROR] $(if($Context){"[$Context] "})$msg"
+        Write-Host "  $header" -ForegroundColor Red
+        return [PSCustomObject]@{ Header = $header; FullPlainReport = $header }
+    }
 }
 
 # -----------------------------------------------------------------------------
@@ -198,6 +227,7 @@ $script:LogFile        = Join-Path $logDir "Get-Updates_$_logTs.log"
 $script:TranscriptFile = Join-Path $logDir "Get-Updates_${_logTs}_transcript.log"
 $script:AiSummaryFile  = Join-Path $logDir "Get-Updates_${_logTs}_AI_SUMMARY.md"
 $script:StartTime      = Get-Date
+$global:RomanOS_LogFile = $script:LogFile
 
 $script:LogErrors  = [System.Collections.Generic.List[string]]::new()
 $script:LogWarns   = [System.Collections.Generic.List[string]]::new()
@@ -206,14 +236,23 @@ $script:Downloaded = [System.Collections.Generic.List[PSObject]]::new()
 function Write-LogEntry {
     [CmdletBinding()]
     param(
-        [ValidateSet("INIT","STEP","INFO","OK","WARN","ERROR","DEBUG")]
+        [ValidateSet("INIT","STEP","INFO","OK","WARN","ERROR","DEBUG","TRACE")]
         [string]$Level = "INFO",
         [string]$Message
     )
-    $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $line = "[$ts] [$($Level.PadRight(5))] $Message"
-    if ($script:LogFile) {
-        Add-Content -Path $script:LogFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+    $normalizedLevel = switch ($Level) {
+        "INIT" { "INFO" }
+        "STEP" { "INFO" }
+        default { $Level }
+    }
+    if (Get-Command "Write-UnifiedLogEntry" -ErrorAction SilentlyContinue) {
+        Write-UnifiedLogEntry -Message $Message -Level $normalizedLevel -TargetLogFile $script:LogFile | Out-Null
+    } else {
+        $ts   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $line = "[$ts] [$($normalizedLevel.PadRight(5))] $Message"
+        if ($script:LogFile) {
+            Add-Content -Path $script:LogFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+        }
     }
     if ($Level -eq "ERROR") { $script:LogErrors.Add($Message) }
     if ($Level -eq "WARN")  { $script:LogWarns.Add($Message)  }
@@ -266,7 +305,7 @@ function Write-LogSummary {
             [System.IO.File]::WriteAllText($script:AiSummaryFile, $sb.ToString(), [System.Text.Encoding]::UTF8)
         }
     } catch {
-        Write-ForensicException -Record $_ -Context "Generacion AI_SUMMARY.md" -SuggestedAction "Verifique permisos de escritura en la carpeta de Logs"
+        Write-ForensicException -Record $_ -Context "Generacion AI_SUMMARY.md"
     }
 
     $logMap = @{}
@@ -846,7 +885,7 @@ try {
     [System.IO.File]::WriteAllText($manifestPath, $manifestJson, [System.Text.Encoding]::UTF8)
     Write-OK "Manifiesto de actualizaciones guardado: $manifestPath"
 } catch {
-    Write-ForensicException -Record $_ -Context "Guardado de Manifiesto de Updates" -SuggestedAction "Verifique permisos de escritura en la carpeta de destino"
+    Write-ForensicException -Record $_ -Context "Guardado de Manifiesto de Updates"
 }
 
 Write-LogSummary

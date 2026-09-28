@@ -155,6 +155,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0137 | [PLAN-0137-20260928-auditoria-cero-confianza-ecosistema-completo.md](PLAN-0137-20260928-auditoria-cero-confianza-ecosistema-completo.md) | 2026-09-28 | Auditoría Integral Cero-Confianza del Ecosistema romanOS: Inquisición de Código, Fuentes Oficiales, Telemetría Real y Matriz de Pruebas Imposibles | COMPLETADO |
 | 0138 | [PLAN-0138-20260928-auditoria-forense-script-por-script.md](PLAN-0138-20260928-auditoria-forense-script-por-script.md) | 2026-09-28 | Auditoría Forense Exhaustiva Script por Script y Botón por Botón del Ecosistema romanOS | COMPLETADO |
 | 0139 | [PLAN-0139-20260928-sistema-diagnostico-y-visibilidad-errores-logging.md](PLAN-0139-20260928-sistema-diagnostico-y-visibilidad-errores-logging.md) | 2026-09-28 | Sistema de Diagnóstico Forense y Visibilidad Total de Errores en Logging (Erradicación de Advertencias Ciegas) | COMPLETADO |
+| 0140 | [PLAN-0140-20260928-extension-repo-wide-logging-forense-crudo-sin-sesgo.md](PLAN-0140-20260928-extension-repo-wide-logging-forense-crudo-sin-sesgo.md) | 2026-09-28 | Extensión Repo-Wide de Logging Forense Crudo en Texto Plano (Sin Sesgo ni Parámetros Basura) | COMPLETADO |
 
 
 

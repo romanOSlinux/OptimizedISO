@@ -145,6 +145,35 @@ if (-not $uiLoaded) {
     function Prompt-UnifiedYesNo { param($Prompt,[bool]$Default=$true) $d=if($Default){"S"}else{"N"}; $r=Read-Host "  [?] $Prompt [S/N] (Default: $d)"; if([string]::IsNullOrWhiteSpace($r)){return $Default}; return ($r -match '^(s|si|y|yes)$') }
     function Show-UnifiedMenu   { param($Title,$Options,[int]$DefaultChoice=1,[switch]$AllowCancel,[string]$CancelText="Salir") for($i=0;$i -lt $Options.Count;$i++){ Write-Host "  [$($i+1)] $($Options[$i])" }; if($AllowCancel){ Write-Host "  [0] $CancelText" }; $r=Read-Host "  Opcion"; if(-not $r){return $DefaultChoice}; return [int]$r }
     function Show-UnifiedSummary { param($Title,$Status,$DurationSeconds,$ErrorsCount,$WarnsCount,$Logs) Write-Host "`n=== $($Title): $Status (${DurationSeconds}s) ===`n" -ForegroundColor Cyan }
+    function Get-RomanOSErrorCodeDetails {
+        param([long]$ExitCode)
+        $intVal = try { [int32]$ExitCode } catch { [int32]($ExitCode -band 0xFFFFFFFFL) }
+        $hexStr = "0x{0:X8}" -f $intVal
+        return [PSCustomObject]@{ ExitCodeDecimal = $ExitCode; ExitCodeHex = $hexStr }
+    }
+    function Write-ForensicProcessFailure {
+        param($TaskDescription, $FilePath, [long]$ExitCode, [string]$CommandLine = "", [string]$StdOut = "", [string]$StdErr = "", [string]$LogFilePath = "", [switch]$IsWarningOnly)
+        $level = if ($IsWarningOnly) { "WARN" } else { "ERROR" }
+        $hexStr = "0x{0:X8}" -f ([int32]$ExitCode)
+        $header = "[$level] Fallo en proceso '$TaskDescription' | ExitCode: $ExitCode ($hexStr)"
+        Write-Host "  $header" -ForegroundColor $(if($IsWarningOnly){"Yellow"}else{"Red"})
+        return [PSCustomObject]@{
+            Header          = $header
+            ExitCode        = $ExitCode
+            ExitCodeHex     = $hexStr
+            CommandLine     = $CommandLine
+            StdOut          = $StdOut
+            StdErr          = $StdErr
+            FullPlainReport = "$header`n$StdOut`n$StdErr".Trim()
+        }
+    }
+    function Write-ForensicException {
+        param($Record, [string]$Context = "")
+        $msg = if ($Record -is [System.Management.Automation.ErrorRecord]) { $Record.Exception.Message } else { "$Record" }
+        $header = "[ERROR] $(if($Context){"[$Context] "})$msg"
+        Write-Host "  $header" -ForegroundColor Red
+        return [PSCustomObject]@{ Header = $header; FullPlainReport = $header }
+    }
 }
 
 # ============================================================
@@ -204,6 +233,7 @@ $script:TranscriptFile = "$logDir\Setup-Windows_${_logTs}_transcript.log"
 $script:AiSummaryFile  = "$logDir\Setup-Windows_${_logTs}_AI_SUMMARY.md"
 $script:DebloatStart   = Get-Date
 $log                   = $script:LogFile   # compatibilidad con Write-Host existentes
+$global:RomanOS_LogFile = $script:LogFile
 
 $script:LogErrors   = [System.Collections.Generic.List[string]]::new()
 $script:LogWarns    = [System.Collections.Generic.List[string]]::new()
@@ -211,17 +241,26 @@ $script:LogWarns    = [System.Collections.Generic.List[string]]::new()
 function Write-LogEntry {
     [CmdletBinding()]
     param(
-        [ValidateSet("INIT","STEP","INFO","OK","WARN","ERROR","DEBUG")]
+        [ValidateSet("INIT","STEP","INFO","OK","WARN","ERROR","DEBUG","TRACE")]
         [string]$Level = "INFO",
         [string]$Message
     )
-    $ts   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $line = "[$ts] [$($Level.PadRight(5))] $Message"
-    if ($script:LogFile) {
-        Add-Content -Path $script:LogFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+    $normalizedLevel = switch ($Level) {
+        "INIT" { "INFO" }
+        "STEP" { "INFO" }
+        default { $Level }
     }
-    if ($Level -eq "ERROR") { $script:LogErrors.Add($line) }
-    if ($Level -eq "WARN")  { $script:LogWarns.Add($line) }
+    if (Get-Command "Write-UnifiedLogEntry" -ErrorAction SilentlyContinue) {
+        Write-UnifiedLogEntry -Message $Message -Level $normalizedLevel -TargetLogFile $script:LogFile | Out-Null
+    } else {
+        $ts   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $line = "[$ts] [$($normalizedLevel.PadRight(5))] $Message"
+        if ($script:LogFile) {
+            Add-Content -Path $script:LogFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+        }
+    }
+    if ($Level -eq "ERROR") { $script:LogErrors.Add($Message) }
+    if ($Level -eq "WARN")  { $script:LogWarns.Add($Message)  }
 }
 
 function Write-LogSummary {
@@ -1342,8 +1381,11 @@ if ($presentBloatware.Count -eq 0) {
                     try {
                         $pkg | Remove-AppxPackage -AllUsers -ErrorAction Stop
                         Write-Host "  - Removed (installed): $appName" -ForegroundColor Green
+                        Write-LogEntry -Level "OK" -Message "Removido Appx (instalado): $appName ($($pkg.PackageFullName))"
                     } catch {
-                        Write-Host "  ! Could not remove $appName : $($_.Exception.Message)" -ForegroundColor Yellow
+                        $errPlain = "Fallo al remover Appx '$appName': $($_.Exception.Message)"
+                        Write-Host "  ! $errPlain" -ForegroundColor Yellow
+                        Write-LogEntry -Level "WARN" -Message $errPlain
                     }
                 }
             }
@@ -1356,8 +1398,12 @@ if ($presentBloatware.Count -eq 0) {
                     $dismRemove = & DISM.exe /Online /Remove-ProvisionedAppxPackage /PackageName:$pkgFullName 2>&1
                     if ($LASTEXITCODE -in @(0, 1641, 3010)) {
                         Write-Host "  - Removed (provisioned): $appName" -ForegroundColor DarkGreen
+                        Write-LogEntry -Level "OK" -Message "Removido paquete provisionado: $pkgFullName"
                     } else {
-                        Write-Host "  ! DISM /Remove-ProvisionedAppxPackage exit $LASTEXITCODE para: $pkgFullName" -ForegroundColor Yellow
+                        $rawDismOutput = ($dismRemove | ForEach-Object { "$_" }) -join " // "
+                        $errDismMsg = "Fallo DISM /Remove-ProvisionedAppxPackage ($LASTEXITCODE) para: $pkgFullName | Salida: $rawDismOutput"
+                        Write-Host "  ! DISM exit $LASTEXITCODE para: $pkgFullName" -ForegroundColor Yellow
+                        Write-LogEntry -Level "WARN" -Message $errDismMsg
                     }
                 }
             }
@@ -1744,8 +1790,11 @@ if ($selectedServices) {
             try {
                 Set-Service -Name $svcInfo.Name -StartupType Disabled -ErrorAction Stop
                 Write-Host "  - Deshabilitado: $($svcInfo.DisplayName)" -ForegroundColor Green
+                Write-LogEntry -Level "OK" -Message "Servicio deshabilitado: $($svcInfo.Name) ($($svcInfo.DisplayName))"
             } catch {
-                Write-Host "  ! Error al deshabilitar $($svcInfo.Name): $($_.Exception.Message)" -ForegroundColor Red
+                $errSvc = "Error al deshabilitar servicio $($svcInfo.Name): $($_.Exception.Message)"
+                Write-Host "  ! $errSvc" -ForegroundColor Red
+                Write-LogEntry -Level "WARN" -Message $errSvc
             }
         } else {
             Write-Host "  - No existe: $($svcInfo.Name)" -ForegroundColor DarkGray
