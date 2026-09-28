@@ -31,14 +31,18 @@
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [bool]$ExportReport = $true,
+    [object]$ExportReport = $true,
     [string]$OutputDir,
-    [bool]$ShowRemediation = $true,
+    [object]$ShowRemediation = $true,
     [switch]$NoColor,
     [switch]$Quiet,
     [switch]$PassThru,
     [switch]$SkipElevation
 )
+
+# Normalizacion tolerante a invocaciones CLI (string 'false'/'true' o int 0/1)
+$ExportReport    = if ($ExportReport -is [bool]) { $ExportReport } else { ($ExportReport -as [string]) -notmatch '^(false|0)$' }
+$ShowRemediation = if ($ShowRemediation -is [bool]) { $ShowRemediation } else { ($ShowRemediation -as [string]) -notmatch '^(false|0)$' }
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 

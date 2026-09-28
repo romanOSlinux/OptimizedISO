@@ -1099,7 +1099,7 @@ $global:RomanOS_Policies = @(
         Description   = "Evitar descarga de metadatos de dispositivos desde la red (previene instalacion de apps HSA de soporte de hardware)"
         OfficialDoc   = "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-deviceinstallation"
         UnattendDesc  = "Prevent Device Metadata Retrieval From Network"
-    },
+    },
     @{
         Id            = "DEBLOAT_DoNotShowFeedbackNotifications"
         Module        = "Modulo Debloat - Telemetria"
@@ -2794,7 +2794,7 @@ $global:RomanOS_NetworkPolicies = @(
         DisplayMatch    = "Flow Control|Control de flujo"
         DisplayValue    = "Disabled"
         Description   = "Control de flujo desactivado para evitar bufferbloat local."
-    }    ,
+    },
     @{
         Id            = "NET_NIC_QOS_8021P"
         Category      = "Hardware NIC"

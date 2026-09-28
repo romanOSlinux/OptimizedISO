@@ -10,11 +10,14 @@ param(
     [switch]$ShowReport,
     [switch]$ShowHtml,
     [string]$ExpectedProfile = "1",
-    [bool]$ExpectedBlockOneDrive = $false,
+    [object]$ExpectedBlockOneDrive = $false,
     [switch]$Quiet,
     [switch]$PassThru,
     [switch]$SkipElevation
 )
+
+# Normalizacion tolerante a invocaciones CLI (string 'false'/'true' o int 0/1)
+$ExpectedBlockOneDrive = if ($ExpectedBlockOneDrive -is [bool]) { $ExpectedBlockOneDrive } else { ($ExpectedBlockOneDrive -as [string]) -match '^(true|1)$' }
 
 $ErrorActionPreference = 'Continue'
 

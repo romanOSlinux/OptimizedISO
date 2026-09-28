@@ -62,7 +62,7 @@ param(
 
     [switch]$InstallRuntimesOnly,
 
-    [bool]$IncludeRuntimes = $true,
+    [object]$IncludeRuntimes = $true,
 
     [switch]$AutoDetectHardware,
 
@@ -80,6 +80,9 @@ param(
 
     [switch]$PassThru
 )
+
+# Normalizacion tolerante a invocaciones CLI (string 'false'/'true' o int 0/1)
+$IncludeRuntimes = if ($IncludeRuntimes -is [bool]) { $IncludeRuntimes } else { ($IncludeRuntimes -as [string]) -notmatch '^(false|0)$' }
 
 # -----------------------------------------------------------------------------
 # 1. CONFIGURACION DE RUTAS BASE Y LOGGING
