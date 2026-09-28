@@ -54,5 +54,12 @@ El usuario ha ordenado explícitamente erradicar cualquier lista o diccionario e
   - Ejecución en Windows PowerShell 5.1 (`powershell.exe`): **610/610 PASS (100%)**, 0 fallos.
   - Ejecución de arnés maestro `Invoke-RomanOSHarness.ps1 -Fast`: **5/5 PASS (100%)**, 0 errores AST, 100% UTF-8 BOM, 0 bloques catch vacíos.
   - Búsqueda repo-wide de residuos: CERO residuos de `SymbolicName`, `SuggestedAction`, `DiagnosticText`, `DiagnosticLines`.
-- [x] **Fase 5: Registro Atómico en Git y Sincronización:**
-  - Commit atómico y sincronización con repositorio remoto.
+- [x] **Fase 5: Erradicación del Segundo Tipo de Log (PadRight) y Estandarización AppendAllText:**
+  - Identificada y eliminada la discrepancia donde `New-OptimizedWindowsISO-v2.ps1` y los fallbacks utilizaban `PadRight(5)` produciendo líneas heterogéneas (`[INFO ]` vs `[INFO]`).
+  - `Write-LogEntry` en `New-OptimizedWindowsISO-v2.ps1` unificado para delegar en `Write-UnifiedLogEntry`.
+  - Reemplazado `[System.IO.File]::AppendAllLines` por `[System.IO.File]::AppendAllText($file, ($line + "`r`n"), [System.Text.Encoding]::UTF8)` en todos los módulos, solucionando la incompatibilidad de sobrecarga de métodos en Windows PowerShell 5.1 (.NET Framework).
+  - DISM en `Invoke-WindowsMaintenance.ps1` actualizado para emitir `Write-ForensicProcessFailure` conectando el log físico `dism.log`.
+  - Micro-fallback en `Invoke-WindowsSecurityHardening.ps1` actualizado con soporte forense integral.
+- [x] **Fase 6: Registro Atómico en Git y Sincronización:**
+  - Certificación con 610/610 pruebas pasadas (100% PASS) y 5/5 en el arnés maestro.
+  - Commit atómico `2e3c859` registrado tras superar 14 fases de pre-commit hooks.
