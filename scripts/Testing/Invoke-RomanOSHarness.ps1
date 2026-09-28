@@ -161,6 +161,44 @@ Assert-Harness "Tier1_Static_AST" "Erradicación de bloques catch vacíos (CWE-3
     return $true
 }
 
+# 1.5 Soberanía de Herramientas y Hermeticidad del Repositorio (Regla 18 / Dimensión E)
+Assert-Harness "Tier1_Static_AST" "Soberanía de Herramientas Locales y Presencia de Binarios Canónicos (Regla 18)" {
+    $requiredTools = @(
+        "tools\wimlib\wimlib-imagex.exe",
+        "tools\sysinternals\sigcheck64.exe",
+        "tools\sysinternals\Coreinfo64.exe",
+        "tools\sysinternals\autorunsc64.exe",
+        "tools\everything\es.exe"
+    )
+    $missingTools = @()
+    foreach ($rt in $requiredTools) {
+        $p = Join-Path $repoRoot $rt
+        if (-not (Test-Path -LiteralPath $p)) {
+            $missingTools += $rt
+        }
+    }
+    if ($missingTools.Count -gt 0) {
+        throw "Herramientas canónicas faltantes en tools/: $($missingTools -join ', ')"
+    }
+
+    # Prohibición de llamadas duras a 7z.exe en scripts de diagnóstico / scratch (deben usar wimlib)
+    $scratchScripts = Get-ChildItem -Path (Join-Path $repoRoot "scratch") -Filter "*.ps1" -File -ErrorAction SilentlyContinue
+    $violations = @()
+    if ($scratchScripts) {
+        foreach ($s in $scratchScripts) {
+            $content = [System.IO.File]::ReadAllText($s.FullName)
+            if ($content -match '(?i)Program\s*Files\\7-Zip|7z\.exe') {
+                $violations += "$($s.Name) invoca 7z.exe (Infracción Regla 18 - Debe consumir WimLib-Helper.ps1)"
+            }
+        }
+    }
+    if ($violations.Count -gt 0) {
+        throw "Infracciones de soberanía de herramientas en scratch: $($violations -join '; ')"
+    }
+
+    return $true
+}
+
 if ($Fast) {
     Write-Host "`n[INFO] Modo -Fast activado (L1: check:fast). Omitiendo Tiers 2-5." -ForegroundColor Yellow
 } else {

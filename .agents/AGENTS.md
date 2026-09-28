@@ -200,5 +200,33 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **17.6. Desacoplamiento de Contexto vía `.agents/references/`:**
   Las listas de verificación extensas, matrices de hardware y tablas de compatibilidad deben residir en archivos desacoplados bajo `.agents/references/`, siendo consultados bajo demanda para prevenir la saturación de contexto (*context dilution*) y la amnesia del modelo.
 
+## 18. Soberanía de Herramientas Locales, Prohibición de Binarios Ajenos y Mapeo Canónico Obligatorio (Tool-Gating)
+- **18.1. Prohibición Taxativa de Herramientas Ajenas y Rutas Fuera del Repositorio:**
+  1. Queda TERMINANTEMENTE PROHIBIDO para cualquier script del repositorio o script temporal en `scratch/` invocar binarios instalados en el host (`C:\Program Files\*`, `C:\Program Files (x86)\*`, `7z.exe`, `WinRAR`, `dism /Mount-Wim` para meras tareas de lectura o inspección).
+  2. Todo comando de diagnóstico, compilación, auditoría o extracción DEBE resolverse exclusivamente mediante los binarios versionados en `tools/` o las funciones canónicas de `scripts/Core/`.
+  3. El uso de herramientas genéricas de terceros del host constituye una infracción crítica de portabilidad, reproducibilidad y gobernanza.
+
+- **18.2. Tabla de Mapeo Canónico Obligatorio (Invariable e Inviolable):**
+  Ante cualquier necesidad operativa, el agente DEBE utilizar estrictamente el componente canónico asignado:
+
+| Dominio Operativo / Tarea | Herramienta Canónica en `tools/` | Módulo Wrapper en `scripts/Core/` | Prohibición Explícita |
+| :--- | :--- | :--- | :--- |
+| **Manipulación / Lectura de WIM/ESD/ISO** | `tools\wimlib\wimlib-imagex.exe` | `scripts\Core\WimLib-Helper.ps1` (`Get-WimImageInfoFast`, `Get-WimFileListFast`, `Export-WimFileFast`) | Prohibido `7z.exe`, `dism /mount` para lectura o descompresión manual a disco. |
+| **Validación de Firmas Authenticode / WHQL** | `tools\sysinternals\sigcheck64.exe` | `scripts\Core\Sysinternals-Helper.ps1` (`Test-BinarySignatureWHQL`) | Prohibido asumir validez sin hash y firma Authenticode verificada. |
+| **Mapeo de Topología CPU / Caché / NUMA** | `tools\sysinternals\Coreinfo64.exe` | `scripts\Core\Hardware-Engine.ps1` / `Sysinternals-Helper.ps1` | Prohibido usar WMI genérico para inferir P/E Cores o 3D V-Cache sin soporte nativo. |
+| **Inspección Forense de Servicios e Inicio** | `tools\sysinternals\autorunsc64.exe` | `scripts\Core\Sysinternals-Helper.ps1` | Prohibido listar autoruns con scripts ad-hoc incompletos. |
+| **Búsqueda Instantánea de Archivos en Host** | `tools\everything\es.exe` | Invocación CLI directa de `es.exe` | Prohibido ejecutar `Get-ChildItem -Recurse C:\` que bloquee el disco del host. |
+| **Persistencia Inter-Sesión de Lecciones** | Servidor MCP `memory` | Entidades y observaciones en grafo persistente | Prohibido almacenar conclusiones exclusivamente en texto de chat efímero. |
+| **Consulta Web Oficial de Documentación** | Servidor MCP `fetch` | Extracción markdown limpia de Microsoft Learn | Prohibido alucinar flags de línea de comandos o esquemas sin verificar en fuente oficial. |
+
+- **18.3. Protocolo de Paso Cero de Herramientas y Habilidades (Pre-Flight Tool Gate):**
+  Antes de generar o ejecutar cualquier script o comando (incluyendo scripts de prueba en `scratch/`), el agente DEBE declarar internamente en su razonamiento:
+  1. *Skill Declarada:* La skill de `.agents/skills/` que rige la operación (ej. `powershell-windows`, `holistic-audit`, `debug-strategy`).
+  2. *Componente Asignado:* La ruta exacta del binario en `tools/` o función canónica de `scripts/Core/` que ejecutará la acción.
+  3. *Verificación de Aislamiento:* Si la herramienta no existe en `tools/` o `scripts/Core/`, SOLO se permite recurrir a cmdlets nativos del sistema operativo (`Get-Volume`, `Test-Path`, etc.) documentando explícitamente la ausencia de contraparte local.
+
+- **18.4. Erradicación de Scripts Ad-Hoc Huérfanos:**
+  Cualquier script temporal en `scratch/` debe ser un consumidor formal de `scripts/Core/` (mediante `. "$PSScriptRoot\..\scripts\Core\*.ps1"` o carga controlada) y nunca un código monolítico que reinvente wrappers o invoque rutas duras del host.
+
 
 

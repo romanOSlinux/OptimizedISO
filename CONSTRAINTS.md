@@ -12,7 +12,7 @@ Para optimizar el ciclo de desarrollo sin sacrificar rigor, las restricciones se
 
 | Nivel de Verificación | Alcance | Tiempo Estimado | Comando de Ejecución | Cuándo Ejecutar |
 | :--- | :--- | :--- | :--- | :--- |
-| **L1: `check:fast`** | Codificación (BOM/No-BOM), sintaxis AST de PowerShell 5.1 y erradicación de fallos silenciosos (CWE-390). | < 3 segundos | `& powershell.exe -File scripts/Testing/Invoke-RomanOSHarness.ps1 -Fast` | Tras editar cualquier archivo `.ps1`, `.cmd` o `.xml`. |
+| **L1: `check:fast`** | Codificación (BOM/No-BOM), sintaxis AST de PowerShell 5.1, erradicación de fallos silenciosos (CWE-390) y soberanía de herramientas locales (Regla 18). | < 3 segundos | `& powershell.exe -File scripts/Testing/Invoke-RomanOSHarness.ps1 -Fast` | Tras editar cualquier archivo `.ps1`, `.cmd` o `.xml`. |
 | **L2: `check:task`** | L1 + Coherencia SSOT en `Policy-Engine.ps1`, esquema de `autounattend.xml` y matriz de mocks multi-hardware. | < 12 segundos | `& powershell.exe -File scripts/Testing/Invoke-RomanOSHarness.ps1` | Al completar un hito o tarea antes de proceder a la siguiente. |
 | **L3: `check:full`** | L2 + Batería completa de regresión (14 suites de `scripts/Testing/` + firmas Authenticode + anti-cheats). | ~75 segundos | `scripts\Testing\Invoke-TestSuite.cmd` (Pre-commit hook) | Antes de realizar cualquier commit atómico a Git. |
 | **L4: `check:deploy`** | Montaje WIM offline, inspección de colmenas de registro y despliegue automatizado en VM Hyper-V Gen2. | 15–25 minutos | `scripts\Testing\New-TestVM-HyperV.cmd` (Requiere UAC) | Certificación de release maestro e ISO final. |
@@ -58,6 +58,14 @@ Para optimizar el ciclo de desarrollo sin sacrificar rigor, las restricciones se
 | **Compatibilidad Ring-0** | 100% de compatibilidad garantizada con 5 motores: Vanguard, EAC, BattlEye, Ricochet y FACEIT. | L2 | `Test-AntiCheatCompatibility.ps1` | Una optimización de SO no debe impedir la ejecución de juegos competitivos modernos. |
 | **Firmas Authenticode** | 100% de binarios externos en `bin/` con firma digital válida y hash SHA-256 verificado. | L3 | `sigcheck64` / Authenticode | Garantiza integridad absoluta de la cadena de suministro contra binarios modificados. |
 | **Resiliencia Hive Drift** | Políticas inyectadas en WIM offline deben sobrevivir sin sobreescritura tras el primer inicio OOBE. | L2 | `Test-RegistryHiveDrift.ps1` | Evita que Windows Setup restablezca configuraciones de fábrica silenciosamente. |
+
+### Dimensión E: Soberanía de Herramientas y Hermeticidad del Repositorio
+
+| Restricción / Invariante | Umbral No Negociable | Nivel | Verificado Por | Fundamento Técnico y Fuente Oficial |
+| :--- | :--- | :--- | :--- | :--- |
+| **Prohibición de Herramientas Ajenas** | **0 llamadas a `7z.exe` o ejecutables en `Program Files`** para utilidades cubiertas en `tools/`. | L1 | `Invoke-RomanOSHarness.ps1` (Tier 1.5) | Regla 18. Garantiza portabilidad, reproducibilidad y hermeticidad de ejecución. |
+| **Canonicidad de Manipulación WIM** | **100% de operaciones WIM/ESD** deben consumir `WimLib-Helper.ps1` o `tools\wimlib\`. | L1 | Auditoría estática AST / Grep | Previene fugas de memoria, lentitud en el host y descompresión de gigabytes en `%TEMP%`. |
+| **Integridad de Binarios Portables** | Binarios en `tools/` (`wimlib-imagex.exe`, `sigcheck64.exe`, `Coreinfo64.exe`, `es.exe`) deben existir físicamente en disco. | L1 | `Invoke-RomanOSHarness.ps1` (Tier 1.5) | Valida que las herramientas canónicas del ecosistema estén presentes y listas. |
 
 ---
 
