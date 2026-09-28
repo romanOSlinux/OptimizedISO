@@ -202,10 +202,14 @@ function Write-LogEntry {
     if (Get-Command "Write-UnifiedLogEntry" -ErrorAction SilentlyContinue) {
         Write-UnifiedLogEntry -Message $Message -Level $normalizedLevel -TargetLogFile $logFile | Out-Null
     } else {
-        $ts   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $line = "[$ts] [$($normalizedLevel.PadRight(5))] $Message"
+        $ts   = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+        $line = "[$ts] [$normalizedLevel] $Message"
         if ($logFile) {
-            Add-Content -Path $logFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+            try {
+                [System.IO.File]::AppendAllText($logFile, ($line + "`r`n"), [System.Text.Encoding]::UTF8)
+            } catch {
+                $null = $_.Exception
+            }
         }
     }
 }
@@ -405,7 +409,13 @@ if ($runMod2) {
             if ($proc.ExitCode -eq 0) {
                 Write-OK "Limpieza de almacen WinSxS completada con exito."
             } else {
-                Write-Warn "DISM finalizo con codigo de salida: $($proc.ExitCode)."
+                $dismLogPath = "$env:WINDIR\Logs\DISM\dism.log"
+                Write-ForensicProcessFailure -TaskDescription "DISM StartComponentCleanup" `
+                    -FilePath "DISM.exe" `
+                    -CommandLine ($dismArgs -join ' ') `
+                    -ExitCode $proc.ExitCode `
+                    -LogFilePath $dismLogPath `
+                    -IsWarningOnly | Out-Null
             }
         } catch {
             Write-Warn "Error ejecutando DISM: $($_.Exception.Message)"
@@ -601,8 +611,13 @@ if ($runMod5) {
         if ($dismRes.ExitCode -eq 0) {
             Write-OK "DISM RestoreHealth finalizado exitosamente."
         } else {
-            $errDetails = Get-RomanOSErrorCodeDetails -ExitCode $dismRes.ExitCode
-            Write-Warn "DISM RestoreHealth finalizo con codigo: $($dismRes.ExitCode) [$($errDetails.ExitCodeHex)]"
+            $dismLogPath = "$env:WINDIR\Logs\DISM\dism.log"
+            Write-ForensicProcessFailure -TaskDescription "DISM RestoreHealth" `
+                -FilePath "DISM.exe" `
+                -CommandLine "/Online /Cleanup-Image /RestoreHealth" `
+                -ExitCode $dismRes.ExitCode `
+                -LogFilePath $dismLogPath `
+                -IsWarningOnly | Out-Null
         }
     } catch {
         Write-ForensicException -Record $_ -Context "DISM RestoreHealth"

@@ -383,8 +383,8 @@ Write-LogEntry -Level "OK"    -Message "Mensaje de prueba OK"
 Write-LogEntry -Level "STEP"  -Message "Mensaje de prueba STEP"
 
 $logContent = Get-Content $script:LogFile -Raw -ErrorAction SilentlyContinue
-Assert-True "Write-LogEntry: entrada INFO persistida" ($logContent -match "\[INFO \].*Mensaje de prueba INFO")
-Assert-True "Write-LogEntry: entrada WARN persistida" ($logContent -match "\[WARN \].*Mensaje de prueba WARN")
+Assert-True "Write-LogEntry: entrada INFO persistida" ($logContent -match "\[INFO\].*Mensaje de prueba INFO")
+Assert-True "Write-LogEntry: entrada WARN persistida" ($logContent -match "\[WARN\].*Mensaje de prueba WARN")
 Assert-True "Write-LogEntry: entrada ERROR persistida" ($logContent -match "\[ERROR\].*Mensaje de prueba ERROR")
 Assert-True "Write-LogEntry: acumula en script:LogErrors" ($script:LogErrors.Count -ge 1)
 Assert-True "Write-LogEntry: acumula en script:LogWarns" ($script:LogWarns.Count -ge 1)

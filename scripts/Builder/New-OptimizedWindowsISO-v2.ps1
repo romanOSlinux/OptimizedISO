@@ -529,18 +529,38 @@ function Write-LogEntry {
         [switch]$NoAccumulate
     )
 
-    $ts   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $line = "[$ts] [$($Level.PadRight(5))] $Message"
+    $normalizedLevel = switch ($Level.Trim()) {
+        "INIT"  { "INFO" }
+        "STEP"  { "INFO" }
+        "OK"    { "OK" }
+        "WARN"  { "WARN" }
+        "ERROR" { "ERROR" }
+        "DEBUG" { "DEBUG" }
+        default { "INFO" }
+    }
 
-    # Escribir al archivo estructurado
-    if ($script:LogFile) {
-        Add-Content -Path $script:LogFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+    if (Get-Command "Write-UnifiedLogEntry" -ErrorAction SilentlyContinue) {
+        Write-UnifiedLogEntry -Message $Message -Level $normalizedLevel -TargetLogFile $script:LogFile | Out-Null
+    } else {
+        $ts   = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+        $line = "[$ts] [$normalizedLevel] $Message"
+        if ($script:LogFile) {
+            try {
+                [System.IO.File]::AppendAllText($script:LogFile, ($line + "`r`n"), [System.Text.Encoding]::UTF8)
+            } catch {
+                $null = $_.Exception
+            }
+        }
     }
 
     # Acumular errores y warnings para el resumen final
     if (-not $NoAccumulate) {
-        if ($Level -eq "ERROR") { $script:LogErrors.Add($Message) }
-        if ($Level -eq "WARN")  { $script:LogWarns.Add($Message)  }
+        if ($Level -eq "ERROR") {
+            if ($null -ne $script:LogErrors) { [void]$script:LogErrors.Add($Message) }
+        }
+        if ($Level -eq "WARN")  {
+            if ($null -ne $script:LogWarns) { [void]$script:LogWarns.Add($Message) }
+        }
     }
 }
 

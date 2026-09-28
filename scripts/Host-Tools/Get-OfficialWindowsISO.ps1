@@ -184,10 +184,14 @@ function Write-LogEntry {
     if (Get-Command "Write-UnifiedLogEntry" -ErrorAction SilentlyContinue) {
         Write-UnifiedLogEntry -Message $Message -Level $normalizedLevel -TargetLogFile $script:LogFile | Out-Null
     } else {
-        $ts   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $line = "[$ts] [$($normalizedLevel.PadRight(5))] $Message"
+        $ts   = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+        $line = "[$ts] [$normalizedLevel] $Message"
         if ($script:LogFile) {
-            Add-Content -Path $script:LogFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+            try {
+                [System.IO.File]::AppendAllText($script:LogFile, ($line + "`r`n"), [System.Text.Encoding]::UTF8)
+            } catch {
+                $null = $_.Exception
+            }
         }
     }
 
