@@ -857,10 +857,28 @@ $btnBuild.Add_Click({
     }
 
     $tempJsonPath = Join-Path $env:TEMP 'romanOS_BuildPreset.json'
-    $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $tempJsonPath -Encoding UTF8 -Force
-    Write-StudioLog "Archivo JSON temporal inyectado en: $tempJsonPath"
+    try {
+        $config | ConvertTo-Json -Depth 5 | Out-File -FilePath $tempJsonPath -Encoding UTF8 -Force
+    } catch {
+        Write-StudioLog "Error al exportar JSON de configuración pre-vuelo: $($_.Exception.Message)" -Level "ERROR"
+        [System.Windows.MessageBox]::Show("Error al generar el archivo JSON temporal de configuración en:`n$tempJsonPath`n`nDetalle: $($_.Exception.Message)", "Error Crítico", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+        return
+    }
+
+    if (-not (Test-Path $tempJsonPath) -or ((Get-Item $tempJsonPath).Length -eq 0)) {
+        Write-StudioLog "Archivo JSON temporal no se pudo verificar en disco o está vacío: $tempJsonPath" -Level "ERROR"
+        [System.Windows.MessageBox]::Show("El archivo JSON de configuración pre-vuelo no se pudo verificar en disco o está vacío:`n$tempJsonPath", "Error Crítico", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+        return
+    }
+    Write-StudioLog "Archivo JSON temporal inyectado y verificado en: $tempJsonPath"
     
     $builderPath = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-v2.ps1"
+    if (-not (Test-Path $builderPath)) {
+        Write-StudioLog "No se encontró el script constructor en: $builderPath" -Level "ERROR"
+        [System.Windows.MessageBox]::Show("No se encontró el script constructor de la ISO en:`n$builderPath", "Error Crítico", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+        return
+    }
+
     $escapedBuilder = $builderPath -replace "'", "''"
     $escapedJson    = $tempJsonPath -replace "'", "''"
     $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedBuilder' -PresetFile '$escapedJson' *>&1 }`""

@@ -137,35 +137,6 @@ $script:LogSteps          = [System.Collections.Generic.List[PSObject]]::new()
 $script:CurrentStepObj    = $null
 $script:DownloadStartTime = Get-Date
 
-function Initialize-Log {
-    param([string]$OutputDirectory)
-
-    $logDir = Join-Path $OutputDirectory "Logs"
-    if (-not (Test-Path $logDir)) {
-        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
-    }
-
-    $ts                       = Get-Date -Format 'yyyyMMdd_HHmmss'
-    $script:LogFile           = Join-Path $logDir "ISO_Download_$ts.log"
-    $script:TranscriptFile    = Join-Path $logDir "ISO_Download_${ts}_transcript.log"
-    $script:AiSummaryFile     = Join-Path $logDir "ISO_Download_${ts}_AI_SUMMARY.md"
-    $script:DownloadStartTime = Get-Date
-    $global:RomanOS_LogFile   = $script:LogFile
-
-    try {
-        Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null
-    } catch {
-        Write-LogEntry -Level "WARN" -Message "No se pudo iniciar transcript en ($script:TranscriptFile) - $($_.Exception.Message)"
-    }
-
-    Write-LogEntry -Level "INIT" -Message ("=" * 64)
-    Write-LogEntry -Level "INIT" -Message "Official Windows ISO Downloader (Unified Engine)"
-    Write-LogEntry -Level "INIT" -Message "PowerShell $($PSVersionTable.PSVersion)  |  Host: $env:COMPUTERNAME  |  User: $env:USERNAME"
-    Write-LogEntry -Level "INIT" -Message "Directorio Destino: $OutputDirectory"
-    Write-LogEntry -Level "INIT" -Message "Estrategia: $Method"
-    Write-LogEntry -Level "INIT" -Message ("=" * 64)
-}
-
 function Write-LogEntry {
     [CmdletBinding()]
     param(
@@ -199,6 +170,35 @@ function Write-LogEntry {
         if ($Level -eq "ERROR") { $script:LogErrors.Add($Message) }
         if ($Level -eq "WARN")  { $script:LogWarns.Add($Message)  }
     }
+}
+
+function Initialize-Log {
+    param([string]$OutputDirectory)
+
+    $logDir = Join-Path $OutputDirectory "Logs"
+    if (-not (Test-Path $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+
+    $ts                       = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $script:LogFile           = Join-Path $logDir "ISO_Download_$ts.log"
+    $script:TranscriptFile    = Join-Path $logDir "ISO_Download_${ts}_transcript.log"
+    $script:AiSummaryFile     = Join-Path $logDir "ISO_Download_${ts}_AI_SUMMARY.md"
+    $script:DownloadStartTime = Get-Date
+    $global:RomanOS_LogFile   = $script:LogFile
+
+    try {
+        Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null
+    } catch {
+        Write-LogEntry -Level "WARN" -Message "No se pudo iniciar transcript en ($script:TranscriptFile) - $($_.Exception.Message)"
+    }
+
+    Write-LogEntry -Level "INIT" -Message ("=" * 64)
+    Write-LogEntry -Level "INIT" -Message "Official Windows ISO Downloader (Unified Engine)"
+    Write-LogEntry -Level "INIT" -Message "PowerShell $($PSVersionTable.PSVersion)  |  Host: $env:COMPUTERNAME  |  User: $env:USERNAME"
+    Write-LogEntry -Level "INIT" -Message "Directorio Destino: $OutputDirectory"
+    Write-LogEntry -Level "INIT" -Message "Estrategia: $Method"
+    Write-LogEntry -Level "INIT" -Message ("=" * 64)
 }
 
 function Write-Step {

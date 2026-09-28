@@ -766,54 +766,118 @@ function Show-UnifiedSummary {
 }
 
 #------------------------------------------------------------------------------
-# FUNCIONES DE PRESET JSON (PLAN-0046)
+# FUNCIONES DE PRESET JSON (PLAN-0046 / PLAN-0143)
 #------------------------------------------------------------------------------
 function Import-BuildPreset {
+    [CmdletBinding()]
     param(
-        [Parameter(Position = 0)]
+        [Parameter(Mandatory = $true, Position = 0)]
         [Alias("Path")]
         [string]$PresetPath,
 
-        [hashtable]$ScriptBoundParameters = @{}
+        [Parameter(Mandatory = $false)]
+        [System.Collections.IDictionary]$ScriptBoundParameters = @{}
     )
 
-    if (-not $PresetPath -or -not (Test-Path $PresetPath)) {
-        Write-Host "  [!] Ruta de Preset no valida o no encontrada: $PresetPath" -ForegroundColor Yellow
-        return
+    if (-not (Test-Path $PresetPath -ErrorAction SilentlyContinue)) {
+        throw [System.IO.FileNotFoundException] "ERROR FATAL (Fail-Fast / Regla 13): El archivo Preset especificado en -PresetFile no existe: '$PresetPath'. Abortando compilación para prevenir ejecución con parámetros degradados o no deseados."
     }
 
     try {
-        $rawContent = [System.IO.File]::ReadAllText($PresetPath, [System.Text.Encoding]::UTF8)
-        $presetData = $rawContent | ConvertFrom-Json
+        $json   = Get-Content -Path $PresetPath -Raw -Encoding UTF8
+        $preset = $json | ConvertFrom-Json
+        if ($null -eq $preset) {
+            throw "El archivo Preset '$PresetPath' está vacío o no contiene una estructura JSON válida."
+        }
+    } catch {
+        throw "ERROR FATAL (Fail-Fast / Regla 13): No se pudo leer o deserializar el archivo Preset '$PresetPath': $($_.Exception.Message)"
+    }
 
-        foreach ($prop in $presetData.psobject.properties) {
-            $key = $prop.Name
-            $val = $prop.Value
+    try {
+        # Aplicar solo los valores del preset que NO hayan sido especificados en CLI
+        # Los ScriptBoundParameters tienen prioridad sobre el preset (CLI > Preset)
+        $mappings = @{
+            SourceISO           = 'SourceISO'
+            OutputDir           = 'OutputDir'
+            DriversPath         = 'DriversPath'
+            EnableHyperV        = 'EnableHyperV'
+            InjectWin11Script   = 'InjectWin11Script'
+            Language            = 'Language'
+            Locale              = 'Locale'
+            Timezone            = 'Timezone'
+            KeyboardOverride    = 'KeyboardOverride'
+            LocalUser           = 'LocalUser'
+            LocalPassword       = 'LocalPassword'
+            OptimizationProfile = 'OptProfile'
+            BlockOneDrive       = 'BlockOneDrive'
+            InjectVisualTweaks  = 'InjectVisualTweaks'
+            WimCompression      = 'WimCompression'
+            Architecture        = 'Architecture'
+            TargetWimIndex      = 'TargetWimIndex'
+        }
 
-            # Precedencia CLI
-            if ($ScriptBoundParameters.ContainsKey($key)) {
-                continue
-            }
-            if ($key -eq "OptimizationProfile" -and $ScriptBoundParameters.ContainsKey("OptimizationProfile")) {
-                continue
-            }
-
-            Set-Variable -Name $key -Value $val -Scope Script -Force -ErrorAction SilentlyContinue
-            Set-Variable -Name $key -Value $val -Scope 1 -Force -ErrorAction SilentlyContinue
-
-            if ($key -eq "OptimizationProfile") {
-                Set-Variable -Name "OptProfile" -Value "$val" -Scope Script -Force -ErrorAction SilentlyContinue
-                Set-Variable -Name "OptProfile" -Value "$val" -Scope 1 -Force -ErrorAction SilentlyContinue
-            }
-            if ($key -eq "BlockOneDrive") {
-                Set-Variable -Name "NoBlockOneDrive" -Value (-not [bool]$val) -Scope Script -Force -ErrorAction SilentlyContinue
-                Set-Variable -Name "NoBlockOneDrive" -Value (-not [bool]$val) -Scope 1 -Force -ErrorAction SilentlyContinue
+        foreach ($key in $mappings.Keys) {
+            $scriptVar = $mappings[$key]
+            # CLI tiene prioridad: si el parametro fue pasado explicitamente, no sobreescribir
+            if ($ScriptBoundParameters.ContainsKey($key)) { continue }
+            $val = $preset.$key
+            if ($null -ne $val) {
+                Set-Variable -Name $scriptVar -Value $val -Scope Script -Force -ErrorAction SilentlyContinue
+                Set-Variable -Name $key -Value $val -Scope Script -Force -ErrorAction SilentlyContinue
+                Set-Variable -Name $key -Value $val -Scope 1 -Force -ErrorAction SilentlyContinue
+                $ScriptBoundParameters[$key] = $val
             }
         }
-        Write-Host "  [i] Preset JSON cargado exitosamente desde: $PresetPath" -ForegroundColor Cyan
+
+        # Integraciones y omisiones de componentes
+        if ($null -ne $preset.IntegrateUpdates -and -not [bool]$preset.IntegrateUpdates) {
+            $script:SkipUpdates = $true
+            $ScriptBoundParameters['SkipUpdates'] = $true
+        }
+        if ($null -ne $preset.IntegrateDrivers -and -not [bool]$preset.IntegrateDrivers) {
+            $script:SkipDrivers = $true
+            $ScriptBoundParameters['SkipDrivers'] = $true
+        }
+        if ($null -ne $preset.IntegrateRuntimes -and -not [bool]$preset.IntegrateRuntimes) {
+            $script:SkipRuntimes = $true
+            $ScriptBoundParameters['SkipRuntimes'] = $true
+        }
+        if ($null -ne $preset.SkipUpdates -and [bool]$preset.SkipUpdates) {
+            $script:SkipUpdates = $true
+            $ScriptBoundParameters['SkipUpdates'] = $true
+        }
+        if ($null -ne $preset.SkipDrivers -and [bool]$preset.SkipDrivers) {
+            $script:SkipDrivers = $true
+            $ScriptBoundParameters['SkipDrivers'] = $true
+        }
+        if ($null -ne $preset.SkipRuntimes -and [bool]$preset.SkipRuntimes) {
+            $script:SkipRuntimes = $true
+            $ScriptBoundParameters['SkipRuntimes'] = $true
+        }
+        if ($null -ne $preset.SkipBootWimDrivers -and [bool]$preset.SkipBootWimDrivers) {
+            $script:SkipBootWimDrivers = $true
+            $ScriptBoundParameters['SkipBootWimDrivers'] = $true
+        }
+        if ($null -ne $preset.ZeroTouch) {
+            $script:ZeroTouch = [bool]$preset.ZeroTouch
+            $ScriptBoundParameters['ZeroTouch'] = [bool]$preset.ZeroTouch
+        }
+        if ($null -ne $preset.ZeroTouchDisk) {
+            $script:ZeroTouchDisk = [int]$preset.ZeroTouchDisk
+            $ScriptBoundParameters['ZeroTouchDisk'] = [int]$preset.ZeroTouchDisk
+        }
+        if ($null -ne $preset.TargetWimIndex) {
+            $script:TargetWimIndex = [string]$preset.TargetWimIndex
+            $ScriptBoundParameters['TargetWimIndex'] = [string]$preset.TargetWimIndex
+        }
+
+        if (Get-Command "Write-OK" -ErrorAction SilentlyContinue) {
+            Write-OK "Preset importado exitosamente desde: $PresetPath (ZeroTouch=$($ScriptBoundParameters['ZeroTouch']), Disk=$($ScriptBoundParameters['ZeroTouchDisk']), TargetIndex=$($ScriptBoundParameters['TargetWimIndex']))"
+        } else {
+            Write-Host "  [OK] Preset importado exitosamente desde: $PresetPath" -ForegroundColor Green
+        }
     } catch {
-        Write-Host "  [!] Error cargando Preset JSON: $($_.Exception.Message)" -ForegroundColor Red
-        throw
+        throw "ERROR FATAL (Fail-Fast / Regla 13): Error aplicando parámetros desde el preset '$PresetPath': $($_.Exception.Message)"
     }
 }
 
@@ -868,6 +932,7 @@ function Export-BuildPreset {
         LocalUser           = "$userVal"
         LocalPassword       = "$passVal"
         ZeroTouch           = if ($script:ZeroTouch) { [bool]$script:ZeroTouch } else { [bool]$ZeroTouch }
+        ZeroTouchDisk       = if ($null -ne $script:ZeroTouchDisk) { [int]$script:ZeroTouchDisk } elseif ($null -ne $ZeroTouchDisk) { [int]$ZeroTouchDisk } else { 0 }
         InjectWin11Script   = if ($null -ne $script:InjectWin11Script) { [bool]$script:InjectWin11Script } else { [bool]$InjectWin11Script }
         WimCompression      = "$wimCompVal"
         Language            = "$langVal"

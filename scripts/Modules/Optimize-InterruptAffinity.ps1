@@ -135,77 +135,6 @@ if ($hwEngine) { try { . $hwEngine } catch { Write-Warn "No se pudo dot-sourcear
 # -----------------------------------------------------------------------------
 # 2. FUNCIONES DE INTROSPECCION Y TOPOLOGIA DE INTERRUPCIONES
 # -----------------------------------------------------------------------------
-function Get-RomanOSPcieInterruptTopology {
-    [CmdletBinding()]
-    param(
-        [string]$FilterCategory = "All"
-    )
-
-    $devicesList = [System.Collections.Generic.List[PSCustomObject]]::new()
-    $pciBasePath = "HKLM:\SYSTEM\CurrentControlSet\Enum\PCI"
-
-    if (-not (Test-Path $pciBasePath)) {
-        Write-Warn "No se encontró la ruta base de registro PCI ($pciBasePath)."
-        return $devicesList
-    }
-
-    # 1. Identificar GPUs
-    if ($FilterCategory -eq "All" -or $FilterCategory -eq "GPU") {
-        try {
-            $gpus = Get-CimInstance -ClassName Win32_VideoController -ErrorAction SilentlyContinue
-            foreach ($g in $gpus) {
-                if ($g.PNPDeviceID -and $g.PNPDeviceID -match '^PCI\\') {
-                    $devInstance = $g.PNPDeviceID.Replace('PCI\', '')
-                    $regKey = Join-Path $pciBasePath $devInstance
-                    if (Test-Path $regKey) {
-                        $devicesList.Add((Inspect-PciDeviceRegistry -Category "GPU" -Name $g.Name -PnpID $g.PNPDeviceID -RegPath $regKey))
-                    }
-                }
-            }
-        } catch {
-            Write-Warn "Error al interrogar GPUs mediante CIM: $($_.Exception.Message)"
-        }
-    }
-
-    # 2. Identificar NVMe Storage Controllers
-    if ($FilterCategory -eq "All" -or $FilterCategory -eq "Storage") {
-        try {
-            $nvmes = Get-CimInstance -ClassName Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object {
-                ($_.Service -eq 'stornvme' -or $_.Name -match 'NVMe|NVM Express') -and $_.PNPDeviceID -match '^PCI\\'
-            }
-            foreach ($n in $nvmes) {
-                $devInstance = $n.PNPDeviceID.Replace('PCI\', '')
-                $regKey = Join-Path $pciBasePath $devInstance
-                if (Test-Path $regKey) {
-                    $devicesList.Add((Inspect-PciDeviceRegistry -Category "Storage" -Name $n.Name -PnpID $n.PNPDeviceID -RegPath $regKey))
-                }
-            }
-        } catch {
-            Write-Warn "Error al interrogar controladoras NVMe: $($_.Exception.Message)"
-        }
-    }
-
-    # 3. Identificar Adaptadores de Red Físicos
-    if ($FilterCategory -eq "All" -or $FilterCategory -eq "Network") {
-        try {
-            $nics = Get-NetAdapter -Physical -ErrorAction SilentlyContinue
-            foreach ($nic in $nics) {
-                if ($nic.DeviceID -and $nic.DeviceID -match '^PCI\\') {
-                    $devInstance = $nic.DeviceID.Replace('PCI\', '')
-                    $regKey = Join-Path $pciBasePath $devInstance
-                    if (Test-Path $regKey) {
-                        $devicesList.Add((Inspect-PciDeviceRegistry -Category "Network" -Name $nic.InterfaceDescription -PnpID $nic.DeviceID -RegPath $regKey))
-                    }
-                }
-            }
-        } catch {
-            Write-Warn "Error al interrogar adaptadores de red físicos: $($_.Exception.Message)"
-        }
-    }
-
-    return $devicesList
-}
-
 function Inspect-PciDeviceRegistry {
     param(
         [string]$Category,
@@ -283,6 +212,79 @@ function Inspect-PciDeviceRegistry {
         HasAffinity    = $hasAffinityKey
     }
 }
+
+function Get-RomanOSPcieInterruptTopology {
+    [CmdletBinding()]
+    param(
+        [string]$FilterCategory = "All"
+    )
+
+    $devicesList = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $pciBasePath = "HKLM:\SYSTEM\CurrentControlSet\Enum\PCI"
+
+    if (-not (Test-Path $pciBasePath)) {
+        Write-Warn "No se encontró la ruta base de registro PCI ($pciBasePath)."
+        return $devicesList
+    }
+
+    # 1. Identificar GPUs
+    if ($FilterCategory -eq "All" -or $FilterCategory -eq "GPU") {
+        try {
+            $gpus = Get-CimInstance -ClassName Win32_VideoController -ErrorAction SilentlyContinue
+            foreach ($g in $gpus) {
+                if ($g.PNPDeviceID -and $g.PNPDeviceID -match '^PCI\\') {
+                    $devInstance = $g.PNPDeviceID.Replace('PCI\', '')
+                    $regKey = Join-Path $pciBasePath $devInstance
+                    if (Test-Path $regKey) {
+                        $devicesList.Add((Inspect-PciDeviceRegistry -Category "GPU" -Name $g.Name -PnpID $g.PNPDeviceID -RegPath $regKey))
+                    }
+                }
+            }
+        } catch {
+            Write-Warn "Error al interrogar GPUs mediante CIM: $($_.Exception.Message)"
+        }
+    }
+
+    # 2. Identificar NVMe Storage Controllers
+    if ($FilterCategory -eq "All" -or $FilterCategory -eq "Storage") {
+        try {
+            $nvmes = Get-CimInstance -ClassName Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object {
+                ($_.Service -eq 'stornvme' -or $_.Name -match 'NVMe|NVM Express') -and $_.PNPDeviceID -match '^PCI\\'
+            }
+            foreach ($n in $nvmes) {
+                $devInstance = $n.PNPDeviceID.Replace('PCI\', '')
+                $regKey = Join-Path $pciBasePath $devInstance
+                if (Test-Path $regKey) {
+                    $devicesList.Add((Inspect-PciDeviceRegistry -Category "Storage" -Name $n.Name -PnpID $n.PNPDeviceID -RegPath $regKey))
+                }
+            }
+        } catch {
+            Write-Warn "Error al interrogar controladoras NVMe: $($_.Exception.Message)"
+        }
+    }
+
+    # 3. Identificar Adaptadores de Red Físicos
+    if ($FilterCategory -eq "All" -or $FilterCategory -eq "Network") {
+        try {
+            $nics = Get-NetAdapter -Physical -ErrorAction SilentlyContinue
+            foreach ($nic in $nics) {
+                if ($nic.DeviceID -and $nic.DeviceID -match '^PCI\\') {
+                    $devInstance = $nic.DeviceID.Replace('PCI\', '')
+                    $regKey = Join-Path $pciBasePath $devInstance
+                    if (Test-Path $regKey) {
+                        $devicesList.Add((Inspect-PciDeviceRegistry -Category "Network" -Name $nic.InterfaceDescription -PnpID $nic.DeviceID -RegPath $regKey))
+                    }
+                }
+            }
+        } catch {
+            Write-Warn "Error al interrogar adaptadores de red físicos: $($_.Exception.Message)"
+        }
+    }
+
+    return $devicesList
+}
+
+
 
 # -----------------------------------------------------------------------------
 # 3. FUNCIONES DE CALIBRACION Y REMEDIACION DE AFINIDAD

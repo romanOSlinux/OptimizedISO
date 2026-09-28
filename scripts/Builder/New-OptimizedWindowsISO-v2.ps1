@@ -319,28 +319,9 @@ foreach ($p in $uiEnginePaths) {
     }
 }
 
-# Iniciar diccionario unificado de resolucion
-$script:ResolvedParameters = [Hashtable]::new()
-foreach ($k in $PSBoundParameters.Keys) {
-    $script:ResolvedParameters[$k] = $PSBoundParameters[$k]
-}
-if ($script:Headless) {
-    $script:ResolvedParameters['Headless'] = $true
-}
-
-# Cargar Preset JSON si se especifico
-if ($PresetFile) {
-    if (Test-Path $PresetFile) {
-        Import-BuildPreset -PresetPath $PresetFile -ScriptBoundParameters $script:ResolvedParameters
-    } else {
-        Write-Warn "Archivo Preset '$PresetFile' no encontrado."
-    }
-}
-
-$script:SkipUpdates        = if ($script:ResolvedParameters.ContainsKey('SkipUpdates')) { [bool]$script:ResolvedParameters['SkipUpdates'] } else { [bool]$SkipUpdates }
-$script:SkipDrivers        = if ($script:ResolvedParameters.ContainsKey('SkipDrivers')) { [bool]$script:ResolvedParameters['SkipDrivers'] } else { [bool]$SkipDrivers }
-$script:SkipRuntimes       = if ($script:ResolvedParameters.ContainsKey('SkipRuntimes')) { [bool]$script:ResolvedParameters['SkipRuntimes'] } else { [bool]$SkipRuntimes }
-$script:SkipBootWimDrivers = if ($script:ResolvedParameters.ContainsKey('SkipBootWimDrivers')) { [bool]$script:ResolvedParameters['SkipBootWimDrivers'] } else { [bool]$SkipBootWimDrivers }
+# Nota: La resolucion unificada de parametros y carga de PresetFile se efectua
+# al inicio del flujo principal de ejecucion, tras inicializar el subsistema
+# de logs tempranos para garantizar trazabilidad y erradicar llamadas prematuras.
 
 
 if (-not $uiLoaded) {
@@ -396,70 +377,7 @@ if (-not $uiLoaded) {
     }
 }
 
-#------------------------------------------------------------------------------
-# CARGA DE MOTOR DE DIRECTIVAS UNIFICADO (Core\Policy-Engine.ps1)
-# Suministra SSOT para directivas de sistema, autounattend.xml y navegadores web
-#------------------------------------------------------------------------------
-$policyEnginePaths = [System.Collections.Generic.List[string]]::new()
-if ($PSScriptRoot) {
-    $policyEnginePaths.Add((Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"))
-    $policyEnginePaths.Add((Join-Path $PSScriptRoot "Policy-Engine.ps1"))
-    $policyEnginePaths.Add((Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"))
-    $policyEnginePaths.Add((Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"))
-}
-$loc = Get-Location
-if ($loc) {
-    $policyEnginePaths.Add((Join-Path $loc.Path "Core\Policy-Engine.ps1"))
-    $policyEnginePaths.Add((Join-Path $loc.Path "scripts\Core\Policy-Engine.ps1"))
-    $policyEnginePaths.Add((Join-Path $loc.Path "Policy-Engine.ps1"))
-}
-$policyEnginePaths.Add("C:\OptimizedISO\scripts\Core\Policy-Engine.ps1")
-$policyEnginePaths.Add("C:\scripts\Core\Policy-Engine.ps1")
-$policyEnginePaths.Add("C:\scripts\Policy-Engine.ps1")
-$policyEnginePaths.Add("C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1")
 
-$policyLoaded = $false
-foreach ($p in $policyEnginePaths) {
-    if ($p -and (Test-Path $p)) {
-        . $p
-        $policyLoaded = $true
-        break
-    }
-}
-if ($policyLoaded) {
-    Write-Info "Motor de directivas unificado cargado desde: $p"
-} else {
-    Write-Warn "Core/Policy-Engine.ps1 no detectado. Se utilizaran valores estaticos de respaldo."
-}
-
-#------------------------------------------------------------------------------
-# RUTAS DE TRABAJO
-#------------------------------------------------------------------------------
-
-$ScriptsDir = if ($PSScriptRoot) {
-    Split-Path -Parent $PSScriptRoot
-} elseif ($MyInvocation.MyCommand.Path) {
-    Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-} else {
-    Split-Path -Parent (Get-Location).Path
-}
-
-$Timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-
-$ExtractDir   = Join-Path $env:TEMP "WinISO_Extract_$Timestamp"
-# Rutas de trabajo en la raíz del disco del sistema para evitar problemas con %TEMP%
-# redirigido (perfiles de roaming) y restricciones de permisos en carpetas de usuario.
-$WimMountDir  = Join-Path $env:SystemDrive "WimMount_$Timestamp"
-$ScratchDir   = Join-Path $env:SystemDrive "WinISO_Scratch_$Timestamp"
-$ISOFilesDir  = Join-Path $ExtractDir "ISO_Files"
-
-# Estructura de carpetas $OEM$ oficial de Microsoft:
-#   sources\$OEM$\$$\Setup\Scripts          -> C:\Windows\Setup\Scripts
-#   sources\$OEM$\$1\Windows\Setup\Scripts  -> C:\Windows\Setup\Scripts (Respaldo directo de volumen)
-#   sources\$OEM$\$1\Users\Public\Desktop   -> C:\Users\Public\Desktop (Escritorio Público para todos los usuarios)
-$OEMScriptsDir  = Join-Path $ISOFilesDir 'sources\$OEM$\$$\Setup\Scripts'
-$OEMScriptsDir1 = Join-Path $ISOFilesDir 'sources\$OEM$\$1\Windows\Setup\Scripts'
-$OEMDesktopDir  = Join-Path $ISOFilesDir 'sources\$OEM$\$1\Users\Public\Desktop'
 
 #------------------------------------------------------------------------------
 # LOGGING ENGINE — Opción 3: Write-Log + Start-Transcript
@@ -485,40 +403,6 @@ $script:WimUbrAfter    = $null   # UBR del WIM después del slipstream
 $script:IsoSha256      = $null   # Hash SHA-256 de la ISO final
 $script:IsoSizeBytes   = $null   # Tamaño en bytes de la ISO final
 $script:UefiBoot       = $null   # Tipo de sector UEFI inyectado
-
-function Initialize-Log {
-    param([string]$OutputDirectory)
-
-    $logDir = Join-Path $OutputDirectory "Logs"
-    if (-not (Test-Path $logDir)) {
-        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
-    }
-
-    $ts                     = Get-Date -Format 'yyyyMMdd_HHmmss'
-    $script:LogFile         = Join-Path $logDir "ISO_Build_$ts.log"
-    $script:TranscriptFile  = Join-Path $logDir "ISO_Build_${ts}_transcript.log"
-    $script:AiSummaryFile   = Join-Path $logDir "ISO_Build_${ts}_AI_SUMMARY.md"
-    $script:BuildStartTime  = Get-Date
-
-    # Sincronizar con motor global de telemetria y observabilidad (PLAN-0054)
-    $global:RomanOS_LogFile   = $script:LogFile
-    $global:RomanOS_LogErrors = $script:LogErrors
-    $global:RomanOS_LogWarns  = $script:LogWarns
-
-    # Abrir transcript de consola completo
-    try {
-        Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null
-    } catch {
-        Write-Host "  [LOG] Start-Transcript no disponible en este host: $($_.Exception.Message)" -ForegroundColor DarkGray
-    }
-
-    # Cabecera del log estructurado
-    Write-LogEntry -Level "INIT" -Message ("=" * 64)
-    Write-LogEntry -Level "INIT" -Message "OptimizedISO Build Log"
-    Write-LogEntry -Level "INIT" -Message "PowerShell $($PSVersionTable.PSVersion)  |  Host: $env:COMPUTERNAME  |  User: $env:USERNAME"
-    Write-LogEntry -Level "INIT" -Message "Fuente ISO: $SourceISO"
-    Write-LogEntry -Level "INIT" -Message ("=" * 64)
-}
 
 function Write-LogEntry {
     [CmdletBinding()]
@@ -558,9 +442,147 @@ function Write-LogEntry {
         if ($Level -eq "ERROR") {
             if ($null -ne $script:LogErrors) { [void]$script:LogErrors.Add($Message) }
         }
-        if ($Level -eq "WARN")  {
+        if ($Level -eq "WARN") {
             if ($null -ne $script:LogWarns) { [void]$script:LogWarns.Add($Message) }
         }
+    }
+}
+
+function Initialize-Log {
+    param([string]$OutputDirectory)
+
+    $logDir = Join-Path $OutputDirectory "Logs"
+    if (-not (Test-Path $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+
+    $ts                     = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $script:LogFile         = Join-Path $logDir "ISO_Build_$ts.log"
+    $script:TranscriptFile  = Join-Path $logDir "ISO_Build_${ts}_transcript.log"
+    $script:AiSummaryFile   = Join-Path $logDir "ISO_Build_${ts}_AI_SUMMARY.md"
+    $script:BuildStartTime  = Get-Date
+
+    # Sincronizar con motor global de telemetria y observabilidad (PLAN-0054)
+    $global:RomanOS_LogFile   = $script:LogFile
+    $global:RomanOS_LogErrors = $script:LogErrors
+    $global:RomanOS_LogWarns  = $script:LogWarns
+
+    # Abrir transcript de consola completo
+    try {
+        Start-Transcript -Path $script:TranscriptFile -Append -ErrorAction Stop | Out-Null
+    } catch {
+        Write-Host "  [LOG] Start-Transcript no disponible en este host: $($_.Exception.Message)" -ForegroundColor DarkGray
+    }
+
+    # Cabecera del log estructurado
+    Write-LogEntry -Level "INIT" -Message ("=" * 64)
+    Write-LogEntry -Level "INIT" -Message "OptimizedISO Build Log"
+    Write-LogEntry -Level "INIT" -Message "PowerShell $($PSVersionTable.PSVersion)  |  Host: $env:COMPUTERNAME  |  User: $env:USERNAME"
+    Write-LogEntry -Level "INIT" -Message "Fuente ISO: $SourceISO"
+    Write-LogEntry -Level "INIT" -Message ("=" * 64)
+}
+
+#------------------------------------------------------------------------------
+# FUNCIONES AUXILIARES DE SALIDA Y LOGGING
+# (Alimentan la consola, el log y el timeline de IA automáticamente)
+#------------------------------------------------------------------------------
+
+function Write-Banner {
+    Show-UnifiedBanner -Title "GENERADOR DE ISO OPTIMIZADA DE WINDOWS" `
+                       -Subtitle "romanOS v2.0 • Descarga Oficial + Layout WinRE + Dark Mode + Debloat" `
+                       -ShowSystemInfo
+}
+
+function Write-Step {
+    param([string]$Message)
+
+    if ($Message -match '^(\d+)/(\d+)\s*-\s*(.*)$') {
+        Write-StepHeader -StepNumber ([int]$matches[1]) -TotalSteps ([int]$matches[2]) -Message $matches[3]
+    } else {
+        Write-Host ""
+        Write-Host ">>> $Message" -ForegroundColor Cyan
+    }
+    Write-Host "    $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor Gray
+    Write-LogEntry -Level "STEP" -Message $Message
+
+    # Cerrar paso anterior si estaba abierto
+    if ($script:CurrentStepObj) {
+        $now = Get-Date
+        $script:CurrentStepObj.ElapsedSec = [math]::Round(($now - $script:CurrentStepObj.StartTime).TotalSeconds, 1)
+        if ($script:CurrentStepObj.Status -eq "IN_PROGRESS") {
+            $script:CurrentStepObj.Status = "OK"
+        }
+    }
+
+    $script:CurrentStepObj = [PSCustomObject]@{
+        Name       = $Message
+        StartTime  = Get-Date
+        ElapsedSec = 0
+        Status     = "IN_PROGRESS"
+        Note       = ""
+    }
+    $script:LogSteps.Add($script:CurrentStepObj)
+}
+
+function Write-OK {
+    param([string]$Message)
+    Write-Host "  [OK] $Message" -ForegroundColor Green
+    Write-LogEntry -Level "OK"   -Message $Message
+    if ($script:CurrentStepObj) {
+        if ($script:CurrentStepObj.Status -eq "IN_PROGRESS") {
+            $script:CurrentStepObj.Status = "OK"
+        }
+        if (-not $script:CurrentStepObj.Note) {
+            $script:CurrentStepObj.Note = $Message
+        }
+    }
+}
+
+function Write-Warn {
+    param(
+        [string]$Message,
+        [string]$Cause = "",
+        [string]$Action = ""
+    )
+    $fullMsg = $Message
+    if ($Cause -or $Action) {
+        $details = @()
+        if ($Cause) { $details += "Causa: $Cause" }
+        if ($Action) { $details += "Accion: $Action" }
+        $fullMsg = "$Message (" + ($details -join " | ") + ")"
+    }
+    Write-Host "  [WARN] $fullMsg" -ForegroundColor Yellow
+    Write-LogEntry -Level "WARN" -Message $fullMsg
+    if ($script:CurrentStepObj -and $script:CurrentStepObj.Status -ne "ERROR") {
+        $script:CurrentStepObj.Status = "WARN"
+        $script:CurrentStepObj.Note = $fullMsg
+    }
+}
+
+function Write-Info {
+    param([string]$Message)
+    Write-Host "  [*] $Message" -ForegroundColor Cyan
+    Write-LogEntry -Level "INFO" -Message $Message
+}
+
+function Write-ErrorMsg {
+    param(
+        [string]$Message,
+        [string]$Cause = "",
+        [string]$Action = ""
+    )
+    $fullMsg = $Message
+    if ($Cause -or $Action) {
+        $details = @()
+        if ($Cause) { $details += "Causa: $Cause" }
+        if ($Action) { $details += "Accion: $Action" }
+        $fullMsg = "$Message (" + ($details -join " | ") + ")"
+    }
+    Write-Host "  [ERROR] $fullMsg" -ForegroundColor Red
+    Write-LogEntry -Level "ERROR" -Message $fullMsg
+    if ($script:CurrentStepObj) {
+        $script:CurrentStepObj.Status = "ERROR"
+        $script:CurrentStepObj.Note = $fullMsg
     }
 }
 
@@ -763,108 +785,71 @@ function Write-LogSummary {
 }
 
 #------------------------------------------------------------------------------
-# FUNCIONES AUXILIARES DE SALIDA
-# (Modificadas para alimentar el log y el timeline de IA automáticamente)
+# CARGA DE MOTOR DE DIRECTIVAS UNIFICADO (Core\Policy-Engine.ps1)
+# Suministra SSOT para directivas de sistema, autounattend.xml y navegadores web
+#------------------------------------------------------------------------------
+$policyEnginePaths = [System.Collections.Generic.List[string]]::new()
+if ($PSScriptRoot) {
+    $policyEnginePaths.Add((Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"))
+    $policyEnginePaths.Add((Join-Path $PSScriptRoot "Policy-Engine.ps1"))
+    $policyEnginePaths.Add((Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Core\Policy-Engine.ps1"))
+    $policyEnginePaths.Add((Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1"))
+}
+$loc = Get-Location
+if ($loc) {
+    $policyEnginePaths.Add((Join-Path $loc.Path "Core\Policy-Engine.ps1"))
+    $policyEnginePaths.Add((Join-Path $loc.Path "scripts\Core\Policy-Engine.ps1"))
+    $policyEnginePaths.Add((Join-Path $loc.Path "Policy-Engine.ps1"))
+}
+$policyEnginePaths.Add("C:\OptimizedISO\scripts\Core\Policy-Engine.ps1")
+$policyEnginePaths.Add("C:\scripts\Core\Policy-Engine.ps1")
+$policyEnginePaths.Add("C:\scripts\Policy-Engine.ps1")
+$policyEnginePaths.Add("C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1")
+
+$policyLoaded = $false
+foreach ($p in $policyEnginePaths) {
+    if ($p -and (Test-Path $p)) {
+        . $p
+        $policyLoaded = $true
+        break
+    }
+}
+if ($policyLoaded) {
+    Write-Info "Motor de directivas unificado cargado desde: $p"
+} else {
+    Write-Warn "Core/Policy-Engine.ps1 no detectado. Se utilizaran valores estaticos de respaldo."
+}
+
+#------------------------------------------------------------------------------
+# RUTAS DE TRABAJO
 #------------------------------------------------------------------------------
 
-function Write-Banner {
-    Show-UnifiedBanner -Title "GENERADOR DE ISO OPTIMIZADA DE WINDOWS" `
-                       -Subtitle "romanOS v2.0 • Descarga Oficial + Layout WinRE + Dark Mode + Debloat" `
-                       -ShowSystemInfo
+$ScriptsDir = if ($PSScriptRoot) {
+    Split-Path -Parent $PSScriptRoot
+} elseif ($MyInvocation.MyCommand.Path) {
+    Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+} else {
+    Split-Path -Parent (Get-Location).Path
 }
 
-function Write-Step {
-    param([string]$Message)
+$Timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 
-    if ($Message -match '^(\d+)/(\d+)\s*-\s*(.*)$') {
-        Write-StepHeader -StepNumber ([int]$matches[1]) -TotalSteps ([int]$matches[2]) -Message $matches[3]
-    } else {
-        Write-Host ""
-        Write-Host ">>> $Message" -ForegroundColor Cyan
-    }
-    Write-Host "    $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor Gray
-    Write-LogEntry -Level "STEP" -Message $Message
+$ExtractDir   = Join-Path $env:TEMP "WinISO_Extract_$Timestamp"
+# Rutas de trabajo en la raíz del disco del sistema para evitar problemas con %TEMP%
+# redirigido (perfiles de roaming) y restricciones de permisos en carpetas de usuario.
+$WimMountDir  = Join-Path $env:SystemDrive "WimMount_$Timestamp"
+$ScratchDir   = Join-Path $env:SystemDrive "WinISO_Scratch_$Timestamp"
+$ISOFilesDir  = Join-Path $ExtractDir "ISO_Files"
 
-    # Cerrar paso anterior si estaba abierto
-    if ($script:CurrentStepObj) {
-        $now = Get-Date
-        $script:CurrentStepObj.ElapsedSec = [math]::Round(($now - $script:CurrentStepObj.StartTime).TotalSeconds, 1)
-        if ($script:CurrentStepObj.Status -eq "IN_PROGRESS") {
-            $script:CurrentStepObj.Status = "OK"
-        }
-    }
+# Estructura de carpetas $OEM$ oficial de Microsoft:
+#   sources\$OEM$\$$\Setup\Scripts          -> C:\Windows\Setup\Scripts
+#   sources\$OEM$\$1\Windows\Setup\Scripts  -> C:\Windows\Setup\Scripts (Respaldo directo de volumen)
+#   sources\$OEM$\$1\Users\Public\Desktop   -> C:\Users\Public\Desktop (Escritorio Público para todos los usuarios)
+$OEMScriptsDir  = Join-Path $ISOFilesDir 'sources\$OEM$\$$\Setup\Scripts'
+$OEMScriptsDir1 = Join-Path $ISOFilesDir 'sources\$OEM$\$1\Windows\Setup\Scripts'
+$OEMDesktopDir  = Join-Path $ISOFilesDir 'sources\$OEM$\$1\Users\Public\Desktop'
 
-    $script:CurrentStepObj = [PSCustomObject]@{
-        Name       = $Message
-        StartTime  = Get-Date
-        ElapsedSec = 0
-        Status     = "IN_PROGRESS"
-        Note       = ""
-    }
-    $script:LogSteps.Add($script:CurrentStepObj)
-}
 
-function Write-OK {
-    param([string]$Message)
-    Write-Host "  [OK] $Message" -ForegroundColor Green
-    Write-LogEntry -Level "OK"   -Message $Message
-    if ($script:CurrentStepObj) {
-        if ($script:CurrentStepObj.Status -eq "IN_PROGRESS") {
-            $script:CurrentStepObj.Status = "OK"
-        }
-        if (-not $script:CurrentStepObj.Note) {
-            $script:CurrentStepObj.Note = $Message
-        }
-    }
-}
-
-function Write-Warn {
-    param(
-        [string]$Message,
-        [string]$Cause = "",
-        [string]$Action = ""
-    )
-    $fullMsg = $Message
-    if ($Cause -or $Action) {
-        $details = @()
-        if ($Cause) { $details += "Causa: $Cause" }
-        if ($Action) { $details += "Accion: $Action" }
-        $fullMsg = "$Message (" + ($details -join " | ") + ")"
-    }
-    Write-Host "  [WARN] $fullMsg" -ForegroundColor Yellow
-    Write-LogEntry -Level "WARN" -Message $fullMsg
-    if ($script:CurrentStepObj -and $script:CurrentStepObj.Status -ne "ERROR") {
-        $script:CurrentStepObj.Status = "WARN"
-        $script:CurrentStepObj.Note = $fullMsg
-    }
-}
-
-function Write-Info {
-    param([string]$Message)
-    Write-Host "  [*] $Message" -ForegroundColor Cyan
-    Write-LogEntry -Level "INFO" -Message $Message
-}
-
-function Write-ErrorMsg {
-    param(
-        [string]$Message,
-        [string]$Cause = "",
-        [string]$Action = ""
-    )
-    $fullMsg = $Message
-    if ($Cause -or $Action) {
-        $details = @()
-        if ($Cause) { $details += "Causa: $Cause" }
-        if ($Action) { $details += "Accion: $Action" }
-        $fullMsg = "$Message (" + ($details -join " | ") + ")"
-    }
-    Write-Host "  [ERROR] $fullMsg" -ForegroundColor Red
-    Write-LogEntry -Level "ERROR" -Message $fullMsg
-    if ($script:CurrentStepObj) {
-        $script:CurrentStepObj.Status = "ERROR"
-        $script:CurrentStepObj.Note = $fullMsg
-    }
-}
 
 #------------------------------------------------------------------------------
 # SUBSISTEMA DE SUPERVISIÓN DE PROCESOS Y RESILIENCIA (WATCHDOG & HEARTBEAT)
@@ -1565,18 +1550,25 @@ function Import-BuildPreset {
     )
 
     if (-not (Test-Path $PresetPath -ErrorAction SilentlyContinue)) {
-        Write-Warn "Import-BuildPreset: archivo de preset no encontrado: '$PresetPath'"
-        return
+        throw [System.IO.FileNotFoundException] "ERROR FATAL (Fail-Fast / Regla 13): El archivo Preset especificado en -PresetFile no existe: '$PresetPath'. Abortando compilación para prevenir ejecución con parámetros degradados o no deseados."
     }
 
     try {
         $json   = Get-Content -Path $PresetPath -Raw -Encoding UTF8
         $preset = $json | ConvertFrom-Json
+        if ($null -eq $preset) {
+            throw "El archivo Preset '$PresetPath' está vacío o no contiene una estructura JSON válida."
+        }
+    } catch {
+        throw "ERROR FATAL (Fail-Fast / Regla 13): No se pudo leer o deserializar el archivo Preset '$PresetPath': $($_.Exception.Message)"
+    }
 
+    try {
         # Aplicar solo los valores del preset que NO hayan sido especificados en CLI
         # Los ScriptBoundParameters tienen prioridad sobre el preset (CLI > Preset)
         $mappings = @{
             SourceISO           = 'SourceISO'
+            OutputDir           = 'OutputDir'
             DriversPath         = 'DriversPath'
             EnableHyperV        = 'EnableHyperV'
             InjectWin11Script   = 'InjectWin11Script'
@@ -1591,6 +1583,7 @@ function Import-BuildPreset {
             InjectVisualTweaks  = 'InjectVisualTweaks'
             WimCompression      = 'WimCompression'
             Architecture        = 'Architecture'
+            TargetWimIndex      = 'TargetWimIndex'
         }
 
         foreach ($key in $mappings.Keys) {
@@ -1641,6 +1634,10 @@ function Import-BuildPreset {
             $script:ZeroTouchDisk = [int]$preset.ZeroTouchDisk
             $ScriptBoundParameters['ZeroTouchDisk'] = [int]$preset.ZeroTouchDisk
         }
+        if ($null -ne $preset.TargetWimIndex) {
+            $script:TargetWimIndex = [string]$preset.TargetWimIndex
+            $ScriptBoundParameters['TargetWimIndex'] = [string]$preset.TargetWimIndex
+        }
         if ($null -ne $preset.SkipComponentCleanup) {
             $script:SkipComponentCleanup = [bool]$preset.SkipComponentCleanup
             $ScriptBoundParameters['SkipComponentCleanup'] = [bool]$preset.SkipComponentCleanup
@@ -1652,9 +1649,9 @@ function Import-BuildPreset {
 
         $script:Headless = $true
         $ScriptBoundParameters['Headless'] = $true
-        Write-OK "Preset importado desde: $PresetPath"
+        Write-OK "Preset importado exitosamente desde: $PresetPath (ZeroTouch=$($ScriptBoundParameters['ZeroTouch']), Disk=$($ScriptBoundParameters['ZeroTouchDisk']), TargetIndex=$($ScriptBoundParameters['TargetWimIndex']))"
     } catch {
-        Write-Warn "Import-BuildPreset: error leyendo preset: $($_.Exception.Message)"
+        throw "ERROR FATAL (Fail-Fast / Regla 13): Error al procesar valores del preset '$PresetPath': $($_.Exception.Message)"
     }
 }
 
@@ -4387,9 +4384,75 @@ function Add-ImageInstallToAutounattend {
     }
 }
 
+function Assert-BuildIntegrityContracts {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$IsoFilesDir,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$ResolvedParameters
+    )
+
+    Write-Step "Validando contratos de integridad previa a la compilación..."
+    $autounattendXmlPath = Join-Path $IsoFilesDir "autounattend.xml"
+
+    # Contrato 1: Zero-Touch
+    $requestedZeroTouch = [bool]($ResolvedParameters['ZeroTouch'])
+    if ($requestedZeroTouch) {
+        if (-not (Test-Path $autounattendXmlPath)) {
+            throw "ERROR CRITICO DE CONTRATO (Regla 13 / Fail-Visible): Se solicitó instalación 100% Zero-Touch pero 'autounattend.xml' no existe en '$IsoFilesDir'. Abortando compilación."
+        }
+
+        [xml]$doc = Get-Content -Path $autounattendXmlPath -Raw -Encoding UTF8
+        $nsManager = New-Object System.Xml.XmlNamespaceManager($doc.NameTable)
+        $nsManager.AddNamespace('u', 'urn:schemas-microsoft-com:unattend')
+
+        $diskConfig = $doc.SelectSingleNode('//u:unattend/u:settings[@pass="windowsPE"]/u:component[@name="Microsoft-Windows-Setup"]/u:DiskConfiguration', $nsManager)
+        $acceptEula = $doc.SelectSingleNode('//u:unattend/u:settings[@pass="windowsPE"]/u:component[@name="Microsoft-Windows-Setup"]/u:UserData/u:AcceptEula', $nsManager)
+        $installTo  = $doc.SelectSingleNode('//u:unattend/u:settings[@pass="windowsPE"]/u:component[@name="Microsoft-Windows-Setup"]/u:ImageInstall/u:OSImage/u:InstallTo', $nsManager)
+
+        $errors = [System.Collections.Generic.List[string]]::new()
+        if (-not $diskConfig) { $errors.Add("Falta bloque <DiskConfiguration> (particionamiento automático ausente)") }
+        if (-not $acceptEula -or $acceptEula.InnerText.Trim() -ne 'true') { $errors.Add("Falta <UserData><AcceptEula>true</AcceptEula> (se requerirá confirmación manual de EULA)") }
+        if (-not $installTo) { $errors.Add("Falta <InstallTo> en OSImage (se requerirá selección manual de disco/partición)") }
+
+        if ($errors.Count -gt 0) {
+            $errList = $errors -join " | "
+            throw "ERROR CRITICO DE CONTRATO (Regla 13 / Fail-Visible): Se solicitó instalación 100% Zero-Touch, pero 'autounattend.xml' no satisface los requisitos de automatización total: [$errList]. Abortando reconstrucción de ISO para prevenir degradación silenciosa."
+        }
+        Write-OK "Contrato de Integridad Zero-Touch: Cumplido (DiskConfiguration, AcceptEula e InstallTo validados empíricamente en el XML)."
+    }
+
+    # Contrato 2: Bloqueo de OneDrive si fue solicitado
+    if ([bool]($ResolvedParameters['BlockOneDrive']) -and (Test-Path $autounattendXmlPath)) {
+        [xml]$doc = Get-Content -Path $autounattendXmlPath -Raw -Encoding UTF8
+        $nsManager = New-Object System.Xml.XmlNamespaceManager($doc.NameTable)
+        $nsManager.AddNamespace('u', 'urn:schemas-microsoft-com:unattend')
+        $oneDriveCmd = $doc.SelectSingleNode('//u:unattend/u:settings[@pass="specialize"]/u:component[@name="Microsoft-Windows-Deployment"]/u:RunSynchronous/u:RunSynchronousCommand[u:Description="Prevent OneDrive auto-install (DisableFileSyncNGSC)"]', $nsManager)
+        if (-not $oneDriveCmd) {
+            Write-Warn "Contrato de Integridad OneDrive: Directiva DisableFileSyncNGSC no encontrada en pass specialize."
+        } else {
+            Write-OK "Contrato de Integridad OneDrive: Cumplido (DisableFileSyncNGSC presente en unattend)."
+        }
+    }
+
+    Write-OK "Todos los contratos de integridad pre-vuelo fueron verificados exitosamente."
+}
+
 #===============================================================================
 # FLUJO PRINCIPAL DE EJECUCIÓN
 #===============================================================================
+
+#------------------------------------------------------------------------------
+# 1. INICIALIZAR LOGGING TEMPRANO (Cero Zonas Ciegas - Regla 13 / PLAN-0143)
+#------------------------------------------------------------------------------
+if (-not (Test-Path $OutputDir)) {
+    New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+}
+Initialize-Log -OutputDirectory $OutputDir
+Write-LogEntry -Level "INFO" -Message "OutputDir: $OutputDir"
+Write-LogEntry -Level "INFO" -Message "Timestamp build: $Timestamp"
 
 Write-Banner
 
@@ -4397,6 +4460,36 @@ if (-not (Test-Admin)) {
     Write-ErrorMsg "Ejecute este script como Administrador."
     exit 1
 }
+
+#------------------------------------------------------------------------------
+# 2. RESOLVER PARÁMETROS Y CARGAR PRESET (Fail-Fast estricto)
+#------------------------------------------------------------------------------
+$script:ResolvedParameters = [Hashtable]::new()
+foreach ($k in $PSBoundParameters.Keys) {
+    $script:ResolvedParameters[$k] = $PSBoundParameters[$k]
+}
+if ($script:Headless) {
+    $script:ResolvedParameters['Headless'] = $true
+}
+
+# Cargar Preset JSON si se especificó (Fail-Fast estricto)
+if ($PresetFile) {
+    Write-Host "  [*] Cargando Preset de compilación: $PresetFile" -ForegroundColor Cyan
+    Write-LogEntry -Level "INFO" -Message "Cargando Preset de compilación: $PresetFile"
+    Import-BuildPreset -PresetPath $PresetFile -ScriptBoundParameters $script:ResolvedParameters
+    if ($script:ResolvedParameters.ContainsKey('OutputDir') -and $script:ResolvedParameters['OutputDir'] -and $script:ResolvedParameters['OutputDir'] -ne $OutputDir) {
+        $OutputDir = $script:ResolvedParameters['OutputDir']
+        if (-not (Test-Path $OutputDir)) {
+            New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+        }
+        Write-LogEntry -Level "INFO" -Message "OutputDir actualizado desde preset: $OutputDir"
+    }
+}
+
+$script:SkipUpdates        = if ($script:ResolvedParameters.ContainsKey('SkipUpdates')) { [bool]$script:ResolvedParameters['SkipUpdates'] } else { [bool]$SkipUpdates }
+$script:SkipDrivers        = if ($script:ResolvedParameters.ContainsKey('SkipDrivers')) { [bool]$script:ResolvedParameters['SkipDrivers'] } else { [bool]$SkipDrivers }
+$script:SkipRuntimes       = if ($script:ResolvedParameters.ContainsKey('SkipRuntimes')) { [bool]$script:ResolvedParameters['SkipRuntimes'] } else { [bool]$SkipRuntimes }
+$script:SkipBootWimDrivers = if ($script:ResolvedParameters.ContainsKey('SkipBootWimDrivers')) { [bool]$script:ResolvedParameters['SkipBootWimDrivers'] } else { [bool]$SkipBootWimDrivers }
 
 #------------------------------------------------------------------------------
 # DEPENDENCIAS OPCIONALES
@@ -4446,18 +4539,6 @@ Invoke-DeploymentChoices -ScriptBoundParameters $script:ResolvedParameters -Skip
 if ($SavePreset) {
     Export-BuildPreset -OutputDirectory (Get-Location).Path
 }
-
-#------------------------------------------------------------------------------
-# INICIALIZAR LOGGING (antes del paso 1/6)
-#------------------------------------------------------------------------------
-
-# Asegurar que OutputDir existe antes de abrir logs
-if (-not (Test-Path $OutputDir)) {
-    New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
-}
-Initialize-Log -OutputDirectory $OutputDir
-Write-LogEntry -Level "INFO" -Message "OutputDir: $OutputDir"
-Write-LogEntry -Level "INFO" -Message "Timestamp build: $Timestamp"
 
 #------------------------------------------------------------------------------
 # DIAGNÓSTICO PRE-VUELO DE RECURSOS OPCIONALES (Paso 0)
@@ -8361,8 +8442,12 @@ if ($wimFile) {
                     $enableZT = $false
 
                     if ($script:ResolvedParameters.ContainsKey('ZeroTouch')) {
-                        $enableZT = $script:ResolvedParameters['ZeroTouch']
-                        Write-Host "    Modo Zero-Touch definido por parámetro: $(if ($enableZT) { 'Sí' } else { 'No' })" -ForegroundColor DarkGray
+                        $enableZT = [bool]$script:ResolvedParameters['ZeroTouch']
+                        if ($script:ResolvedParameters.ContainsKey('ZeroTouchDisk')) {
+                            $ZeroTouchDisk = [int]$script:ResolvedParameters['ZeroTouchDisk']
+                        }
+                        Write-Host "    Modo Zero-Touch definido por parámetro/preset: $(if ($enableZT) { 'Sí' } else { 'No' }) (Disco: $ZeroTouchDisk)" -ForegroundColor Cyan
+                        Write-LogEntry -Level "INFO" -Message "Modo Zero-Touch resuelto: $enableZT (Disco: $ZeroTouchDisk)"
                     } else {
                         Write-Host ""
                         Write-Host "    ══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
@@ -8475,6 +8560,9 @@ if ($SkipISOCreation) {
 #------------------------------------------------------------------------------
 # 6/6 - RECONSTRUIR ISO
 #------------------------------------------------------------------------------
+
+# Validar contratos de integridad previa a la compilación (Regla 13 / PLAN-0143)
+Assert-BuildIntegrityContracts -IsoFilesDir $ISOFilesDir -ResolvedParameters $script:ResolvedParameters
 
 Write-Step "6/6 - Reconstruyendo ISO..."
 

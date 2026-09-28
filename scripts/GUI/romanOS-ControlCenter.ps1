@@ -1027,11 +1027,41 @@ try {
     Write-CCLog "Error al poblar telemetria de hardware: $($_.Exception.Message)" -Level "WARN"
 }
 
-# Inicializar estados de los Desktop Helpers en la UI si la función existe
-try {
-    if (Get-Command 'Update-DesktopHelpersGUIState' -ErrorAction SilentlyContinue) {
-        Update-DesktopHelpersGUIState
+# --- Asistentes Modulares de Escritorio (Desktop Helpers & Invariantes) ---
+function Update-DesktopHelpersGUIState {
+    $helperMap = @(
+        @{ Id = "WindowsUpdate"; Btn = 'btnHelperWU'; Name = "Windows Update" },
+        @{ Id = "Defender";      Btn = 'btnHelperDefender'; Name = "Defender" },
+        @{ Id = "Bluetooth";     Btn = 'btnHelperBluetooth'; Name = "Bluetooth" },
+        @{ Id = "Printing";      Btn = 'btnHelperPrinting'; Name = "Impresion" },
+        @{ Id = "FileSharing";   Btn = 'btnHelperSharing'; Name = "Compartir Red" },
+        @{ Id = "VBS";           Btn = 'btnHelperVBS'; Name = "VBS / HVCI" },
+        @{ Id = "Recall";        Btn = 'btnHelperRecall'; Name = "Windows Recall" }
+    )
+    foreach ($item in $helperMap) {
+        $btn = $window.FindName($item.Btn)
+        if ($btn -and (Get-Command "Get-RomanOSDesktopHelperState" -ErrorAction SilentlyContinue)) {
+            try {
+                $st = Get-RomanOSDesktopHelperState -HelperId $item.Id
+                $statusText = if ($st.Status -eq "Enabled") { "Activo" } elseif ($st.Status -eq "Disabled") { "Pausado" } else { "Desconocido" }
+                $btn.Content = "$($item.Name): $statusText"
+                if ($st.Status -eq "Enabled") {
+                    $btn.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1B4D3E")
+                    $btn.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00E676")
+                } else {
+                    $btn.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#4A2A1E")
+                    $btn.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF9100")
+                }
+            } catch {
+                Write-CCLog "Error al consultar estado de $($item.Id): $($_.Exception.Message)" "WARN"
+            }
+        }
     }
+}
+
+# Inicializar estados de los Desktop Helpers en la UI
+try {
+    Update-DesktopHelpersGUIState
 } catch {
     Write-CCLog "Aviso al inicializar botones Desktop Helpers: $($_.Exception.Message)" -Level "WARN"
 }
@@ -1427,37 +1457,7 @@ $window.FindName('btnQuickRestoreServices').Add_Click({
     Start-ControlCenterTask -CommandLine "-NoProfile -Command `"try { Set-Service -Name WlanSvc -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config WlanSvc start= auto | Out-Null; Start-Service WlanSvc -ErrorAction SilentlyContinue; Set-Service -Name bthserv -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config bthserv start= auto | Out-Null; Start-Service bthserv -ErrorAction SilentlyContinue; Set-Service -Name Spooler -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config Spooler start= auto | Out-Null; Start-Service Spooler -ErrorAction SilentlyContinue; Set-Service -Name WSearch -StartupType Automatic -ErrorAction SilentlyContinue; sc.exe config WSearch start= delayed-auto | Out-Null; Start-Service WSearch -ErrorAction SilentlyContinue; Write-Host '[OK] Servicios basicos restaurados a inicio automatico (Wi-Fi, Bluetooth, Spooler, WSearch).' } catch { Write-Error `$_.Exception.Message }`"" -TaskTitle "Restaurar Servicios Basicos de Sistema"
 })
 
-# --- Asistentes Modulares de Escritorio (Desktop Helpers & Invariantes) ---
-function Update-DesktopHelpersGUIState {
-    $helperMap = @(
-        @{ Id = "WindowsUpdate"; Btn = 'btnHelperWU'; Name = "Windows Update" },
-        @{ Id = "Defender";      Btn = 'btnHelperDefender'; Name = "Defender" },
-        @{ Id = "Bluetooth";     Btn = 'btnHelperBluetooth'; Name = "Bluetooth" },
-        @{ Id = "Printing";      Btn = 'btnHelperPrinting'; Name = "Impresion" },
-        @{ Id = "FileSharing";   Btn = 'btnHelperSharing'; Name = "Compartir Red" },
-        @{ Id = "VBS";           Btn = 'btnHelperVBS'; Name = "VBS / HVCI" },
-        @{ Id = "Recall";        Btn = 'btnHelperRecall'; Name = "Windows Recall" }
-    )
-    foreach ($item in $helperMap) {
-        $btn = $window.FindName($item.Btn)
-        if ($btn -and (Get-Command "Get-RomanOSDesktopHelperState" -ErrorAction SilentlyContinue)) {
-            try {
-                $st = Get-RomanOSDesktopHelperState -HelperId $item.Id
-                $statusText = if ($st.Status -eq "Enabled") { "Activo" } elseif ($st.Status -eq "Disabled") { "Pausado" } else { "Desconocido" }
-                $btn.Content = "$($item.Name): $statusText"
-                if ($st.Status -eq "Enabled") {
-                    $btn.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1B4D3E")
-                    $btn.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00E676")
-                } else {
-                    $btn.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#4A2A1E")
-                    $btn.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF9100")
-                }
-            } catch {
-                Write-CCLog "Error al consultar estado de $($item.Id): $($_.Exception.Message)" "WARN"
-            }
-        }
-    }
-}
+# --- Conexión de Clics de Desktop Helpers ---
 
 # Conexión de Clics de Desktop Helpers
 $window.FindName('btnHelperWU').Add_Click({

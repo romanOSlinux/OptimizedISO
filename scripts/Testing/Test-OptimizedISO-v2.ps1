@@ -48,7 +48,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 76
+$EXPECTED_FUNCS  = 77
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -329,7 +329,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "76 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "77 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -350,7 +350,8 @@ $expectedList = @(
     "Set-BuildDefenderExclusions", "Import-BuildPreset", "Export-BuildPreset",
     "Test-IsRomanizedISO", "Invoke-WimAiHardening",
     "Write-RomanOSEiCfg", "Get-RomanOSWimMetadata", "Assert-RomanOSWimMetadata",
-    "Invoke-RomanOSDismComponentRemoval", "Invoke-RomanOSComponentStoreCleanup"
+    "Invoke-RomanOSDismComponentRemoval", "Invoke-RomanOSComponentStoreCleanup",
+    "Assert-BuildIntegrityContracts"
 )
 foreach ($fn in $expectedList) {
     Assert-True "Funcion '$fn' disponible" ($null -ne (Get-Command $fn -ErrorAction SilentlyContinue))
@@ -1833,6 +1834,137 @@ Assert-True "PLAN-0141: Builder asigna SKIP en auditoría cuando consolidación 
 $mockCleanupTest = Invoke-RomanOSComponentStoreCleanup -MountDir "C:\NonExistent_Mount_Dir_Mock"
 Assert-False "PLAN-0141: Invoke-RomanOSComponentStoreCleanup inicializa IsDeferred como false" $mockCleanupTest.IsDeferred
 
+
+# Validación de Erradicación de Fallos Silenciosos, Fail-Fast y Contratos (PLAN-0143)
+Write-HarnessHeader2 "FASE 2Y: Erradicación de Fallos Silenciosos y Contratos de Integridad (PLAN-0143)"
+
+# 1. Fail-Fast en Import-BuildPreset: archivo inexistente
+$nonExistentPreset = Join-Path $TEMP_ROOT "non_existent_preset_9999.json"
+$threwMissing = $false
+try {
+    Import-BuildPreset -PresetPath $nonExistentPreset
+} catch [System.IO.FileNotFoundException] {
+    $threwMissing = $true
+} catch {
+    $threwMissing = $true
+}
+Assert-True "PLAN-0143: Import-BuildPreset lanza excepcion fatal (Fail-Fast) si el preset no existe" $threwMissing
+
+# 2. Fail-Fast en Import-BuildPreset: archivo JSON corrupto / invalido
+$corruptedPreset = Join-Path $TEMP_ROOT "corrupted_preset.json"
+[System.IO.File]::WriteAllText($corruptedPreset, "{ este no es un json valido : [ }", [System.Text.Encoding]::UTF8)
+$threwCorrupt = $false
+try {
+    Import-BuildPreset -PresetPath $corruptedPreset
+} catch {
+    $threwCorrupt = $true
+}
+Assert-True "PLAN-0143: Import-BuildPreset lanza excepcion fatal si el preset esta corrupto" $threwCorrupt
+
+# 3. Carga correcta de parametros Zero-Touch desde Preset
+$validZtPreset = Join-Path $TEMP_ROOT "valid_zt_preset.json"
+$samplePresetContent = @{
+    ZeroTouch          = $true
+    ZeroTouchDisk      = 0
+    TargetWimIndex     = "1"
+    OutputDir          = (Join-Path $TEMP_ROOT "CustomOutput")
+    InjectVisualTweaks = $true
+} | ConvertTo-Json
+[System.IO.File]::WriteAllText($validZtPreset, $samplePresetContent, [System.Text.Encoding]::UTF8)
+
+$testBoundParams = [hashtable]::new()
+Import-BuildPreset -PresetPath $validZtPreset -ScriptBoundParameters $testBoundParams
+Assert-True "PLAN-0143: Preset inyecta ZeroTouch=true en parametros resueltos" ([bool]$testBoundParams['ZeroTouch'])
+Assert-Equal "PLAN-0143: Preset inyecta ZeroTouchDisk=0" ([int]$testBoundParams['ZeroTouchDisk']) 0
+Assert-Equal "PLAN-0143: Preset inyecta TargetWimIndex='1'" ([string]$testBoundParams['TargetWimIndex']) "1"
+Assert-Equal "PLAN-0143: Preset inyecta OutputDir personalizado" ([string]$testBoundParams['OutputDir']) (Join-Path $TEMP_ROOT "CustomOutput")
+
+# 4. Aserción de Contratos: Assert-BuildIntegrityContracts aborta si autounattend.xml falta en modo ZeroTouch
+$ztTempIsoDir = Join-Path $TEMP_ROOT "IsoFiles_ContractsTest"
+New-Item -ItemType Directory -Path $ztTempIsoDir -Force | Out-Null
+
+$threwNoXml = $false
+try {
+    Assert-BuildIntegrityContracts -IsoFilesDir $ztTempIsoDir -ResolvedParameters @{ ZeroTouch = $true }
+} catch {
+    $threwNoXml = $true
+}
+Assert-True "PLAN-0143: Assert-BuildIntegrityContracts aborta si autounattend.xml no existe con ZeroTouch" $threwNoXml
+
+# 5. Aserción de Contratos: Assert-BuildIntegrityContracts aborta si falta <DiskConfiguration> o <AcceptEula>
+$semiUnattendXml = @"
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+    <settings pass="windowsPE">
+        <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+            <UserData>
+                <AcceptEula>false</AcceptEula>
+            </UserData>
+        </component>
+    </settings>
+</unattend>
+"@
+$xmlFile = Join-Path $ztTempIsoDir "autounattend.xml"
+[System.IO.File]::WriteAllText($xmlFile, $semiUnattendXml, [System.Text.Encoding]::UTF8)
+
+$threwIncomplete = $false
+$incompletErrMsg = ""
+try {
+    Assert-BuildIntegrityContracts -IsoFilesDir $ztTempIsoDir -ResolvedParameters @{ ZeroTouch = $true }
+} catch {
+    $threwIncomplete = $true
+    $incompletErrMsg = $_.Exception.Message
+}
+Assert-True "PLAN-0143: Assert-BuildIntegrityContracts detecta y aborta ante XML sin DiskConfiguration ni EULA" $threwIncomplete
+Assert-True "PLAN-0143: Mensaje de error de contrato detalla la causa exacta (DiskConfiguration / AcceptEula)" `
+    ([bool]($incompletErrMsg -match 'DiskConfiguration' -and $incompletErrMsg -match 'AcceptEula'))
+
+# 6. Aserción de Contratos: Cumplimiento exitoso cuando autounattend.xml contiene todos los elementos
+$fullZtUnattendXml = @"
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+    <settings pass="windowsPE">
+        <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+            <DiskConfiguration>
+                <Disk wcm:action="add" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+                    <DiskID>0</DiskID>
+                    <WillWipeDisk>true</WillWipeDisk>
+                </Disk>
+            </DiskConfiguration>
+            <ImageInstall>
+                <OSImage>
+                    <InstallTo>
+                        <DiskID>0</DiskID>
+                        <PartitionID>3</PartitionID>
+                    </InstallTo>
+                </OSImage>
+            </ImageInstall>
+            <UserData>
+                <AcceptEula>true</AcceptEula>
+            </UserData>
+        </component>
+    </settings>
+</unattend>
+"@
+[System.IO.File]::WriteAllText($xmlFile, $fullZtUnattendXml, [System.Text.Encoding]::UTF8)
+
+$passedFullZt = $false
+try {
+    Assert-BuildIntegrityContracts -IsoFilesDir $ztTempIsoDir -ResolvedParameters @{ ZeroTouch = $true }
+    $passedFullZt = $true
+} catch {
+    $passedFullZt = $false
+}
+Assert-True "PLAN-0143: Assert-BuildIntegrityContracts certifica exitosamente XML con contrato Zero-Touch completo" $passedFullZt
+
+# 7. Verificación de Anti-Hoisting y Early Boot Logging en New-OptimizedWindowsISO-v2.ps1
+$builderCodeCheck = Get-Content $TargetScript -Raw
+$posInitLog = $builderCodeCheck.IndexOf("Initialize-Log -OutputDirectory")
+$posImportPreset = $builderCodeCheck.IndexOf("Import-BuildPreset -PresetPath")
+$posCallAssert = $builderCodeCheck.IndexOf("Assert-BuildIntegrityContracts -IsoFilesDir")
+$posStep6 = $builderCodeCheck.IndexOf("6/6 - Reconstruyendo ISO")
+Assert-True "PLAN-0143: Initialize-Log se ejecuta antes de Import-BuildPreset en el flujo principal" ($posInitLog -gt 0 -and $posInitLog -lt $posImportPreset)
+Assert-True "PLAN-0143: Assert-BuildIntegrityContracts se ejecuta antes de la reconstruccion de ISO (Paso 6)" ($posCallAssert -gt $posImportPreset -and $posCallAssert -lt $posStep6)
 
 # --- LIMPIEZA TEMPORAL ---
 try {
