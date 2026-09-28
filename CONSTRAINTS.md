@@ -67,6 +67,15 @@ Para optimizar el ciclo de desarrollo sin sacrificar rigor, las restricciones se
 | **Canonicidad de Manipulación WIM** | **100% de operaciones WIM/ESD** deben consumir `WimLib-Helper.ps1` o `tools\wimlib\`. | L1 | Auditoría estática AST / Grep | Previene fugas de memoria, lentitud en el host y descompresión de gigabytes en `%TEMP%`. |
 | **Integridad de Binarios Portables** | Binarios en `tools/` (`wimlib-imagex.exe`, `sigcheck64.exe`, `Coreinfo64.exe`, `es.exe`) deben existir físicamente en disco. | L1 | `Invoke-RomanOSHarness.ps1` (Tier 1.5) | Valida que las herramientas canónicas del ecosistema estén presentes y listas. |
 
+### Dimensión F: Validez Epistemológica, Cero Placebos y Respaldo Oficial Obligatorio
+
+| Restricción / Invariante | Umbral No Negociable | Nivel | Verificado Por | Fundamento Técnico y Fuente Oficial |
+| :--- | :--- | :--- | :--- | :--- |
+| **Erradicación de Falacia Circular** | **Prohibido certificar scripts solo por ExitCode 0** o por pasar aserciones autoreferenciales. | L1/L2 | Regla 19 / Inquisición D3 | Una prueba no es prueba si convalida un objetivo técnico erróneo o un placebo. |
+| **Respaldo Oficial Primario** | **100% de políticas y tweaks** deben citar especificación oficial (MS Learn / Intel / AMD / RFC). | L2 | Auditoría SSOT / MCP `fetch` | Regla 2 y Regla 19. Prohibido introducir o mantener claves zombis o mitos de la comunidad. |
+| **Prohibición de Comandos Deprecados** | **0 ocurrencias de `wmic.exe`**, scripts VBS u órdenes obsoletas de Windows 7/XP. | L1 | Auditoría AST / Grep | Microsoft Learn: *WMIC deprecation in Windows 11 24H2*. Obligatorio migrar a cmdlets CIM. |
+| **Alineación con Windows 11 Moderno** | **0 claves zombis indocumentadas** que el kernel moderno ya no procesa. | L2 | `Test-RegistryHiveDrift.ps1` | Previene hinchazón innecesaria de registro y fallas silenciosas en OOBE. |
+
 ---
 
 ## 3. Protocolo de Bloqueo Anti-Regresión y Anti-Supresión (*Anti-Weakening Guard*)

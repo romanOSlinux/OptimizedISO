@@ -30,8 +30,8 @@
 | **Servidores MCP** | • **`fetch`** (`fetch_markdown`, `read_url_content`)<br>• **`memory`** (`search_nodes`, `read_graph`) | • Extraer especificaciones oficiales de Microsoft Learn, AMD Developer, Intel WDDM.<br>• Consultar el grafo de conocimiento persistente para recuperar decisiones técnicas y restricciones de sesiones previas. |
 | **Skills Asignadas** | • `interview-me` / `ask_question`<br>• `project-audit`<br>• `kb-catalog-researcher` | • Interrogar al usuario si hay ambigüedad estética o de preferencias de UI/UX.<br>• Auditar el estado actual del generador de ISO antes de proponer cambios.<br>• Investigar KBs oficiales en Microsoft Update Catalog si involucra servicing. |
 | **Herramientas Locales** | • `tools/everything/es.exe` | • Mapear existencia de archivos y dependencias sin saturar el contexto. |
-| **Gobernanza `AGENTS.md`** | • **Regla 2 (Cero Suposiciones)**<br>• **Regla 11 (Autonomía de Ingeniero)**<br>• **Regla 17.2 (Ciclo D3)** | • Prohibido afirmar que un tweak de registro o flag funciona sin respaldo oficial.<br>• El agente asume la responsabilidad técnica de arquitectura, hardware y registro.<br>• Formular: *Claim $\rightarrow$ Doubt $\rightarrow$ Reconcile $\rightarrow$ Stop*. |
-| **Puertas `CONSTRAINTS.md`** | Definición de nivel | Establecer si el cambio exigirá validación L1 (`check:fast`), L2 (`check:task`) o L3 (`check:full`). |
+| **Gobernanza `AGENTS.md`** | • **Regla 2 (Cero Suposiciones)**<br>• **Regla 11 (Autonomía de Ingeniero)**<br>• **Regla 17.2 (Ciclo D3)**<br>• **Regla 19 (Inquisición Cero-Confianza)** | • Prohibido afirmar que un tweak de registro o flag funciona sin respaldo oficial.<br>• El agente asume la responsabilidad técnica de arquitectura, hardware y registro.<br>• Formular: *Claim $\rightarrow$ Doubt $\rightarrow$ Reconcile $\rightarrow$ Stop*.<br>• Someter toda afirmación al Tribunal de Fuentes Oficiales antes de codificar o probar. |
+| **Puertas `CONSTRAINTS.md`** | Dimensión F / L1 / L2 | Establecer que el cambio no sea un placebo ni use comandos deprecados (`wmic`). |
 
 ---
 
@@ -81,7 +81,7 @@
 | Dimensión | Asignación Obligatoria | Protocolo de Ejecución |
 | :--- | :--- | :--- |
 | **Skills Asignadas** | • `code-review` / `code-review-and-quality`<br>• `holistic-audit`<br>• `log-forensics` | • Auditoría en 5 ejes: Sintaxis AST, UTF-8 BOM, CWE-390, STA threading en GUIs, y tipado estricto.<br>• Alcance repo-wide: extender correcciones al 100% de los scripts del proyecto.<br>• Lectura estructural de logs con grep físico; prohibido el sesgo de confirmación (Regla 12). |
-| **Gobernanza `AGENTS.md`** | • **Regla 0 (Revisión de `git diff`)**<br>• **Regla 16 (Determinismo)**<br>• **Regla 17.1 (Matriz Anti-Racionalización)** | • Auditar `git diff` línea por línea antes de preparar el commit.<br>• Prohibido declarar "completado" sin artefacto verificado en disco (bytes > 0, hash SHA-256).<br>• Aplicar la tabla de rechazo incondicional contra excusas típicas del agente. |
+| **Gobernanza `AGENTS.md`** | • **Regla 0 (Revisión de `git diff`)**<br>• **Regla 16 (Determinismo)**<br>• **Regla 17.1 (Matriz Anti-Racionalización)**<br>• **Regla 19 (Tribunal de Fuentes Oficiales)** | • Auditar `git diff` línea por línea antes de preparar el commit.<br>• Prohibido declarar "completado" sin artefacto verificado en disco (bytes > 0, hash SHA-256).<br>• Aplicar la tabla de rechazo incondicional contra excusas típicas del agente.<br>• Verificar que ninguna clave o tweak introducido sea un placebo o comando deprecado. |
 | **Herramientas Locales** | • `tools/sysinternals/sigcheck64.exe` | • Certificar firmas Authenticode y WHQL de controladores inyectados. |
 
 ---
@@ -108,6 +108,7 @@
 | *"Capturé el error con catch {} para que el script no se interrumpa."* | **RECHAZADO (Regla 13 / CWE-390).** Arnés falla en Tier 1.4. Todo catch debe emitir advertencia o telemetría visible. |
 | *"Solo toqué un archivo, no hace falta correr el arnés completo."* | **RECHAZADO (CONSTRAINTS.md).** Obligatorio ejecutar `check:fast` tras cualquier edición y `check:task` al cerrar tarea. |
 | *"El log es muy largo, asumo que todo salió bien porque vi líneas verdes al final."* | **RECHAZADO (Regla 12).** Prohibido sesgo de confirmación. Obligatorio `grep_search` buscando `FAIL`, `ERROR` o `Exception` en el archivo físico de log. |
+| *"El script superó la prueba con ExitCode 0, así que está verificado y correcto."* | **RECHAZADO (Regla 19 / Dimensión F).** Falacia de validación circular. Una prueba no es válida si convalida un placebo, comando deprecado (`wmic`) o tweak dañino. Obligatorio contrastar primero con especificación oficial. |
 
 ---
 

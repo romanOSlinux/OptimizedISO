@@ -151,6 +151,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0133 | [PLAN-0133-20260927-harness-evaluacion-holistica-y-aseguramiento-industrial.md](PLAN-0133-20260927-harness-evaluacion-holistica-y-aseguramiento-industrial.md) | 2026-09-27 | Harness Industrial de Evaluación Holística y Aseguramiento E2E del Ecosistema romanOS (SWE-bench / Anthropic Evals) | COMPLETADO |
 | 0134 | [PLAN-0134-20260928-soberania-herramientas-locales-regla-18-y-blindaje-mecanico.md](PLAN-0134-20260928-soberania-herramientas-locales-regla-18-y-blindaje-mecanico.md) | 2026-09-28 | Soberanía de Herramientas Locales, Regla 18 y Blindaje Mecánico Anti-Desvío del Agente | COMPLETADO |
 | 0135 | [PLAN-0135-20260928-marco-operativo-gobernanza-total-agentic-os.md](PLAN-0135-20260928-marco-operativo-gobernanza-total-agentic-os.md) | 2026-09-28 | Formalización del Marco Maestro de Gobernanza Operativa Total (Agentic OS & Lifecycle Matrix) | COMPLETADO |
+| 0136 | [PLAN-0136-20260928-protocolo-auditoria-cero-confianza-y-fuentes-oficiales.md](PLAN-0136-20260928-protocolo-auditoria-cero-confianza-y-fuentes-oficiales.md) | 2026-09-28 | Protocolo de Inquisición Cero-Confianza, Validación Epistemológica contra Fuentes Oficiales y Erradicación de la Falacia de Validación Circular | COMPLETADO |
 
 
 

@@ -232,5 +232,27 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
 - **18.4. Erradicación de Scripts Ad-Hoc Huérfanos:**
   Cualquier script temporal en `scratch/` debe ser un consumidor formal de `scripts/Core/` (mediante `. "$PSScriptRoot\..\scripts\Core\*.ps1"` o carga controlada) y nunca un código monolítico que reinvente wrappers o invoque rutas duras del host.
 
+## 19. Protocolo de Inquisición Cero-Confianza y Validación Epistemológica contra Fuentes Oficiales (Anti-Circular Validation Fallacy)
+- **19.1. Prohibición Taxativa de la Falacia de Validación Circular:**
+  1. Queda TERMINANTEMENTE PROHIBIDO para el agente asumir o afirmar que un script, módulo o política es correcto simplemente porque sus propias pruebas unitarias o de integración finalizan con `ExitCode 0` o arrojan `PASS`.
+  2. Una prueba que verifica el resultado de un script defectuoso, obsoleto o placebo no es una prueba: es una convalidación circular de un error.
+- **19.2. Principio Rector: Zero-Trust Spec-First (Culpable hasta Prueba Oficial en Contrario):**
+  1. Todo script existente, parámetro de registro, política de kernel, directiva de red o modificación del sistema DEBE ser considerado sospechoso de ser un placebo, mito o defecto de diseño hasta que la especificación técnica oficial del fabricante demuestre empíricamente su vigencia en Windows 11 24H2/25H2.
+  2. Prohibido ejecutar o certificar pruebas de rendimiento o funcionalidad sin haber contrastado previamente el diseño y la intención del código contra fuentes oficiales primarias: **Microsoft Learn**, **Intel 64 and IA-32 Architectures Optimization Reference Manual**, **AMD Processor Programming Reference (PPR / CPPC)**, estándares **WDDM** y especificaciones de seguridad Ring-0 (**Riot Vanguard, Easy Anti-Cheat, BattlEye**).
+- **19.3. Ciclo Obligatorio de Inquisición en 4 Pasos (Spec-First Audit):**
+  Ante cualquier auditoría, modernización o revisión de scripts, el agente DEBE ejecutar obligatoriamente las siguientes 4 fases en estricto orden secuencial:
+  1. *Fase 1 — Extracción Anatómica de Afirmaciones (Claim Extraction):* Desglosar cada clave de registro modificada, servicio alterado, comando CLI ejecutado y objetivo prometido.
+  2. *Fase 2 — Interrogatorio contra Documentación Oficial (Official Inquest):*
+     - ¿La clave de registro es leída y respetada por el kernel de Windows 11 24H2/25H2 o es un residuo zombi de Windows XP/7/2000?
+     - ¿El comando invocado está deprecado (ej. `wmic`, `vbs`, parámetros arcaicos de `reg.exe`)?
+     - ¿El ajuste rompe tecnologías modernas (Intel Thread Director en CPUs híbridas, AMD 3D V-Cache, VRAM compartida UMA en APUs, o el stack BypassIO / DirectStorage)?
+     - ¿La política rompe la compatibilidad Ring-0 con anti-cheats o subsistemas multimedia como `MMCSS`?
+  3. *Fase 3 — Clasificación Cuatridimensional y Saneamiento:*
+     - **PLACEBO / ZOMBI:** No tiene efecto real o el kernel lo ignora. $\rightarrow$ **Erradicar de inmediato del código y del SSOT.**
+     - **OBSOLETO:** Depende de herramientas deprecadas. $\rightarrow$ **Modernizar a APIs nativas y cmdlets CIM de Windows 11.**
+     - **PELIGROSO / ROMPE-HARDWARE:** Provoca degradación en ciertas arquitecturas o bloquea juegos. $\rightarrow$ **Condicionar con guardas dinámicas o suprimir.**
+     - **OFICIAL Y EFECTIVO:** Respaldado con documentación oficial y beneficio técnico comprobado. $\rightarrow$ **Conservar y blindar con pruebas.**
+  4. *Fase 4 — Telemetría y Verificación Empírica en Hardware Real:* Solo una vez saneado el diseño y verificada la intención contra fuentes oficiales, se autoriza la ejecución del script en modo de diagnóstico seguro sobre el hardware físico del host, midiendo su impacto con herramientas y sensores canónicos (`Coreinfo64`, `Test-KernelTimerResolution`, `fsutil bypassIo`, contadores de rendimiento).
+
 
 
