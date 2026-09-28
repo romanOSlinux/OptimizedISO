@@ -352,7 +352,222 @@ function Write-ForensicException {
         LineCode        = $lineCode
         ScriptName      = $scriptName
         SuggestedAction = $SuggestedAction
-        Message         = $msg
+    }
+}
+
+function Get-RomanOSErrorCodeDetails {
+    <#
+    .SYNOPSIS
+        Traduce códigos de error numéricos (Win32 y HRESULT CBS/DISM) a diagnósticos semánticos.
+    .DESCRIPTION
+        Soporta enteros de 32 bits con signo o sin signo y códigos de salida nativos de procesos Windows.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [long]$ExitCode
+    )
+
+    # Normalizar a representación hexadecimal de 32 bits sin signo
+    $intVal = try { [int32]$ExitCode } catch { [int32]($ExitCode -band 0xFFFFFFFFL) }
+    $hexStr  = "0x{0:X8}" -f $intVal
+
+    $knownErrors = @{
+        # --- CBS / DISM / Servicing HRESULTS ---
+        "0x800F0806" = @{ Name = "CBS_E_PENDING"; Meaning = "Operaciones de actualización pendientes. DISM /ResetBase requiere que el sistema arranque primero (first boot) tras inyectar actualizaciones acumulativas." }
+        "0x800F081F" = @{ Name = "CBS_E_SOURCE_NOT_FOUND"; Meaning = "No se encontraron los archivos de origen de la característica o paquete (falta payload en el WIM o fuentes SxS)." }
+        "0x800F080C" = @{ Name = "CBS_E_UNKNOWN_UPDATE"; Meaning = "El paquete, capability o funcionalidad especificada no existe en el catálogo de componentes de esta imagen." }
+        "0x800F0906" = @{ Name = "CBS_E_DOWNLOAD_FAILURE"; Meaning = "No se pudieron descargar los archivos de origen para habilitar la característica." }
+        "0x800F0954" = @{ Name = "CBS_E_INVALID_WINDOWS_UPDATE_TIMESTAMP"; Meaning = "DISM no puede reparar componentes usando WSUS/WU corporativo sin acceso a Microsoft Update directo." }
+        "0x800F0905" = @{ Name = "CBS_E_NO_ACTIVE_EDITION"; Meaning = "No hay una edición de Windows activa o compatible con la operación solicitada." }
+
+        # --- Win32 Standard Error Codes ---
+        "0x00000057" = @{ Name = "ERROR_INVALID_PARAMETER"; Meaning = "Parámetro o nombre de capacidad/funcionalidad no válido en esta versión de Windows (ej. componente retirado en 24H2/25H2 como WordPad o sintaxis modificada)." } # 87
+        "0x00000228" = @{ Name = "ERROR_PACKAGE_ALREADY_EXISTS"; Meaning = "El paquete de actualización ya está integrado en la imagen o un baseline superior ya está aplicado (Checkpoint redundante)." } # 552
+        "0x00000002" = @{ Name = "ERROR_FILE_NOT_FOUND"; Meaning = "El sistema no puede encontrar el archivo especificado." } # 2
+        "0x00000003" = @{ Name = "ERROR_PATH_NOT_FOUND"; Meaning = "El sistema no puede encontrar la ruta especificada." } # 3
+        "0x00000005" = @{ Name = "ERROR_ACCESS_DENIED"; Meaning = "Acceso denegado o privilegios insuficientes en el recurso/colmena." } # 5
+        "0x00000020" = @{ Name = "ERROR_SHARING_VIOLATION"; Meaning = "El proceso no tiene acceso al archivo porque está siendo utilizado por otro proceso." } # 32
+        "0x00000070" = @{ Name = "ERROR_DISK_FULL"; Meaning = "Espacio en disco insuficiente para completar la operación." } # 112
+        "0x00000BC2" = @{ Name = "ERROR_SUCCESS_REBOOT_REQUIRED"; Meaning = "Operación completada exitosamente pero requiere reinicio del sistema para surtir efecto." } # 3010
+        "0x80070002" = @{ Name = "HRESULT_FILE_NOT_FOUND"; Meaning = "El archivo especificado no existe o no pudo ser localizado por el subsistema Win32." }
+        "0x80070005" = @{ Name = "E_ACCESSDENIED"; Meaning = "Acceso denegado en la llamada COM / Win32." }
+        "0x80004005" = @{ Name = "E_FAIL"; Meaning = "Fallo no especificado en el componente COM / Win32." }
+    }
+
+    if ($knownErrors.ContainsKey($hexStr)) {
+        $entry = $knownErrors[$hexStr]
+        return [PSCustomObject]@{
+            ExitCodeDecimal = $ExitCode
+            ExitCodeHex     = $hexStr
+            SymbolicName    = $entry.Name
+            Meaning         = $entry.Meaning
+            IsKnown         = $true
+        }
+    }
+
+    # Intentar lookup nativo vía Win32Exception si está en rango Win32 clásico (0 - 65535)
+    $sysMsg = ""
+    if ($ExitCode -gt 0 -and $ExitCode -lt 65536) {
+        try {
+            $ex = New-Object System.ComponentModel.Win32Exception([int]$ExitCode)
+            $sysMsg = $ex.Message
+        } catch {
+            Write-Verbose "[UI-Engine] No se pudo obtener mensaje de Win32Exception: $($_.Exception.Message)"
+        }
+    }
+
+    return [PSCustomObject]@{
+        ExitCodeDecimal = $ExitCode
+        ExitCodeHex     = $hexStr
+        SymbolicName    = if ($sysMsg) { "WIN32_ERROR_$ExitCode" } else { "ERROR_$hexStr" }
+        Meaning         = if ($sysMsg) { $sysMsg } else { "Código de salida no estándar de Windows ($hexStr)." }
+        IsKnown         = [bool]$sysMsg
+    }
+}
+
+function Write-ForensicProcessFailure {
+    <#
+    .SYNOPSIS
+        Emite un diagnóstico estructurado, visible y detallado cuando un subproceso nativo falla.
+    .DESCRIPTION
+        Extrae las líneas de error de StdOut y StdErr, decodifica el ExitCode y registra la telemetría.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TaskDescription,
+
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+
+        [Parameter(Mandatory = $true)]
+        [long]$ExitCode,
+
+        [Parameter()]
+        [string]$StdOut = "",
+
+        [Parameter()]
+        [string]$StdErr = "",
+
+        [Parameter()]
+        [string]$LogFilePath = "",
+
+        [Parameter()]
+        [string]$Context = "",
+
+        [Parameter()]
+        [string]$SuggestedAction = "",
+
+        [Parameter()]
+        [switch]$IsWarningOnly
+    )
+
+    $errDetails = Get-RomanOSErrorCodeDetails -ExitCode $ExitCode
+    $level = if ($IsWarningOnly) { "WARN" } else { "ERROR" }
+    $cmdName = Split-Path -Leaf $FilePath
+
+    # Extraer líneas de error relevantes de StdOut y StdErr
+    $extractedLines = New-Object System.Collections.ArrayList
+
+    if ($StdErr) {
+        $lines = $StdErr -split "`r?`n" | Where-Object { $_.Trim() }
+        foreach ($l in $lines) { [void]$extractedLines.Add($l.Trim()) }
+    }
+
+    if ($StdOut) {
+        $lines = $StdOut -split "`r?`n" | Where-Object { $_.Trim() }
+        $matched = $lines | Where-Object { $_ -match '(?i)(error\s*:|fallo|exception|advertencia|denied|no se puede|0x[0-9a-f]{8}|el par[aá]metro)' }
+        if ($matched) {
+            foreach ($m in ($matched | Select-Object -Last 5)) { [void]$extractedLines.Add($m.Trim()) }
+        } else {
+            foreach ($m in ($lines | Select-Object -Last 3)) { [void]$extractedLines.Add($m.Trim()) }
+        }
+    }
+
+    # Si hay un log de DISM físico disponible, leer las últimas líneas con errores
+    if ($LogFilePath -and (Test-Path $LogFilePath)) {
+        try {
+            $logLines = Get-Content -Path $LogFilePath -Tail 50 -ErrorAction SilentlyContinue |
+                        Where-Object { $_ -match '(?i)(error|warning|0x[0-9a-f]{8})' } |
+                        Select-Object -Last 5
+            if ($logLines) {
+                [void]$extractedLines.Add("--- Evidencia de log ($([System.IO.Path]::GetFileName($LogFilePath))) ---")
+                foreach ($ll in $logLines) { [void]$extractedLines.Add($ll.Trim()) }
+            }
+        } catch {
+            Write-Verbose "[UI-Engine] No se pudo leer archivo de log: $($_.Exception.Message)"
+        }
+    }
+
+    $headerText = "[$level] Proceso '$TaskDescription' ($cmdName) finalizó con fallo (ExitCode: $ExitCode | $($errDetails.ExitCodeHex))"
+    
+    # Formateo visual destacado en consola
+    $boxColor = if ($IsWarningOnly) { "Yellow" } else { "Red" }
+    Write-Host ""
+    Write-Host "  ══════════════════════════════════════════════════════════════════════════" -ForegroundColor $boxColor
+    Write-Host "  $headerText" -ForegroundColor $boxColor
+    Write-Host "    -> Código / Simbólico : $($errDetails.ExitCodeDecimal) ($($errDetails.ExitCodeHex)) — $($errDetails.SymbolicName)" -ForegroundColor DarkYellow
+    Write-Host "    -> Causa Técnica      : $($errDetails.Meaning)" -ForegroundColor Cyan
+    
+    if ($extractedLines.Count -gt 0) {
+        Write-Host "    -> Mensaje del Proceso:" -ForegroundColor Gray
+        foreach ($el in ($extractedLines | Select-Object -First 6)) {
+            Write-Host "       | $el" -ForegroundColor DarkGray
+        }
+    }
+    
+    if ($SuggestedAction) {
+        Write-Host "    -> Acción Sugerida    : $SuggestedAction" -ForegroundColor Green
+    }
+    Write-Host "  ══════════════════════════════════════════════════════════════════════════" -ForegroundColor $boxColor
+    Write-Host ""
+
+    # Preparar payload para log estructurado
+    $diagText = ($extractedLines -join " // ")
+    $logPayload = "$headerText | Simbólico: $($errDetails.SymbolicName) | Causa: $($errDetails.Meaning)"
+    if ($diagText) { $logPayload += " | Salida: [$diagText]" }
+    if ($SuggestedAction) { $logPayload += " | Accion: [$SuggestedAction]" }
+
+    Write-UnifiedLogEntry -Message $logPayload -Level $level | Out-Null
+
+    if ($IsWarningOnly) {
+        if ($null -ne $global:RomanOS_LogWarns) { [void]$global:RomanOS_LogWarns.Add($headerText) }
+        try {
+            if ($null -ne $script:LogWarns -and -not [object]::ReferenceEquals($script:LogWarns, $global:RomanOS_LogWarns)) {
+                [void]$script:LogWarns.Add($headerText)
+            }
+        } catch {
+            Write-Verbose "[UI-Engine] No se pudo agregar advertencia forense a script:LogWarns: $($_.Exception.Message)"
+        }
+    } else {
+        if ($null -ne $global:RomanOS_LogErrors) { [void]$global:RomanOS_LogErrors.Add($headerText) }
+        try {
+            if ($null -ne $script:LogErrors -and -not [object]::ReferenceEquals($script:LogErrors, $global:RomanOS_LogErrors)) {
+                [void]$script:LogErrors.Add($headerText)
+            }
+        } catch {
+            Write-Verbose "[UI-Engine] No se pudo agregar error forense a script:LogErrors: $($_.Exception.Message)"
+        }
+        try {
+            if ($script:CurrentStepObj) {
+                $script:CurrentStepObj.Status = "ERROR"
+                $script:CurrentStepObj.Note = $headerText
+            }
+        } catch {
+            Write-Verbose "[UI-Engine] No se pudo actualizar CurrentStepObj con error forense: $($_.Exception.Message)"
+        }
+    }
+
+    return [PSCustomObject]@{
+        Header          = $headerText
+        ExitCode        = $ExitCode
+        ExitCodeHex     = $errDetails.ExitCodeHex
+        SymbolicName    = $errDetails.SymbolicName
+        Meaning         = $errDetails.Meaning
+        DiagnosticLines = @($extractedLines)
+        DiagnosticText  = $diagText
+        SuggestedAction = $SuggestedAction
     }
 }
 

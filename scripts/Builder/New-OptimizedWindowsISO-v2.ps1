@@ -377,6 +377,19 @@ if (-not $uiLoaded) {
         }
         return $true
     }
+    function Get-RomanOSErrorCodeDetails {
+        param([long]$ExitCode)
+        $intVal = try { [int32]$ExitCode } catch { [int32]($ExitCode -band 0xFFFFFFFFL) }
+        $hexStr = "0x{0:X8}" -f $intVal
+        return [PSCustomObject]@{ ExitCodeDecimal = $ExitCode; ExitCodeHex = $hexStr; SymbolicName = "ERROR_$hexStr"; Meaning = "Código $ExitCode ($hexStr)"; IsKnown = $false }
+    }
+    function Write-ForensicProcessFailure {
+        param($TaskDescription, $FilePath, [long]$ExitCode, [string]$StdOut = "", [string]$StdErr = "", [string]$LogFilePath = "", [string]$Context = "", [string]$SuggestedAction = "", [switch]$IsWarningOnly)
+        $level = if ($IsWarningOnly) { "WARN" } else { "ERROR" }
+        $diag = if ($StdErr) { $StdErr } else { $StdOut }
+        Write-Host "  [$level] Proceso '$TaskDescription' falló (ExitCode: $ExitCode). $diag" -ForegroundColor $(if($IsWarningOnly){"Yellow"}else{"Red"})
+        return [PSCustomObject]@{ Header = "[$level] $TaskDescription"; ExitCode = $ExitCode; ExitCodeHex = "0x{0:X8}" -f ([int32]$ExitCode); SymbolicName = "ERR_$ExitCode"; Meaning = $diag; DiagnosticText = $diag; DiagnosticLines = @($diag) }
+    }
 }
 
 #------------------------------------------------------------------------------
@@ -976,24 +989,39 @@ function Invoke-MonitoredProcess {
         Write-Host $stdout -ForegroundColor DarkGray
     }
 
+    $failureReport = $null
     if (-not $isSuccess -and -not $timedOut) {
-        $diagMsg = "Proceso '$TaskDescription' finalizó con código de salida: $exitCode."
-        if ($stderr) { $diagMsg += " STDERR: $stderr" }
-        Write-LogEntry -Level "WARN" -Message $diagMsg
+        $logPathMatch = [regex]::Match($argumentsString, '(?i)/LogPath:("([^"]+)"|([^\s]+))')
+        $detectedLog = if ($logPathMatch.Success) {
+            if ($logPathMatch.Groups[2].Value) { $logPathMatch.Groups[2].Value } else { $logPathMatch.Groups[3].Value }
+        } else { "" }
+
+        $failureReport = Write-ForensicProcessFailure -TaskDescription $TaskDescription `
+            -FilePath $FilePath `
+            -ExitCode $exitCode `
+            -StdOut $stdout `
+            -StdErr $stderr `
+            -LogFilePath $detectedLog `
+            -IsWarningOnly
     }
 
     $elapsedTotal = [math]::Round($sw.Elapsed.TotalSeconds, 1)
     $proc.Dispose()
 
     return [PSCustomObject]@{
-        Success         = $isSuccess
-        TimedOut        = $timedOut
-        ExitCode        = $exitCode
-        StdOut          = $stdout
-        StdErr          = $stderr
-        ElapsedSeconds  = $elapsedTotal
-        DurationSeconds = $elapsedTotal
-        Task            = $TaskDescription
+        Success           = $isSuccess
+        TimedOut          = $timedOut
+        ExitCode          = $exitCode
+        ExitCodeHex       = if ($failureReport) { $failureReport.ExitCodeHex } else { "0x{0:X8}" -f ([int32]$exitCode) }
+        SymbolicName      = if ($failureReport) { $failureReport.SymbolicName } else { "SUCCESS" }
+        Meaning           = if ($failureReport) { $failureReport.Meaning } else { "" }
+        DiagnosticText    = if ($failureReport) { $failureReport.DiagnosticText } else { "" }
+        DiagnosticLines   = if ($failureReport) { $failureReport.DiagnosticLines } else { @() }
+        StdOut            = $stdout
+        StdErr            = $stderr
+        ElapsedSeconds    = $elapsedTotal
+        DurationSeconds   = $elapsedTotal
+        Task              = $TaskDescription
     }
 }
 
@@ -2057,9 +2085,12 @@ function Invoke-RomanOSDismComponentRemoval {
                     $result.Details.Add("SKIP: $target (No presente)")
                     continue
                 } else {
-                    Write-Warn "Fallo al remover Capability '$target' (ExitCode: $($procRes.ExitCode))"
+                    $errInfo = Get-RomanOSErrorCodeDetails -ExitCode $procRes.ExitCode
+                    $failMsg = "Fallo al remover Capability '$target' (ExitCode: $($procRes.ExitCode) [$($errInfo.ExitCodeHex)] - $($errInfo.SymbolicName): $($errInfo.Meaning))"
+                    if ($procRes.DiagnosticText) { $failMsg += " // Detalle: $($procRes.DiagnosticText)" }
+                    Write-Warn $failMsg
                     $result.FailedCount++
-                    $result.Details.Add("FAIL: $target (ExitCode: $($procRes.ExitCode))")
+                    $result.Details.Add("FAIL: $target (ExitCode: $($procRes.ExitCode) - $($errInfo.SymbolicName))")
                     continue
                 }
             }
@@ -2083,9 +2114,12 @@ function Invoke-RomanOSDismComponentRemoval {
                     $result.Details.Add("SKIP: $target (No presente)")
                     continue
                 } else {
-                    Write-Warn "Fallo al remover Feature '$target' (ExitCode: $($procRes.ExitCode))"
+                    $errInfo = Get-RomanOSErrorCodeDetails -ExitCode $procRes.ExitCode
+                    $failMsg = "Fallo al remover Feature '$target' (ExitCode: $($procRes.ExitCode) [$($errInfo.ExitCodeHex)] - $($errInfo.SymbolicName): $($errInfo.Meaning))"
+                    if ($procRes.DiagnosticText) { $failMsg += " // Detalle: $($procRes.DiagnosticText)" }
+                    Write-Warn $failMsg
                     $result.FailedCount++
-                    $result.Details.Add("FAIL: $target (ExitCode: $($procRes.ExitCode))")
+                    $result.Details.Add("FAIL: $target (ExitCode: $($procRes.ExitCode) - $($errInfo.SymbolicName))")
                     continue
                 }
             }
@@ -2256,7 +2290,9 @@ function Invoke-RomanOSComponentStoreCleanup {
             $result.Summary = "ComponentStoreCleanup exitoso (ResetBase: $([bool]$ResetBase)). Ahorro estimado: $($result.SavedMB) MB."
             Write-OK $result.Summary
         } else {
-            $result.Summary = "ComponentStoreCleanup finalizo con ExitCode: $($result.ExitCode)."
+            $errInfo = Get-RomanOSErrorCodeDetails -ExitCode $result.ExitCode
+            $result.Summary = "ComponentStoreCleanup finalizo con ExitCode: $($result.ExitCode) [$($errInfo.ExitCodeHex)] - $($errInfo.SymbolicName): $($errInfo.Meaning)"
+            if ($procRes.DiagnosticText) { $result.Summary += " // Detalle: $($procRes.DiagnosticText)" }
             Write-Warn $result.Summary
         }
     } catch {
@@ -6808,7 +6844,11 @@ if ($wimFile) {
                                                     Write-Host "      OK (Checkpoint PSF aplicado)." -ForegroundColor Green
                                                 } else {
                                                     $failCount++
-                                                    Write-Host "      ERROR PSF. ExitCode: $($dismPsfRes.ExitCode). Log: $dismLog" -ForegroundColor Red
+                                                    $errDetails = Get-RomanOSErrorCodeDetails -ExitCode $dismPsfRes.ExitCode
+                                                    $psfErrMsg = "ERROR PSF en '$($pkg.Name)': $($dismPsfRes.ExitCode) [$($errDetails.ExitCodeHex)] - $($errDetails.SymbolicName): $($errDetails.Meaning)"
+                                                    if ($dismPsfRes.DiagnosticText) { $psfErrMsg += " // $($dismPsfRes.DiagnosticText)" }
+                                                    Write-Host "      $psfErrMsg" -ForegroundColor Red
+                                                    Write-LogEntry -Level "WARN" -Message $psfErrMsg
                                                 }
                                             } else {
                                                 # === RUTA ESTÁNDAR: MSU con .cab extraíble ===
@@ -6836,7 +6876,11 @@ if ($wimFile) {
                                                         Write-Host "      OK usando .cab extraído." -ForegroundColor Green
                                                     } else {
                                                         $failCount++
-                                                        Write-Host "      ERROR también con .cab. Exit code: $($dismCabRes.ExitCode)." -ForegroundColor Red
+                                                        $errDetails = Get-RomanOSErrorCodeDetails -ExitCode $dismCabRes.ExitCode
+                                                        $cabErrMsg = "ERROR .cab en '$($pkg.Name)': $($dismCabRes.ExitCode) [$($errDetails.ExitCodeHex)] - $($errDetails.SymbolicName): $($errDetails.Meaning)"
+                                                        if ($dismCabRes.DiagnosticText) { $cabErrMsg += " // $($dismCabRes.DiagnosticText)" }
+                                                        Write-Host "      $cabErrMsg" -ForegroundColor Red
+                                                        Write-LogEntry -Level "WARN" -Message $cabErrMsg
                                                     }
                                                 } else {
                                                     $failCount++

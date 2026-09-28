@@ -48,7 +48,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 72
+$EXPECTED_FUNCS  = 76
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -329,7 +329,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "72 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "76 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -337,6 +337,7 @@ Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
 $expectedList = @(
     "Show-UnifiedBanner", "Write-StepHeader", "Write-SubStep", "Write-OK", "Write-Warn",
     "Write-ErrorMsg", "Write-Info", "Show-UnifiedMenu", "Prompt-UnifiedYesNo", "Show-UnifiedSummary",
+    "Get-RomanOSErrorCodeDetails", "Write-ForensicProcessFailure",
     # Funciones de New-OptimizedWindowsISO-v2.ps1
     "Initialize-Log", "Write-LogEntry", "Add-AuditRecord", "Write-LogSummary", "Test-Admin", "Test-7ZipInstalled",
     "Test-OSCDImgInstalled", "Install-Dependencies", "Test-MinimumFreeSpace",
