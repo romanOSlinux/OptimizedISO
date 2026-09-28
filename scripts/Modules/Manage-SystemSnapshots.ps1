@@ -480,13 +480,13 @@ function Get-RomanOSSnapshots {
         }
     }
 
-    return $snapshots
+    return @($snapshots)
 }
 
 function Show-RomanOSSnapshotsTable {
     param([string]$BaseDir)
 
-    $list = Get-RomanOSSnapshots -BaseDir $BaseDir
+    $list = @(Get-RomanOSSnapshots -BaseDir $BaseDir)
     Write-Host ""
     Write-Host "======================================================================================================" -ForegroundColor Cyan
     Write-Host " CATÁLOGO DE INSTANTÁNEAS DISPONIBLES — romanOS / OptimizedISO" -ForegroundColor Cyan
