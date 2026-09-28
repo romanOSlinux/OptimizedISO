@@ -4516,6 +4516,25 @@ try {
     Write-Warning "Aviso: No se pudo estimar el espacio disponible en $env:TEMP : $($_.Exception.Message)"
 }
 
+# Limpieza preventiva de residuos temporales de compilaciones previas o abortadas
+try {
+    Get-ChildItem -Path $env:TEMP -Filter "WinISO_Extract_*" -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -ne $ExtractDir } |
+        ForEach-Object {
+            Write-Verbose "Purgando residuo temporal previo: $($_.FullName)"
+            Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+    Get-ChildItem -Path $env:SystemDrive -Filter "WinISO_Scratch_*" -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -ne $ScratchDir } |
+        ForEach-Object {
+            Write-Verbose "Purgando residuo scratch previo: $($_.FullName)"
+            Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+} catch {
+    Write-Debug "Limpieza preventiva de temporales omitida: $($_.Exception.Message)"
+}
+
 # Limpiar directorio temporal previo si existe.
 if (Test-Path $ExtractDir) {
     Remove-Item -Path $ExtractDir -Recurse -Force -ErrorAction SilentlyContinue

@@ -887,6 +887,21 @@ $btnCancel.Add_Click({
                     }
                     $window.FindName('txtConsole').AppendText("`r`n[!] PROCESO CANCELADO POR EL USUARIO.`r`n")
                     Write-StudioLog "Proceso PID $pidToKill terminado por intervención del usuario." -Level "WARN"
+
+                    # Limpieza asíncrona de residuos de compilación tras cancelación
+                    try {
+                        Write-StudioLog "Ejecutando limpieza de residuos temporales tras cancelación..." -Level "INFO"
+                        Get-ChildItem -Path $env:TEMP -Filter "WinISO_Extract_*" -Directory -ErrorAction SilentlyContinue |
+                            ForEach-Object { Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+                        Get-ChildItem -Path $env:SystemDrive -Filter "WinISO_Scratch_*" -Directory -ErrorAction SilentlyContinue |
+                            ForEach-Object { Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+                        if (Get-Command "dism.exe" -ErrorAction SilentlyContinue) {
+                            try { & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null } catch { Write-StudioLog "Limpieza de puntos de montaje omitida: $($_.Exception.Message)" -Level "WARN" }
+                        }
+                        Write-StudioLog "Limpieza de residuos temporales post-cancelación completada." -Level "INFO"
+                    } catch {
+                        Write-StudioLog "Aviso en limpieza post-cancelación: $($_.Exception.Message)" -Level "WARN"
+                    }
                 }
             } catch {
                 $window.FindName('txtConsole').AppendText("`r`n[!] Error al cancelar el proceso: $($_.Exception.Message)`r`n")
