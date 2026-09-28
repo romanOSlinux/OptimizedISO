@@ -1102,6 +1102,7 @@ $global:RomanOS_Policies = @(
     },
     @{
         Id            = "DEBLOAT_DoNotShowFeedbackNotifications"
+        Module        = "Modulo Debloat - Telemetria"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
@@ -1109,10 +1110,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 1
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar recordatorios y solicitudes de comentarios (Feedback Hub)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-system#donotshowfeedbacknotifications"
+        UnattendDesc  = "Disable Feedback Notifications"
     },
     @{
         Id            = "DEBLOAT_AllowDeviceNameInTelemetry"
+        Module        = "Modulo Debloat - Telemetria"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
@@ -1120,10 +1125,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Impedir el envio del nombre del equipo en paquetes de telemetria"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-system#allowdevicenameintelemetry"
+        UnattendDesc  = "Disable Device Name in Telemetry"
     },
     @{
         Id            = "DEBLOAT_LimitDiagnosticLogCollection"
+        Module        = "Modulo Debloat - Telemetria"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
@@ -1131,10 +1140,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 1
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Limitar recoleccion de registros de diagnostico adicionales"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-system#limitdiagnosticlogcollection"
+        UnattendDesc  = "Limit Diagnostic Log Collection"
     },
     @{
         Id            = "DEBLOAT_LimitDumpCollection"
+        Module        = "Modulo Debloat - Telemetria"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
@@ -1142,10 +1155,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 1
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Limitar volcados de memoria y telemetria forense enviada a Microsoft"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-system#limitdumpcollection"
+        UnattendDesc  = "Limit Crash Dump Collection"
     },
     @{
         Id            = "DEBLOAT_Enabled"
+        Module        = "Modulo Debloat - Publicidad"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo"
         PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo"
@@ -1153,10 +1170,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar ID de publicidad relevante para el usuario"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-experience#allowadvertisingid"
+        UnattendDesc  = "Disable User Advertising ID"
     },
     @{
         Id            = "DEBLOAT_TailoredExperiencesWithDiagnosticDataEnabled"
+        Module        = "Modulo Debloat - Experiencias Personalizadas"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\Privacy"
         PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy"
@@ -1164,10 +1185,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar sugerencias y experiencias personalizadas basadas en telemetria"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy#tailoredexperienceswithdiagnosticdataenabled"
+        UnattendDesc  = "Disable Tailored Experiences with Diagnostic Data"
     },
     @{
         Id            = "DEBLOAT_HttpAcceptLanguageOptOut"
+        Module        = "Modulo Debloat - Idioma"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Control Panel\International\User Profile"
         PSPath        = "HKCU:\Control Panel\International\User Profile"
@@ -1175,10 +1200,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 1
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Evitar que sitios web rastreen la lista local de idiomas del usuario"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy"
+        UnattendDesc  = "Opt-out HTTP Accept Language Tracking"
     },
     @{
         Id            = "DEBLOAT_NumberOfSIUFInPeriod"
+        Module        = "Modulo Debloat - SIUF"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\Siuf\Rules"
         PSPath        = "HKCU:\Software\Microsoft\Siuf\Rules"
@@ -1186,10 +1215,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Anular frecuencia de encuestas periodicas de satisfaccion SIUF"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-system#donotshowfeedbacknotifications"
+        UnattendDesc  = "Disable SIUF Feedback Surveys Period"
     },
     @{
         Id            = "DEBLOAT_HasAccepted"
+        Module        = "Modulo Debloat - Voz"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy"
         PSPath        = "HKCU:\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy"
@@ -1197,10 +1230,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar reconocimiento de voz en linea y envio de audio a la nube"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy#allowonlinespeechrecognition"
+        UnattendDesc  = "Disable Online Speech Recognition Privacy"
     },
     @{
         Id            = "DEBLOAT_AllowInputPersonalization"
+        Module        = "Modulo Debloat - Tinta y Escritura"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\InputPersonalization"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\InputPersonalization"
@@ -1208,10 +1245,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar personalizacion de entrada de texto y telemetria de teclado"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy#allowinputpersonalization"
+        UnattendDesc  = "Disable Input Personalization and Typing Telemetry"
     },
     @{
         Id            = "DEBLOAT_RestrictImplicitInkCollection"
+        Module        = "Modulo Debloat - Tinta y Escritura"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\InputPersonalization"
         PSPath        = "HKCU:\Software\Microsoft\InputPersonalization"
@@ -1219,10 +1260,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 1
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Restringir recoleccion implicita de trazos de tinta digital"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy#restrictimplicitinkcollection"
+        UnattendDesc  = "Restrict Implicit Ink Collection"
     },
     @{
         Id            = "DEBLOAT_RestrictImplicitTextCollection"
+        Module        = "Modulo Debloat - Tinta y Escritura"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\InputPersonalization"
         PSPath        = "HKCU:\Software\Microsoft\InputPersonalization"
@@ -1230,10 +1275,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 1
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Restringir recoleccion implicita de patrones de texto tecleado"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy#restrictimplicittextcollection"
+        UnattendDesc  = "Restrict Implicit Text Collection"
     },
     @{
         Id            = "DEBLOAT_HarvestContacts"
+        Module        = "Modulo Debloat - Tinta y Escritura"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\InputPersonalization\TrainedDataStore"
         PSPath        = "HKCU:\Software\Microsoft\InputPersonalization\TrainedDataStore"
@@ -1241,10 +1290,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Impedir indexacion de contactos para sugerencias de escritura"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy#harvestcontacts"
+        UnattendDesc  = "Disable Contact Harvesting for Typing Predictions"
     },
     @{
         Id            = "DEBLOAT_AcceptedPrivacyPolicy"
+        Module        = "Modulo Debloat - Privacidad"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\Personalization\Settings"
         PSPath        = "HKCU:\Software\Microsoft\Personalization\Settings"
@@ -1252,10 +1305,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Revocar consentimiento para perfilado de personalizacion de usuario"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy"
+        UnattendDesc  = "Revoke Personalization Privacy Policy Consent"
     },
     @{
         Id            = "DEBLOAT_EnableActivityFeed"
+        Module        = "Modulo Debloat - Historial de Actividad"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\System"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System"
@@ -1264,10 +1321,14 @@ $global:RomanOS_Policies = @(
         PSType        = "DWord"
         ExpectedValue = 0
         IsDeprecated  = $true
+        Profiles      = @(1, 2, 3)
         Description   = "[OBSOLETA - Win11] ActivityFeed (Timeline fue descontinuado y eliminado en Windows 10 21H2)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-experience#enableactivityfeed"
+        UnattendDesc  = "Disable Deprecated Activity Feed"
     },
     @{
         Id            = "DEBLOAT_DisableLocation"
+        Module        = "Modulo Debloat - Ubicacion"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors"
@@ -1275,10 +1336,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 1
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar sensor de ubicacion y geolocalizacion del sistema"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-system#disablelocation"
+        UnattendDesc  = "Disable System Location and Sensors"
     },
     @{
         Id            = "DEBLOAT_AllowFindMyDevice"
+        Module        = "Modulo Debloat - Ubicacion"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\FindMyDevice"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\FindMyDevice"
@@ -1286,10 +1351,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar servicio de rastreo remoto 'Encontrar mi dispositivo'"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-system#allowfindmydevice"
+        UnattendDesc  = "Disable Find My Device Tracking"
     },
     @{
         Id            = "DEBLOAT_IsAADCloudSearchEnabled"
+        Module        = "Modulo Debloat - Busqueda en la Nube"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
         PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
@@ -1297,10 +1366,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar busqueda en la nube para cuentas Microsoft Entra ID (Azure AD)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search#allowcloudsearch"
+        UnattendDesc  = "Disable Entra ID Cloud Search"
     },
     @{
         Id            = "DEBLOAT_IsMSACloudSearchEnabled"
+        Module        = "Modulo Debloat - Busqueda en la Nube"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
         PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
@@ -1308,10 +1381,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar busqueda en la nube para cuentas Microsoft personales (MSA)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search#allowcloudsearch"
+        UnattendDesc  = "Disable MSA Cloud Search"
     },
     @{
         Id            = "DEBLOAT_IsDeviceSearchHistoryEnabled"
+        Module        = "Modulo Debloat - Historial de Busqueda"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
         PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
@@ -1319,10 +1396,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar almacenamiento del historial de busqueda en este dispositivo"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
+        UnattendDesc  = "Disable Device Search History"
     },
     @{
         Id            = "DEBLOAT_AllowSearchToUseLocation"
+        Module        = "Modulo Debloat - Busqueda"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
@@ -1330,10 +1411,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Impedir que Windows Search utilice la ubicacion geografica del dispositivo"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search#allowsearchtouselocation"
+        UnattendDesc  = "Prevent Windows Search from Using Location"
     },
     @{
         Id            = "DEBLOAT_AllowCloudSearch"
+        Module        = "Modulo Debloat - Busqueda"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
@@ -1341,10 +1426,14 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 0
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar integracion de busquedas en la nube a nivel de directiva de grupo"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search#allowcloudsearch"
+        UnattendDesc  = "Disable Group Policy Cloud Search"
     },
     @{
         Id            = "DEBLOAT_Disabled"
+        Module        = "Modulo Debloat - Informes de Errores"
         Category      = "Privacidad y Telemetria"
         RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting"
         PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting"
@@ -1352,7 +1441,10 @@ $global:RomanOS_Policies = @(
         Type          = "REG_DWORD"
         PSType        = "DWord"
         ExpectedValue = 1
-        Description   = "Migrado de Win11-Debloat-v3-Adaptive"
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar informes automaticos de errores a Microsoft (WER)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-system#disablewindowserrorreporting"
+        UnattendDesc  = "Disable Windows Error Reporting (WER)"
     },
     # --- MÓDULO G: CIBERSEGURIDAD ZERO-IMPACT & KERNEL HARDENING ---
     @{
