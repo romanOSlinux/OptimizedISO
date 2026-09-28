@@ -59,7 +59,10 @@ try {
 # Auto-elevacion de privilegios
 $isSimulated = ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin -and -not $SkipElevation -and -not $isSimulated) {
+$isRedirected = $false
+try { $isRedirected = [System.Console]::IsInputRedirected } catch { $isRedirected = $false }
+
+if (-not $isAdmin -and -not $SkipElevation -and -not $isSimulated -and -not $isRedirected) {
     if ($PSCmdlet.ShouldProcess("powershell.exe", "Auto-elevar privilegios de Administrador UAC")) {
         Write-Host "  [!] Elevando privilegios de Administrador (UAC)..." -ForegroundColor Yellow
         $scriptPath = $MyInvocation.MyCommand.Definition
@@ -72,11 +75,11 @@ if (-not $isAdmin -and -not $SkipElevation -and -not $isSimulated) {
         if ($Unattended) { $argList += '-Unattended' }
         
         try {
-            Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
+            Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs -ErrorAction Stop
+            exit
         } catch {
-            Write-Error "Fallo al solicitar elevacion UAC: $($_.Exception.Message)"
+            Write-Warning "No se pudo auto-elevar UAC ($($_.Exception.Message)). Continuando en modo estandar..."
         }
-        exit
     }
 }
 
