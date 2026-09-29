@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     romanOS Control Center - Interfaz Gráfica Nativa (WPF / XAML)
     Hub Maestro de Optimización, Gaming, Mantenimiento, Red y Seguridad
