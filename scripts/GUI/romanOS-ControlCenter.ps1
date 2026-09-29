@@ -1582,7 +1582,10 @@ $window.FindName('btnHelperRecall').Add_Click({
 $window.FindName('btnAuditInvariants').Add_Click({
     $pEng = Resolve-CoreModule "Policy-Engine.ps1"
     if ($pEng) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -Command `"& { . '$pEng'; Assert-RomanOSInvariants -AutoRemediate; Write-Host '`n[OK] Verificacion de Invariantes Finalizada.' }`"" -TaskTitle "Auditoria de Invariantes del Sistema"
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -Command `"& { . '$pEng'; `$res = Assert-RomanOSInvariants -AutoRemediate; `$res | Format-List; Write-Host ''; Write-Host '[OK] Verificacion de Invariantes Finalizada.' }`"" -TaskTitle "Auditoria de Invariantes del Sistema"
+    } else {
+        Write-CCLog "Error: No se pudo localizar Policy-Engine.ps1 en ninguna ruta de búsqueda." "ERROR"
+        [System.Windows.MessageBox]::Show("No se pudo localizar el motor canónico Policy-Engine.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
     }
 })
 
