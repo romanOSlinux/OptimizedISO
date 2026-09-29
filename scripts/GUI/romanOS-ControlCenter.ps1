@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     romanOS Control Center - Interfaz Gráfica Nativa (WPF / XAML)
     Hub Maestro de Optimización, Gaming, Mantenimiento, Red y Seguridad
@@ -1287,7 +1287,7 @@ function Start-ControlCenterTask {
             # Refrescar estados de Desktop Helpers tras concluir la tarea
             try {
                 if (Get-Command 'Update-DesktopHelpersGUIState' -ErrorAction SilentlyContinue) {
-                    Update-DesktopHelpersGUIState
+                    $window.Dispatcher.Invoke({ Update-DesktopHelpersGUIState })
                 }
             } catch {
                 Write-CCLog "Aviso al refrescar estado de Desktop Helpers: $($_.Exception.Message)" -Level "WARN"
@@ -1296,7 +1296,7 @@ function Start-ControlCenterTask {
             # Refrescar estado de DNS tras concluir la tarea
             try {
                 if (Get-Command 'Update-ControlCenterDnsState' -ErrorAction SilentlyContinue) {
-                    Update-ControlCenterDnsState
+                    $window.Dispatcher.Invoke({ Update-ControlCenterDnsState })
                 }
             } catch {
                 Write-CCLog "Aviso al refrescar estado de DNS: $($_.Exception.Message)" -Level "WARN"
