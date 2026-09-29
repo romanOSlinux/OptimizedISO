@@ -1190,6 +1190,16 @@ function Apply-RomanOSGuiTheme {
         $Window.Background = $wBrush
     } catch {}
 
+    try {
+        $popupBg = $bc.ConvertFromString($theme.CardBg)
+        if ($popupBg.CanFreeze) { $popupBg.Freeze() }
+        $Window.Resources[[System.Windows.SystemColors]::WindowBrushKey] = $popupBg
+
+        $popupFg = $bc.ConvertFromString($theme.TextPrimary)
+        if ($popupFg.CanFreeze) { $popupFg.Freeze() }
+        $Window.Resources[[System.Windows.SystemColors]::WindowTextBrushKey] = $popupFg
+    } catch {}
+
     Set-RomanOSActiveThemeName -ThemeName $ThemeName
     return $theme
 }

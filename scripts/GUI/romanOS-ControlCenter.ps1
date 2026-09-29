@@ -289,6 +289,43 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
         <SolidColorBrush x:Key="AccentSuccessBgBrush" Color="#102B1E"/>
         <SolidColorBrush x:Key="AccentWarningBgBrush" Color="#33220A"/>
 
+        <!-- Sobrescritura de colores del sistema para Popups y Dropdowns nativos -->
+        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#161B22"/>
+        <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#F0F6FC"/>
+
+        <!-- Estilo Universal para ComboBox y ComboBoxItem en modo oscuro -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource CardBgBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource CardBgBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border Name="Border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="true">
+                            <ContentPresenter ContentSource="Content" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="true">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ButtonHoverBgBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="true">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ButtonBgBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentPrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource ButtonFgBrush}"/>

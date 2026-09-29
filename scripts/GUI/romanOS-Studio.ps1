@@ -101,6 +101,43 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
         <SolidColorBrush x:Key="AccentDevBrush" Color="#A855F7"/>
         <SolidColorBrush x:Key="AccentDangerBrush" Color="#FF4444"/>
 
+        <!-- Sobrescritura de colores del sistema para Popups y Dropdowns nativos -->
+        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#161B22"/>
+        <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#F0F6FC"/>
+
+        <!-- Estilo Universal para ComboBox y ComboBoxItem en modo oscuro -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource CardBgBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource CardBgBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border Name="Border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="true">
+                            <ContentPresenter ContentSource="Content" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="true">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ButtonHoverBgBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="true">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ButtonBgBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentPrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource ButtonFgBrush}"/>
@@ -186,7 +223,7 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                     <Button x:Name="btnBrowseISO" Content="Examinar" Margin="0,10,10,0" Height="28" Width="90" HorizontalAlignment="Right" VerticalAlignment="Top" Background="#333333" Foreground="#E3E3E3" BorderThickness="1" BorderBrush="#454545"/>
                     
                     <TextBlock Text="Perfil de Optimización (Hardware-Engine):" Foreground="#E3E3E3" Margin="0,65,0,0" FontWeight="SemiBold"/>
-                    <ComboBox x:Name="cmbProfile" Margin="270,60,0,0" Height="28" Width="260" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#333333" Foreground="Black">
+                    <ComboBox x:Name="cmbProfile" Margin="270,60,0,0" Height="28" Width="260" HorizontalAlignment="Left" VerticalAlignment="Top">
                         <ComboBoxItem Content="Perfil 1 (Moderado / Ofimática)" />
                         <ComboBoxItem Content="Perfil 2 (Avanzado / Gaming - Recomendado)" IsSelected="True" />
                         <ComboBoxItem Content="Perfil 3 (Hardcore / Extremo)" />
@@ -213,7 +250,7 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                                 
                                 <StackPanel Orientation="Horizontal" Margin="22,0,0,8">
                                     <TextBlock Text="Disco físico de destino:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <ComboBox x:Name="cmbZeroTouchDisk" Width="180" Height="26" Background="#333333" Foreground="Black" IsEnabled="False">
+                                    <ComboBox x:Name="cmbZeroTouchDisk" Width="180" Height="26" IsEnabled="False">
                                         <ComboBoxItem Content="Disco 0 (Predeterminado)" IsSelected="True"/>
                                         <ComboBoxItem Content="Disco 1"/>
                                         <ComboBoxItem Content="Disco 2"/>
@@ -262,14 +299,14 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                                     </Grid.RowDefinitions>
                                     
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Idioma UI:" Foreground="#E3E3E3" VerticalAlignment="Center"/>
-                                    <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbLanguage" Height="26" Background="#333333" Foreground="Black">
+                                    <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbLanguage" Height="26">
                                         <ComboBoxItem Content="es-ES (España)" IsSelected="True"/>
                                         <ComboBoxItem Content="es-MX (México)"/>
                                         <ComboBoxItem Content="en-US (Inglés)"/>
                                     </ComboBox>
                                     
                                     <TextBlock Grid.Row="0" Grid.Column="2" Text="Configuración Regional:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="15,0,0,0"/>
-                                    <ComboBox Grid.Row="0" Grid.Column="3" x:Name="cmbLocale" Height="26" Background="#333333" Foreground="Black">
+                                    <ComboBox Grid.Row="0" Grid.Column="3" x:Name="cmbLocale" Height="26">
                                         <ComboBoxItem Content="es-AR (Argentina)" IsSelected="True"/>
                                         <ComboBoxItem Content="es-MX (México)"/>
                                         <ComboBoxItem Content="es-ES (España)"/>
@@ -277,14 +314,14 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                                     </ComboBox>
 
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Distribución Teclado:" Foreground="#E3E3E3" VerticalAlignment="Center"/>
-                                    <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cmbKeyboard" Height="26" Background="#333333" Foreground="Black">
+                                    <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cmbKeyboard" Height="26">
                                         <ComboBoxItem Content="es-419 (Latinoamérica)" IsSelected="True"/>
                                         <ComboBoxItem Content="es-ES (España)"/>
                                         <ComboBoxItem Content="us (Estados Unidos)"/>
                                     </ComboBox>
                                     
                                     <TextBlock Grid.Row="2" Grid.Column="2" Text="Zona Horaria:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="15,0,0,0"/>
-                                    <ComboBox Grid.Row="2" Grid.Column="3" x:Name="cmbTimezone" Height="26" Background="#333333" Foreground="Black">
+                                    <ComboBox Grid.Row="2" Grid.Column="3" x:Name="cmbTimezone" Height="26">
                                         <ComboBoxItem Content="Argentina Standard Time" IsSelected="True"/>
                                         <ComboBoxItem Content="Romance Standard Time"/>
                                         <ComboBoxItem Content="Pacific Standard Time"/>
@@ -333,7 +370,7 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                                 <TextBlock Text="Compresión y Rendimiento de Compilación" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="Nivel de Compresión WIM:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                                    <ComboBox x:Name="cmbCompression" Width="200" Height="26" Background="#333333" Foreground="Black">
+                                    <ComboBox x:Name="cmbCompression" Width="200" Height="26">
                                         <ComboBoxItem Content="Max (Mayor ahorro de espacio)" IsSelected="True"/>
                                         <ComboBoxItem Content="Fast (Compilación más rápida)"/>
                                         <ComboBoxItem Content="None (Sin recompresión)"/>
