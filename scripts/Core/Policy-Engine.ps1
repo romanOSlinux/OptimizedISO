@@ -4090,14 +4090,31 @@ function Get-RomanOSDesktopHelperState {
     switch -Exact ($helper.Name) {
         "Defender" {
             try {
-                $mp = Get-MpComputerStatus -ErrorAction SilentlyContinue
-                if ($null -ne $mp) {
-                    $isRealtime = [bool]$mp.RealTimeProtectionEnabled
-                    $isAntivirus = [bool]$mp.AntivirusEnabled
-                    $stateVal = if ($isRealtime -and $isAntivirus) { 1 } else { 0 }
+                # 1. Comprobación rápida en caliente de directivas y registro nativo (latencia cero)
+                $rtpKey = "HKLM:\SOFTWARE\Microsoft\Windows Defender\Real-Time Protection"
+                $polKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
+                $rtpDisabled = $false
+                if (Test-Path $rtpKey) {
+                    $val = (Get-ItemProperty -Path $rtpKey -Name "DisableRealtimeMonitoring" -ErrorAction SilentlyContinue).DisableRealtimeMonitoring
+                    if ($null -ne $val -and [int]$val -eq 1) { $rtpDisabled = $true }
+                }
+                if (Test-Path $polKey) {
+                    $polVal = (Get-ItemProperty -Path $polKey -Name "DisableAntiSpyware" -ErrorAction SilentlyContinue).DisableAntiSpyware
+                    if ($null -ne $polVal -and [int]$polVal -eq 1) { $rtpDisabled = $true }
+                }
+
+                if ($rtpDisabled) {
+                    $stateVal = 0
                 } else {
-                    $svc = Get-Service -Name "WinDefend" -ErrorAction SilentlyContinue
-                    $stateVal = if ($svc -and $svc.Status -eq "Running") { 1 } else { 0 }
+                    $mp = Get-MpComputerStatus -ErrorAction SilentlyContinue
+                    if ($null -ne $mp) {
+                        $isRealtime = [bool]$mp.RealTimeProtectionEnabled
+                        $isAntivirus = [bool]$mp.AntivirusEnabled
+                        $stateVal = if ($isRealtime -and $isAntivirus) { 1 } else { 0 }
+                    } else {
+                        $svc = Get-Service -Name "WinDefend" -ErrorAction SilentlyContinue
+                        $stateVal = if ($svc -and $svc.Status -eq "Running") { 1 } else { 0 }
+                    }
                 }
             } catch {
                 $svc = Get-Service -Name "WinDefend" -ErrorAction SilentlyContinue

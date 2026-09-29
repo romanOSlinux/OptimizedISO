@@ -1070,6 +1070,17 @@ try {
     Write-CCLog "Aviso al inicializar botones Desktop Helpers: $($_.Exception.Message)" -Level "WARN"
 }
 
+# Auto-refresco periódico de Asistentes Modulares (cada 5s) para mantener paridad en vivo con el sistema
+$script:helperRefreshTimer = New-Object System.Windows.Threading.DispatcherTimer
+$script:helperRefreshTimer.Interval = [TimeSpan]::FromSeconds(5)
+$script:helperRefreshTimer.Add_Tick({
+    try {
+        Update-DesktopHelpersGUIState
+    } catch { }
+})
+$script:helperRefreshTimer.Start()
+
+
 # Inicializar estado de DNS en la UI
 function Update-ControlCenterDnsState {
     try {
@@ -1301,6 +1312,26 @@ function Start-ControlCenterTask {
             } catch {
                 Write-CCLog "Aviso al refrescar estado de DNS: $($_.Exception.Message)" -Level "WARN"
             }
+
+            # Re-verificación diferida (1.5s) para permitir el asentamiento de servicios asíncronos
+            try {
+                $delayedTimer = New-Object System.Windows.Threading.DispatcherTimer
+                $delayedTimer.Interval = [TimeSpan]::FromMilliseconds(1500)
+                $delayedTimer.Add_Tick({
+                    $This.Stop()
+                    try {
+                        if (Get-Command 'Update-DesktopHelpersGUIState' -ErrorAction SilentlyContinue) {
+                            $window.Dispatcher.Invoke({ Update-DesktopHelpersGUIState })
+                        }
+                    } catch { }
+                    try {
+                        if (Get-Command 'Update-ControlCenterDnsState' -ErrorAction SilentlyContinue) {
+                            $window.Dispatcher.Invoke({ Update-ControlCenterDnsState })
+                        }
+                    } catch { }
+                })
+                $delayedTimer.Start()
+            } catch { }
         }
     })
 
@@ -2281,6 +2312,12 @@ if ($WhatIfPreference -or $PSBoundParameters.ContainsKey('WhatIf')) {
     Write-Host "[WhatIf] romanOS Control Center validado correctamente: XAML cargado y eventos enlazados." -ForegroundColor Green
     exit 0
 }
+
+$window.Add_Closing({
+    if ($script:helperRefreshTimer) {
+        $script:helperRefreshTimer.Stop()
+    }
+})
 
 Write-CCLog "Mostrando ventana principal de romanOS Control Center"
 [void]$window.ShowDialog()
