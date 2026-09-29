@@ -260,13 +260,39 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="romanOS Control Center" Height="720" Width="940"
-        Background="#202020" WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource WindowBgBrush}" WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI" MinHeight="640" MinWidth="860">
     <Window.Resources>
+        <SolidColorBrush x:Key="WindowBgBrush" Color="#0D1117"/>
+        <SolidColorBrush x:Key="HeaderBgBrush" Color="#161B22"/>
+        <SolidColorBrush x:Key="HeaderBorderBrush" Color="#21262D"/>
+        <SolidColorBrush x:Key="CardBgBrush" Color="#161B22"/>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#30363D"/>
+        <SolidColorBrush x:Key="ButtonBgBrush" Color="#21262D"/>
+        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#363D47"/>
+        <SolidColorBrush x:Key="ButtonFgBrush" Color="#F0F6FC"/>
+        <SolidColorBrush x:Key="ButtonHoverBgBrush" Color="#30363D"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F0F6FC"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8B949E"/>
+        <SolidColorBrush x:Key="TabBgBrush" Color="#161B22"/>
+        <SolidColorBrush x:Key="TabBorderBrush" Color="#21262D"/>
+        <SolidColorBrush x:Key="TabSelectedBgBrush" Color="#21262D"/>
+        <SolidColorBrush x:Key="TabSelectedFgBrush" Color="#00E5FF"/>
+        <SolidColorBrush x:Key="ConsoleBgBrush" Color="#0A0D12"/>
+        <SolidColorBrush x:Key="ConsoleBorderBrush" Color="#21262D"/>
+        <SolidColorBrush x:Key="AccentPrimaryBrush" Color="#00E5FF"/>
+        <SolidColorBrush x:Key="AccentSecondaryBrush" Color="#00E676"/>
+        <SolidColorBrush x:Key="AccentWarningBrush" Color="#F59E0B"/>
+        <SolidColorBrush x:Key="AccentDevBrush" Color="#A855F7"/>
+        <SolidColorBrush x:Key="AccentDangerBrush" Color="#FF4444"/>
+        <SolidColorBrush x:Key="AccentAuditBgBrush" Color="#102A38"/>
+        <SolidColorBrush x:Key="AccentSuccessBgBrush" Color="#102B1E"/>
+        <SolidColorBrush x:Key="AccentWarningBgBrush" Color="#33220A"/>
+
         <Style TargetType="Button">
-            <Setter Property="Background" Value="#2D2D2D"/>
-            <Setter Property="Foreground" Value="#E3E3E3"/>
-            <Setter Property="BorderBrush" Value="#454545"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ButtonFgBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,6"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -284,8 +310,8 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                 <Setter Property="Opacity" Value="0.35" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#383838" />
-                                <Setter Property="BorderBrush" Value="#00E5FF" />
+                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBgBrush}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -296,38 +322,50 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
     
     <Grid>
         <!-- Header Superior -->
-        <Border Background="#282828" Height="65" VerticalAlignment="Top" BorderBrush="#1C1C1C" BorderThickness="0,0,0,1">
+        <Border Background="{DynamicResource HeaderBgBrush}" Height="65" VerticalAlignment="Top" BorderBrush="{DynamicResource HeaderBorderBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="20,0">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left">
-                    <TextBlock Text="romanOS Control Center" Foreground="#FFFFFF" FontSize="20" FontWeight="Bold"/>
-                    <TextBlock Text="Hub Maestro de Optimizacion, Gaming, Red y SysAdmin" Foreground="#00E5FF" FontSize="11"/>
+                    <TextBlock Text="romanOS Control Center" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="20" FontWeight="Bold"/>
+                    <TextBlock Text="Hub Maestro de Optimizacion, Gaming, Red y SysAdmin" Foreground="{DynamicResource AccentPrimaryBrush}" FontSize="11"/>
                 </StackPanel>
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Horizontal">
-                    <Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Padding="10,5">
-                        <TextBlock x:Name="lblHwBadge" Text="Cargando telemetria..." Foreground="#00E676" FontSize="11" FontWeight="SemiBold"/>
+                    <Border Background="{DynamicResource WindowBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,3" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="ðŸŽ¨ " FontSize="11" VerticalAlignment="Center"/>
+                            <TextBlock Text="Tema: " Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <ComboBox x:Name="cmbThemeSelector" Width="180" Height="22" Background="{DynamicResource CardBgBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource CardBorderBrush}" FontSize="11" VerticalAlignment="Center">
+                                <ComboBoxItem Content="Cyber-Stealth (OpciÃ³n 1)" Tag="CyberStealth" IsSelected="True"/>
+                                <ComboBoxItem Content="Imperial Crimson (OpciÃ³n 2)" Tag="ImperialCrimson"/>
+                                <ComboBoxItem Content="OLED Midnight (OpciÃ³n 3)" Tag="OLEDMidnight"/>
+                                <ComboBoxItem Content="Classic Charcoal (Original)" Tag="ClassicCharcoal"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource WindowBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="10,5">
+                        <TextBlock x:Name="lblHwBadge" Text="Cargando telemetria..." Foreground="{DynamicResource AccentSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/>
                     </Border>
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- Contenido Central / TabControl -->
-        <TabControl x:Name="tabControlMain" Margin="10,75,10,55" Background="#202020" BorderBrush="#333333" Foreground="#E3E3E3">
+        <TabControl x:Name="tabControlMain" Margin="10,75,10,55" Background="{DynamicResource WindowBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" Foreground="{DynamicResource TextPrimaryBrush}">
             <TabControl.Resources>
                 <Style TargetType="TabItem">
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="TabItem">
-                                <Border Name="Border" BorderThickness="1,1,1,0" BorderBrush="#333333" Margin="2,0" Background="#2D2D2D">
+                                <Border Name="Border" BorderThickness="1,1,1,0" BorderBrush="{DynamicResource CardBorderBrush}" Margin="2,0" Background="{DynamicResource HeaderBgBrush}">
                                     <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="14,8"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Border" Property="Background" Value="#383838" />
-                                        <Setter Property="Foreground" Value="#00E5FF"/>
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource ButtonBgBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentPrimaryBrush}"/>
                                     </Trigger>
                                     <Trigger Property="IsSelected" Value="False">
-                                        <Setter TargetName="Border" Property="Background" Value="#252525" />
-                                        <Setter Property="Foreground" Value="#A0A0A0"/>
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource WindowBgBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -343,7 +381,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
                     <StackPanel Margin="10">
                         <!-- Tarjeta Telemetría de Hardware -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Telemetria de Hardware en Vivo" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <Grid>
@@ -395,31 +433,31 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                         </Border>
 
                         <!-- Tarjeta Acciones Rapidas -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14">
                             <StackPanel>
                                 <TextBlock Text="Acciones Rapidas de Sistema (1-Clic)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,12"/>
                                 <WrapPanel Margin="0,0,0,6">
-                                    <Button x:Name="btnQuickTrim" Content="Podar RAM (EmptyWorkingSet)" Width="230" Margin="0,0,10,10" Background="#1E3A2F" BorderBrush="#00E676"/>
+                                    <Button x:Name="btnQuickTrim" Content="Podar RAM (EmptyWorkingSet)" Width="230" Margin="0,0,10,10" Background="{DynamicResource AccentSuccessBgBrush}" BorderBrush="{DynamicResource AccentSecondaryBrush}"/>
                                     <Button x:Name="btnQuickFlushDns" Content="Vaciar Cache DNS" Width="180" Margin="0,0,10,10"/>
                                     <Button x:Name="btnQuickRestartExplorer" Content="Reiniciar Explorador" Width="180" Margin="0,0,10,10"/>
                                     <Button x:Name="btnQuickGodMode" Content="Abrir God Mode" Width="150" Margin="0,0,10,10"/>
                                     <Button x:Name="btnQuickSfc" Content="Reparar Imagen (DISM / SFC)" Width="210" Margin="0,0,10,10"/>
                                     <Button x:Name="btnQuickShaders" Content="Purgar Shaders GPU" Width="180" Margin="0,0,10,10"/>
                                     <Button x:Name="btnQuickTrimSSD" Content="Ejecutar SSD TRIM" Width="160" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnQuickAudit" Content="Auditar Salud Completa" Width="200" Margin="0,0,10,10" Background="#233544" BorderBrush="#00E5FF"/>
-                                    <Button x:Name="btnQuickLatency" Content="Test Latencia DPC (µs)" Width="190" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
-                                    <Button x:Name="btnQuickStorageAudit" Content="Auditar BypassIO &amp; Storage" Width="200" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
-                                    <Button x:Name="btnQuickNetAudit" Content="Auditar Red NDIS &amp; UDP RSC" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
-                                    <Button x:Name="btnQuickSnapshot" Content="Crear Snapshot de Seguridad" Width="220" Margin="0,0,10,10" Background="#1E3A2F" BorderBrush="#00E676"/>
-                                    <Button x:Name="btnQuickAffinity" Content="Auditar Afinidad IRQ / PCIe" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
-                                    <Button x:Name="btnQuickFootprint" Content="Auditar Huella RAM / Procesos" Width="230" Margin="0,0,10,10" Background="#233544" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnQuickAudit" Content="Auditar Salud Completa" Width="200" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
+                                    <Button x:Name="btnQuickLatency" Content="Test Latencia DPC (µs)" Width="190" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
+                                    <Button x:Name="btnQuickStorageAudit" Content="Auditar BypassIO &amp; Storage" Width="200" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
+                                    <Button x:Name="btnQuickNetAudit" Content="Auditar Red NDIS &amp; UDP RSC" Width="210" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
+                                    <Button x:Name="btnQuickSnapshot" Content="Crear Snapshot de Seguridad" Width="220" Margin="0,0,10,10" Background="{DynamicResource AccentSuccessBgBrush}" BorderBrush="{DynamicResource AccentSecondaryBrush}"/>
+                                    <Button x:Name="btnQuickAffinity" Content="Auditar Afinidad IRQ / PCIe" Width="210" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
+                                    <Button x:Name="btnQuickFootprint" Content="Auditar Huella RAM / Procesos" Width="230" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
                                     <Button x:Name="btnQuickRestoreServices" Content="Restaurar Servicios (Wi-Fi/BT)" Width="230" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
 
                         <!-- Asistentes de Escritorio romanOS (Inspiracion Atlas/ReviOS) -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Asistentes Modulares de Escritorio (Desktop Helpers)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Conmutadores rapidos para activar o pausar servicios bajo demanda sin alterar las invariantes criticas del sistema." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"/>
@@ -431,7 +469,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                     <Button x:Name="btnHelperSharing" Content="Compartir Archivos: ..." Width="210" Margin="0,0,10,10"/>
                                     <Button x:Name="btnHelperVBS" Content="VBS / Aislamiento: ..." Width="210" Margin="0,0,10,10"/>
                                     <Button x:Name="btnHelperRecall" Content="Windows Recall: ..." Width="210" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnAuditInvariants" Content="Auditar Invariantes romanOS" Width="230" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnAuditInvariants" Content="Auditar Invariantes romanOS" Width="230" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
                                     <Button x:Name="btnOpenHelpersFolder" Content="Abrir Carpeta Helpers" Width="180" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
@@ -445,7 +483,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
                     <StackPanel Margin="10">
                         <!-- Conmutador Bimodal -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Conmutador de Recursos romanOS (Switch Game / Dev)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Permite alternar dinamicamente entre maxima liberacion de memoria para gaming (APU/GPU) y un entorno de trabajo con virtualizacion activa." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"/>
@@ -473,7 +511,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                         <StackPanel>
                                             <TextBlock Text="MODO JUEGO LIGERO" Foreground="#00E5FF" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
                                             <TextBlock Text="Optimizacion de latencia estandar. Mantiene servicios activos sin apagar Hyper-V ni entornos de desarrollo." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
-                                            <Button x:Name="btnGameLight" Content="Activar Modo Ligero" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                                            <Button x:Name="btnGameLight" Content="Activar Modo Ligero" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
 
@@ -490,7 +528,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                         </Border>
 
                         <!-- Thermal & Energy Profiler -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="romanOS Thermal &amp; Energy Profiler (Throttling Shield &amp; Core Unparking)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Diagnostico forense de estrangulamiento termico/energetico (PROCHOT / Clock Stretching), calibracion de energia y des-estacionamiento de nucleos." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
@@ -498,14 +536,14 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                     <Button x:Name="btnAuditThermal" Content="Auditar Estado Termico &amp; Throttling" Width="260" Margin="0,0,10,10"/>
                                     <Button x:Name="btnLiveThermalMonitor" Content="Monitoreo en Vivo (5s)" Width="190" Margin="0,0,10,10"/>
                                     <Button x:Name="btnCalibrateUltimateEnergy" Content="Calibrar Maximo Rendimiento (Core Unpark)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
-                                    <Button x:Name="btnAuditWakeTimers" Content="Auditar Wake Timers &amp; S0ix" Width="220" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnAuditWakeTimers" Content="Auditar Wake Timers &amp; S0ix" Width="220" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
                                     <Button x:Name="btnDisableWakeTimers" Content="Neutralizar Wake Timers Parásitos" Width="240" Margin="0,0,10,10" Background="#3D2D1B" BorderBrush="#FFB300" FontWeight="SemiBold"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
 
                         <!-- Tarjeta romanOS PCIe Interrupt Affinity & IRQ Priority (DPC Steering) -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Calibrador de Afinidad PCIe e Interrupciones IRQ (DPC Steering &amp; MSI Tuning)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Optimiza la distribucion de interrupciones de hardware en la topologia PCIe: eleva la prioridad IRQ de GPU/NVMe a Alta, aisla la GPU del Core 0 y mitiga DPC latency/micro-stuttering." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
@@ -518,21 +556,21 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                         </Border>
 
                         <!-- Optimizaciones Gaming Adicionales -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Ajustes de Latencia y Debloat Adaptativo" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
                                     <Button x:Name="btnToggleHypervisor" Content="Alternar Hipervisor (VBS / Ring 0)" Width="250" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnAuditDebloat" Content="🔍 Auditar Bloatware (Solo Lectura)" Width="260" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold" ToolTip="Analiza e inventaria paquetes AppX, Win32 y servicios de telemetria sin modificar ni desinstalar nada."/>
+                                    <Button x:Name="btnAuditDebloat" Content="🔍 Auditar Bloatware (Solo Lectura)" Width="260" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Analiza e inventaria paquetes AppX, Win32 y servicios de telemetria sin modificar ni desinstalar nada."/>
                                     <Button x:Name="btnRunDebloatInteractive" Content="🛠️ Debloat Asistido (Selección Manual)" Width="270" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Abre el asistente interactivo con seleccion visual (Out-GridView) para elegir manualmente que eliminar."/>
                                     <Button x:Name="btnRunGamingApps" Content="Optimizar Juegos y Apps (VRAM / Electron)" Width="280" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnRunLatencyProfiler" Content="Profiler Forense Latencia DPC (Microsegundos)" Width="310" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnRunLatencyProfiler" Content="Profiler Forense Latencia DPC (Microsegundos)" Width="310" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
 
                         <!-- Menus Contextuales Optimizados -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14">
                             <StackPanel>
                                 <TextBlock Text="Menus Contextuales (Gamer &amp; Power-User)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
@@ -550,7 +588,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
             <TabItem Header="Mantenimiento">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
                     <StackPanel Margin="10">
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Saneamiento Profundo y Reparacion de Imagen" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <CheckBox x:Name="chkMaintWinSxS" Content="Limpieza profunda de WinSxS con DISM (/StartComponentCleanup /ResetBase)" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
@@ -560,13 +598,13 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
 
                                 <WrapPanel Margin="0,5,0,0">
                                     <Button x:Name="btnRunMaintenanceBatch" Content="Iniciar Saneamiento Seleccionado" Width="260" HorizontalAlignment="Left" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                                    <Button x:Name="btnInspectDismCatalog" Content="Catalogo Componentes DISM (SSOT)" Width="250" HorizontalAlignment="Left" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnInspectDismCatalog" Content="Catalogo Componentes DISM (SSOT)" Width="250" HorizontalAlignment="Left" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
 
                         <!-- Tarjeta romanOS Snapshot & Rollback Engine -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14">
                             <StackPanel>
                                 <TextBlock Text="Instantaneas de Configuracion y Rollback (romanOS Snapshot Engine)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Captura el estado integro de directivas de registro, servicios y red antes de aplicar modificaciones, permitiendo una reversion atomica en segundos." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
@@ -590,7 +628,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                         </Border>
 
                         <!-- Tarjeta romanOS Service Drift Watchdog -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,12,0,0">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,12,0,0">
                             <StackPanel>
                                 <TextBlock Text="Guardian Anti-Drift y Watchdog de Servicios (romanOS Anti-Drift)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Monitorea y previene que Windows Update o procesos en segundo plano reactiven telemetria, diagnostic tracking y servicios degradadores de rendimiento." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
@@ -610,7 +648,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
             <TabItem Header="Red &amp; Latencia">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
                     <StackPanel Margin="10">
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Conmutador y Benchmark de Servidores DNS (DoH + RTT)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Compara la latencia real en milisegundos (RTT) hacia los resolvers globales líderes y conmuta perfiles con cifrado DoH en Windows 11." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,12"/>
@@ -630,7 +668,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                 </Border>
 
                                 <WrapPanel Margin="0,0,0,12">
-                                    <Button x:Name="btnRunDnsBench" Content="Ejecutar Benchmark DNS en Vivo (RTT)" Width="250" Margin="0,0,12,0" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnRunDnsBench" Content="Ejecutar Benchmark DNS en Vivo (RTT)" Width="250" Margin="0,0,12,0" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
                                     <CheckBox x:Name="chkEnableDoH" Content="Activar Cifrado DoH (DNS-over-HTTPS en Windows 11)" IsChecked="True" Foreground="#E0E0E0" VerticalAlignment="Center"/>
                                 </WrapPanel>
 
@@ -650,7 +688,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                         </Border>
 
                         <!-- Optimizacion de Pila TCP / Latencia de Red -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14">
                             <StackPanel>
                                 <TextBlock Text="Optimizacion de Pila de Red y Latencia TCP" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Desactiva el algoritmo de Nagle (TcpNoDelay) para reducir latencia en partidas online y audita sockets." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,10"/>
@@ -668,7 +706,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
             <TabItem Header="Seguridad &amp; Navegadores">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
                     <StackPanel Margin="10">
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Optimizacion de Navegadores Web (Oficial)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Aplica aceleracion por hardware GPU, Sleeping Tabs (50% menos RAM) y purga Copilot/telemetria." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,10"/>
@@ -682,7 +720,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Entorno Sandbox Descartable en Vivo (romanOS Live Sandbox)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Ejecuta mods, parches no oficiales o navegacion privada en un contenedor efimero aislado sin tocar el sistema principal." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,10"/>
@@ -706,14 +744,14 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14">
                             <StackPanel>
                                 <TextBlock Text="Auditoria de Seguridad y Dashboards Visuales" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
                                     <Button x:Name="btnSecurityAudit" Content="Ejecutar Auditoria de Seguridad (ASR / VBS)" Width="270" Margin="0,0,10,10"/>
                                     <Button x:Name="btnApplySafeHardening" Content="Aplicar Hardening Seguro (Gaming-Safe)" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
                                     <Button x:Name="btnGenerateDiagReport" Content="Generar Informe Post-Instalacion (HTML)" Width="270" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnOpenHtmlDashboards" Content="Abrir Dashboards HTML en Navegador" Width="260" Margin="0,0,10,10" Background="#233544" BorderBrush="#00E5FF"/>
+                                    <Button x:Name="btnOpenHtmlDashboards" Content="Abrir Dashboards HTML en Navegador" Width="260" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -725,7 +763,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
             <TabItem Header="Drivers &amp; Herramientas">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
                     <StackPanel Margin="10">
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Ecosistema de Controladores (Drivers)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
@@ -738,7 +776,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                             </StackPanel>
                         </Border>
                         <!-- Tarjeta romanOS App & AI Runtimes Manager -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="romanOS App &amp; AI Runtimes Manager (Winget &amp; IA 2026)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
                                 <TextBlock Text="Instalacion automatizada y silenciosa de perfiles de software curados, aceleradores de IA local (Ollama, DirectML) y runtimes de sistema." Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,10"/>
@@ -780,7 +818,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
 
                                 <WrapPanel>
                                     <Button x:Name="btnDeployProfileGUI" Content="Instalar Perfil Seleccionado" Width="210" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
-                                    <Button x:Name="btnDeployCategoryGUI" Content="Instalar Categoría (WinGet)" Width="200" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnDeployCategoryGUI" Content="Instalar Categoría (WinGet)" Width="200" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
                                     <Button x:Name="btnSimulateProfileGUI" Content="Simular Selección (-WhatIf)" Width="190" Margin="0,0,10,10"/>
                                     <Button x:Name="btnListCatalogGUI" Content="Explorar Catálogo Curado" Width="180" Margin="0,0,10,10"/>
                                     <Button x:Name="btnInstallRuntimesGUI" Content="Instalar Solo Runtimes Base" Width="200" Margin="0,0,10,10"/>
@@ -796,7 +834,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
                     <StackPanel Margin="10">
                         <!-- Tarjeta Header -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Generador Visual de Perfiles Desatendidos (Builder Mode)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
                                 <TextBlock Text="Cree, valide y exporte archivos autounattend.xml a medida para memorias USB de instalación o despliegues físicos sin compilar la ISO completa." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap"/>
@@ -804,7 +842,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                         </Border>
 
                         <!-- Tarjeta Bypasses de Windows 11 -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Bypasses de Requisitos y Restricciones (windowsPE &amp; OOBE)" Foreground="#00E676" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
                                 <WrapPanel Margin="0,0,0,5">
@@ -820,7 +858,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                         </Border>
 
                         <!-- Tarjeta Cuenta de Usuario y Preferencias -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Configuración de Cuenta Local y Sesión" Foreground="#00E5FF" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
                                 <Grid Margin="0,0,0,8">
@@ -848,7 +886,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                         </Border>
 
                         <!-- Tarjeta Perfil de Optimización y Esquema de Disco -->
-                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Perfil SSOT de Optimización y Particionado" Foreground="#00E5FF" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
                                 <Grid Margin="0,0,0,8">
@@ -887,7 +925,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
 
                         <!-- Botones de Operación -->
                         <WrapPanel Margin="0,0,0,12">
-                            <Button x:Name="btnGenerateUnattendPreview" Content="Generar y Previsualizar XML" Width="210" Margin="0,0,10,10" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold"/>
+                            <Button x:Name="btnGenerateUnattendPreview" Content="Generar y Previsualizar XML" Width="210" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
                             <Button x:Name="btnExportUnattendFile" Content="Exportar autounattend.xml..." Width="220" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
                             <Button x:Name="btnValidateUnattendGUI" Content="Certificar Sintaxis y Bypasses" Width="210" Margin="0,0,10,10"/>
                             <Button x:Name="btnResetUnattendDefaults" Content="Restablecer Valores Recomendados" Width="230" Margin="0,0,10,10"/>
@@ -925,7 +963,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                     <ProgressBar x:Name="taskProgressBar" Height="8" Width="180" Margin="15,0,0,0" VerticalAlignment="Center" Background="#1E1E1E" Foreground="#00E5FF" BorderThickness="0" Visibility="Collapsed" Minimum="0" Maximum="100"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <Button x:Name="btnExportProfile" Content="💾 Exportar Perfil JSON" Margin="0,0,10,0" Height="30" Padding="8,2" Background="#1B3B4D" BorderBrush="#00E5FF" FontWeight="SemiBold" ToolTip="Exporta el inventario de telemetría y directivas activas a un archivo JSON portable."/>
+                    <Button x:Name="btnExportProfile" Content="💾 Exportar Perfil JSON" Margin="0,0,10,0" Height="30" Padding="8,2" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Exporta el inventario de telemetría y directivas activas a un archivo JSON portable."/>
                     <Button x:Name="btnClearConsole" Content="Limpiar Consola" Margin="0,0,10,0" Height="30" Padding="8,2"/>
                     <Button x:Name="btnCancelProcess" Content="Detener Tarea" Height="30" Padding="8,2" Background="#4A1E1E" BorderBrush="#FF5252" IsEnabled="False"/>
                 </StackPanel>
@@ -937,6 +975,36 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
 
 $reader = New-Object System.Xml.XmlNodeReader $xaml
 $window = [System.Windows.Markup.XamlReader]::Load($reader)
+
+# -----------------------------------------------------------------------------
+# 2.1. SISTEMA DE TEMAS VISUALES DINÃMICOS (PLAN-0146)
+# -----------------------------------------------------------------------------
+try {
+    $activeTheme = Get-RomanOSActiveThemeName
+    Apply-RomanOSGuiTheme -Window $window -ThemeName $activeTheme
+
+    $cmbTheme = $window.FindName('cmbThemeSelector')
+    if ($cmbTheme) {
+        foreach ($item in $cmbTheme.Items) {
+            if ($item.Tag -eq $activeTheme) {
+                $item.IsSelected = $true
+                break
+            }
+        }
+        $cmbTheme.Add_SelectionChanged({
+            if ($this.SelectedItem -and $this.SelectedItem.Tag) {
+                $selectedTheme = $this.SelectedItem.Tag
+                Apply-RomanOSGuiTheme -Window $window -ThemeName $selectedTheme
+                if (Get-Command 'Update-DesktopHelpersGUIState' -ErrorAction SilentlyContinue) {
+                    Update-DesktopHelpersGUIState
+                }
+                Write-CCLog "Tema visual cambiado dinÃ¡micamente a: $selectedTheme"
+            }
+        })
+    }
+} catch {
+    Write-CCLog "Aviso al inicializar tema visual: $($_.Exception.Message)" "WARN"
+}
 
 # -----------------------------------------------------------------------------
 # 3. LÓGICA DE TELEMETRÍA Y POBLADO EN VIVO
@@ -1050,11 +1118,11 @@ function Update-DesktopHelpersGUIState {
                 $statusText = if ($st.Status -eq "Enabled") { "Activo" } elseif ($st.Status -eq "Disabled") { "Pausado" } else { "Desconocido" }
                 $btn.Content = "$($item.Name): $statusText"
                 if ($st.Status -eq "Enabled") {
-                    $btn.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1B4D3E")
-                    $btn.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00E676")
+                    $btn.Background = $window.Resources['AccentSuccessBgBrush']
+                    $btn.BorderBrush = $window.Resources['AccentSecondaryBrush']
                 } else {
-                    $btn.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#4A2A1E")
-                    $btn.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF9100")
+                    $btn.Background = $window.Resources['AccentWarningBgBrush']
+                    $btn.BorderBrush = $window.Resources['AccentWarningBrush']
                 }
             } catch {
                 Write-CCLog "Error al consultar estado de $($item.Id): $($_.Exception.Message)" "WARN"

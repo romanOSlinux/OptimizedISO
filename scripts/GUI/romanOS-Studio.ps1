@@ -55,23 +55,66 @@ function Write-StudioLog {
     Out-File -FilePath $script:StudioLogPath -InputObject $line -Append -Encoding UTF8
 }
 
+# Carga de UI-Engine (SSOT Temas Visuales PLAN-0146)
+$uiEngineCandidates = @(
+    (Join-Path $PSScriptRoot "..\Core\UI-Engine.ps1"),
+    (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
+    "C:\OptimizedISO\scripts\Core\UI-Engine.ps1",
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
+)
+foreach ($cand in $uiEngineCandidates) {
+    if (Test-Path $cand) {
+        . $cand
+        break
+    }
+}
+
 Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
 
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="romanOS Studio" Height="680" Width="880" 
-        Background="#202020" WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource WindowBgBrush}" WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI" MinHeight="620" MinWidth="800">
     <Window.Resources>
+        <SolidColorBrush x:Key="WindowBgBrush" Color="#0D1117"/>
+        <SolidColorBrush x:Key="HeaderBgBrush" Color="#161B22"/>
+        <SolidColorBrush x:Key="HeaderBorderBrush" Color="#21262D"/>
+        <SolidColorBrush x:Key="CardBgBrush" Color="#161B22"/>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#30363D"/>
+        <SolidColorBrush x:Key="ButtonBgBrush" Color="#21262D"/>
+        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#363D47"/>
+        <SolidColorBrush x:Key="ButtonFgBrush" Color="#F0F6FC"/>
+        <SolidColorBrush x:Key="ButtonHoverBgBrush" Color="#30363D"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F0F6FC"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8B949E"/>
+        <SolidColorBrush x:Key="TabBgBrush" Color="#161B22"/>
+        <SolidColorBrush x:Key="TabBorderBrush" Color="#21262D"/>
+        <SolidColorBrush x:Key="TabSelectedBgBrush" Color="#21262D"/>
+        <SolidColorBrush x:Key="TabSelectedFgBrush" Color="#00E5FF"/>
+        <SolidColorBrush x:Key="ConsoleBgBrush" Color="#0A0D12"/>
+        <SolidColorBrush x:Key="ConsoleBorderBrush" Color="#21262D"/>
+        <SolidColorBrush x:Key="AccentPrimaryBrush" Color="#00E5FF"/>
+        <SolidColorBrush x:Key="AccentSecondaryBrush" Color="#00E676"/>
+        <SolidColorBrush x:Key="AccentWarningBrush" Color="#F59E0B"/>
+        <SolidColorBrush x:Key="AccentDevBrush" Color="#A855F7"/>
+        <SolidColorBrush x:Key="AccentDangerBrush" Color="#FF4444"/>
+
         <Style TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ButtonFgBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="3">
+                                CornerRadius="4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -79,7 +122,8 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                                 <Setter Property="Opacity" Value="0.3" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Opacity" Value="0.85" />
+                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBgBrush}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -89,28 +133,42 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
     </Window.Resources>
     <Grid>
         <!-- Header -->
-        <Border Background="#2D2D2D" Height="60" VerticalAlignment="Top" BorderBrush="#1C1C1C" BorderThickness="0,0,0,1">
-            <TextBlock Text="romanOS Studio" Foreground="#E3E3E3" FontSize="24" FontWeight="SemiBold" Margin="20,15,0,0" />
+        <Border Background="{DynamicResource HeaderBgBrush}" Height="60" VerticalAlignment="Top" BorderBrush="{DynamicResource HeaderBorderBrush}" BorderThickness="0,0,0,1">
+            <Grid Margin="20,0">
+                <TextBlock Text="romanOS Studio" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource WindowBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,3">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="ðŸŽ¨ " FontSize="11" VerticalAlignment="Center"/>
+                        <TextBlock Text="Tema: " Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <ComboBox x:Name="cmbThemeSelector" Width="180" Height="22" Background="{DynamicResource CardBgBrush}" Foreground="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource CardBorderBrush}" FontSize="11" VerticalAlignment="Center">
+                            <ComboBoxItem Content="Cyber-Stealth (OpciÃ³n 1)" Tag="CyberStealth" IsSelected="True"/>
+                            <ComboBoxItem Content="Imperial Crimson (OpciÃ³n 2)" Tag="ImperialCrimson"/>
+                            <ComboBoxItem Content="OLED Midnight (OpciÃ³n 3)" Tag="OLEDMidnight"/>
+                            <ComboBoxItem Content="Classic Charcoal (Original)" Tag="ClassicCharcoal"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Border>
         
         <!-- Main Content -->
-        <TabControl x:Name="tabControlMain" Margin="10,70,10,70" Background="#202020" BorderBrush="#333333" Foreground="#E3E3E3">
+        <TabControl x:Name="tabControlMain" Margin="10,70,10,70" Background="{DynamicResource WindowBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" Foreground="{DynamicResource TextPrimaryBrush}">
             <TabControl.Resources>
                 <Style TargetType="TabItem">
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="TabItem">
-                                <Border Name="Border" BorderThickness="1,1,1,0" BorderBrush="#333333" Margin="2,0" Background="#2D2D2D">
+                                <Border Name="Border" BorderThickness="1,1,1,0" BorderBrush="{DynamicResource CardBorderBrush}" Margin="2,0" Background="{DynamicResource HeaderBgBrush}">
                                     <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="12,8"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Border" Property="Background" Value="#333333" />
-                                        <Setter Property="Foreground" Value="#0078D4"/>
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource ButtonBgBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentPrimaryBrush}"/>
                                     </Trigger>
                                     <Trigger Property="IsSelected" Value="False">
-                                        <Setter TargetName="Border" Property="Background" Value="#252525" />
-                                        <Setter Property="Foreground" Value="#A0A0A0"/>
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource WindowBgBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -325,7 +383,7 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                     <StackPanel Orientation="Vertical">
                         <TextBlock Text="Despliegue Rápido (Hyper-V)" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,10,0,5" />
                         <TextBlock Text="Levanta una máquina virtual Gen2 con la última ISO optimizada creada en WinISO_Optimizado para probar el sistema sin instalarlo en hardware real." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
-                        <Button x:Name="btnTestVM" Content="Levantar Máquina Virtual de Prueba" Height="32" Width="280" HorizontalAlignment="Left" Background="#0078D4" Foreground="White" BorderThickness="0" Margin="0,0,0,25" />
+                        <Button x:Name="btnTestVM" Content="Levantar Máquina Virtual de Prueba" Height="32" Width="280" HorizontalAlignment="Left" Background="{DynamicResource AccentPrimaryBrush}" Foreground="#0D1117" BorderThickness="0" Margin="0,0,0,25" />
 
                         <TextBlock Text="Higiene y Mantenimiento" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,10,0,5" />
                         <TextBlock Text="Limpia carpetas temporales y desmonta imágenes WIM huérfanas que hayan quedado tras compilaciones abortadas." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
@@ -343,7 +401,7 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
         </TabControl>
         
         <!-- Footer / StatusBar -->
-        <Border Background="#2D2D2D" Height="50" VerticalAlignment="Bottom" BorderBrush="#1C1C1C" BorderThickness="0,1,0,0">
+        <Border Background="{DynamicResource ConsoleBgBrush}" Height="50" VerticalAlignment="Bottom" BorderBrush="{DynamicResource ConsoleBorderBrush}" BorderThickness="0,1,0,0">
             <Grid>
                 <!-- StatusBar Info -->
                 <TextBlock x:Name="txtStatus" Text="Estado: Listo para compilar" Foreground="#A0A0A0" Margin="15,16,0,0" FontSize="13" HorizontalAlignment="Left" />
@@ -352,7 +410,7 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
                 <!-- Buttons -->
                 <Button x:Name="btnExportPreset" Content="Solo JSON" Margin="0,0,230,0" Height="30" Width="100" HorizontalAlignment="Right" Background="#333333" Foreground="#E3E3E3" BorderThickness="1" BorderBrush="#454545" ToolTip="Exporta el archivo de configuración sin ejecutar el proceso" />
                 <Button x:Name="btnCancel" Content="Cancelar" Margin="0,0,120,0" Height="30" Width="100" HorizontalAlignment="Right" Background="#C50F1F" Foreground="White" BorderThickness="0" IsEnabled="False" />
-                <Button x:Name="btnBuild" Content="Compilar ISO" Margin="0,0,15,0" Height="30" Width="95" HorizontalAlignment="Right" Background="#0078D4" Foreground="White" BorderThickness="0" FontWeight="SemiBold" ToolTip="Inicia el motor de optimización" />
+                <Button x:Name="btnBuild" Content="Compilar ISO" Margin="0,0,15,0" Height="30" Width="95" HorizontalAlignment="Right" Background="{DynamicResource AccentPrimaryBrush}" Foreground="#0D1117" BorderThickness="0" FontWeight="SemiBold" ToolTip="Inicia el motor de optimización" />
             </Grid>
         </Border>
     </Grid>
@@ -361,6 +419,37 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
 
 $reader = (New-Object System.Xml.XmlNodeReader $xaml)
 $window = [Windows.Markup.XamlReader]::Load($reader)
+
+# -----------------------------------------------------------------------------
+# SISTEMA DE TEMAS VISUALES DINÃMICOS (PLAN-0146)
+# -----------------------------------------------------------------------------
+try {
+    $activeTheme = if (Get-Command 'Get-RomanOSActiveThemeName' -ErrorAction SilentlyContinue) { Get-RomanOSActiveThemeName } else { "CyberStealth" }
+    if (Get-Command 'Apply-RomanOSGuiTheme' -ErrorAction SilentlyContinue) {
+        Apply-RomanOSGuiTheme -Window $window -ThemeName $activeTheme
+    }
+
+    $cmbTheme = $window.FindName('cmbThemeSelector')
+    if ($cmbTheme) {
+        foreach ($item in $cmbTheme.Items) {
+            if ($item.Tag -eq $activeTheme) {
+                $item.IsSelected = $true
+                break
+            }
+        }
+        $cmbTheme.Add_SelectionChanged({
+            if ($this.SelectedItem -and $this.SelectedItem.Tag) {
+                $selectedTheme = $this.SelectedItem.Tag
+                if (Get-Command 'Apply-RomanOSGuiTheme' -ErrorAction SilentlyContinue) {
+                    Apply-RomanOSGuiTheme -Window $window -ThemeName $selectedTheme
+                }
+                Write-StudioLog "Tema visual cambiado dinÃ¡micamente a: $selectedTheme"
+            }
+        })
+    }
+} catch {
+    Write-StudioLog "Aviso al inicializar tema visual en Studio: $($_.Exception.Message)" "WARN"
+}
 
 
 # =============================================================================

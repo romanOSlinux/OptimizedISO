@@ -954,3 +954,242 @@ function Export-BuildPreset {
     Write-Host "  [OK] Preset JSON guardado en: $presetOut" -ForegroundColor Green
     return $presetOut
 }
+
+# -----------------------------------------------------------------------------
+# 12. MOTOR DE TEMAS VISUALES PARA GUIS romanOS (PLAN-0146 SSOT)
+# -----------------------------------------------------------------------------
+
+function Get-RomanOSGuiThemes {
+    <#
+    .SYNOPSIS
+        Retorna el catálogo canónico de temas visuales para las interfaces romanOS.
+    #>
+    [CmdletBinding()]
+    param()
+
+    return [ordered]@{
+        "CyberStealth" = [ordered]@{
+            Id              = "CyberStealth"
+            DisplayName     = "Cyber-Stealth (Opción 1)"
+            Description     = "Estética de hiper-precisión en negro obsidiana y cian eléctrico (Predeterminado)"
+            WindowBg        = "#0D1117"
+            HeaderBg        = "#161B22"
+            HeaderBorder    = "#21262D"
+            CardBg          = "#161B22"
+            CardBorder      = "#30363D"
+            ButtonBg        = "#21262D"
+            ButtonBorder    = "#363D47"
+            ButtonFg        = "#F0F6FC"
+            ButtonHoverBg   = "#30363D"
+            TextPrimary     = "#F0F6FC"
+            TextSecondary   = "#8B949E"
+            TabBg           = "#161B22"
+            TabBorder       = "#21262D"
+            TabSelectedBg   = "#21262D"
+            TabSelectedFg   = "#00E5FF"
+            ConsoleBg       = "#0A0D12"
+            ConsoleBorder   = "#21262D"
+            AccentPrimary   = "#00E5FF"
+            AccentSecondary = "#00E676"
+            AccentWarning   = "#F59E0B"
+            AccentDev       = "#A855F7"
+            AccentDanger    = "#FF4444"
+            AccentAuditBg   = "#102A38"
+            AccentSuccessBg = "#102B1E"
+            AccentWarningBg = "#33220A"
+        }
+        "ImperialCrimson" = [ordered]@{
+            Id              = "ImperialCrimson"
+            DisplayName     = "Imperial Crimson (Opción 2)"
+            Description     = "Titanio oscuro con acento rojo carmesí imperial y verde menta"
+            WindowBg        = "#121214"
+            HeaderBg        = "#1A1A1E"
+            HeaderBorder    = "#2A2A30"
+            CardBg          = "#1A1A1E"
+            CardBorder      = "#2C2C34"
+            ButtonBg        = "#27272A"
+            ButtonBorder    = "#3F3F46"
+            ButtonFg        = "#F4F4F5"
+            ButtonHoverBg   = "#3F3F46"
+            TextPrimary     = "#F4F4F5"
+            TextSecondary   = "#A1A1AA"
+            TabBg           = "#1A1A1E"
+            TabBorder       = "#2A2A30"
+            TabSelectedBg   = "#27272A"
+            TabSelectedFg   = "#FF334B"
+            ConsoleBg       = "#0C0C0E"
+            ConsoleBorder   = "#2A2A30"
+            AccentPrimary   = "#FF334B"
+            AccentSecondary = "#10B981"
+            AccentWarning   = "#F59E0B"
+            AccentDev       = "#8B5CF6"
+            AccentDanger    = "#EF4444"
+            AccentAuditBg   = "#381018"
+            AccentSuccessBg = "#102B1E"
+            AccentWarningBg = "#33220A"
+        }
+        "OLEDMidnight" = [ordered]@{
+            Id              = "OLEDMidnight"
+            DisplayName     = "OLED Midnight (Opción 3)"
+            Description     = "Contraste ultra-profundo OLED con cian láser y verde neón puro"
+            WindowBg        = "#07080B"
+            HeaderBg        = "#0F1117"
+            HeaderBorder    = "#1B1E29"
+            CardBg          = "#0F1117"
+            CardBorder      = "#1F2433"
+            ButtonBg        = "#151821"
+            ButtonBorder    = "#252B3B"
+            ButtonFg        = "#FFFFFF"
+            ButtonHoverBg   = "#202533"
+            TextPrimary     = "#FFFFFF"
+            TextSecondary   = "#788296"
+            TabBg           = "#0F1117"
+            TabBorder       = "#1B1E29"
+            TabSelectedBg   = "#181C26"
+            TabSelectedFg   = "#00F0FF"
+            ConsoleBg       = "#040406"
+            ConsoleBorder   = "#1B1E29"
+            AccentPrimary   = "#00F0FF"
+            AccentSecondary = "#00FF9D"
+            AccentWarning   = "#FFB800"
+            AccentDev       = "#C084FC"
+            AccentDanger    = "#FF3366"
+            AccentAuditBg   = "#0A2230"
+            AccentSuccessBg = "#0A2818"
+            AccentWarningBg = "#33220A"
+        }
+        "ClassicCharcoal" = [ordered]@{
+            Id              = "ClassicCharcoal"
+            DisplayName     = "Classic Charcoal (Original)"
+            Description     = "Paleta clásica de escala de grises oscuros (#202020)"
+            WindowBg        = "#202020"
+            HeaderBg        = "#282828"
+            HeaderBorder    = "#1C1C1C"
+            CardBg          = "#282828"
+            CardBorder      = "#3D3D3D"
+            ButtonBg        = "#2D2D2D"
+            ButtonBorder    = "#454545"
+            ButtonFg        = "#E3E3E3"
+            ButtonHoverBg   = "#383838"
+            TextPrimary     = "#FFFFFF"
+            TextSecondary   = "#A0A0A0"
+            TabBg           = "#252525"
+            TabBorder       = "#333333"
+            TabSelectedBg   = "#383838"
+            TabSelectedFg   = "#00E5FF"
+            ConsoleBg       = "#1A1A1A"
+            ConsoleBorder   = "#333333"
+            AccentPrimary   = "#00E5FF"
+            AccentSecondary = "#00E676"
+            AccentWarning   = "#FFB300"
+            AccentDev       = "#E040FB"
+            AccentDanger    = "#FF5252"
+            AccentAuditBg   = "#1B3B4D"
+            AccentSuccessBg = "#1E3A2F"
+            AccentWarningBg = "#3A2E1E"
+        }
+    }
+}
+
+function Get-RomanOSActiveThemeName {
+    <#
+    .SYNOPSIS
+        Obtiene el nombre del tema activo desde el registro o retorna el predeterminado (CyberStealth).
+    #>
+    [CmdletBinding()]
+    param()
+
+    try {
+        $regVal = Get-ItemProperty -Path "HKCU:\Software\romanOS" -Name "Theme" -ErrorAction SilentlyContinue
+        if ($regVal -and $regVal.Theme) {
+            return $regVal.Theme
+        }
+    } catch {}
+
+    return "CyberStealth"
+}
+
+function Set-RomanOSActiveThemeName {
+    <#
+    .SYNOPSIS
+        Persiste el nombre del tema activo en el registro del usuario.
+    #>
+    [CmdletBinding()]
+    param([string]$ThemeName)
+
+    try {
+        if (-not (Test-Path "HKCU:\Software\romanOS")) {
+            New-Item -Path "HKCU:\Software\romanOS" -Force -ErrorAction SilentlyContinue | Out-Null
+        }
+        Set-ItemProperty -Path "HKCU:\Software\romanOS" -Name "Theme" -Value $ThemeName -Force -ErrorAction SilentlyContinue | Out-Null
+    } catch {}
+}
+
+function Apply-RomanOSGuiTheme {
+    <#
+    .SYNOPSIS
+        Aplica un tema visual dinámico a una ventana WPF mediante DynamicResource.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        $Window,
+        [Parameter()]
+        [string]$ThemeName = "CyberStealth"
+    )
+
+    $themes = Get-RomanOSGuiThemes
+    if (-not $themes.Contains($ThemeName)) {
+        $ThemeName = "CyberStealth"
+    }
+
+    $theme = $themes[$ThemeName]
+    $bc = New-Object System.Windows.Media.BrushConverter
+
+    $resourceMap = @{
+        "WindowBgBrush"         = $theme.WindowBg
+        "HeaderBgBrush"         = $theme.HeaderBg
+        "HeaderBorderBrush"     = $theme.HeaderBorder
+        "CardBgBrush"           = $theme.CardBg
+        "CardBorderBrush"       = $theme.CardBorder
+        "ButtonBgBrush"         = $theme.ButtonBg
+        "ButtonBorderBrush"     = $theme.ButtonBorder
+        "ButtonFgBrush"         = $theme.ButtonFg
+        "ButtonHoverBgBrush"    = $theme.ButtonHoverBg
+        "TextPrimaryBrush"      = $theme.TextPrimary
+        "TextSecondaryBrush"    = $theme.TextSecondary
+        "TabBgBrush"            = $theme.TabBg
+        "TabBorderBrush"        = $theme.TabBorder
+        "TabSelectedBgBrush"    = $theme.TabSelectedBg
+        "TabSelectedFgBrush"    = $theme.TabSelectedFg
+        "ConsoleBgBrush"        = $theme.ConsoleBg
+        "ConsoleBorderBrush"    = $theme.ConsoleBorder
+        "AccentPrimaryBrush"    = $theme.AccentPrimary
+        "AccentSecondaryBrush"  = $theme.AccentSecondary
+        "AccentWarningBrush"    = $theme.AccentWarning
+        "AccentDevBrush"        = $theme.AccentDev
+        "AccentDangerBrush"     = $theme.AccentDanger
+        "AccentAuditBgBrush"    = $theme.AccentAuditBg
+        "AccentSuccessBgBrush"  = $theme.AccentSuccessBg
+        "AccentWarningBgBrush"  = $theme.AccentWarningBg
+    }
+
+    foreach ($key in $resourceMap.Keys) {
+        try {
+            $brush = $bc.ConvertFromString($resourceMap[$key])
+            if ($brush.CanFreeze) { $brush.Freeze() }
+            $Window.Resources[$key] = $brush
+        } catch {
+            Write-Warning "[UI-Engine] No se pudo asignar recurso '$key': $($_.Exception.Message)"
+        }
+    }
+
+    try {
+        $wBrush = $bc.ConvertFromString($theme.WindowBg)
+        if ($wBrush.CanFreeze) { $wBrush.Freeze() }
+        $Window.Background = $wBrush
+    } catch {}
+
+    Set-RomanOSActiveThemeName -ThemeName $ThemeName
+    return $theme
+}
