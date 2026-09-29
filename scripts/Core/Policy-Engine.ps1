@@ -4062,7 +4062,10 @@ function Get-RomanOSDesktopHelperDef {
 function Get-RomanOSDesktopHelperState {
     <#
     .SYNOPSIS
-        Consulta el estado actual de un Desktop Helper en el registro (0=Disabled, 1=Enabled).
+        Consulta el estado real en vivo de un Desktop Helper (0=Disabled, 1=Enabled).
+    .DESCRIPTION
+        Erradica lecturas circulares de registro falso auditando directamente los servicios,
+        proveedores WMI/CIM, directivas de seguridad y subsistemas de Windows en tiempo real.
     #>
     [CmdletBinding()]
     param(
@@ -4083,46 +4086,83 @@ function Get-RomanOSDesktopHelperState {
 
     $stateVal = $helper.DefaultState
 
-    if (Test-Path -Path $helper.PSRegistryBranch -ErrorAction SilentlyContinue) {
-        try {
-            $prop = Get-ItemProperty -Path $helper.PSRegistryBranch -Name "State" -ErrorAction SilentlyContinue
-            if ($null -ne $prop -and $null -ne $prop.State) {
-                $stateVal = [int]$prop.State
-                return [PSCustomObject]@{
-                    Name   = $helper.Name
-                    State  = $stateVal
-                    Status = if ($stateVal -eq 1) { "Enabled" } else { "Disabled" }
+    # Consulta de Estado en Vivo (Live System State) — Cero Placebos
+    switch -Exact ($helper.Name) {
+        "Defender" {
+            try {
+                $mp = Get-MpComputerStatus -ErrorAction SilentlyContinue
+                if ($null -ne $mp) {
+                    $isRealtime = [bool]$mp.RealTimeProtectionEnabled
+                    $isAntivirus = [bool]$mp.AntivirusEnabled
+                    $stateVal = if ($isRealtime -and $isAntivirus) { 1 } else { 0 }
+                } else {
+                    $svc = Get-Service -Name "WinDefend" -ErrorAction SilentlyContinue
+                    $stateVal = if ($svc -and $svc.Status -eq "Running") { 1 } else { 0 }
                 }
-            }
-        } catch {
-            Write-Warning "Fallo al consultar estado de '$Name': $($_.Exception.Message)"
-        }
-    }
-
-    if ($Name -ieq "Recall") {
-        $aiPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"
-        if (Test-Path $aiPath) {
-            $allow = (Get-ItemProperty -Path $aiPath -Name "AllowRecallEnablement" -ErrorAction SilentlyContinue).AllowRecallEnablement
-            if ($null -ne $allow) {
-                $stateVal = [int]$allow
-                return [PSCustomObject]@{
-                    Name   = $helper.Name
-                    State  = $stateVal
-                    Status = if ($stateVal -eq 1) { "Enabled" } else { "Disabled" }
-                }
+            } catch {
+                $svc = Get-Service -Name "WinDefend" -ErrorAction SilentlyContinue
+                $stateVal = if ($svc -and $svc.Status -eq "Running") { 1 } else { 0 }
             }
         }
-    }
+        "WindowsUpdate" {
+            $svc = Get-Service -Name "wuauserv" -ErrorAction SilentlyContinue
+            $auKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+            $noAU = 0
+            if (Test-Path $auKey) {
+                $prop = Get-ItemProperty -Path $auKey -Name "NoAutoUpdate" -ErrorAction SilentlyContinue
+                if ($null -ne $prop -and $null -ne $prop.NoAutoUpdate) { $noAU = [int]$prop.NoAutoUpdate }
+            }
+            if (($svc -and $svc.StartType -eq "Disabled") -or $noAU -eq 1) {
+                $stateVal = 0
+            } else {
+                $stateVal = 1
+            }
+        }
+        "Bluetooth" {
+            $svc = Get-Service -Name "bthserv" -ErrorAction SilentlyContinue
+            $stateVal = if ($svc -and ($svc.Status -eq "Running" -or $svc.StartType -ne "Disabled")) { 1 } else { 0 }
+        }
+        "Printing" {
+            $svc = Get-Service -Name "Spooler" -ErrorAction SilentlyContinue
+            $stateVal = if ($svc -and ($svc.Status -eq "Running" -or $svc.StartType -ne "Disabled")) { 1 } else { 0 }
+        }
+        "FileSharing" {
+            $svc = Get-Service -Name "LanmanServer" -ErrorAction SilentlyContinue
+            $stateVal = if ($svc -and ($svc.Status -eq "Running" -or $svc.StartType -ne "Disabled")) { 1 } else { 0 }
+        }
+        "VBS" {
+            $hvciActive = $false
+            try {
+                $dg = Get-CimInstance -Namespace root\Microsoft\Windows\DeviceGuard -ClassName Win32_DeviceGuard -ErrorAction SilentlyContinue
+                if ($dg -and $dg.SecurityServicesRunning -contains 2) {
+                    $hvciActive = $true
+                }
+            } catch { }
 
-    if ($helper.TargetServices.Count -gt 0) {
-        $mainSvc = $helper.TargetServices[0]
-        $svcObj = Get-Service -Name $mainSvc -ErrorAction SilentlyContinue
-        if ($svcObj) {
-            $stateVal = if ($svcObj.StartType -eq "Disabled") { 0 } else { 1 }
-            return [PSCustomObject]@{
-                Name   = $helper.Name
-                State  = $stateVal
-                Status = if ($stateVal -eq 1) { "Enabled" } else { "Disabled" }
+            $vbsPath = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
+            $regEnabled = $false
+            if (Test-Path $vbsPath) {
+                $prop = Get-ItemProperty -Path $vbsPath -Name "Enabled" -ErrorAction SilentlyContinue
+                if ($null -ne $prop -and $prop.Enabled -eq 1) { $regEnabled = $true }
+            }
+            $stateVal = if ($hvciActive -or $regEnabled) { 1 } else { 0 }
+        }
+        "Recall" {
+            $aiPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"
+            if (Test-Path $aiPath) {
+                $allow = (Get-ItemProperty -Path $aiPath -Name "AllowRecallEnablement" -ErrorAction SilentlyContinue).AllowRecallEnablement
+                if ($null -ne $allow) {
+                    $stateVal = [int]$allow
+                }
+            }
+        }
+        Default {
+            if ($helper.TargetServices.Count -gt 0) {
+                $mainSvc = $helper.TargetServices[0]
+                $svcObj = Get-Service -Name $mainSvc -ErrorAction SilentlyContinue
+                if ($svcObj) {
+                    $stateVal = if ($svcObj.StartType -eq "Disabled") { 0 } else { 1 }
+                }
             }
         }
     }
@@ -4137,7 +4177,7 @@ function Get-RomanOSDesktopHelperState {
 function Set-RomanOSDesktopHelperState {
     <#
     .SYNOPSIS
-        Conmuta el estado de un Desktop Helper (0=Disabled, 1=Enabled) utilizando el Mutation Gateway.
+        Conmuta el estado real de un Desktop Helper (0=Disabled, 1=Enabled) utilizando el Mutation Gateway.
     #>
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
@@ -4159,65 +4199,174 @@ function Set-RomanOSDesktopHelperState {
 
     if ($PSCmdlet.ShouldProcess("$($helper.Title) -> Estado: $State", "Conmutar servicio de Desktop Helper")) {
         Invoke-RomanOSMutation -TargetName "DesktopHelper_$Name" -ActionScript {
-            # 1. Conmutar servicios
-            foreach ($svc in $helper.TargetServices) {
-                try {
-                    $svcExists = Get-Service -Name $svc -ErrorAction SilentlyContinue
-                    if ($svcExists) {
-                        if ($State -eq 1) {
-                            & sc.exe config $svc start= demand 2>&1 | Out-Null
-                            & sc.exe start $svc 2>&1 | Out-Null
-                        } else {
-                            & sc.exe stop $svc 2>&1 | Out-Null
-                            & sc.exe config $svc start= disabled 2>&1 | Out-Null
+            $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            if (-not $isAdmin) {
+                Write-Warning "[DesktopHelper] La conmutación de servicios de sistema ('$Name') requiere elevación de Administrador UAC."
+            }
+
+            switch -Exact ($Name) {
+                "Defender" {
+                    # 1. Comprobar Tamper Protection
+                    try {
+                        $mp = Get-MpComputerStatus -ErrorAction SilentlyContinue
+                        if ($mp -and $mp.IsTamperProtected -and $State -eq 0) {
+                            Write-Warning "[Defender] La 'Protección contra alteraciones' (Tamper Protection) de Seguridad de Windows está ACTIVA. Windows bloquea la conmutación programática de Defender. Debe desactivarse manualmente en la app 'Seguridad de Windows'."
+                        }
+                    } catch { }
+
+                    if ($State -eq 0) {
+                        try {
+                            Set-MpPreference -DisableRealtimeMonitoring $true -DisableIOAVProtection $true -DisableBehaviorMonitoring $true -DisableScriptScanning $true -ErrorAction Stop
+                        } catch {
+                            Write-Warning "[Defender] Fallo al pausar protección en tiempo real vía Defender API: $($_.Exception.Message)"
+                        }
+                        try {
+                            $ssPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer"
+                            Set-ItemProperty -Path $ssPath -Name "SmartScreenEnabled" -Value "Off" -Type String -Force -ErrorAction SilentlyContinue | Out-Null
+                        } catch { }
+                    } else {
+                        try {
+                            Set-MpPreference -DisableRealtimeMonitoring $false -DisableIOAVProtection $false -DisableBehaviorMonitoring $false -DisableScriptScanning $false -ErrorAction SilentlyContinue
+                        } catch { }
+                        try {
+                            & sc.exe config WinDefend start= auto 2>&1 | Out-Null
+                            & sc.exe start WinDefend 2>&1 | Out-Null
+                            & sc.exe start WdNisSvc 2>&1 | Out-Null
+                        } catch { }
+                        try {
+                            $ssPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer"
+                            Set-ItemProperty -Path $ssPath -Name "SmartScreenEnabled" -Value "RequireAdmin" -Type String -Force -ErrorAction SilentlyContinue | Out-Null
+                        } catch { }
+                    }
+                }
+
+                "WindowsUpdate" {
+                    $auKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+                    if ($State -eq 0) {
+                        try {
+                            if (-not (Test-Path $auKey)) { New-Item -Path $auKey -Force | Out-Null }
+                            Set-ItemProperty -Path $auKey -Name "NoAutoUpdate" -Value 1 -Type DWord -Force | Out-Null
+                            & sc.exe stop wuauserv 2>&1 | Out-Null
+                            & sc.exe config wuauserv start= disabled 2>&1 | Out-Null
+                            & sc.exe stop UsoSvc 2>&1 | Out-Null
+                            & sc.exe config UsoSvc start= disabled 2>&1 | Out-Null
+                            & schtasks.exe /Change /TN "Microsoft\Windows\WindowsUpdate\sih" /Disable 2>&1 | Out-Null
+                            & schtasks.exe /Change /TN "Microsoft\Windows\WindowsUpdate\sihboot" /Disable 2>&1 | Out-Null
+                        } catch {
+                            Write-Warning "[WindowsUpdate] Error al pausar actualizaciones: $($_.Exception.Message)"
+                        }
+                    } else {
+                        try {
+                            if (Test-Path $auKey) {
+                                Set-ItemProperty -Path $auKey -Name "NoAutoUpdate" -Value 0 -Type DWord -Force | Out-Null
+                            }
+                            & sc.exe config wuauserv start= demand 2>&1 | Out-Null
+                            & sc.exe start wuauserv 2>&1 | Out-Null
+                            & sc.exe config UsoSvc start= demand 2>&1 | Out-Null
+                            & sc.exe start UsoSvc 2>&1 | Out-Null
+                            & schtasks.exe /Change /TN "Microsoft\Windows\WindowsUpdate\sih" /Enable 2>&1 | Out-Null
+                            & schtasks.exe /Change /TN "Microsoft\Windows\WindowsUpdate\sihboot" /Enable 2>&1 | Out-Null
+                        } catch {
+                            Write-Warning "[WindowsUpdate] Error al reanudar actualizaciones: $($_.Exception.Message)"
                         }
                     }
-                } catch {
-                    Write-Warning "Error al conmutar servicio '$svc': $($_.Exception.Message)"
                 }
-            }
 
-            # 2. Conmutar tareas programadas si existen
-            foreach ($task in $helper.TargetTasks) {
-                try {
-                    $taskState = if ($State -eq 1) { "/Enable" } else { "/Disable" }
-                    & schtasks.exe /Change /TN "$task" $taskState 2>&1 | Out-Null
-                } catch {
-                    Write-Warning "Error al conmutar tarea '$task': $($_.Exception.Message)"
-                }
-            }
-
-            # 3. Acciones específicas por Helper
-            if ($Name -ieq "VBS") {
-                try {
-                    $hvciVal = if ($State -eq 1) { 1 } else { 0 }
-                    $hypLaunch = if ($State -eq 1) { "Auto" } else { "Off" }
-                    $vbsPath = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
-                    if (-not (Test-Path $vbsPath)) { New-Item -Path $vbsPath -Force | Out-Null }
-                    Set-ItemProperty -Path $vbsPath -Name "Enabled" -Value $hvciVal -Type DWord -Force | Out-Null
-                    & bcdedit.exe /set hypervisorlaunchtype $hypLaunch 2>&1 | Out-Null
-                } catch {
-                    Write-Warning "Fallo al conmutar VBS/HVCI: $($_.Exception.Message)"
-                }
-            }
-
-            if ($Name -ieq "Recall") {
-                try {
-                    $aiPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"
-                    if (-not (Test-Path $aiPath)) { New-Item -Path $aiPath -Force | Out-Null }
+                "Bluetooth" {
                     if ($State -eq 1) {
-                        Set-ItemProperty -Path $aiPath -Name "AllowRecallEnablement" -Value 1 -Type DWord -Force | Out-Null
-                        Set-ItemProperty -Path $aiPath -Name "DisableAIDataAnalysis" -Value 0 -Type DWord -Force | Out-Null
+                        & sc.exe config bthserv start= auto 2>&1 | Out-Null
+                        & sc.exe start bthserv 2>&1 | Out-Null
+                        Get-Service "BluetoothUserService*" -ErrorAction SilentlyContinue | ForEach-Object {
+                            & sc.exe config $_.Name start= auto 2>&1 | Out-Null
+                            & sc.exe start $_.Name 2>&1 | Out-Null
+                        }
                     } else {
-                        Set-ItemProperty -Path $aiPath -Name "AllowRecallEnablement" -Value 0 -Type DWord -Force | Out-Null
-                        Set-ItemProperty -Path $aiPath -Name "DisableAIDataAnalysis" -Value 1 -Type DWord -Force | Out-Null
+                        & sc.exe stop bthserv 2>&1 | Out-Null
+                        & sc.exe config bthserv start= disabled 2>&1 | Out-Null
+                        Get-Service "BluetoothUserService*" -ErrorAction SilentlyContinue | ForEach-Object {
+                            & sc.exe stop $_.Name 2>&1 | Out-Null
+                            & sc.exe config $_.Name start= disabled 2>&1 | Out-Null
+                        }
                     }
-                } catch {
-                    Write-Warning "Fallo al conmutar políticas de Windows Recall: $($_.Exception.Message)"
+                }
+
+                "Printing" {
+                    if ($State -eq 1) {
+                        & sc.exe config Spooler start= auto 2>&1 | Out-Null
+                        & sc.exe start Spooler 2>&1 | Out-Null
+                    } else {
+                        & sc.exe stop Spooler 2>&1 | Out-Null
+                        & sc.exe config Spooler start= disabled 2>&1 | Out-Null
+                    }
+                }
+
+                "FileSharing" {
+                    if ($State -eq 1) {
+                        & sc.exe config LanmanServer start= auto 2>&1 | Out-Null
+                        & sc.exe start LanmanServer 2>&1 | Out-Null
+                        & sc.exe config LanmanWorkstation start= auto 2>&1 | Out-Null
+                        & sc.exe start LanmanWorkstation 2>&1 | Out-Null
+                        & netsh.exe advfirewall firewall set rule group="File and Printer Sharing" new enable=Yes 2>&1 | Out-Null
+                        & netsh.exe advfirewall firewall set rule group="Uso compartido de archivos e impresoras" new enable=Yes 2>&1 | Out-Null
+                    } else {
+                        & sc.exe stop LanmanServer 2>&1 | Out-Null
+                        & sc.exe config LanmanServer start= disabled 2>&1 | Out-Null
+                        & netsh.exe advfirewall firewall set rule group="File and Printer Sharing" new enable=No 2>&1 | Out-Null
+                        & netsh.exe advfirewall firewall set rule group="Uso compartido de archivos e impresoras" new enable=No 2>&1 | Out-Null
+                    }
+                }
+
+                "VBS" {
+                    try {
+                        $hvciVal = if ($State -eq 1) { 1 } else { 0 }
+                        $hypLaunch = if ($State -eq 1) { "Auto" } else { "Off" }
+                        $vbsPath = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
+                        if (-not (Test-Path $vbsPath)) { New-Item -Path $vbsPath -Force | Out-Null }
+                        Set-ItemProperty -Path $vbsPath -Name "Enabled" -Value $hvciVal -Type DWord -Force | Out-Null
+                        & bcdedit.exe /set hypervisorlaunchtype $hypLaunch 2>&1 | Out-Null
+                        Write-Warning "[VBS/HVCI] Directiva establecida (hypervisorlaunchtype=$hypLaunch, HVCI=$hvciVal). Para que el cambio surta efecto en el kernel de Windows se requiere REINICIAR el equipo."
+                    } catch {
+                        Write-Warning "Fallo al conmutar VBS/HVCI: $($_.Exception.Message)"
+                    }
+                }
+
+                "Recall" {
+                    try {
+                        $aiPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"
+                        if (-not (Test-Path $aiPath)) { New-Item -Path $aiPath -Force | Out-Null }
+                        if ($State -eq 1) {
+                            Set-ItemProperty -Path $aiPath -Name "AllowRecallEnablement" -Value 1 -Type DWord -Force | Out-Null
+                            Set-ItemProperty -Path $aiPath -Name "DisableAIDataAnalysis" -Value 0 -Type DWord -Force | Out-Null
+                        } else {
+                            Set-ItemProperty -Path $aiPath -Name "AllowRecallEnablement" -Value 0 -Type DWord -Force | Out-Null
+                            Set-ItemProperty -Path $aiPath -Name "DisableAIDataAnalysis" -Value 1 -Type DWord -Force | Out-Null
+                        }
+                    } catch {
+                        Write-Warning "Fallo al conmutar políticas de Windows Recall: $($_.Exception.Message)"
+                    }
+                }
+
+                Default {
+                    foreach ($svc in $helper.TargetServices) {
+                        try {
+                            $svcExists = Get-Service -Name $svc -ErrorAction SilentlyContinue
+                            if ($svcExists) {
+                                if ($State -eq 1) {
+                                    & sc.exe config $svc start= demand 2>&1 | Out-Null
+                                    & sc.exe start $svc 2>&1 | Out-Null
+                                } else {
+                                    & sc.exe stop $svc 2>&1 | Out-Null
+                                    & sc.exe config $svc start= disabled 2>&1 | Out-Null
+                                }
+                            }
+                        } catch {
+                            Write-Warning "Error al conmutar servicio '$svc': $($_.Exception.Message)"
+                        }
+                    }
                 }
             }
 
-            # 4. Actualizar estado persistente en HKLM\SOFTWARE\RomanOS\DesktopHelpers
+            # Actualizar estado de referencia en registro
             try {
                 if (-not (Test-Path -Path $helper.PSRegistryBranch)) {
                     New-Item -Path $helper.PSRegistryBranch -Force | Out-Null
@@ -4230,7 +4379,7 @@ function Set-RomanOSDesktopHelperState {
             }
 
             if (-not $Quiet) {
-                $statusText = if ($State -eq 1) { "ACTIVADO [Demand/Running]" } else { "DESACTIVADO [Disabled/Stopped]" }
+                $statusText = if ($State -eq 1) { "ACTIVADO [Running/Demand]" } else { "DESACTIVADO [Disabled/Stopped]" }
                 Write-Host "  [OK] $($helper.Title) ha sido conmutado a: $statusText" -ForegroundColor Cyan
             }
         }

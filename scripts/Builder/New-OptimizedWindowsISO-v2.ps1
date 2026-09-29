@@ -5466,7 +5466,10 @@ if (Test-Path $helpersDirSrc) {
     if ($OEMDesktopDir -and (Test-Path $OEMDesktopDir)) {
         $desktopHelpersTarget = Join-Path $OEMDesktopDir "romanOS Helpers"
         if (-not (Test-Path $desktopHelpersTarget)) { New-Item -ItemType Directory -Path $desktopHelpersTarget -Force | Out-Null }
-        Copy-Item -Path "$helpersDirSrc\*.cmd" -Destination $desktopHelpersTarget -Force
+        Copy-Item -Path "$helpersDirSrc\*" -Destination $desktopHelpersTarget -Recurse -Force
+        if (Test-Path $helpersModSrc) {
+            Copy-Item -Path $helpersModSrc -Destination (Join-Path $desktopHelpersTarget "Desktop-Helpers.ps1") -Force
+        }
     }
 
     Write-OK "Suite de Reversibilidad 'romanOS Helpers' inyectada en `$OEM`$ y Public Desktop."

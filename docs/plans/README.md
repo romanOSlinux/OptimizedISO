@@ -159,6 +159,8 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0141 | [PLAN-0141-20260928-correcciones-ingenieria-servicing-25h2-capabilities-resetbase.md](PLAN-0141-20260928-correcciones-ingenieria-servicing-25h2-capabilities-resetbase.md) | 2026-09-28 | Correcciones de Ingeniería de Servicing (25H2 Checkpoint, Capabilities Error 87 y WinSxS CBS_E_PENDING) | COMPLETADO |
 | 0142 | [PLAN-0142-20260928-auditoria-forense-zero-mount-iso-generada.md](PLAN-0142-20260928-auditoria-forense-zero-mount-iso-generada.md) | 2026-09-28 | Auditoría Forense Exhaustiva Zero-Mount de la ISO Generada | COMPLETADO |
 | 0143 | [PLAN-0143-20260928-erradicacion-fallos-silenciosos-fail-fast-logging-temprano-y-contratos-configuracion.md](PLAN-0143-20260928-erradicacion-fallos-silenciosos-fail-fast-logging-temprano-y-contratos-configuracion.md) | 2026-09-28 | Erradicación Sistémica de Fallos Silenciosos, Principio Fail-Fast, Logging de Arranque Inmediato y Barrera de Aserción de Contratos en Configuraciones Críticas | COMPLETADO |
+| 0144 | [PLAN-0144-20260928-reparacion-integral-desktop-helpers-control-center.md](PLAN-0144-20260928-reparacion-integral-desktop-helpers-control-center.md) | 2026-09-28 | Reparación Integral de Desktop Helpers, Conmutadores del Control Center e Inyección en ISO | COMPLETADO |
+
 
 
 

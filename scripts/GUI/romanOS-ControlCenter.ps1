@@ -203,16 +203,20 @@ $script:searchDirs += @(
     "$env:WINDIR\Setup\Scripts\Core",
     "$env:WINDIR\Setup\Scripts\Drivers",
     "$env:WINDIR\Setup\Scripts\Builder",
+    "$env:WINDIR\Setup\Scripts\DesktopHelpers",
     "C:\Windows\Setup\Scripts",
     "C:\Windows\Setup\Scripts\Modules",
     "C:\Windows\Setup\Scripts\Core",
     "C:\Windows\Setup\Scripts\Drivers",
     "C:\Windows\Setup\Scripts\Builder",
+    "C:\Windows\Setup\Scripts\DesktopHelpers",
+    "C:\Users\Public\Desktop\romanOS Helpers",
     "C:\OptimizedISO\scripts\Modules",
     "C:\OptimizedISO\scripts\Drivers",
     "C:\OptimizedISO\scripts\Core",
     "C:\OptimizedISO\scripts\Testing",
-    "C:\OptimizedISO\scripts\Builder"
+    "C:\OptimizedISO\scripts\Builder",
+    "C:\OptimizedISO\scripts\Desktop-Helpers"
 )
 
 function Resolve-ToolScript {
@@ -1464,49 +1468,84 @@ $window.FindName('btnHelperWU').Add_Click({
     $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "WindowsUpdate" } else { $null }
     $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
     $tool = Resolve-ToolScript "Toggle-WindowsUpdate.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Windows Update ($action)" }
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Windows Update ($action)"
+    } else {
+        Write-CCLog "Error: No se pudo localizar Toggle-WindowsUpdate.ps1 en ninguna ruta de búsqueda." "ERROR"
+        [System.Windows.MessageBox]::Show("No se pudo localizar el script Toggle-WindowsUpdate.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+    }
 })
 
 $window.FindName('btnHelperDefender').Add_Click({
     $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "Defender" } else { $null }
     $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
     $tool = Resolve-ToolScript "Toggle-Defender.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Microsoft Defender ($action)" }
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Microsoft Defender ($action)"
+    } else {
+        Write-CCLog "Error: No se pudo localizar Toggle-Defender.ps1 en ninguna ruta de búsqueda." "ERROR"
+        [System.Windows.MessageBox]::Show("No se pudo localizar el script Toggle-Defender.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+    }
 })
 
 $window.FindName('btnHelperBluetooth').Add_Click({
     $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "Bluetooth" } else { $null }
     $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
     $tool = Resolve-ToolScript "Toggle-Bluetooth.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Bluetooth ($action)" }
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Bluetooth ($action)"
+    } else {
+        Write-CCLog "Error: No se pudo localizar Toggle-Bluetooth.ps1 en ninguna ruta de búsqueda." "ERROR"
+        [System.Windows.MessageBox]::Show("No se pudo localizar el script Toggle-Bluetooth.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+    }
 })
 
 $window.FindName('btnHelperPrinting').Add_Click({
     $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "Printing" } else { $null }
     $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
     $tool = Resolve-ToolScript "Toggle-Printing.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Impresion / Spooler ($action)" }
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Impresion / Spooler ($action)"
+    } else {
+        Write-CCLog "Error: No se pudo localizar Toggle-Printing.ps1 en ninguna ruta de búsqueda." "ERROR"
+        [System.Windows.MessageBox]::Show("No se pudo localizar el script Toggle-Printing.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+    }
 })
 
 $window.FindName('btnHelperSharing').Add_Click({
     $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "FileSharing" } else { $null }
     $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
     $tool = Resolve-ToolScript "Toggle-FileSharing.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Compartir Archivos ($action)" }
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Compartir Archivos ($action)"
+    } else {
+        Write-CCLog "Error: No se pudo localizar Toggle-FileSharing.ps1 en ninguna ruta de búsqueda." "ERROR"
+        [System.Windows.MessageBox]::Show("No se pudo localizar el script Toggle-FileSharing.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+    }
 })
 
 $window.FindName('btnHelperVBS').Add_Click({
     $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "VBS" } else { $null }
     $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
     $tool = Resolve-ToolScript "Toggle-VBS-CoreIsolation.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: VBS / Aislamiento de Nucleo ($action)" }
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: VBS / Aislamiento de Nucleo ($action)"
+    } else {
+        Write-CCLog "Error: No se pudo localizar Toggle-VBS-CoreIsolation.ps1 en ninguna ruta de búsqueda." "ERROR"
+        [System.Windows.MessageBox]::Show("No se pudo localizar el script Toggle-VBS-CoreIsolation.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+    }
 })
 
 $window.FindName('btnHelperRecall').Add_Click({
     $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "Recall" } else { $null }
     $action = if ($st -and $st.Status -eq "Enabled") { "Disable" } else { "Enable" }
     $tool = Resolve-ToolScript "Toggle-Recall.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Windows Recall e IA ($action)" }
+    if ($tool) {
+        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $action" -TaskTitle "Conmutador: Windows Recall e IA ($action)"
+    } else {
+        Write-CCLog "Error: No se pudo localizar Toggle-Recall.ps1 en ninguna ruta de búsqueda." "ERROR"
+        [System.Windows.MessageBox]::Show("No se pudo localizar el script Toggle-Recall.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+    }
 })
 
 $window.FindName('btnAuditInvariants').Add_Click({

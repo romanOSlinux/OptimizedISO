@@ -2,8 +2,9 @@
 setlocal
 title romanOS Helper - Bluetooth
 
+:: Verificacion y auto-elevacion de privilegios de Administrador UAC
 fltmc >nul 2>&1 || (
-    powershell.exe -NoProfile -Command "Start-Process cmd.exe -ArgumentList '/c """%~f0""" %*' -Verb RunAs"
+    powershell.exe -NoProfile -Command "Start-Process cmd.exe -ArgumentList '/c """"""%~f0"""""" %*' -Verb RunAs"
     exit /b
 )
 
@@ -12,7 +13,29 @@ echo          romanOS Helper - Conmutador de Servicios Bluetooth
 echo ==========================================================================
 echo.
 
-powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0Toggle-Bluetooth.ps1" %*
+set "TARGET_PS1="
+if exist "%~dp0Toggle-Bluetooth.ps1" (
+    set "TARGET_PS1=%~dp0Toggle-Bluetooth.ps1"
+) else if exist "%SystemRoot%\Setup\Scripts\DesktopHelpers\Toggle-Bluetooth.ps1" (
+    set "TARGET_PS1=%SystemRoot%\Setup\Scripts\DesktopHelpers\Toggle-Bluetooth.ps1"
+) else if exist "C:\OptimizedISO\scripts\Desktop-Helpers\Toggle-Bluetooth.ps1" (
+    set "TARGET_PS1=C:\OptimizedISO\scripts\Desktop-Helpers\Toggle-Bluetooth.ps1"
+)
+
+if not defined TARGET_PS1 (
+    echo [ERROR CRITICO] No se pudo localizar el script de logica 'Toggle-Bluetooth.ps1'.
+    echo Se buscaron las siguientes rutas sin exito:
+    echo   1. %~dp0Toggle-Bluetooth.ps1
+    echo   2. %SystemRoot%\Setup\Scripts\DesktopHelpers\Toggle-Bluetooth.ps1
+    echo   3. C:\OptimizedISO\scripts\Desktop-Helpers\Toggle-Bluetooth.ps1
+    echo.
+    echo Asegurate de que la suite romanOS Helpers este instalada correctamente en el sistema.
+    echo.
+    pause
+    exit /b 1
+)
+
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%TARGET_PS1%" %*
 
 echo.
 if "%~1"=="" (

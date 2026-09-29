@@ -1966,6 +1966,102 @@ $posStep6 = $builderCodeCheck.IndexOf("6/6 - Reconstruyendo ISO")
 Assert-True "PLAN-0143: Initialize-Log se ejecuta antes de Import-BuildPreset en el flujo principal" ($posInitLog -gt 0 -and $posInitLog -lt $posImportPreset)
 Assert-True "PLAN-0143: Assert-BuildIntegrityContracts se ejecuta antes de la reconstruccion de ISO (Paso 6)" ($posCallAssert -gt $posImportPreset -and $posCallAssert -lt $posStep6)
 
+# Validación de Reparación Integral de Desktop Helpers y Control Center (PLAN-0144)
+Write-HarnessHeader2 "FASE 2Z: Reparación Integral de Desktop Helpers y Control Center (PLAN-0144)"
+
+# 1. Validación de Codificación y Cascada en Lanzadores .cmd (No-BOM)
+$cmdHelpers = Get-ChildItem (Join-Path $PSScriptRoot "..\Desktop-Helpers\*.cmd")
+Assert-True "PLAN-0144: Existen lanzadores .cmd en scripts/Desktop-Helpers" ($cmdHelpers.Count -ge 8)
+
+$allCmdNoBom = $true
+$allCmdHasCascade = $true
+$allCmdHasFailVisible = $true
+foreach ($cmd in $cmdHelpers) {
+    $bytes = [System.IO.File]::ReadAllBytes($cmd.FullName)
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+        $allCmdNoBom = $false
+    }
+    $text = [System.IO.File]::ReadAllText($cmd.FullName)
+    if ($text -notmatch 'set "TARGET_PS1="') {
+        $allCmdHasCascade = $false
+    }
+    if ($text -notmatch '\[ERROR CRITICO\] No se pudo localizar') {
+        $allCmdHasFailVisible = $false
+    }
+}
+Assert-True "PLAN-0144: Todos los .cmd en Desktop-Helpers están estrictamente sin BOM (UTF-8 No-BOM / ANSI)" $allCmdNoBom
+Assert-True "PLAN-0144: Todos los .cmd implementan resolución de script en cascada (TARGET_PS1)" $allCmdHasCascade
+Assert-True "PLAN-0144: Todos los .cmd implementan notificación de error fail-visible si falta el PS1" $allCmdHasFailVisible
+
+# 2. Validación de Codificación UTF-8 con BOM y Parse AST de Scripts .ps1
+$ps1Helpers = Get-ChildItem (Join-Path $PSScriptRoot "..\Desktop-Helpers\*.ps1")
+Assert-True "PLAN-0144: Existen conmutadores .ps1 en scripts/Desktop-Helpers" ($ps1Helpers.Count -ge 8)
+
+$allPs1Bom = $true
+$allPs1AstOk = $true
+$allPs1HasResilientModule = $true
+foreach ($p in $ps1Helpers) {
+    $bytes = [System.IO.File]::ReadAllBytes($p.FullName)
+    if (-not ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)) {
+        $allPs1Bom = $false
+    }
+    $tokens = $null
+    $errors = $null
+    [System.Management.Automation.Language.Parser]::ParseFile($p.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+    if ($errors.Count -gt 0) {
+        $allPs1AstOk = $false
+    }
+    $pText = [System.IO.File]::ReadAllText($p.FullName)
+    if (-not $pText.Contains('(Join-Path $scriptRoot "Desktop-Helpers.ps1")')) {
+        $allPs1HasResilientModule = $false
+    }
+}
+Assert-True "PLAN-0144: Todos los .ps1 en Desktop-Helpers tienen codificación estricta UTF-8 con BOM" $allPs1Bom
+Assert-True "PLAN-0144: Todos los .ps1 en Desktop-Helpers compilan sin errores AST en PowerShell" $allPs1AstOk
+Assert-True "PLAN-0144: Todos los .ps1 resuelven Desktop-Helpers.ps1 en la carpeta local (`$scriptRoot)" $allPs1HasResilientModule
+
+# 3. Consulta de Estado en Vivo (Live State) en Policy-Engine.ps1
+$pePath = Join-Path $PSScriptRoot "..\Core\Policy-Engine.ps1"
+if (Test-Path $pePath) {
+    . $pePath
+}
+$stDefender = Get-RomanOSDesktopHelperState -Name "Defender"
+Assert-True "PLAN-0144: Get-RomanOSDesktopHelperState(Defender) retorna estado no nulo" ($null -ne $stDefender)
+Assert-True "PLAN-0144: Get-RomanOSDesktopHelperState(Defender) reporta objeto con propiedad State y Status" ($null -ne $stDefender.State -and $null -ne $stDefender.Status)
+
+$stWU = Get-RomanOSDesktopHelperState -Name "WindowsUpdate"
+Assert-True "PLAN-0144: Get-RomanOSDesktopHelperState(WindowsUpdate) retorna estado valido" ($null -ne $stWU.State)
+
+$stBt = Get-RomanOSDesktopHelperState -Name "Bluetooth"
+Assert-True "PLAN-0144: Get-RomanOSDesktopHelperState(Bluetooth) retorna estado valido" ($null -ne $stBt.State)
+
+$stPrint = Get-RomanOSDesktopHelperState -Name "Printing"
+Assert-True "PLAN-0144: Get-RomanOSDesktopHelperState(Printing) retorna estado valido" ($null -ne $stPrint.State)
+
+$stShare = Get-RomanOSDesktopHelperState -Name "FileSharing"
+Assert-True "PLAN-0144: Get-RomanOSDesktopHelperState(FileSharing) retorna estado valido" ($null -ne $stShare.State)
+
+$stVbs = Get-RomanOSDesktopHelperState -Name "VBS"
+Assert-True "PLAN-0144: Get-RomanOSDesktopHelperState(VBS) retorna estado valido" ($null -ne $stVbs.State)
+
+# 4. Verificación de Resiliencia y Búsqueda en romanOS-ControlCenter.ps1
+$ccFile = Join-Path $PSScriptRoot "..\GUI\romanOS-ControlCenter.ps1"
+$ccCode = Get-Content $ccFile -Raw
+Assert-True "PLAN-0144: romanOS-ControlCenter incluye Desktop-Helpers en searchDirs" ($ccCode -match 'Desktop-Helpers')
+Assert-True "PLAN-0144: romanOS-ControlCenter incluye DesktopHelpers en searchDirs" ($ccCode -match 'DesktopHelpers')
+Assert-True "PLAN-0144: romanOS-ControlCenter incluye fail-visible al no localizar Toggle-Defender.ps1" `
+    ($ccCode -match 'No se pudo localizar el script Toggle-Defender\.ps1')
+Assert-True "PLAN-0144: romanOS-ControlCenter incluye fail-visible al no localizar Toggle-WindowsUpdate.ps1" `
+    ($ccCode -match 'No se pudo localizar el script Toggle-WindowsUpdate\.ps1')
+
+# 5. Verificación de Inyección Completa en New-OptimizedWindowsISO-v2.ps1
+$builderFile = Join-Path $PSScriptRoot "..\Builder\New-OptimizedWindowsISO-v2.ps1"
+$builderCode = Get-Content $builderFile -Raw
+Assert-True "PLAN-0144: Builder inyecta helpers completos (* recursivo) en Public Desktop" `
+    ($builderCode.Contains('Copy-Item -Path "$helpersDirSrc\*" -Destination $desktopHelpersTarget -Recurse -Force'))
+Assert-True "PLAN-0144: Builder inyecta Desktop-Helpers.ps1 en Public Desktop" `
+    ($builderCode.Contains('Copy-Item -Path $helpersModSrc -Destination (Join-Path $desktopHelpersTarget "Desktop-Helpers.ps1") -Force'))
+
 # --- LIMPIEZA TEMPORAL ---
 try {
     if (Test-Path $TEMP_ROOT) { Remove-Item -Path $TEMP_ROOT -Recurse -Force -ErrorAction Stop }

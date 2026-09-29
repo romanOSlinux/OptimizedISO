@@ -14,7 +14,9 @@ param()
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $moduleCandidates = @(
     (Join-Path $scriptRoot "..\Modules\Desktop-Helpers.ps1"),
+    (Join-Path $scriptRoot "Desktop-Helpers.ps1"),
     (Join-Path $env:SystemRoot "Setup\Scripts\DesktopHelpers\Desktop-Helpers.ps1"),
+    (Join-Path $env:SystemRoot "Setup\Scripts\Modules\Desktop-Helpers.ps1"),
     "C:\OptimizedISO\scripts\Modules\Desktop-Helpers.ps1"
 )
 

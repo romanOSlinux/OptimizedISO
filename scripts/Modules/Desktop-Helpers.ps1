@@ -29,7 +29,10 @@ $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Búsqueda dinámica de Policy-Engine.ps1 en Core (Entorno de desarrollo vs Sistema instalado)
 $policyEngineCandidates = @(
     (Join-Path $scriptRoot "..\Core\Policy-Engine.ps1"),
+    (Join-Path $scriptRoot "Policy-Engine.ps1"),
+    (Join-Path $scriptRoot "Core\Policy-Engine.ps1"),
     (Join-Path $env:SystemRoot "Setup\Scripts\Core\Policy-Engine.ps1"),
+    (Join-Path $env:SystemRoot "Setup\Scripts\DesktopHelpers\Policy-Engine.ps1"),
     "C:\OptimizedISO\scripts\Core\Policy-Engine.ps1"
 )
 
