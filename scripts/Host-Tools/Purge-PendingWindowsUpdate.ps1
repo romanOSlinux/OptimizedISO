@@ -15,7 +15,8 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [switch]$NoRestartServices
+    [switch]$NoRestartServices,
+    [switch]$Unattended
 )
 
 # -----------------------------------------------------------------------------
@@ -30,6 +31,7 @@ if (-not $isAdmin) {
     Write-Host "[UAC] Solicitando elevacion administrativa para purgar actualizaciones pendientes..." -ForegroundColor Yellow
     $argList = @("-STA", "-NoProfile", "-ExecutionPolicy Bypass", "-File", "`"$PSCommandPath`"")
     if ($NoRestartServices) { $argList += "-NoRestartServices" }
+    if ($Unattended) { $argList += "-Unattended" }
     Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs
     exit
 }
@@ -297,7 +299,15 @@ if (-not $stillWuReboot -and -not $stillCbsReboot) {
     Write-Warning "Algunas banderas de reinicio persisten en el sistema (WU: $stillWuReboot, CBS: $stillCbsReboot)."
 }
 
-if ($Host.Name -notmatch "ServerRemoteHost") {
-    Write-Host "Presione cualquier tecla para cerrar esta ventana..." -ForegroundColor DarkGray
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+$isWhatIf = ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
+if (-not $Unattended -and -not $isWhatIf -and [System.Environment]::UserInteractive) {
+    try {
+        if (-not [System.Console]::IsInputRedirected -and -not [System.Console]::IsOutputRedirected) {
+            Write-Host ""
+            Write-Host "Presione cualquier tecla para cerrar esta ventana..." -ForegroundColor DarkGray
+            $null = [System.Console]::ReadKey($true)
+        }
+    } catch {
+        # Silencioso en modo desatendido o consola embebida GUI
+    }
 }

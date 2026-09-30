@@ -1717,7 +1717,7 @@ if ($btnPurge) {
         if ($res -eq [System.Windows.MessageBoxResult]::Yes) {
             $tool = Resolve-ToolScript "Purge-PendingWindowsUpdate.ps1"
             if ($tool) {
-                Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Purga de Actualizaciones en Cola de Reinicio"
+                Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Purga de Actualizaciones en Cola de Reinicio"
             } else {
                 Write-CCLog "Error: No se pudo localizar Purge-PendingWindowsUpdate.ps1." -Level "ERROR"
                 [System.Windows.MessageBox]::Show("No se pudo localizar Purge-PendingWindowsUpdate.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
