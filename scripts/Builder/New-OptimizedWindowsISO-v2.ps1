@@ -6057,16 +6057,8 @@ if (-not $SkipAutoUnattend) {
 "@)
     $cmdOrder++
 
-    # PLAN-0058: Poda de Memoria Silenciosa Post-Primer Inicio (Working Set Trim)
-    $firstLogonCommands.Add(@"
-        <SynchronousCommand wcm:action="add">
-          <CommandLine>cmd.exe /c start "" /b powershell.exe -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 30; if (Test-Path 'C:\Windows\Setup\Scripts\Optimize-ProcessMemory.ps1') { . 'C:\Windows\Setup\Scripts\Optimize-ProcessMemory.ps1' -Quiet -Unattended }"</CommandLine>
-          <Description>Trigger Background Working Set Memory Trim after stabilization</Description>
-          <Order>$cmdOrder</Order>
-          <RequiresUserInput>false</RequiresUserInput>
-        </SynchronousCommand>
-"@)
-    $cmdOrder++
+    # PLAN-0147: Erradicacion de llamada retardada de poda de memoria artificial (EmptyWorkingSet).
+    # Se elimina la inyeccion de FirstLogonCommands para evitar Soft Page Faults e input lag al primer inicio.
 
     # PLAN-0121: Fallback OEM para SetupComplete.cmd
     # Si el equipo cuenta con clave OEM en BIOS (MSDM), Windows Setup desactiva SetupComplete.cmd.

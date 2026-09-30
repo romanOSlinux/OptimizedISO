@@ -162,6 +162,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0144 | [PLAN-0144-20260928-reparacion-integral-desktop-helpers-control-center.md](PLAN-0144-20260928-reparacion-integral-desktop-helpers-control-center.md) | 2026-09-28 | Reparación Integral de Desktop Helpers, Conmutadores del Control Center e Inyección en ISO | COMPLETADO |
 | 0145 | [PLAN-0145-20260929-blindaje-e2e-botones-gui-harness-integracion-y-contratos.md](PLAN-0145-20260929-blindaje-e2e-botones-gui-harness-integracion-y-contratos.md) | 2026-09-29 | Blindaje End-to-End (E2E) de Botones de GUI, Arnés de Integración de Subprocesos y Validación de Contratos de Backend | COMPLETADO |
 | 0146 | [PLAN-0146-20260929-sistema-de-temas-visuales-y-modernizacion-estetica-guis.md](PLAN-0146-20260929-sistema-de-temas-visuales-y-modernizacion-estetica-guis.md) | 2026-09-29 | Sistema de Temas Visuales Dinámicos (DynamicResource SSOT) y Modernización Estética de Interfaces Gráficas romanOS | COMPLETADO |
+| 0147 | [PLAN-0147-20260929-modo-juego-baja-latencia-erradicacion-placebos-ram.md](PLAN-0147-20260929-modo-juego-baja-latencia-erradicacion-placebos-ram.md) | 2026-09-29 | Modo Juego de Baja Latencia DPC (romanOS Game Optimizer) y Erradicación de Placebos de Poda de RAM | COMPLETADO |
 
 
 

@@ -48,7 +48,7 @@ $ErrorActionPreference = 'Continue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $HARNESS_VERSION = "2.0"
-$EXPECTED_FUNCS  = 77
+$EXPECTED_FUNCS  = 81
 $TEMP_ROOT       = Join-Path $env:TEMP "TestHarness_$(Get-Random)"
 
 $script:HPass    = 0
@@ -329,7 +329,7 @@ foreach ($scriptPath in $scriptsToLoad) {
 }
 Write-Host "    Total cargadas OK: $loadedCount (esperado: $EXPECTED_FUNCS)" -ForegroundColor $(if ($loadedCount -eq $EXPECTED_FUNCS) { 'Green' } else { 'Yellow' })
 
-Assert-Equal "77 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
+Assert-Equal "81 funciones cargadas via AST (Core + UI Engine + Standalone Fallbacks)" $loadedCount $EXPECTED_FUNCS
 Assert-Equal "0 errores durante la carga" $loadErrors 0
 
 Write-HarnessHeader2 "FASE 1B: Verificacion de Funciones en Scope"
@@ -996,7 +996,7 @@ Assert-True "PLAN-0027: Win11-Debloat-v3-Adaptive.ps1 delega en Apply-RomanOSDri
 # PLAN-0029: Validaciones de Menús Contextuales Nativos, Tareas a Demanda y MMCSS SSOT
 $mmcssResp = $allPols | Where-Object { $_.Id -eq "POL_MMCSS_RESPONSIVENESS" }
 Assert-NotNull "PLAN-0029: POL_MMCSS_RESPONSIVENESS existe en Policy-Engine" $mmcssResp
-Assert-Equal "PLAN-0029: POL_MMCSS_RESPONSIVENESS tiene ExpectedValue = 0 (100% Foreground Gaming)" $mmcssResp.ExpectedValue 0
+Assert-Equal "PLAN-0147: POL_MMCSS_RESPONSIVENESS tiene ExpectedValue = 10 (Minimo real sin clamping del Kernel NT)" $mmcssResp.ExpectedValue 10
 
 $mmcssNet = $allPols | Where-Object { $_.Id -eq "POL_MMCSS_THROTTLING" }
 Assert-NotNull "PLAN-0029: POL_MMCSS_THROTTLING existe en Policy-Engine" $mmcssNet
@@ -1339,7 +1339,7 @@ Assert-True "PLAN-0058: romanOS-Toolkit.ps1 incluye MemoryTrim en el menu de acc
 $v2FreshContent58 = Get-Content $TargetScript -Raw
 Assert-True "PLAN-0058: Builder inyecta Optimize-ProcessMemory en `$OEM`$" ([bool]($v2FreshContent58 -match 'Optimize-ProcessMemory\.ps1"\) -Force'))
 Assert-True "PLAN-0058: Builder inyecta Optimize-ProcessMemory en WIM offline" ([bool]($v2FreshContent58 -match 'wimModulesDest "Optimize-ProcessMemory\.ps1"\) -Force'))
-Assert-True "PLAN-0058: Builder configura llamada retardada de poda en FirstLogonCommands" ([bool]($v2FreshContent58 -match 'Optimize-ProcessMemory\.ps1.*-Quiet -Unattended'))
+Assert-True "PLAN-0147: Builder erradica llamada retardada de poda en FirstLogonCommands (cero placebos al arranque)" (-not [bool]($v2FreshContent58 -match 'Optimize-ProcessMemory\.ps1.*-Quiet -Unattended'))
 
 # 5. Validar clasificacion de Search UI en Audit-FreshInstallFootprint.ps1
 $auditFootprintPath58 = Join-Path $modulesDir "Audit-FreshInstallFootprint.ps1"
@@ -1662,7 +1662,7 @@ if (Test-Path $ccScriptPath86) {
     $errors86 = $null
     [void][System.Management.Automation.Language.Parser]::ParseInput($ccContent86, [ref]$tokens86, [ref]$errors86)
     Assert-True "PLAN-0086: romanOS-ControlCenter.ps1 libre de errores sintacticos AST (0 errores)" ($errors86.Count -eq 0)
-    Assert-True "PLAN-0086: romanOS-ControlCenter.ps1 contiene definicion XAML y Dark Mode" ([bool]($ccContent86 -match 'Window' -and $ccContent86 -match '#202020'))
+    Assert-True "PLAN-0086: romanOS-ControlCenter.ps1 contiene definicion XAML y Dark Mode" ([bool]($ccContent86 -match 'Window' -and ($ccContent86 -match '#202020' -or $ccContent86 -match 'DynamicResource' -or $ccContent86 -match 'CyberStealth')))
     Assert-True "PLAN-0086: romanOS-ControlCenter.ps1 implementa streaming asincrono con RunspaceFactory" ([bool]($ccContent86 -match 'RunspaceFactory' -and $ccContent86 -match 'ConcurrentQueue'))
 }
 

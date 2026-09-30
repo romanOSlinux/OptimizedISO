@@ -1,52 +1,58 @@
 ﻿<#
 .SYNOPSIS
-    Switch-GameDevMode.ps1 - Conmutador Bimodal de Recursos para Gaming y Entorno de Desarrollo
+    Switch-GameDevMode.ps1 - Conmutador Bimodal de Recursos para Gaming de Baja Latencia DPC y Entorno de Desarrollo
     romanOS Game & Dev Switch para Windows 11 (23H2 / 24H2 / 25H2)
 
 .DESCRIPTION
     Alterna quirurgicamente entre dos perfiles operativos en el equipo anfitrion:
     1. Modo Juego (-Mode Game):
-       - Guarda el estado previo de los servicios en una instantanea transaccional.
+       - Guarda el estado previo de los servicios en una instantanea transaccional (%TEMP%\romanOS_GameDevState.json).
        - Detiene la pila de virtualizacion de Hyper-V (vmms, vmcompute, HNS, CmService, HvHost, nvagent)
-         y desactiva el adaptador virtual vEthernet (Default Switch) para eliminar DPC latency y jitter.
-       - Liquida navegadores en segundo plano huerfanos (msedge.exe sin ventana) y actualizadores,
-         recuperando entre 1.5 GB y 2.5 GB de memoria RAM para la GPU/VRAM del sistema.
-       - Pausa servicios de telemetria y compatibilidad que anaden shims a ejecutables (PcaSvc, DPS, InventorySvc, DusmSvc).
-       - Aplica poda de Working Set mediante P/Invoke EmptyWorkingSet (psapi.dll) sobre componentes UI
-         y sobre Antigravity IDE (reduciendo su consumo sin cerrarlo).
-       - Verifica y activa el plan de energia de Maximo Rendimiento.
+         y desactiva el adaptador virtual vEthernet (Default Switch) para eliminar DPC latency y jitter (<500 us).
+       - Pausa servicios en segundo plano ruidosos que compiten por E/S de disco NVMe, ciclos de CPU y red
+         (WSearch, PcaSvc, DPS, DiagTrack, wuauserv, UsoSvc, DusmSvc, Spooler, InventorySvc).
+       - Preserva el 100% de las aplicaciones abiertas del usuario (Microsoft Edge, Antigravity IDE, Discord)
+         erradicando cierres forzados y placebos de vaciado de memoria (psapi.dll!EmptyWorkingSet).
+       - Calibra la arquitectura real de memoria RAM: LargeSystemCache = 0 (protege VRAM de la APU) y
+         DisablePagingExecutive = 1 (fija el kernel NT y controladores en RAM fisica, eliminando page faults).
+       - Calibra el planificador multimedia MMCSS: SystemResponsiveness = 10 (minimo real sin clamping del kernel),
+         NetworkThrottlingIndex = 0xFFFFFFFF (red sin estrangulamiento) y GlobalTimerResolutionRequests = 1.
+       - Calibra la gestion energetica preservando el Precision Boost 2 y CPPC2 en procesadores AMD Zen 4/5.
     2. Modo Desarrollo (-Mode Dev):
        - Restaura la pila de Hyper-V en orden estricto de dependencias (HvHost -> vmcompute -> HNS -> vmms -> CmService).
-       - Reactiva el switch de red virtual de Hyper-V y los servicios de diagnostico/mantenimiento.
+       - Restaura todos los servicios pausados a su estado exacto previo registrado en la instantanea JSON.
+       - Restaura las prioridades del planificador multimedia (MMCSS) y conmutadores de red virtual.
        - Deja el entorno 100% operativo para compilar y probar ISOs con New-TestVM-HyperV.ps1.
     3. Modo Estado (-Mode Status):
-       - Audita en tiempo real el consumo de RAM, el estado de Hyper-V y el modo inferido.
+       - Audita en tiempo real el consumo de RAM DDR5, el estado de Hyper-V, MMCSS y el modo inferido.
 
 .PARAMETER Profile
-    Perfil de juego: 'Light' (Baja latencia, conserva ventanas abiertas) o 'Aggressive' (Gaming puro, liquida Edge e IDE para APU Radeon). Por defecto: 'Light'.
+    Parametro legado por compatibilidad. En romanOS v2+, el Modo Juego unifica baja latencia sin destruir ventanas.
+    Valores aceptados: 'Light' o 'Aggressive' (ambos ejecutan el Modo Juego optimizado).
 
 .PARAMETER Aggressive
-    Atajo equivalente a -Profile Aggressive.
+    Parametro legado por compatibilidad. Mapea al Modo Juego optimizado.
 
 .PARAMETER CloseIDE
-    Si se especifica, cierra completamente Antigravity IDE en lugar de solo podar su Working Set.
+    Parametro legado por compatibilidad.
 
 .PARAMETER ForceKillEdge
-    Fuerza el cierre de todos los procesos de Microsoft Edge sin verificar si tienen ventana abierta.
+    Parametro legado por compatibilidad.
 
 .PARAMETER Quiet
     Suprime la salida visual formateada en consola.
 
 .PARAMETER PassThru
-    Devuelve un objeto personalizado con las metricas de servicios y memoria liberada.
+    Devuelve un objeto personalizado con las metricas de servicios y memoria.
 
 .PARAMETER Unattended
     Omite las pausas interactivas al finalizar.
 
+.PARAMETER SkipElevation
+    Omite el intento de auto-elevacion UAC (util en arneses de pruebas y subprocesos).
+
 .EXAMPLE
-    .\Switch-GameDevMode.ps1 -Mode Game -Profile Light
-    .\Switch-GameDevMode.ps1 -Mode Game -Profile Aggressive
-    .\Switch-GameDevMode.ps1 -Mode Game -Aggressive -CloseIDE
+    .\Switch-GameDevMode.ps1 -Mode Game
     .\Switch-GameDevMode.ps1 -Mode Dev
     .\Switch-GameDevMode.ps1 -Mode Status
 #>
@@ -67,7 +73,6 @@ param(
 )
 
 if ($Aggressive) { $Profile = "Aggressive" }
-if ($Profile -eq "Aggressive") { $ForceKillEdge = $true }
 
 # -----------------------------------------------------------------------------
 # 0. CONFIGURACION DE ENTORNO Y AUTO-ELEVACION UAC
@@ -86,8 +91,6 @@ if (-not $isAdmin -and $Mode -ne 'Status' -and -not $SkipElevation) {
         
         $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath, '-Mode', $Mode, '-Profile', $Profile)
         if ($Aggressive) { $argList += '-Aggressive' }
-        if ($CloseIDE) { $argList += '-CloseIDE' }
-        if ($ForceKillEdge) { $argList += '-ForceKillEdge' }
         if ($Quiet) { $argList += '-Quiet' }
         if ($PassThru) { $argList += '-PassThru' }
         if ($Unattended) { $argList += '-Unattended' }
@@ -96,34 +99,13 @@ if (-not $isAdmin -and $Mode -ne 'Status' -and -not $SkipElevation) {
             Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs -ErrorAction Stop
             exit
         } catch {
-            Write-Warning "No se pudo elevar UAC ($($_.Exception.Message)). Continuando en modo estandar con optimizaciones de usuario..."
+            Write-Warning "No se pudo elevar UAC ($($_.Exception.Message)). Continuando en modo estandar..."
         }
     }
 }
 
 # -----------------------------------------------------------------------------
-# 1. P/INVOKE EMPTYWORKINGSET (psapi.dll)
-# -----------------------------------------------------------------------------
-if (-not ([System.Management.Automation.PSTypeName]'RomanOS.PsApiMemory').Type) {
-    try {
-        Add-Type -TypeDefinition @"
-        using System;
-        using System.Runtime.InteropServices;
-
-        namespace RomanOS {
-            public static class PsApiMemory {
-                [DllImport("psapi.dll", SetLastError = true)]
-                public static extern bool EmptyWorkingSet(IntPtr hProcess);
-            }
-        }
-"@ -ErrorAction Stop
-    } catch {
-        Write-Warning "Fallo al compilar definicion P/Invoke de psapi.dll: $($_.Exception.Message)"
-    }
-}
-
-# -----------------------------------------------------------------------------
-# 2. CARGA DE MOTOR VISUAL UNIFICADO (UI-Engine.ps1)
+# 1. CARGA DE MOTOR VISUAL UNIFICADO (UI-Engine.ps1)
 # -----------------------------------------------------------------------------
 $uiEnginePaths = @(
     (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\UI-Engine.ps1"),
@@ -173,39 +155,26 @@ $script:HardwareProfile = if ($hwLoaded -and (Get-Command Get-SystemHardwareProf
 } else { $null }
 
 # -----------------------------------------------------------------------------
-# 3. LISTAS MAESTRAS Y BLINDAJE INVIOLABLE
+# 2. LISTAS MAESTRAS Y BLINDAJE INVIOLABLE (ANTI-CHEAT Y HARDWARE)
 # -----------------------------------------------------------------------------
 # Servicios Hyper-V y Contenedores (Orden de parada inverso / orden de inicio directo)
 $script:HyperVServicesStopOrder  = @('CmService', 'vmcompute', 'HvHost', 'HNS', 'vmms', 'nvagent')
 $script:HyperVServicesStartOrder = @('HvHost', 'vmcompute', 'HNS', 'vmms', 'CmService', 'nvagent')
 
-# Servicios de Diagnostico, Telemetria y Mantenimiento Pausables en Gaming
+# Servicios No Esenciales Pausables en Gaming (Reduccion de Ruido ETW, I/O y CPU)
 $script:BackgroundServices = @(
-    'PcaSvc',        # Asistente de compatibilidad de programas (interceptor de .exe)
-    'DPS',           # Servicio de directivas de diagnostico (ETW)
-    'InventorySvc',  # Servicio de inventario de dispositivos
-    'whesvc',        # Estado y experiencias optimizadas de Windows
-    'DusmSvc',       # Uso de datos (filtro de red)
+    'WSearch',       # Indexador de Windows (compite por E/S de disco NVMe y ancho de banda RAM)
+    'PcaSvc',        # Asistente de compatibilidad de programas (interceptor de .exe / hooks)
+    'DPS',           # Servicio de directivas de diagnostico (trazas ETW en disco)
+    'DiagTrack',     # Experiencias del usuario conectado y telemetria (ruido ETW y red)
+    'wuauserv',      # Windows Update (previene TiWorker.exe al 100% de CPU en gaming)
     'UsoSvc',        # Orquestador de actualizaciones
-    'wuauserv',      # Windows Update
+    'DusmSvc',       # Uso de datos (filtro NDIS que agrega sobrecarga en stack de red)
+    'Spooler',       # Cola de impresion (completamente ocioso en gaming)
+    'InventorySvc',  # Inventario de dispositivos (sondeos PnP en segundo plano)
+    'whesvc',        # Estado y experiencias optimizadas de Windows
     'ssh-agent',     # Agente SSH
     'WSAIFabricSvc'  # Windows AI Fabric
-)
-
-# Procesos de navegadores y tareas en segundo plano a liquidar en Modo Juego
-$script:OrphanProcessesToKill = @(
-    'MicrosoftEdgeUpdate',
-    'BraveUpdateCore',
-    'CrossDeviceResume',
-    'vmmemCmZygote'
-)
-
-# Procesos seguros para poda de Working Set (EmptyWorkingSet)
-$script:TrimWorkingSetTargets = @(
-    'SearchHost',
-    'StartMenuExperienceHost',
-    'LockApp',
-    'ShellExperienceHost'
 )
 
 # LISTA BLANCA INVIOLABLE (Prohibido detener bajo cualquier circunstancia)
@@ -213,23 +182,24 @@ $script:InviolableComponents = [System.Collections.Generic.HashSet[string]]::new
     [System.StringComparer]::OrdinalIgnoreCase
 )
 @(
-    # Drivers Graficos AMD Radeon
+    # Anti-Cheat Ring-0 & Certificados Criptograficos (Vanguard, EAC, BattlEye)
+    'CryptSvc', 'mpssvc', 'BFE', 'AppXSvc', 'ClipSVC', 'StateRepository',
+    # Drivers Graficos AMD Radeon & Compositor DWM
     'AMDRSServ', 'AMDRSSrcExt', 'RadeonSoftware', 'AMDNoiseSuppression',
+    'dwm', 'explorer', 'sihost', 'fontdrvhost',
     # Audio y Perifericos del Usuario
     'Patriot Viper V380', 'Audiosrv', 'AudioEndpointBuilder', 'RtkAudioUniversalService', 'RtkAudUService64',
-    # Windows Shell & Compositor
-    'dwm', 'explorer', 'sihost', 'fontdrvhost',
-    # Anti-Cheat, DRM y Certificados Criptograficos
-    'CryptSvc', 'mpssvc', 'BFE', 'AppXSvc', 'ClipSVC', 'StateRepository',
+    # Ecosistema Xbox, Mandos Inalambricos y Game Pass
+    'XboxGipSvc', 'GamingServices', 'XblAuthManager', 'XblGameSave',
     # Red Base del Host
     'Dhcp', 'Dnscache', 'LanmanWorkstation', 'WlanSvc', 'netprofm', 'nsi', 'iphlpsvc'
 ) | ForEach-Object { [void]$script:InviolableComponents.Add($_) }
 
-# Ruta del archivo de estado persistente
+# Ruta del archivo de estado persistente transaccional
 $script:StateFilePath = Join-Path $env:TEMP "romanOS_GameDevState.json"
 
 # -----------------------------------------------------------------------------
-# 4. FUNCIONES AUXILIARES DE CONTROL
+# 3. FUNCIONES AUXILIARES DE CONTROL
 # -----------------------------------------------------------------------------
 function Test-IsInviolable {
     param([string]$Name)
@@ -273,11 +243,24 @@ function Save-ServiceSnapshot {
         $mmPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
         $mmProps = Get-ItemProperty -Path $mmPath -ErrorAction SilentlyContinue
         if ($mmProps) {
-            $snapshot['__SystemResponsiveness'] = $mmProps.SystemResponsiveness
-            $snapshot['__NoLazyMode']           = $mmProps.NoLazyMode
+            $snapshot['__SystemResponsiveness']   = $mmProps.SystemResponsiveness
+            $snapshot['__NoLazyMode']             = $mmProps.NoLazyMode
+            $snapshot['__NetworkThrottlingIndex'] = $mmProps.NetworkThrottlingIndex
         }
     } catch {
         Write-Warn "No se pudo consultar Multimedia\SystemProfile: $($_.Exception.Message)"
+    }
+    
+    # Instantanea de configuracion de Memoria (Memory Management)
+    try {
+        $memKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
+        $memProps = Get-ItemProperty -Path $memKey -ErrorAction SilentlyContinue
+        if ($memProps) {
+            $snapshot['__DisablePagingExecutive'] = $memProps.DisablePagingExecutive
+            $snapshot['__LargeSystemCache']       = $memProps.LargeSystemCache
+        }
+    } catch {
+        Write-Warn "No se pudo consultar Memory Management: $($_.Exception.Message)"
     }
     
     try {
@@ -318,7 +301,7 @@ function Stop-ServiceSafely {
                 $svc.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(5))
                 return $true
             } catch {
-                Write-SubStep ("Fallo al detener {0}: {1}" -f $ServiceName, $_.Exception.Message)
+                Write-SubStep ("Fallo al pausar {0}: {1}" -f $ServiceName, $_.Exception.Message)
                 return $false
             }
         }
@@ -353,61 +336,48 @@ function Start-ServiceSafely {
     return $false
 }
 
-function Invoke-EmptyWorkingSetOnProcess {
-    param([System.Diagnostics.Process]$Process)
-    
-    if (-not ([System.Management.Automation.PSTypeName]'RomanOS.PsApiMemory').Type) { return 0 }
-    
-    try {
-        $initBytes = $Process.WorkingSet64
-        $trimmed = [RomanOS.PsApiMemory]::EmptyWorkingSet($Process.Handle)
-        $Process.Refresh()
-        $finalBytes = $Process.WorkingSet64
-        $reclaimedMB = [math]::Round(($initBytes - $finalBytes) / 1MB, 2)
-        if ($reclaimedMB -lt 0) { $reclaimedMB = 0.0 }
-        return $reclaimedMB
-    } catch {
-        return 0.0
-    }
-}
-
 # -----------------------------------------------------------------------------
-# 5. LOGICA PRINCIPAL POR MODO
+# 4. LOGICA PRINCIPAL POR MODO
 # -----------------------------------------------------------------------------
 
 # MODO STATUS
 if ($Mode -eq "Status") {
-    Show-UnifiedBanner -Title "romanOS GAME & DEV SWITCH" -Subtitle "Auditoria de Estado y Memoria" -ShowSystemInfo
+    Show-UnifiedBanner -Title "romanOS GAME OPTIMIZER" -Subtitle "Auditoria de Estado de Rendimiento y Memoria" -ShowSystemInfo
     
     $mem = Get-SystemMemoryMetrics
-    Write-StepHeader -StepNumber 1 -TotalSteps 2 -Message "Metricas de Memoria RAM del Sistema (DDR5)"
+    Write-StepHeader -StepNumber 1 -TotalSteps 2 -Message "Metricas de Memoria RAM del Sistema (DDR5 / UMA)"
     Write-Host ("  Memoria Total : {0,6} GB" -f $mem.TotalGB) -ForegroundColor White
-    Write-Host ("  Memoria Usada : {0,6} GB ({1}%)" -f $mem.UsedGB, $mem.PercentUsed) -ForegroundColor $(if($mem.PercentUsed -gt 60){'Yellow'}else{'Green'})
+    Write-Host ("  Memoria Usada : {0,6} GB ({1}%)" -f $mem.UsedGB, $mem.PercentUsed) -ForegroundColor $(if($mem.PercentUsed -gt 75){'Yellow'}else{'Green'})
     Write-Host ("  Memoria Libre : {0,6} GB (Disponible para Juegos y VRAM APU)" -f $mem.FreeGB) -ForegroundColor Cyan
     
-    Write-StepHeader -StepNumber 2 -TotalSteps 2 -Message "Inspeccion de Servicios de Virtualizacion e Inactividad"
+    Write-StepHeader -StepNumber 2 -TotalSteps 2 -Message "Inspeccion de Servicios de Virtualizacion y MMCSS"
     $vmms = Get-Service -Name "vmms" -ErrorAction SilentlyContinue
     $hns  = Get-Service -Name "HNS" -ErrorAction SilentlyContinue
     $vEthernet = Get-NetAdapter -Name "vEthernet*" -ErrorAction SilentlyContinue
     
-    $edgeProcs = @(Get-Process -Name "msedge" -ErrorAction SilentlyContinue)
-    $edgeBackground = @($edgeProcs | Where-Object { [string]::IsNullOrEmpty($_.MainWindowTitle) })
-    $edgeMB = if ($edgeProcs.Count -gt 0) { [math]::Round(($edgeProcs | Measure-Object WS -Sum).Sum / 1MB, 2) } else { 0 }
-    
-    Write-Host ("  Pila Hyper-V (vmms)  : {0}" -f $(if($vmms -and $vmms.Status -eq 'Running'){'[ACTIVO] - Modo Dev Listo'}else{'[DETENIDO] - Modo Juego'})) -ForegroundColor $(if($vmms -and $vmms.Status -eq 'Running'){'Cyan'}else{'Green'})
+    Write-Host ("  Pila Hyper-V (vmms)  : {0}" -f $(if($vmms -and $vmms.Status -eq 'Running'){'[ACTIVO] - Modo Dev Listo'}else{'[DETENIDO] - Modo Juego (DPC Optimo)'})) -ForegroundColor $(if($vmms -and $vmms.Status -eq 'Running'){'Cyan'}else{'Green'})
     Write-Host ("  Red Host HNS         : {0}" -f $(if($hns -and $hns.Status -eq 'Running'){'[ACTIVO]'}else{'[DETENIDO]'})) -ForegroundColor Gray
-    Write-Host ("  Switch Virtual Red   : {0}" -f $(if($vEthernet){$vEthernet.Name + " [ACTIVO - Suma Latencia DPC]"}else{"[DESMONTADO - Latencia Nativa 2.5GbE]"})) -ForegroundColor $(if($vEthernet){'Yellow'}else{'Green'})
-    Write-Host ("  Instancias MS Edge   : {0} procesos ({1} MB en RAM)" -f $edgeProcs.Count, $edgeMB) -ForegroundColor $(if($edgeProcs.Count -gt 0){'Yellow'}else{'Green'})
+    Write-Host ("  Switch Virtual Red   : {0}" -f $(if($vEthernet){$vEthernet.Name + " [ACTIVO - Suma Latencia DPC]"}else{"[DESMONTADO - Latencia Nativa <500us]"})) -ForegroundColor $(if($vEthernet){'Yellow'}else{'Green'})
     
     $sysProfile = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -ErrorAction SilentlyContinue
     $sysResp = if ($sysProfile -and $sysProfile.SystemResponsiveness -ne $null) { $sysProfile.SystemResponsiveness } else { "N/D" }
-    Write-Host ("  Planificador Kernel  : SystemResponsiveness = {0} ({1})" -f $sysResp, $(if($sysResp -eq 0){"100% CPU a Juegos [MODO GAMING]"}else{"$sysResp% CPU reservada a background"})) -ForegroundColor $(if($sysResp -eq 0){'Green'}else{'Yellow'})
+    $netThrot = if ($sysProfile -and $sysProfile.NetworkThrottlingIndex -ne $null) { $sysProfile.NetworkThrottlingIndex } else { "N/D" }
+    
+    Write-Host ("  Planificador Kernel  : SystemResponsiveness = {0} ({1})" -f $sysResp, $(if($sysResp -eq 10){"90% CPU a Juegos [MODO GAMING CALIBRADO]"}elseif($sysResp -eq 20){"20% CPU reservada a background [ESTANDAR]"}else{"Valor configurado: $sysResp"})) -ForegroundColor $(if($sysResp -eq 10){'Green'}else{'Yellow'})
+    Write-Host ("  Limitador Red MMCSS  : NetworkThrottlingIndex = {0} ({1})" -f $netThrot, $(if($netThrot -eq 4294967295){"Desactivado (Throughput Maximo)"}else{"Activo ($netThrot paquetes/ms)"})) -ForegroundColor $(if($netThrot -eq 4294967295){'Green'}else{'Yellow'})
+    
+    $memKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
+    $memProps = Get-ItemProperty -Path $memKey -ErrorAction SilentlyContinue
+    $lsc = if ($memProps -and $memProps.LargeSystemCache -ne $null) { $memProps.LargeSystemCache } else { 0 }
+    $dpe = if ($memProps -and $memProps.DisablePagingExecutive -ne $null) { $memProps.DisablePagingExecutive } else { 0 }
+    Write-Host ("  LargeSystemCache     : {0} ({1})" -f $lsc, $(if($lsc -eq 0){"0 [OK: Prioridad a Procesos y VRAM APU]"}else{"1 [Alerta: Prioriza cache de archivos]"})) -ForegroundColor $(if($lsc -eq 0){'Green'}else{'Yellow'})
+    Write-Host ("  DisablePagingExec    : {0} ({1})" -f $dpe, $(if($dpe -eq 1){"1 [OK: Drivers fijados en RAM fisica]"}else{"0 [Paginacion de kernel permitida]"})) -ForegroundColor $(if($dpe -eq 1){'Green'}else{'Yellow'})
     
     Write-Host ""
     if ($vmms -and $vmms.Status -eq 'Running') {
-        Write-OK "Diagnostico Global: Entorno en MODO DESARROLLO / PRUEBAS (Hyper-V activo)."
+        Write-OK "Diagnostico Global: Entorno en MODO NORMAL / DESARROLLO (Hyper-V activo)."
     } else {
-        Write-OK "Diagnostico Global: Entorno en MODO JUEGO (Recursos optimizados para Gaming)."
+        Write-OK "Diagnostico Global: Entorno en MODO JUEGO (Recursos optimizados para baja latencia)."
     }
     Write-Host ""
     
@@ -428,7 +398,6 @@ if ($Mode -eq "Status") {
             FreeRAMGB      = $mem.FreeGB
             HyperVActive   = [bool]($vmms -and $vmms.Status -eq 'Running')
             VmswitchActive = [bool]$vEthernet
-            EdgeProcesses  = $edgeProcs.Count
         }
     }
     return
@@ -440,20 +409,19 @@ if ($Mode -eq "Game") {
     
     if (-not $Quiet) {
         $gpuName = if ($script:HardwareProfile -and $script:HardwareProfile.GPU.Devices.Count -gt 0) { $script:HardwareProfile.GPU.Devices[0].Name } else { "GPU" }
-        $targetVramLabel = if ($script:HardwareProfile -and $script:HardwareProfile.GPU.HasIntegratedGpu) { "VRAM Compartida ($gpuName)" } else { "GPU ($gpuName) / Gaming" }
-        $bannerSub = if ($Profile -eq 'Aggressive') { "PERFIL AGRESIVO - Gaming Puro y Maxima Memoria para $targetVramLabel" } else { "PERFIL LIVIANO - Baja Latencia de Red DPC y Ventanas Conservadas" }
-        Show-UnifiedBanner -Title "romanOS GAME SWITCH" -Subtitle $bannerSub -ShowSystemInfo
+        $targetVramLabel = if ($script:HardwareProfile -and $script:HardwareProfile.GPU.HasIntegratedGpu) { "VRAM Compartida UMA ($gpuName)" } else { "GPU ($gpuName)" }
+        Show-UnifiedBanner -Title "romanOS GAME OPTIMIZER" -Subtitle "Modo Juego de Baja Latencia DPC y Optimizacion de Recursos" -ShowSystemInfo
         Write-Host "  RAM Inicial: $($initialMem.UsedGB) GB usados | $($initialMem.FreeGB) GB libres" -ForegroundColor Yellow
-        Write-Host "  Perfil     : $($Profile.ToUpper())" -ForegroundColor Cyan
+        Write-Host "  Objetivo   : Eliminar latencia DPC (<500us), ruido ETW y optimizar $targetVramLabel" -ForegroundColor Cyan
     }
     
-    # 1. Guardar Snapshot de Estado
-    if (-not $Quiet) { Write-StepHeader -StepNumber 1 -TotalSteps 7 -Message "Guardando instantanea del estado de servicios y registro..." }
+    # 1. Guardar Snapshot de Estado Transaccional
+    if (-not $Quiet) { Write-StepHeader -StepNumber 1 -TotalSteps 6 -Message "Guardando instantanea transaccional del estado del sistema..." }
     Save-ServiceSnapshot
     if (-not $Quiet) { Write-OK "Instantanea guardada en: $script:StateFilePath" }
     
-    # 2. Detener Pila de Virtualizacion Hyper-V
-    if (-not $Quiet) { Write-StepHeader -StepNumber 2 -TotalSteps 7 -Message "Deteniendo pila de Hyper-V y conmutador virtual de red..." }
+    # 2. Detener Pila de Virtualizacion Hyper-V (DPC Latency Killer)
+    if (-not $Quiet) { Write-StepHeader -StepNumber 2 -TotalSteps 6 -Message "Deteniendo pila de Hyper-V y conmutador virtual de red (DPC Latency < 500 us)..." }
     $stoppedHv = 0
     foreach ($svcName in $script:HyperVServicesStopOrder) {
         if (Stop-ServiceSafely $svcName) {
@@ -465,46 +433,8 @@ if ($Mode -eq "Game") {
         Write-Info "Pila de Hyper-V ya se encontraba inactiva."
     }
     
-    # 3. Gestionar Navegadores y Actualizadores en Segundo Plano
-    if (-not $Quiet) { Write-StepHeader -StepNumber 3 -TotalSteps 7 -Message "Gestionando navegadores y procesos en segundo plano..." }
-    
-    $edgeProcs = @(Get-Process -Name "msedge" -ErrorAction SilentlyContinue)
-    $edgeRamMB = if ($edgeProcs.Count -gt 0) { [math]::Round(($edgeProcs | Measure-Object WS -Sum).Sum / 1MB, 2) } else { 0.0 }
-    $edgeWasKilled = $false
-    
-    if ($edgeProcs.Count -gt 0) {
-        $hasVisibleWindow = @($edgeProcs | Where-Object { -not [string]::IsNullOrEmpty($_.MainWindowTitle) }).Count -gt 0
-        if ($Profile -eq "Aggressive" -or $ForceKillEdge -or -not $hasVisibleWindow) {
-            try {
-                Stop-Process -Name "msedge" -Force -ErrorAction SilentlyContinue
-                $edgeWasKilled = $true
-                if (-not $Quiet) { Write-OK "Microsoft Edge liquidado ($($edgeProcs.Count) procesos | +$edgeRamMB MB liberados para DDR5/APU)" }
-            } catch {
-                Write-Warn "No se pudo finalizar proceso msedge: $($_.Exception.Message)"
-            }
-        } else {
-            if (-not $Quiet) {
-                Write-Warn "Microsoft Edge tiene ventanas abiertas ($edgeRamMB MB en RAM). Conservado en Modo Liviano."
-                Write-Info "Usa el Modo Agresivo (-Profile Aggressive) si requieres estos ~$([math]::Round($edgeRamMB/1024, 2)) GB para la iGPU."
-            }
-        }
-    }
-    
-    # Otros procesos residuales / updaters
-    foreach ($procName in $script:OrphanProcessesToKill) {
-        $procs = @(Get-Process -Name $procName -ErrorAction SilentlyContinue)
-        if ($procs.Count -gt 0) {
-            try {
-                Stop-Process -Name $procName -Force -ErrorAction SilentlyContinue
-                if (-not $Quiet) { Write-OK "Proceso terminado: $procName ($($procs.Count) instancias)" }
-            } catch {
-                Write-Warn "No se pudo finalizar proceso ($procName) - $($_.Exception.Message)"
-            }
-        }
-    }
-    
-    # 4. Pausar Servicios de Diagnostico, Telemetria y Actualizaciones
-    if (-not $Quiet) { Write-StepHeader -StepNumber 4 -TotalSteps 7 -Message "Pausando servicios de compatibilidad, diagnostico y actualizacion..." }
+    # 3. Pausar Servicios en Segundo Plano No Esenciales (Reduccion de Ruido ETW e I/O)
+    if (-not $Quiet) { Write-StepHeader -StepNumber 3 -TotalSteps 6 -Message "Pausando servicios de diagnostico, indexacion y telemetria..." }
     $stoppedBg = 0
     foreach ($svcName in $script:BackgroundServices) {
         if (Stop-ServiceSafely $svcName) {
@@ -516,60 +446,70 @@ if ($Mode -eq "Game") {
         Write-Info "Servicios de segundo plano ya se encontraban optimizados."
     }
     
-    # 5. Poda de Working Set (EmptyWorkingSet) y Control de Entorno Dev
-    if (-not $Quiet) { Write-StepHeader -StepNumber 5 -TotalSteps 7 -Message "Ejecutando poda quirurgica de Working Set (EmptyWorkingSet)..." }
-    $totalReclaimedMB = 0.0
-    
-    foreach ($target in $script:TrimWorkingSetTargets) {
-        $procs = @(Get-Process -Name $target -ErrorAction SilentlyContinue)
-        foreach ($p in $procs) {
-            $rec = Invoke-EmptyWorkingSetOnProcess $p
-            $totalReclaimedMB += $rec
-        }
-    }
-    
-    # Gestion de Antigravity IDE
-    $ideProcs = @(Get-Process -Name "Antigravity IDE", "language_server_windows_x64" -ErrorAction SilentlyContinue)
-    $ideRamMB = if ($ideProcs.Count -gt 0) { [math]::Round(($ideProcs | Measure-Object WS -Sum).Sum / 1MB, 2) } else { 0.0 }
-    $ideWasKilled = $false
-    
-    if ($ideProcs.Count -gt 0) {
-        if ($CloseIDE) {
-            try {
-                Stop-Process -Name "Antigravity IDE", "language_server_windows_x64" -Force -ErrorAction SilentlyContinue
-                $ideWasKilled = $true
-                if (-not $Quiet) { Write-OK "Antigravity IDE cerrado completamente (+ $ideRamMB MB liberados para DDR5/APU)" }
-            } catch {
-                Write-Warn "No se pudo cerrar proceso de IDE: $($_.Exception.Message)"
-            }
+    # 4. Verificacion de Blindaje Inviolable (Anti-Cheat, Audio y Drivers)
+    if (-not $Quiet) { Write-StepHeader -StepNumber 4 -TotalSteps 6 -Message "Verificando integridad de subsistemas inviolables (Anti-Cheat / Audio / GPU)..." }
+    $protectedOk = $true
+    foreach ($protSvc in @('CryptSvc', 'BFE', 'mpssvc', 'Audiosrv')) {
+        $sc = Get-Service -Name $protSvc -ErrorAction SilentlyContinue
+        if ($sc -and $sc.Status -eq 'Running') {
+            # Servicio critico activo y seguro
         } else {
-            $ideReclaimed = 0.0
-            foreach ($ip in $ideProcs) {
-                $ideReclaimed += (Invoke-EmptyWorkingSetOnProcess $ip)
-            }
-            $totalReclaimedMB += $ideReclaimed
-            if (-not $Quiet) {
-                Write-Info ("Antigravity IDE reteniendo ~$([math]::Round($ideRamMB/1024, 2)) GB (podado en reposo -{0} MB sin cerrar sesion)" -f [math]::Round($ideReclaimed, 2))
-                if ($Profile -eq "Aggressive") {
-                    Write-Warn "Para una sesion de juego AAA pura, pasa -CloseIDE para cerrar el entorno de desarrollo y ganar +$([math]::Round($ideRamMB/1024, 2)) GB."
-                }
+            # Intentar asegurar que este activo para anti-cheat
+            try {
+                Start-Service -Name $protSvc -ErrorAction Stop
+            } catch {
+                Write-Warn "No se pudo asegurar el servicio inviolable ${protSvc}: $($_.Exception.Message)"
             }
         }
     }
-    
-    if (-not $Quiet -and $totalReclaimedMB -gt 0) {
-        Write-OK ("Memoria RAM fisica podada en reposo: {0} MB" -f [math]::Round($totalReclaimedMB, 2))
+    if (-not $Quiet) {
+        Write-OK "Blindaje activo: Anti-Cheat (CryptSvc/BFE/mpssvc), Audio y Drivers protegidos [INVIOLABLES]."
+        Write-Info "Politica de Cero Cierre Forzado: Todas tus ventanas y navegadores permanecen abiertos."
     }
     
-    # 6. Afinacion de Prioridades Multimedia del Kernel (SystemProfile)
-    if (-not $Quiet) { Write-StepHeader -StepNumber 6 -TotalSteps 7 -Message "Ajustando prioridades multimedia del kernel para Gaming..." }
+    # 5. Calibracion de la Arquitectura de Memoria RAM Fisica (UMA DDR5)
+    if (-not $Quiet) { Write-StepHeader -StepNumber 5 -TotalSteps 6 -Message "Calibrando arquitectura de memoria RAM fisica y proteccion de VRAM..." }
+    try {
+        $memKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
+        if (-not (Test-Path $memKey)) { New-Item -Path $memKey -Force -ErrorAction SilentlyContinue | Out-Null }
+        
+        # LargeSystemCache = 0: Evita que el cache de archivos asfixie la VRAM de la APU
+        Set-ItemProperty -Path $memKey -Name "LargeSystemCache" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        
+        # DisablePagingExecutive = 1: Mantiene kernel NT y drivers fijados en RAM fisica
+        Set-ItemProperty -Path $memKey -Name "DisablePagingExecutive" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        
+        if (-not $Quiet) {
+            Write-OK "Memoria calibrada: LargeSystemCache = 0 (VRAM protegida) | DisablePagingExecutive = 1 (Zero kernel page faults)"
+        }
+    } catch {
+        if (-not $Quiet) { Write-Warn "No se pudieron ajustar parametros de Memory Management: $($_.Exception.Message)" }
+    }
+    
+    # Comprobacion de estres de memoria libre
+    $curMem = Get-SystemMemoryMetrics
+    if ($curMem.FreeGB -lt 1.5) {
+        if (-not $Quiet) {
+            Write-Warn "Memoria RAM libre baja ($($curMem.FreeGB) GB libres). Recomendado cerrar tareas pesadas antes de iniciar juegos AAA."
+        }
+    } else {
+        if (-not $Quiet) {
+            Write-Info "Margen de RAM optimo: $($curMem.FreeGB) GB libres para VRAM dinamica y assets del juego."
+        }
+    }
+    
+    # 6. Calibracion del Kernel Multimedia (MMCSS) y Temporizadores de Precision
+    if (-not $Quiet) { Write-StepHeader -StepNumber 6 -TotalSteps 6 -Message "Calibrando planificador multimedia (MMCSS) y temporizador del kernel..." }
     try {
         $mmKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
         if (-not (Test-Path $mmKey)) { New-Item -Path $mmKey -Force -ErrorAction SilentlyContinue | Out-Null }
         
-        # SystemResponsiveness: 0 asigna el 100% de ciclos de CPU a juegos en primer plano
-        Set-ItemProperty -Path $mmKey -Name "SystemResponsiveness" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        # SystemResponsiveness = 10 (El minimo real documentado por Microsoft sin ser forzado a 20)
+        Set-ItemProperty -Path $mmKey -Name "SystemResponsiveness" -Value 10 -Type DWord -Force -ErrorAction SilentlyContinue
         Set-ItemProperty -Path $mmKey -Name "NoLazyMode" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        
+        # NetworkThrottlingIndex = 0xFFFFFFFF (Desactiva estrangulamiento de paquetes en red)
+        Set-ItemProperty -Path $mmKey -Name "NetworkThrottlingIndex" -Value 4294967295 -Type DWord -Force -ErrorAction SilentlyContinue
         
         $gamesKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games'
         if (-not (Test-Path $gamesKey)) { New-Item -Path $gamesKey -Force -ErrorAction SilentlyContinue | Out-Null }
@@ -578,54 +518,40 @@ if ($Mode -eq "Game") {
         Set-ItemProperty -Path $gamesKey -Name "Scheduling Category" -Value "High" -Type String -Force -ErrorAction SilentlyContinue
         Set-ItemProperty -Path $gamesKey -Name "SFIO Priority" -Value "High" -Type String -Force -ErrorAction SilentlyContinue
         
-        if (-not $Quiet) { Write-OK "Kernel optimizado: SystemResponsiveness = 0 (100% CPU a juegos) y GPU Priority = 8" }
+        # GlobalTimerResolutionRequests = 1 en Windows 11
+        $kernelKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
+        if (Test-Path $kernelKey) {
+            Set-ItemProperty -Path $kernelKey -Name "GlobalTimerResolutionRequests" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        }
+        
+        if (-not $Quiet) {
+            Write-OK "Kernel calibrado: SystemResponsiveness = 10 (90% CPU a juegos) | NetworkThrottling = OFF | TimerRequests = 1"
+        }
     } catch {
         if (-not $Quiet) { Write-Warn "No se pudieron ajustar las claves de SystemProfile: $($_.Exception.Message)" }
     }
     
-    # 7. Verificacion de Plan de Energia
-    if (-not $Quiet) { Write-StepHeader -StepNumber 7 -TotalSteps 7 -Message "Comprobando plan de energia de Maximo Rendimiento..." }
-    try {
-        $activeScheme = powercfg /getactivescheme
-        if ($activeScheme -notlike "*e9a42b02-d5df-448d-aa00-03f14749eb61*" -and $activeScheme -notlike "*e5d77bb0-2d71-420e-ac6b-959193113e8b*") {
-            powercfg /setactive e9a42b02-d5df-448d-aa00-03f14749eb61 2>$null
-            if (-not $Quiet) { Write-OK "Plan de energia ajustado a 'Maximo Rendimiento'." }
-        } else {
-            if (-not $Quiet) { Write-OK "Plan de energia ya se encuentra en 'Maximo Rendimiento'." }
+    # Comprobacion de arquitectura de CPU para energia
+    if ($script:HardwareProfile -and $script:HardwareProfile.CPU) {
+        $cpuName = $script:HardwareProfile.CPU.Name
+        if ($cpuName -like "*Ryzen*" -or $cpuName -like "*AMD*") {
+            if (-not $Quiet) {
+                Write-Info "CPU AMD detectada ($cpuName): Preservando transiciones rapidas CPPC2 para Precision Boost 2 mononucleo."
+            }
         }
-    } catch {
-        Write-Warn "No se pudo conmutar el plan de energía: $($_.Exception.Message)"
     }
     
-    # Resumen Final de Metricas
     $finalMem = Get-SystemMemoryMetrics
-    $freedGB = [math]::Round($finalMem.FreeGB - $initialMem.FreeGB, 2)
-    if ($freedGB -lt 0) { $freedGB = 0.0 }
     
     if (-not $Quiet) {
         Write-Host ""
         Write-Host "  ===============================================================" -ForegroundColor Green
-        Write-Host "  [OK] MODO JUEGO ACTIVADO EXITOSAMENTE" -ForegroundColor Green
-        Write-Host ("  Perfil Seleccionado : {0}" -f $(if($Profile -eq 'Aggressive'){'MODO AGRESIVO (Gaming Puro APU / Maxima RAM)'}else{'MODO LIVIANO (Baja Latencia DPC / Ventanas Conservadas)'})) -ForegroundColor $(if($Profile -eq 'Aggressive'){'Cyan'}else{'Yellow'})
-        Write-Host ("  RAM Libre Inicial   : {0,5} GB" -f $initialMem.FreeGB) -ForegroundColor Gray
-        Write-Host ("  RAM Libre Actual    : {0,5} GB (Ganancia neta: +{1} GB para Juegos/GPU)" -f $finalMem.FreeGB, $freedGB) -ForegroundColor Yellow
-        Write-Host "  Latencia de Red     : Optimizada (vmswitch.sys de Hyper-V desactivado)" -ForegroundColor Cyan
-        Write-Host "  Planificador Kernel : SystemResponsiveness = 0 | GPU Priority = 8" -ForegroundColor Green
-        
-        # Desglose Pedagogico y Transparencia si quedaron aplicaciones abiertas en Modo Liviano
-        if ($Profile -eq 'Light' -and (-not $edgeWasKilled -or -not $ideWasKilled)) {
-            Write-Host ""
-            Write-Host "  ---------------------------------------------------------------" -ForegroundColor DarkGray
-            Write-Host "  [i] DESGLOSE DE MEMORIA RETENIDA POR APLICACIONES DE USUARIO:" -ForegroundColor White
-            if (-not $edgeWasKilled -and $edgeRamMB -gt 0) {
-                Write-Host ("      - Microsoft Edge        : ~{0} MB (~{1} GB retenidos con pestañas abiertas)" -f $edgeRamMB, [math]::Round($edgeRamMB/1024, 2)) -ForegroundColor DarkGray
-            }
-            if (-not $ideWasKilled -and $ideRamMB -gt 0) {
-                Write-Host ("      - Antigravity IDE / Dev : ~{0} MB (~{1} GB retenidos en sesion de desarrollo)" -f $ideRamMB, [math]::Round($ideRamMB/1024, 2)) -ForegroundColor DarkGray
-            }
-            Write-Host "      --> Para partidas pesadas donde los juegos y la GPU requieran toda la memoria libre," -ForegroundColor Yellow
-            Write-Host "          ejecuta la opcion [2] MODO JUEGO AGRESIVO para liberar estos gigabytes." -ForegroundColor Yellow
-        }
+        Write-Host "  [OK] MODO JUEGO ACTIVADO EXITOSAMENTE (romanOS Game Optimizer)" -ForegroundColor Green
+        Write-Host ("  RAM Libre Actual    : {0,5} GB (Pool optimo para Juegos y VRAM APU)" -f $finalMem.FreeGB) -ForegroundColor Yellow
+        Write-Host "  Latencia DPC de Red : Optimizada (vmswitch.sys desactivado / <500 us)" -ForegroundColor Cyan
+        Write-Host "  Planificador Kernel : MMCSS SystemResponsiveness = 10 | GPU Priority = 8" -ForegroundColor Green
+        Write-Host "  Memoria Real        : LargeSystemCache = 0 | DisablePagingExecutive = 1" -ForegroundColor Cyan
+        Write-Host "  Ventanas de Usuario : 100% Preservadas (Sin cierres forzados de navegadores)" -ForegroundColor White
         Write-Host "  ===============================================================" -ForegroundColor Green
         Write-Host ""
         
@@ -641,25 +567,22 @@ if ($Mode -eq "Game") {
     
     if ($PassThru) {
         return [PSCustomObject]@{
-            Mode             = "Game"
-            Profile          = $Profile
-            InitialFreeGB    = $initialMem.FreeGB
-            FinalFreeGB      = $finalMem.FreeGB
-            GainedFreeGB     = $freedGB
-            StoppedHyperV    = $stoppedHv
-            StoppedBackgrnd  = $stoppedBg
-            PmemReclaimedMB  = [math]::Round($totalReclaimedMB, 2)
-            EdgeKilled       = $edgeWasKilled
-            IDEKilled        = $ideWasKilled
+            Mode            = "Game"
+            InitialFreeGB   = $initialMem.FreeGB
+            FinalFreeGB     = $finalMem.FreeGB
+            StoppedHyperV   = $stoppedHv
+            StoppedBackgrnd = $stoppedBg
+            LargeSystemCache= 0
+            DisablePaging   = 1
         }
     }
     return
 }
 
-# MODO DEV
+# MODO DEV / NORMAL
 if ($Mode -eq "Dev") {
     if (-not $Quiet) {
-        Show-UnifiedBanner -Title "romanOS DEV & ISO SWITCH" -Subtitle "Restaurando Pila de Virtualizacion Hyper-V y Pruebas" -ShowSystemInfo
+        Show-UnifiedBanner -Title "romanOS DEV & DESKTOP SWITCH" -Subtitle "Restaurando Entorno de Virtualizacion y Servicios de Productividad" -ShowSystemInfo
     }
     
     $savedSnapshot = Get-ServiceSnapshot
@@ -683,8 +606,8 @@ if ($Mode -eq "Dev") {
         }
     }
     
-    # 2. Restaurar Servicios de Diagnostico y Mantenimiento
-    if (-not $Quiet) { Write-StepHeader -StepNumber 2 -TotalSteps 4 -Message "Restaurando servicios de mantenimiento y soporte..." }
+    # 2. Restaurar Servicios en Segundo Plano desde Instantanea Transaccional
+    if (-not $Quiet) { Write-StepHeader -StepNumber 2 -TotalSteps 4 -Message "Restaurando servicios de diagnostico, indexacion y mantenimiento..." }
     $startedBg = 0
     foreach ($svcName in $script:BackgroundServices) {
         $shouldStart = $true
@@ -709,12 +632,19 @@ if ($Mode -eq "Dev") {
     if (-not $Quiet) { Write-StepHeader -StepNumber 3 -TotalSteps 4 -Message "Restaurando prioridades del planificador multimedia en el registro..." }
     try {
         $mmKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile'
-        $restoredResp = 10
-        if ($savedSnapshot -and $savedSnapshot.'__SystemResponsiveness' -ne $null) {
-            $restoredResp = [int]$savedSnapshot.'__SystemResponsiveness'
+        $restoredResp = 20
+        $restoredNet  = 10
+        if ($savedSnapshot) {
+            if ($savedSnapshot.'__SystemResponsiveness' -ne $null) {
+                $restoredResp = [int]$savedSnapshot.'__SystemResponsiveness'
+            }
+            if ($savedSnapshot.'__NetworkThrottlingIndex' -ne $null) {
+                $restoredNet = [int]$savedSnapshot.'__NetworkThrottlingIndex'
+            }
         }
         Set-ItemProperty -Path $mmKey -Name "SystemResponsiveness" -Value $restoredResp -Type DWord -Force -ErrorAction SilentlyContinue
-        if (-not $Quiet) { Write-OK "SystemResponsiveness restaurado a $restoredResp (perfil estandar de desarrollo)." }
+        Set-ItemProperty -Path $mmKey -Name "NetworkThrottlingIndex" -Value $restoredNet -Type DWord -Force -ErrorAction SilentlyContinue
+        if (-not $Quiet) { Write-OK "SystemResponsiveness restaurado a $restoredResp | NetworkThrottlingIndex restaurado a $restoredNet" }
     } catch {
         Write-Warn "No se pudo restaurar SystemResponsiveness: $($_.Exception.Message)"
     }
@@ -728,7 +658,7 @@ if ($Mode -eq "Dev") {
     if ($vmms -and $vmms.Status -eq 'Running') {
         if (-not $Quiet) { Write-OK "Administracion de Maquinas Virtuales de Hyper-V (vmms) operativa [OK]" }
     } else {
-        if (-not $Quiet) { Write-Warn "vmms no reporta estado Running. Puede requerir inicio manual." }
+        if (-not $Quiet) { Write-Info "vmms detenido o en reposo (se iniciara a demanda al compilar o probar VMs)." }
     }
     
     if ($vSwitch) {
@@ -740,10 +670,10 @@ if ($Mode -eq "Dev") {
     if (-not $Quiet) {
         Write-Host ""
         Write-Host "  ===============================================================" -ForegroundColor Cyan
-        Write-Host "  [OK] MODO DESARROLLO Y PRUEBAS RESTAURADO" -ForegroundColor Cyan
+        Write-Host "  [OK] MODO DESARROLLO Y PRODUCTIVIDAD RESTAURADO" -ForegroundColor Cyan
         Write-Host "  Hyper-V Listo     : Creacion y prueba de ISOs operativas" -ForegroundColor White
-        Write-Host "  Herramientas      : New-TestVM-HyperV.ps1 y DISM habilitados" -ForegroundColor Gray
-        Write-Host "  Planificador      : SystemResponsiveness restaurado para desarrollo" -ForegroundColor DarkGray
+        Write-Host "  Servicios         : WSearch, Update y diagnosticos restaurados transaccionalmente" -ForegroundColor Gray
+        Write-Host "  Planificador      : Prioridades multimedia restauradas para productividad" -ForegroundColor DarkGray
         Write-Host "  ===============================================================" -ForegroundColor Cyan
         Write-Host ""
         

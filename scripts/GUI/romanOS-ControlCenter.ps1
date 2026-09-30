@@ -534,21 +534,21 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- Card Modo Juego Agresivo -->
+                                    <!-- Card Modo Juego -->
                                     <Border Grid.Column="0" Background="#1E2822" BorderBrush="#00E676" BorderThickness="1" CornerRadius="4" Padding="10">
                                         <StackPanel>
-                                            <TextBlock Text="MODO JUEGO AGRESIVO" Foreground="#00E676" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
-                                            <TextBlock Text="Corta devoradores de RAM, suspende Hyper-V/WSL2/Docker y realiza poda de memoria profunda para GPU/VRAM." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
-                                            <Button x:Name="btnGameAggressive" Content="Activar Modo Agresivo" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                            <TextBlock Text="MODO JUEGO (BAJA LATENCIA)" Foreground="#00E676" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
+                                            <TextBlock Text="Elimina latencia DPC (<500µs), pausa servicios de fondo (WSearch, Telemetria, Update), calibra MMCSS (90% CPU) y fija kernel en RAM." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
+                                            <Button x:Name="btnGameAggressive" Content="Activar Modo Juego" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Card Modo Juego Ligero -->
+                                    <!-- Card Estado y Metricas -->
                                     <Border Grid.Column="2" Background="#1E2530" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="4" Padding="10">
                                         <StackPanel>
-                                            <TextBlock Text="MODO JUEGO LIGERO" Foreground="#00E5FF" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
-                                            <TextBlock Text="Optimizacion de latencia estandar. Mantiene servicios activos sin apagar Hyper-V ni entornos de desarrollo." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
-                                            <Button x:Name="btnGameLight" Content="Activar Modo Ligero" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="ESTADO Y METRICAS" Foreground="#00E5FF" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
+                                            <TextBlock Text="Audita en tiempo real el consumo de RAM DDR5, latencia de red, estado de conmutadores virtuales y configuracion del Kernel NT." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
+                                            <Button x:Name="btnGameLight" Content="Auditar Estado / RAM" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
 
@@ -1181,7 +1181,9 @@ $script:helperRefreshTimer.Interval = [TimeSpan]::FromSeconds(5)
 $script:helperRefreshTimer.Add_Tick({
     try {
         Update-DesktopHelpersGUIState
-    } catch { }
+    } catch {
+        Write-Verbose "[ControlCenter] Error en timer de actualizacion de helpers: $($_.Exception.Message)"
+    }
 })
 $script:helperRefreshTimer.Start()
 
@@ -1428,15 +1430,21 @@ function Start-ControlCenterTask {
                         if (Get-Command 'Update-DesktopHelpersGUIState' -ErrorAction SilentlyContinue) {
                             $window.Dispatcher.Invoke({ Update-DesktopHelpersGUIState })
                         }
-                    } catch { }
+                    } catch {
+                        Write-Verbose "[ControlCenter] Fallo al invocar Update-DesktopHelpersGUIState en UI dispatcher: $($_.Exception.Message)"
+                    }
                     try {
                         if (Get-Command 'Update-ControlCenterDnsState' -ErrorAction SilentlyContinue) {
                             $window.Dispatcher.Invoke({ Update-ControlCenterDnsState })
                         }
-                    } catch { }
+                    } catch {
+                        Write-Verbose "[ControlCenter] Fallo al invocar Update-ControlCenterDnsState en UI dispatcher: $($_.Exception.Message)"
+                    }
                 })
                 $delayedTimer.Start()
-            } catch { }
+            } catch {
+                Write-Verbose "[ControlCenter] Error en timer retardado de navegacion: $($_.Exception.Message)"
+            }
         }
     })
 
@@ -1709,17 +1717,17 @@ $window.FindName('btnOpenHelpersFolder').Add_Click({
 # --- Pestaña 2: Gaming & Bimodal ---
 $window.FindName('btnGameAggressive').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Profile Aggressive -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Juego Agresivo (Poda RAM APU)" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Juego (Baja Latencia DPC)" }
 })
 
 $window.FindName('btnGameLight').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Profile Light -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Juego Ligero" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Status -Unattended -SkipElevation" -TaskTitle "Conmutador: Auditoria de Estado y Memoria" }
 })
 
 $window.FindName('btnDevMode').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Dev -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Desarrollo (Hyper-V / Docker)" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Dev -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Desarrollo (Hyper-V / Productividad)" }
 })
 
 $window.FindName('btnToggleHypervisor').Add_Click({

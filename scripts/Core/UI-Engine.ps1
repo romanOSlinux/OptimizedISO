@@ -1104,7 +1104,9 @@ function Get-RomanOSActiveThemeName {
         if ($regVal -and $regVal.Theme) {
             return $regVal.Theme
         }
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo leer tema de HKCU: $($_.Exception.Message)"
+    }
 
     return "CyberStealth"
 }
@@ -1122,7 +1124,9 @@ function Set-RomanOSActiveThemeName {
             New-Item -Path "HKCU:\Software\romanOS" -Force -ErrorAction SilentlyContinue | Out-Null
         }
         Set-ItemProperty -Path "HKCU:\Software\romanOS" -Name "Theme" -Value $ThemeName -Force -ErrorAction SilentlyContinue | Out-Null
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo persistir tema en HKCU: $($_.Exception.Message)"
+    }
 }
 
 function Apply-RomanOSGuiTheme {
@@ -1188,7 +1192,9 @@ function Apply-RomanOSGuiTheme {
         $wBrush = $bc.ConvertFromString($theme.WindowBg)
         if ($wBrush.CanFreeze) { $wBrush.Freeze() }
         $Window.Background = $wBrush
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo aplicar Window.Background: $($_.Exception.Message)"
+    }
 
     try {
         $popupBg = $bc.ConvertFromString($theme.CardBg)
@@ -1198,7 +1204,9 @@ function Apply-RomanOSGuiTheme {
         $popupFg = $bc.ConvertFromString($theme.TextPrimary)
         if ($popupFg.CanFreeze) { $popupFg.Freeze() }
         $Window.Resources[[System.Windows.SystemColors]::WindowTextBrushKey] = $popupFg
-    } catch {}
+    } catch {
+        Write-Verbose "[UI-Engine] No se pudo aplicar WindowBrushKey/WindowTextBrushKey: $($_.Exception.Message)"
+    }
 
     Set-RomanOSActiveThemeName -ThemeName $ThemeName
     return $theme

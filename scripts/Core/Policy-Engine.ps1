@@ -837,11 +837,11 @@ $global:RomanOS_Policies = @(
         PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
         ValueName     = "SystemResponsiveness"
         Type          = "REG_DWORD"
-        ExpectedValue = 0
+        ExpectedValue = 10
         Profiles      = @(1, 2, 3)
-        Description   = "Optimizar receptividad del sistema en MMCSS (0% reservado para background, 100% para procesos en primer plano/gaming)"
+        Description   = "Optimizar receptividad del sistema en MMCSS (10% reservado para background, 90% para gaming/multimedia; minimo real documentado sin clamping a 20)"
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service"
-        UnattendDesc  = "Optimize System Responsiveness in MMCSS (0 = 100% CPU to Foreground/Gaming)"
+        UnattendDesc  = "Optimize System Responsiveness in MMCSS (10 = 90% CPU to Foreground/Gaming without kernel clamp)"
     },
     @{
         Id            = "POL_GPU_HAGS"
@@ -4154,7 +4154,9 @@ function Get-RomanOSDesktopHelperState {
                 if ($dg -and $dg.SecurityServicesRunning -contains 2) {
                     $hvciActive = $true
                 }
-            } catch { }
+            } catch {
+                Write-Verbose "[VBS] No se pudo consultar DeviceGuard WMI: $($_.Exception.Message)"
+            }
 
             $vbsPath = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
             $regEnabled = $false
@@ -4229,7 +4231,9 @@ function Set-RomanOSDesktopHelperState {
                         if ($mp -and $mp.IsTamperProtected -and $State -eq 0) {
                             Write-Warning "[Defender] La 'Protección contra alteraciones' (Tamper Protection) de Seguridad de Windows está ACTIVA. Windows bloquea la conmutación programática de Defender. Debe desactivarse manualmente en la app 'Seguridad de Windows'."
                         }
-                    } catch { }
+                    } catch {
+                        Write-Verbose "[Defender] Error consultando estado de Tamper Protection: $($_.Exception.Message)"
+                    }
 
                     if ($State -eq 0) {
                         try {
@@ -4240,20 +4244,28 @@ function Set-RomanOSDesktopHelperState {
                         try {
                             $ssPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer"
                             Set-ItemProperty -Path $ssPath -Name "SmartScreenEnabled" -Value "Off" -Type String -Force -ErrorAction SilentlyContinue | Out-Null
-                        } catch { }
+                        } catch {
+                            Write-Verbose "[Defender] Fallo al ajustar SmartScreen: $($_.Exception.Message)"
+                        }
                     } else {
                         try {
                             Set-MpPreference -DisableRealtimeMonitoring $false -DisableIOAVProtection $false -DisableBehaviorMonitoring $false -DisableScriptScanning $false -ErrorAction SilentlyContinue
-                        } catch { }
+                        } catch {
+                            Write-Verbose "[Defender] Fallo al restaurar monitoreo: $($_.Exception.Message)"
+                        }
                         try {
                             & sc.exe config WinDefend start= auto 2>&1 | Out-Null
                             & sc.exe start WinDefend 2>&1 | Out-Null
                             & sc.exe start WdNisSvc 2>&1 | Out-Null
-                        } catch { }
+                        } catch {
+                            Write-Verbose "[Defender] Fallo al iniciar servicios WinDefend: $($_.Exception.Message)"
+                        }
                         try {
                             $ssPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer"
                             Set-ItemProperty -Path $ssPath -Name "SmartScreenEnabled" -Value "RequireAdmin" -Type String -Force -ErrorAction SilentlyContinue | Out-Null
-                        } catch { }
+                        } catch {
+                            Write-Verbose "[Defender] Fallo al restaurar SmartScreen: $($_.Exception.Message)"
+                        }
                     }
                 }
 
