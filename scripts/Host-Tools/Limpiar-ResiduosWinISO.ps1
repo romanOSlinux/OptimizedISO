@@ -139,6 +139,17 @@ function Find-Residuos {
             })
         }
 
+    Write-Info "Buscando carpetas de trabajo de romanOS (romanOS_Scratch)..."
+    Get-ChildItem -Path "$($env:SystemDrive)\" -Directory -Filter "romanOS_Scratch*" -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            $hallazgos.Add([PSCustomObject]@{
+                Categoria = "Carpeta scratch de romanOS (WIM Optimizer)"
+                Ruta      = $_.FullName
+                Bytes     = (Get-TamanoCarpeta -Path $_.FullName)
+                Tipo      = "Carpeta"
+            })
+        }
+
     Write-Info "Buscando restos de descarga (Fido / Media Creation Tool)..."
     Get-ChildItem -Path $env:TEMP -File -Filter "Fido_*.ps1" -ErrorAction SilentlyContinue |
         ForEach-Object {
@@ -162,7 +173,7 @@ function Find-Residuos {
     Write-Info "Buscando imágenes WIM que quedaron montadas a nivel DISM..."
     try {
         $montadas = Get-WindowsImage -Mounted -ErrorAction Stop |
-                    Where-Object { $_.Path -like "*WimMount_*" }
+                    Where-Object { $_.Path -like "*WimMount_*" -or $_.Path -like "*romanOS_Scratch*" -or $_.Path -like "*WinISO_*" }
         foreach ($img in $montadas) {
             $hallazgos.Add([PSCustomObject]@{
                 Categoria = "Imagen WIM montada (huérfana)"

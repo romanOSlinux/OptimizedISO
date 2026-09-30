@@ -311,6 +311,17 @@ if (-not (Test-Path -LiteralPath $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 }
 
+# Saneamiento preventivo de montajes huérfanos previos en romanOS_Scratch
+try {
+    $staleMounted = Get-WindowsImage -Mounted -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*romanOS_Scratch*" }
+    foreach ($sm in $staleMounted) {
+        Write-Warn "Desmontando imagen residual de ejecucion previa en $($sm.Path)..."
+        & $diag.DismPath /Unmount-Wim /MountDir:"$($sm.Path)" /Discard 2>&1 | Out-Null
+    }
+} catch {
+    & $diag.DismPath /Cleanup-Wim 2>&1 | Out-Null
+}
+
 if ([string]::IsNullOrWhiteSpace($WorkDir)) {
     $WorkDir = Join-Path $env:SystemDrive "romanOS_Scratch\WimOpt_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
 }
@@ -399,7 +410,7 @@ try {
         $mountChildren = Get-ChildItem -LiteralPath $mountDir -Force -ErrorAction SilentlyContinue
         if ($mountChildren.Count -gt 0) {
             Write-Warn "El directorio de montaje contenía archivos residuales. Ejecutando Cleanup-Wim..."
-            Start-Process -FilePath $diag.DismPath -ArgumentList "/Cleanup-Wim" -NoNewWindow -Wait | Out-Null
+            & $diag.DismPath /Cleanup-Wim 2>&1 | Out-Null
             Remove-Item -LiteralPath $mountDir -Recurse -Force -ErrorAction SilentlyContinue
             New-Item -ItemType Directory -Path $mountDir -Force | Out-Null
         }
@@ -415,29 +426,32 @@ try {
     Write-StepHeader 2 4 "Fase 1: Saneamiento logico de WinSxS con DISM..."
     if ($PSCmdlet.ShouldProcess($workingWimPath, "Montar WIM y ejecutar StartComponentCleanup /ResetBase")) {
         Write-SubStep "Montando indice $ImageIndex en $mountDir..."
-        $mountProc = Start-Process -FilePath $diag.DismPath -ArgumentList "/Mount-Wim /WimFile:`"$workingWimPath`" /Index:$ImageIndex /MountDir:`"$mountDir`"" -NoNewWindow -Wait -PassThru
-        if ($mountProc.ExitCode -ne 0) {
-            throw "Error al montar WIM con DISM. Código de salida: $($mountProc.ExitCode)"
+        & $diag.DismPath /Mount-Wim /WimFile:"$workingWimPath" /Index:$ImageIndex /MountDir:"$mountDir"
+        $mountExit = $LASTEXITCODE
+        if ($mountExit -ne 0) {
+            throw "Error al montar WIM con DISM. Código de salida: $mountExit"
         }
 
         if (-not $SkipComponentCleanup) {
             Write-SubStep "Ejecutando DISM /Cleanup-Image /StartComponentCleanup /ResetBase (puede demorar varios minutos)..."
-            $dismCleanProc = Start-Process -FilePath $diag.DismPath -ArgumentList "/Image:`"$mountDir`" /Cleanup-Image /StartComponentCleanup /ResetBase" -NoNewWindow -Wait -PassThru
-            if ($dismCleanProc.ExitCode -eq 0) {
+            & $diag.DismPath /Image:"$mountDir" /Cleanup-Image /StartComponentCleanup /ResetBase
+            $dismCleanExit = $LASTEXITCODE
+            if ($dismCleanExit -eq 0) {
                 Write-OK "Almacén WinSxS purgado y consolidado exitosamente."
-            } elseif ($dismCleanProc.ExitCode -eq -2146498554 -or $dismCleanProc.ExitCode -eq 0x800F0806) {
+            } elseif ($dismCleanExit -eq -2146498554 -or $dismCleanExit -eq 0x800F0806) {
                 Write-Warn "DISM detectó transacciones pendientes tras slipstream (0x800F0806). WinSxS se consolidará al arrancar el SO."
             } else {
-                Write-Warn "DISM StartComponentCleanup finalizó con código: $($dismCleanProc.ExitCode)."
+                Write-Warn "DISM StartComponentCleanup finalizó con código: $dismCleanExit."
             }
         } else {
             Write-Info "StartComponentCleanup /ResetBase omitido por switch -SkipComponentCleanup."
         }
 
         Write-SubStep "Guardando cambios y desmontando WIM (/Commit)..."
-        $unmountProc = Start-Process -FilePath $diag.DismPath -ArgumentList "/Unmount-Wim /MountDir:`"$mountDir`" /Commit" -NoNewWindow -Wait -PassThru
-        if ($unmountProc.ExitCode -ne 0) {
-            throw "Error al desmontar WIM con commit. Código de salida: $($unmountProc.ExitCode)"
+        & $diag.DismPath /Unmount-Wim /MountDir:"$mountDir" /Commit
+        $unmountExit = $LASTEXITCODE
+        if ($unmountExit -ne 0) {
+            throw "Error al desmontar WIM con commit. Código de salida: $unmountExit"
         }
     }
 
@@ -472,13 +486,14 @@ try {
         $etfsboot = Join-Path $isoTreeDir "boot\etfsboot.com"
         $efisys   = Join-Path $isoTreeDir "efi\microsoft\boot\efisys.bin"
 
-        $bootData = "2#p0,e,b`"$etfsboot`"#pEF,e,b`"$efisys`""
-        $oscdimgArgs = "-m -o -u2 -udfver102 -bootdata:$bootData `"$isoTreeDir`" `"$finalArtifactPath`""
+        $bootData = "2#p0,e,b$etfsboot#pEF,e,b$efisys"
+        $oscdimgArgs = @("-m", "-o", "-u2", "-udfver102", "-bootdata:$bootData", "$isoTreeDir", "$finalArtifactPath")
 
         Write-SubStep "Compilando ISO dual-boot UEFI/BIOS en $finalArtifactPath..."
-        $oscdProc = Start-Process -FilePath $diag.OscdimgPath -ArgumentList $oscdimgArgs -NoNewWindow -Wait -PassThru
-        if ($oscdProc.ExitCode -ne 0) {
-            throw "Error al compilar la ISO con oscdimg. Código: $($oscdProc.ExitCode)"
+        & $diag.OscdimgPath @oscdimgArgs
+        $oscdExit = $LASTEXITCODE
+        if ($oscdExit -ne 0) {
+            throw "Error al compilar la ISO con oscdimg. Código: $oscdExit"
         }
         Write-OK "ISO generada y lista para bootear."
     } else {
@@ -528,16 +543,20 @@ try {
         $mounted = Get-WindowsImage -Mounted -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*$WorkDir*" }
         foreach ($m in $mounted) {
             Write-Warn "Desmontando imagen residual en $($m.Path)..."
-            Start-Process -FilePath $diag.DismPath -ArgumentList "/Unmount-Wim /MountDir:`"$($m.Path)`" /Discard" -NoNewWindow -Wait | Out-Null
+            & $diag.DismPath /Unmount-Wim /MountDir:"$($m.Path)" /Discard 2>&1 | Out-Null
         }
     } catch {
-        Start-Process -FilePath $diag.DismPath -ArgumentList "/Cleanup-Wim" -NoNewWindow -Wait | Out-Null
+        & $diag.DismPath /Cleanup-Wim 2>&1 | Out-Null
     }
 
     # Desmontar ISO si seguía montada
     if ($mountedIsoDisk) {
         Dismount-DiskImage -ImagePath $imageItem.FullName -ErrorAction SilentlyContinue | Out-Null
     }
+
+    # Recolección de basura para liberar identificadores de archivos antes de eliminar
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
 
     # Eliminar temporales
     Remove-Item -LiteralPath $WorkDir -Recurse -Force -ErrorAction SilentlyContinue
