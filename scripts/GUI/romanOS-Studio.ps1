@@ -71,7 +71,7 @@ foreach ($cand in $uiEngineCandidates) {
 
 Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
 
-[xml]$xaml = @"
+$xamlString = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="romanOS Studio" Height="680" Width="880" 
@@ -454,8 +454,25 @@ Write-StudioLog "Iniciando sesion de romanOS Studio GUI"
 </Window>
 "@
 
-$reader = (New-Object System.Xml.XmlNodeReader $xaml)
-$window = [Windows.Markup.XamlReader]::Load($reader)
+try {
+    [xml]$xaml = $xamlString
+    $reader = (New-Object System.Xml.XmlNodeReader $xaml)
+    $window = [Windows.Markup.XamlReader]::Load($reader)
+    if (-not $window) {
+        throw [System.InvalidOperationException]::new("El cargador XamlReader devolvió un objeto Window nulo.")
+    }
+} catch {
+    $xamlErr = $_.Exception.ToString()
+    Write-StudioLog "ERROR FATAL: No se pudo instanciar la interfaz XAML: $xamlErr" -Level "FATAL"
+    Add-Type -AssemblyName PresentationFramework -ErrorAction SilentlyContinue
+    [System.Windows.MessageBox]::Show(
+        "Error crítico al inicializar la interfaz gráfica de romanOS Studio:`n`n$($_.Exception.Message)`n`nConsulte los detalles en el registro:`n$script:StudioLogPath",
+        "romanOS Studio - Error de Carga XAML",
+        [System.Windows.MessageBoxButton]::OK,
+        [System.Windows.MessageBoxImage]::Error
+    ) | Out-Null
+    exit 1
+}
 
 # -----------------------------------------------------------------------------
 # SISTEMA DE TEMAS VISUALES DINÃMICOS (PLAN-0146)

@@ -164,6 +164,46 @@ foreach ($target in $guiTargets) {
     $tokens = $null; $errors = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseInput($rawContent, [ref]$tokens, [ref]$errors)
 
+    # 0. Capa 0: Verificación Rigurosa de Sintaxis XML y Compilación WPF en Memoria
+    Add-Type -AssemblyName PresentationFramework -ErrorAction SilentlyContinue
+    Add-Type -AssemblyName PresentationCore -ErrorAction SilentlyContinue
+    Add-Type -AssemblyName WindowsBase -ErrorAction SilentlyContinue
+
+    $lines = $rawContent -split "\r?\n"
+    $xamlLines = @()
+    $inXaml = $false
+    foreach ($line in $lines) {
+        if ($line -match '^\[xml\]\$xaml\s*=' -or $line -match '^\$xamlString\s*=') {
+            $inXaml = $true
+            continue
+        }
+        if ($inXaml -and $line -match '^"@') {
+            $inXaml = $false
+            break
+        }
+        if ($inXaml) {
+            $xamlLines += $line
+        }
+    }
+    $xamlText = $xamlLines -join "`r`n"
+    if ([string]::IsNullOrWhiteSpace($xamlText)) {
+        Write-Error "CRITICAL: No se pudo extraer la definición XAML de $appName en $filePath"
+        throw "Definición XAML vacía o no encontrada en $appName"
+    }
+
+    try {
+        [xml]$xmlDoc = $xamlText
+        $reader = New-Object System.Xml.XmlNodeReader $xmlDoc
+        $testWin = [System.Windows.Markup.XamlReader]::Load($reader)
+        if (-not $testWin) {
+            throw "XamlReader devolvió un objeto Window nulo."
+        }
+        Write-Host "   [PASS] Capa 0: Integridad XAML/WPF validada en memoria: $appName ($($testWin.GetType().FullName))" -ForegroundColor Green
+    } catch {
+        Write-Error "CRITICAL: Fallo fatal de sintaxis XML/XAML en $appName : $($_.Exception.ToString())"
+        throw "Violación crítica de sintaxis XAML en $appName : $($_.Exception.Message)"
+    }
+
     # 1. Extracción de Botones XAML
     $xamlButtons = [ordered]@{}
     $bMatches = [regex]::Matches($rawContent, '<Button\s+([^>]+)>')

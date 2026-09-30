@@ -5,13 +5,21 @@
 // =====================================================================
 
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace RomanOS.ControlCenter.Launcher
 {
     static class Program
     {
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern int MessageBoxW(IntPtr hWnd, string lpText, string lpCaption, uint uType);
+
+        const uint MB_OK = 0x00000000;
+        const uint MB_ICONERROR = 0x00000010;
+
         [STAThread]
         static void Main(string[] args)
         {
@@ -43,6 +51,11 @@ namespace RomanOS.ControlCenter.Launcher
 
             if (scriptPath == null)
             {
+                string searched = string.Join("\n - ", candidates);
+                MessageBoxW(IntPtr.Zero,
+                    "No se pudo encontrar el script 'romanOS-ControlCenter.ps1'.\n\nRutas buscadas:\n - " + searched,
+                    "romanOS Control Center - Error de Inicio",
+                    MB_OK | MB_ICONERROR);
                 return;
             }
 
@@ -72,9 +85,23 @@ namespace RomanOS.ControlCenter.Launcher
             {
                 Process.Start(psi);
             }
-            catch
+            catch (Win32Exception w32ex)
             {
-                // Silencioso ante cancelaciones de elevacion UAC
+                // Codigo 1223 = ERROR_CANCELLED (El usuario cerro o cancelo el dialogo de elevacion UAC)
+                if (w32ex.NativeErrorCode != 1223)
+                {
+                    MessageBoxW(IntPtr.Zero,
+                        "Error al iniciar PowerShell:\n\n" + w32ex.Message,
+                        "romanOS Control Center - Error de Ejecución",
+                        MB_OK | MB_ICONERROR);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBoxW(IntPtr.Zero,
+                    "Error inesperado al iniciar romanOS Control Center:\n\n" + ex.Message,
+                    "romanOS Control Center - Error",
+                    MB_OK | MB_ICONERROR);
             }
         }
     }

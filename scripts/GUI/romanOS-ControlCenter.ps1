@@ -257,7 +257,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
 # -----------------------------------------------------------------------------
 # 2. DEFINICION XAML DE LA INTERFAZ (WPF)
 # -----------------------------------------------------------------------------
-[xml]$xaml = @"
+$xamlString = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="romanOS Control Center" Height="720" Width="940"
@@ -561,7 +561,7 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                     <Border Grid.Column="0" Background="#1E2822" BorderBrush="#00E676" BorderThickness="1" CornerRadius="4" Padding="10">
                                         <StackPanel>
                                             <TextBlock Text="MODO JUEGO (BAJA LATENCIA)" Foreground="#00E676" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
-                                            <TextBlock Text="Elimina latencia DPC (<500µs), pausa servicios de fondo (WSearch, Telemetria, Update), calibra MMCSS (90% CPU) y fija kernel en RAM." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
+                                            <TextBlock Text="Elimina latencia DPC (&lt;500µs), pausa servicios de fondo (WSearch, Telemetria, Update), calibra MMCSS (90% CPU) y fija kernel en RAM." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
                                             <Button x:Name="btnGameAggressive" Content="Activar Modo Juego" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
@@ -1033,8 +1033,25 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
 </Window>
 "@
 
-$reader = New-Object System.Xml.XmlNodeReader $xaml
-$window = [System.Windows.Markup.XamlReader]::Load($reader)
+try {
+    [xml]$xaml = $xamlString
+    $reader = New-Object System.Xml.XmlNodeReader $xaml
+    $window = [System.Windows.Markup.XamlReader]::Load($reader)
+    if (-not $window) {
+        throw [System.InvalidOperationException]::new("El cargador XamlReader devolvió un objeto de ventana nulo.")
+    }
+} catch {
+    $xamlErr = $_.Exception.ToString()
+    Write-CCLog "ERROR FATAL: No se pudo instanciar la interfaz XAML: $xamlErr" -Level "FATAL"
+    Add-Type -AssemblyName PresentationFramework -ErrorAction SilentlyContinue
+    [System.Windows.MessageBox]::Show(
+        "Error crítico al inicializar la interfaz gráfica de romanOS Control Center:`n`n$($_.Exception.Message)`n`nConsulte los detalles en el registro:`n$script:ControlCenterLogPath",
+        "romanOS Control Center - Error de Carga XAML",
+        [System.Windows.MessageBoxButton]::OK,
+        [System.Windows.MessageBoxImage]::Error
+    ) | Out-Null
+    exit 1
+}
 
 # -----------------------------------------------------------------------------
 # 2.1. SISTEMA DE TEMAS VISUALES DINÃMICOS (PLAN-0146)

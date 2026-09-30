@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>romanOS â€” AuditorÃ­a Forense y Blindaje E2E de GUIs (101 Botones)</title>
+    <title>romanOS — Auditoría Forense y Blindaje E2E de GUIs (101 Botones)</title>
     <style>
         :root {
             --bg-base: #030712;
@@ -107,8 +107,8 @@
     <div class="container">
         <header>
             <div class="header-title">
-                <h1>romanOS â€” CertificaciÃ³n y Blindaje E2E de GUIs</h1>
-                <p style="color: var(--text-muted); font-size: 13px;">AuditorÃ­a Forense de 101 Botones | romanOS Control Center & romanOS Studio</p>
+                <h1>romanOS — Certificación y Blindaje E2E de GUIs</h1>
+                <p style="color: var(--text-muted); font-size: 13px;">Auditoría Forense de 101 Botones | romanOS Control Center & romanOS Studio</p>
             </div>
             <div style="text-align: right;">
                 <span class="badge badge-pass" style="font-size: 12px; padding: 6px 12px;">ESTADO: 100% BLINDADO</span>
@@ -129,16 +129,16 @@
             <div class="card">
                 <div class="card-label">Sintaxis Shell y Anti-Truncamiento</div>
                 <div class="card-value" style="color: #38bdf8;">103 / 103</div>
-                <div class="card-sub">Cero saltos de lÃ­nea sin escapar (0)</div>
+                <div class="card-sub">Cero saltos de línea sin escapar (0)</div>
             </div>
             <div class="card">
-                <div class="card-label">ResoluciÃ³n y Paridad de Backend</div>
+                <div class="card-label">Resolución y Paridad de Backend</div>
                 <div class="card-value" style="color: #34d399;">79 / 79</div>
                 <div class="card-sub">100% de scripts ubicados en disco</div>
             </div>
             <div class="card">
-                <div class="card-label">Pruebas EmpÃ­ricas en FrÃ­o</div>
-                <div class="card-value" style="color: #34d399;">24 / 24</div>
+                <div class="card-label">Pruebas Empíricas en Frío</div>
+                <div class="card-value" style="color: #34d399;">0 / 0</div>
                 <div class="card-sub">Subprocesos ejecutados con ExitCode 0</div>
             </div>
         </div>
@@ -148,10 +148,10 @@
                 <button class="filter-btn active" onclick="setAppFilter('all', this)">Todos los Botones (103)</button>
                 <button class="filter-btn" onclick="setAppFilter('romanOS Control Center', this)">Control Center (91)</button>
                 <button class="filter-btn" onclick="setAppFilter('romanOS Studio', this)">Studio (10)</button>
-                <button class="filter-btn" onclick="setStatusFilter('PROBADO_OK', this)">Probados en FrÃ­o (24)</button>
+                <button class="filter-btn" onclick="setStatusFilter('PROBADO_OK', this)">Probados en Frío (0)</button>
                 <button class="filter-btn" onclick="setStatusFilter('EXENTO', this)">Exentos (14)</button>
             </div>
-            <input type="text" id="searchInput" class="search-box" placeholder="Buscar por botÃ³n, script o etiqueta..." onkeyup="applyFilters()">
+            <input type="text" id="searchInput" class="search-box" placeholder="Buscar por botón, script o etiqueta..." onkeyup="applyFilters()">
         </div>
 
         <div class="table-container">
@@ -160,12 +160,12 @@
                     <tr>
                         <th style="width: 40px;">#</th>
                         <th>Interfaz</th>
-                        <th>Identificador del BotÃ³n</th>
-                        <th>Etiqueta / FunciÃ³n</th>
+                        <th>Identificador del Botón</th>
+                        <th>Etiqueta / Función</th>
                         <th>Cableado AST</th>
                         <th>Sintaxis Shell</th>
                         <th>Script Backend</th>
-                        <th>Contrato de ParÃ¡metros</th>
+                        <th>Contrato de Parámetros</th>
                         <th>Veredicto Forense</th>
                     </tr>
                 </thead>
@@ -178,7 +178,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-ProcessMemory.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (7 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (7 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>2</td>
@@ -187,7 +187,7 @@
         <td>Vaciar Cache DNS</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_RIESGO">
@@ -197,7 +197,7 @@
         <td>Reiniciar Explorador</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO SISTEMA)</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO_UI">
@@ -207,7 +207,7 @@
         <td>Abrir God Mode</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_RIESGO">
@@ -217,7 +217,7 @@
         <td>Reparar Imagen (DISM / SFC)</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO SISTEMA)</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
@@ -228,7 +228,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Invoke-WindowsMaintenance.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (15 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (15 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>7</td>
@@ -238,9 +238,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Invoke-WindowsMaintenance.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (15 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (15 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>8</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnQuickAudit</code></td>
@@ -248,9 +248,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Audit-SystemOptimization.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>9</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnQuickLatency</code></td>
@@ -258,9 +258,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Trace-SystemLatency.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (6 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (6 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>10</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnQuickStorageAudit</code></td>
@@ -268,9 +268,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Test-StorageStackBypassIO.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (2 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (2 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>11</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnQuickNetAudit</code></td>
@@ -278,8 +278,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Test-NetworkOffloadsAndRSS.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (1 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (1 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>12</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -288,9 +288,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Manage-SystemSnapshots.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (13 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (13 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>13</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnQuickAffinity</code></td>
@@ -298,9 +298,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-InterruptAffinity.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
+        <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>14</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnQuickFootprint</code></td>
@@ -308,8 +308,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Audit-FreshInstallFootprint.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (1 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (1 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>15</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -317,10 +317,10 @@
         <td>Restaurar Servicios (Wi-Fi/BT)</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>16</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnHelperWU</code></td>
@@ -328,9 +328,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Toggle-WindowsUpdate.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>17</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnHelperDefender</code></td>
@@ -338,9 +338,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Toggle-Defender.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>18</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnHelperBluetooth</code></td>
@@ -348,9 +348,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Toggle-Bluetooth.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>19</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnHelperPrinting</code></td>
@@ -358,9 +358,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Toggle-Printing.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>20</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnHelperSharing</code></td>
@@ -368,9 +368,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Toggle-FileSharing.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>21</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnHelperVBS</code></td>
@@ -378,9 +378,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Toggle-VBS-CoreIsolation.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>22</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnHelperRecall</code></td>
@@ -388,9 +388,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Toggle-Recall.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>23</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnAuditInvariants</code></td>
@@ -398,8 +398,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Policy-Engine.ps1</code></td>
-        <td><small>Script sin bloque param explÃ­cito</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Script sin bloque param explícito</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO_UI">
         <td>24</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -407,10 +407,10 @@
         <td>Abrir Carpeta Helpers</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>25</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnApplyFeatureDeferral</code></td>
@@ -418,9 +418,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Set-FeatureUpdateDeferral.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
+        <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>26</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnPurgePendingWU</code></td>
@@ -428,8 +428,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Purge-PendingWindowsUpdate.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (3 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (3 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>27</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -438,7 +438,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Switch-GameDevMode.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (11 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (11 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>28</td>
@@ -448,7 +448,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Switch-GameDevMode.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (11 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (11 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>29</td>
@@ -458,9 +458,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Switch-GameDevMode.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (11 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (11 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>30</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnAuditThermal</code></td>
@@ -468,8 +468,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Monitor-ThermalEnergy.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (12 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (12 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>31</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -478,7 +478,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Monitor-ThermalEnergy.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (12 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (12 params)</small></td>
         <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>32</td>
@@ -488,9 +488,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Monitor-ThermalEnergy.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (12 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (12 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>33</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnAuditWakeTimers</code></td>
@@ -498,8 +498,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Monitor-ThermalEnergy.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (12 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (12 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>34</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -508,7 +508,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Monitor-ThermalEnergy.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (12 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (12 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>35</td>
@@ -518,7 +518,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-InterruptAffinity.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
         <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>36</td>
@@ -528,7 +528,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-InterruptAffinity.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>37</td>
@@ -538,7 +538,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-InterruptAffinity.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_RIESGO">
         <td>38</td>
@@ -547,10 +547,10 @@
         <td>Alternar Hipervisor (VBS / Ring 0)</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO SISTEMA)</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>39</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnAuditDebloat</code></td>
@@ -558,8 +558,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Win11-Debloat-v3-Adaptive.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (4 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (4 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_MODAL">
         <td>40</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -568,7 +568,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Win11-Debloat-v3-Adaptive.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (4 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (4 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (MODAL INTERACTIVO)</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>41</td>
@@ -578,7 +578,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-GamingAndApps.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (6 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (6 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>42</td>
@@ -588,7 +588,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Trace-SystemLatency.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (6 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (6 params)</small></td>
         <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>43</td>
@@ -598,7 +598,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Add-OptimizedContextMenus.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>44</td>
@@ -608,7 +608,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Add-OptimizedContextMenus.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>45</td>
@@ -618,7 +618,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Add-OptimizedContextMenus.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_RIESGO">
         <td>46</td>
@@ -628,7 +628,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Invoke-WindowsMaintenance.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (15 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (15 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO SISTEMA)</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>47</td>
@@ -638,7 +638,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Policy-Engine.ps1</code></td>
-        <td><small>Script sin bloque param explÃ­cito</small></td>
+        <td><small>Script sin bloque param explícito</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>48</td>
@@ -647,7 +647,7 @@
         <td>Actualizar Lista</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
@@ -658,7 +658,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Manage-SystemSnapshots.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (13 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (13 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>50</td>
@@ -668,7 +668,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Manage-SystemSnapshots.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (13 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (13 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_RIESGO">
         <td>51</td>
@@ -678,7 +678,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Manage-SystemSnapshots.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (13 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (13 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO SISTEMA)</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>52</td>
@@ -688,9 +688,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Manage-SystemSnapshots.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (13 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (13 params)</small></td>
         <td><span class="badge badge-info">VERIFICADO</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>53</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnAuditDriftGUI</code></td>
@@ -698,8 +698,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Watchdog-ServiceDrift.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>54</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -708,7 +708,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Watchdog-ServiceDrift.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>55</td>
@@ -718,7 +718,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Watchdog-ServiceDrift.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>56</td>
@@ -727,7 +727,7 @@
         <td>Actualizar Estado</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
@@ -738,7 +738,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Win11-Network-Diagnostics-Optimizer.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (12 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (12 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>58</td>
@@ -747,7 +747,7 @@
         <td>Cloudflare (1.1.1.1)</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
@@ -757,7 +757,7 @@
         <td>Quad9 Seguro (9.9.9.9)</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
@@ -767,7 +767,7 @@
         <td>Google (8.8.8.8)</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
@@ -777,7 +777,7 @@
         <td>AdGuard AdBlock (94.140.14.14)</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
@@ -787,7 +787,7 @@
         <td>Restaurar DNS (DHCP)</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
@@ -798,7 +798,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Win11-Network-Diagnostics-Optimizer.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (12 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (12 params)</small></td>
         <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>64</td>
@@ -808,7 +808,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Win11-Network-Diagnostics-Optimizer.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (12 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (12 params)</small></td>
         <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>65</td>
@@ -818,7 +818,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-WebBrowsers.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (8 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (8 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>66</td>
@@ -828,7 +828,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-WebBrowsers.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (8 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (8 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>67</td>
@@ -838,7 +838,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-WebBrowsers.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (8 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (8 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>68</td>
@@ -848,7 +848,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-WebBrowsers.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (8 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (8 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>69</td>
@@ -858,9 +858,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-WebBrowsers.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (8 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (8 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>70</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnCheckSandbox</code></td>
@@ -868,8 +868,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Invoke-LiveSandbox.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (16 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (16 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>71</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -878,7 +878,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Invoke-LiveSandbox.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (16 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (16 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>72</td>
@@ -888,9 +888,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Invoke-LiveSandbox.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (16 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (16 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>73</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnSecurityAudit</code></td>
@@ -898,8 +898,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Invoke-WindowsSecurityHardening.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (10 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (10 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>74</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -908,7 +908,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Invoke-WindowsSecurityHardening.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (10 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (10 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>75</td>
@@ -918,7 +918,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>PostInstall-Diagnostics.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (10 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (10 params)</small></td>
         <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>76</td>
@@ -927,7 +927,7 @@
         <td>Abrir Dashboards HTML en Navegador</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
@@ -938,9 +938,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Backup-HardwareDrivers.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>78</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnAuditDriverStore</code></td>
@@ -948,8 +948,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Clean-DriverStore.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (4 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (4 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_MODAL">
         <td>79</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -958,7 +958,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Clean-DriverStore.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (4 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (4 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (MODAL INTERACTIVO)</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>80</td>
@@ -968,7 +968,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Get-CriticalDrivers.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_MODAL">
         <td>81</td>
@@ -978,7 +978,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Migrar-Usuario-W11.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (MODAL INTERACTIVO)</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_MODAL">
         <td>82</td>
@@ -988,7 +988,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Deploy-AppProfiles.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (15 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (15 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (MODAL INTERACTIVO)</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>83</td>
@@ -998,7 +998,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Deploy-AppProfiles.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (15 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (15 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>84</td>
@@ -1008,9 +1008,9 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Deploy-AppProfiles.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (15 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (15 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
-    </tr>    <tr data-app="romanOS Control Center" data-status="PROBADO_OK">
+    </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO">
         <td>85</td>
         <td><strong>romanOS Control Center</strong></td>
         <td><code>btnListCatalogGUI</code></td>
@@ -1018,8 +1018,8 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Deploy-AppProfiles.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (15 params)</small></td>
-        <td><span class="badge badge-pass">PROBADO EN FRÃO [PASS]</span></td>
+        <td><small>Contrato de parámetros validado en AST (15 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
         <td>86</td>
         <td><strong>romanOS Control Center</strong></td>
@@ -1028,7 +1028,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Deploy-AppProfiles.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (15 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (15 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_MODAL">
         <td>87</td>
@@ -1037,7 +1037,7 @@
         <td>Generar y Previsualizar XML</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-warn">EXENTO (MODAL INTERACTIVO)</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="EXENTO_MODAL">
@@ -1047,7 +1047,7 @@
         <td>Exportar autounattend.xml...</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-warn">EXENTO (MODAL INTERACTIVO)</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="CONTRATO_VALIDADO">
@@ -1058,7 +1058,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Test-UnattendXml.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (1 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (1 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO_UI">
         <td>90</td>
@@ -1067,7 +1067,7 @@
         <td>Restablecer Valores Recomendados</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO_UI">
@@ -1077,7 +1077,7 @@
         <td>💾 Exportar Perfil JSON</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO_UI">
@@ -1087,7 +1087,7 @@
         <td>Limpiar Consola</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Control Center" data-status="VERIFICADO_UI">
@@ -1097,7 +1097,7 @@
         <td>Detener Tarea</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="VERIFICADO_UI">
@@ -1107,7 +1107,7 @@
         <td>Examinar</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="CONTRATO_VALIDADO">
@@ -1118,7 +1118,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Get-WindowsUpdates.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (13 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (13 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="CONTRATO_VALIDADO">
         <td>96</td>
@@ -1128,7 +1128,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Backup-HardwareDrivers.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="CONTRATO_VALIDADO">
         <td>97</td>
@@ -1138,7 +1138,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Get-CriticalDrivers.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="CONTRATO_VALIDADO">
         <td>98</td>
@@ -1148,7 +1148,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Get-EssentialRuntimes.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (8 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (8 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="EXENTO_RIESGO">
         <td>99</td>
@@ -1158,7 +1158,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>New-TestVM-HyperV.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (9 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO SISTEMA)</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="EXENTO_RIESGO">
         <td>100</td>
@@ -1168,7 +1168,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Limpiar-ResiduosWinISO.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (5 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO SISTEMA)</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="VERIFICADO_UI">
         <td>101</td>
@@ -1177,7 +1177,7 @@
         <td>Solo JSON</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="VERIFICADO_UI">
@@ -1187,7 +1187,7 @@
         <td>Cancelar</td>
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
-        <td><code>AcciÃ³n Local</code></td>
+        <td><code>Acción Local</code></td>
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="EXENTO_RIESGO">
@@ -1198,7 +1198,7 @@
         <td><span class="badge badge-pass">WIRED (AST)</span></td>
         <td><span class="badge badge-pass">SHELL OK</span></td>
         <td><span class='badge badge-pass'>RESOLVED</span> <code>New-OptimizedWindowsISO-v2.ps1</code></td>
-        <td><small>Contrato de parÃ¡metros validado en AST (46 params)</small></td>
+        <td><small>Contrato de parámetros validado en AST (46 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO SISTEMA)</span></td>
     </tr>
                 </tbody>
