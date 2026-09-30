@@ -376,8 +376,38 @@ try {
         Copy-Item -LiteralPath $imageItem.FullName -Destination $workingWimPath -Force
     }
 
+    # Quitar atributo de solo lectura (ReadOnly) heredado del medio ISO
+    try {
+        $wimItem = Get-Item -LiteralPath $workingWimPath
+        if ($wimItem.IsReadOnly) {
+            $wimItem.IsReadOnly = $false
+        }
+        Set-ItemProperty -LiteralPath $workingWimPath -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
+        & cmd.exe /c "attrib -R `"$workingWimPath`"" 2>&1 | Out-Null
+    } catch {
+        Write-Warn "Aviso al remover atributo ReadOnly en ($workingWimPath): $($_.Exception.Message)"
+    }
+
+    if (Test-Path -LiteralPath $isoTreeDir) {
+        & cmd.exe /c "attrib -R `"$isoTreeDir\*`" /S /D" 2>&1 | Out-Null
+    }
+
+    # Asegurar que el directorio de montaje exista, no sea ReadOnly y esté libre de residuos
+    if (-not (Test-Path -LiteralPath $mountDir)) {
+        New-Item -ItemType Directory -Path $mountDir -Force | Out-Null
+    } else {
+        $mountChildren = Get-ChildItem -LiteralPath $mountDir -Force -ErrorAction SilentlyContinue
+        if ($mountChildren.Count -gt 0) {
+            Write-Warn "El directorio de montaje contenía archivos residuales. Ejecutando Cleanup-Wim..."
+            Start-Process -FilePath $diag.DismPath -ArgumentList "/Cleanup-Wim" -NoNewWindow -Wait | Out-Null
+            Remove-Item -LiteralPath $mountDir -Recurse -Force -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Path $mountDir -Force | Out-Null
+        }
+    }
+    & cmd.exe /c "attrib -R `"$mountDir`"" 2>&1 | Out-Null
+
     $wimPreSizeGB = [math]::Round((Get-Item $workingWimPath).Length / 1GB, 3)
-    Write-OK "Imagen de trabajo lista ($wimPreSizeGB GB)."
+    Write-OK "Imagen de trabajo lista ($wimPreSizeGB GB - Atributos R/W garantizados)."
 
     # -------------------------------------------------------------------------
     # PASO 2: CIRUGÍA CBS CON DISM (/StartComponentCleanup /ResetBase)
