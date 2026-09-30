@@ -77,53 +77,58 @@ function Remove-ProtectedCbsKey {
 
     $definition = @'
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using Microsoft.Win32;
 
-public static class Win32CbsCleaner
+public static class CbsKeyObliterator
 {
     [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
+    static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
 
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-    private static extern bool LookupPrivilegeValue(string lpSystemName, string lpName, out long lpLuid);
+    static extern bool LookupPrivilegeValue(string lpSystemName, string lpName, out long lpLuid);
 
     [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, uint BufferLengthInBytes, IntPtr PreviousState, IntPtr ReturnLengthInBytes);
+    static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, uint BufferLengthInBytes, IntPtr PreviousState, IntPtr ReturnLengthInBytes);
 
     [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    public static extern int RegOpenKeyEx(UIntPtr hKey, string lpSubKey, uint ulOptions, int samDesired, out UIntPtr phkResult);
-
-    [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    public static extern int RegDeleteKeyEx(UIntPtr hKey, string lpSubKey, int samDesired, int Reserved);
+    static extern int RegOpenKeyEx(UIntPtr hKey, string lpSubKey, uint ulOptions, int samDesired, out IntPtr phkResult);
 
     [DllImport("advapi32.dll", SetLastError = true)]
-    public static extern int RegCloseKey(UIntPtr hKey);
+    static extern int RegCloseKey(IntPtr hKey);
+
+    [DllImport("ntdll.dll")]
+    static extern int NtDeleteKey(IntPtr KeyHandle);
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool CloseHandle(IntPtr hObject);
+    static extern bool CloseHandle(IntPtr hObject);
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct TOKEN_PRIVILEGES
+    struct TOKEN_PRIVILEGES
     {
         public uint PrivilegeCount;
         public long Luid;
         public uint Attributes;
     }
 
-    private const uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
-    private const uint TOKEN_QUERY = 0x0008;
-    private const uint SE_PRIVILEGE_ENABLED = 0x00000002;
+    const uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
+    const uint TOKEN_QUERY = 0x0008;
+    const uint SE_PRIVILEGE_ENABLED = 0x00000002;
 
-    public const uint REG_OPTION_BACKUP_RESTORE = 0x00000004;
-    public const int KEY_ALL_ACCESS = 0xF003F;
-    public const int KEY_WOW64_64KEY = 0x0100;
+    const int WRITE_OWNER = 0x00080000;
+    const int WRITE_DAC = 0x00040000;
+    const int DELETE = 0x00010000;
+    const int KEY_WOW64_64KEY = 0x0100;
 
-    public static readonly UIntPtr HKEY_LOCAL_MACHINE = new UIntPtr(0x80000002u);
+    static readonly UIntPtr HKEY_LOCAL_MACHINE = new UIntPtr(0x80000002u);
 
     public static bool EnablePrivilege(string privilege)
     {
         IntPtr hToken;
-        if (!OpenProcessToken(System.Diagnostics.Process.GetCurrentProcess().Handle, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out hToken))
+        if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out hToken))
             return false;
 
         try
@@ -145,36 +150,84 @@ public static class Win32CbsCleaner
         }
     }
 
-    public static int DeleteCbsSubKey(string subKey)
+    public static bool ObliterateSubKey(string subKeyPath)
     {
-        EnablePrivilege("SeBackupPrivilege");
+        EnablePrivilege("SeTakeOwnershipPrivilege");
         EnablePrivilege("SeRestorePrivilege");
+        EnablePrivilege("SeBackupPrivilege");
 
-        UIntPtr hParentKey;
-        int res = RegOpenKeyEx(HKEY_LOCAL_MACHINE, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing", REG_OPTION_BACKUP_RESTORE, KEY_ALL_ACCESS | KEY_WOW64_64KEY, out hParentKey);
-        if (res != 0)
+        // 1. Tomar posesion de la clave objetivo directamente (WRITE_OWNER)
+        IntPtr hKey;
+        int res = RegOpenKeyEx(HKEY_LOCAL_MACHINE, subKeyPath, 0, WRITE_OWNER | KEY_WOW64_64KEY, out hKey);
+        if (res == 0)
         {
-            return res;
+            try
+            {
+                using (RegistryKey rk = RegistryKey.FromHandle(new Microsoft.Win32.SafeHandles.SafeRegistryHandle(hKey, false), RegistryView.Registry64))
+                {
+                    RegistrySecurity rs = rk.GetAccessControl(AccessControlSections.Owner);
+                    rs.SetOwner(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null));
+                    rk.SetAccessControl(rs);
+                }
+            }
+            catch {}
+            finally
+            {
+                RegCloseKey(hKey);
+            }
         }
 
-        try
+        // 2. Asignar FullControl a Administradores (WRITE_DAC)
+        res = RegOpenKeyEx(HKEY_LOCAL_MACHINE, subKeyPath, 0, WRITE_DAC | KEY_WOW64_64KEY, out hKey);
+        if (res == 0)
         {
-            return RegDeleteKeyEx(hParentKey, subKey, KEY_WOW64_64KEY, 0);
+            try
+            {
+                using (RegistryKey rk = RegistryKey.FromHandle(new Microsoft.Win32.SafeHandles.SafeRegistryHandle(hKey, false), RegistryView.Registry64))
+                {
+                    RegistrySecurity rs = rk.GetAccessControl(AccessControlSections.Access);
+                    RegistryAccessRule rule = new RegistryAccessRule(
+                        new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
+                        RegistryRights.FullControl,
+                        AccessControlType.Allow
+                    );
+                    rs.ResetAccessRule(rule);
+                    rk.SetAccessControl(rs);
+                }
+            }
+            catch {}
+            finally
+            {
+                RegCloseKey(hKey);
+            }
         }
-        finally
+
+        // 3. Abrir con derecho DELETE y ejecutar NtDeleteKey a nivel de kernel NT
+        res = RegOpenKeyEx(HKEY_LOCAL_MACHINE, subKeyPath, 0, DELETE | KEY_WOW64_64KEY, out hKey);
+        if (res == 0)
         {
-            RegCloseKey(hParentKey);
+            try
+            {
+                int status = NtDeleteKey(hKey);
+                return status >= 0;
+            }
+            finally
+            {
+                RegCloseKey(hKey);
+            }
         }
+
+        return false;
     }
 }
 '@
-    if (-not ([System.Management.Automation.PSTypeName]'Win32CbsCleaner').Type) {
+    if (-not ([System.Management.Automation.PSTypeName]'CbsKeyObliterator').Type) {
         Add-Type -TypeDefinition $definition -ErrorAction SilentlyContinue
     }
 
-    if (([System.Management.Automation.PSTypeName]'Win32CbsCleaner').Type) {
-        $ret = [Win32CbsCleaner]::DeleteCbsSubKey($SubKeyName)
-        return ($ret -eq 0 -or $ret -eq 2)
+    if (([System.Management.Automation.PSTypeName]'CbsKeyObliterator').Type) {
+        $fullPath = "SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\$SubKeyName"
+        return [CbsKeyObliterator]::ObliterateSubKey($fullPath)
     }
     return $false
 }
