@@ -216,7 +216,8 @@ $script:searchDirs += @(
     "C:\OptimizedISO\scripts\Core",
     "C:\OptimizedISO\scripts\Testing",
     "C:\OptimizedISO\scripts\Builder",
-    "C:\OptimizedISO\scripts\Desktop-Helpers"
+    "C:\OptimizedISO\scripts\Desktop-Helpers",
+    "C:\OptimizedISO\scripts\Host-Tools"
 )
 
 function Resolve-ToolScript {
@@ -509,6 +510,28 @@ if ($deployAppsModule -and (Test-Path $deployAppsModule)) {
                                     <Button x:Name="btnAuditInvariants" Content="Auditar Invariantes romanOS" Width="230" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
                                     <Button x:Name="btnOpenHelpersFolder" Content="Abrir Carpeta Helpers" Width="180" Margin="0,0,10,10"/>
                                 </WrapPanel>
+
+                                <!-- Subpanel PLAN-0148: Política de Versiones Mayores y Purga de Cola -->
+                                <Border Background="#161B22" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,4,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="POLÍTICA DE VERSIONES MAYORES Y CUARENTENA (FEATURE UPDATES)" Foreground="{DynamicResource AccentPrimaryBrush}" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
+                                        <TextBlock Text="Controla el aplazamiento de actualizaciones mayores (25H2 -> 26H2) o bloquea la version actual para impedir descargas no deseadas." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                        <WrapPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Cuarentena / Bloqueo:" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
+                                            <ComboBox x:Name="cmbFeatureUpdateDeferral" Width="310" Height="28" Margin="0,0,10,0" VerticalContentAlignment="Center">
+                                                <ComboBoxItem Content="⏱️ Sin aplazamiento (Inmediato)" Tag="Immediate"/>
+                                                <ComboBoxItem Content="🛡️ Aplazar 15 días (Filtro temprano)" Tag="Defer15"/>
+                                                <ComboBoxItem Content="🛡️ Aplazar 1 mes (30 días)" Tag="Defer30"/>
+                                                <ComboBoxItem Content="🛡️ Aplazar 2 meses (60 días)" Tag="Defer60"/>
+                                                <ComboBoxItem Content="🛡️ Aplazar 3 meses (90 días)" Tag="Defer90"/>
+                                                <ComboBoxItem Content="🛡️ Aplazar 6 meses (180 días)" Tag="Defer180"/>
+                                                <ComboBoxItem Content="🔒 Anclar a versión actual (Bloqueo Permanente)" Tag="LockCurrentVersion"/>
+                                            </ComboBox>
+                                            <Button x:Name="btnApplyFeatureDeferral" Content="Aplicar Política" Width="130" Height="28" Margin="0,0,10,0" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                            <Button x:Name="btnPurgePendingWU" Content="Purgar Cola de Reinicio" Width="180" Height="28" Background="#3E2723" BorderBrush="#FF5252" FontWeight="SemiBold"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -1168,9 +1191,27 @@ function Update-DesktopHelpersGUIState {
     }
 }
 
+function Update-FeatureUpdateDeferralGUIState {
+    $cmb = $window.FindName('cmbFeatureUpdateDeferral')
+    if ($cmb -and (Get-Command "Get-RomanOSFeatureUpdatePolicy" -ErrorAction SilentlyContinue)) {
+        try {
+            $pol = Get-RomanOSFeatureUpdatePolicy
+            foreach ($item in $cmb.Items) {
+                if ($item.Tag -eq $pol.Mode) {
+                    $cmb.SelectedItem = $item
+                    break
+                }
+            }
+        } catch {
+            Write-CCLog "Error al consultar estado de directiva de versiones mayores: $($_.Exception.Message)" -Level "WARN"
+        }
+    }
+}
+
 # Inicializar estados de los Desktop Helpers en la UI
 try {
     Update-DesktopHelpersGUIState
+    Update-FeatureUpdateDeferralGUIState
 } catch {
     Write-CCLog "Aviso al inicializar botones Desktop Helpers: $($_.Exception.Message)" -Level "WARN"
 }
@@ -1619,6 +1660,54 @@ $window.FindName('btnHelperWU').Add_Click({
         [System.Windows.MessageBox]::Show("No se pudo localizar el script Toggle-WindowsUpdate.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
     }
 })
+
+# Aplicar Política de Versiones Mayores (PLAN-0148)
+$btnApplyDeferral = $window.FindName('btnApplyFeatureDeferral')
+if ($btnApplyDeferral) {
+    $btnApplyDeferral.Add_Click({
+        $cmb = $window.FindName('cmbFeatureUpdateDeferral')
+        $selectedTag = if ($cmb -and $cmb.SelectedItem) { $cmb.SelectedItem.Tag } else { "Immediate" }
+        $selectedText = if ($cmb -and $cmb.SelectedItem) { $cmb.SelectedItem.Content } else { "Inmediato" }
+
+        $tool = Resolve-ToolScript "Set-FeatureUpdateDeferral.ps1"
+        if ($tool) {
+            Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action $selectedTag" -TaskTitle "Configurar Cuarentena: $selectedText"
+        } else {
+            try {
+                if (Get-Command 'Set-RomanOSFeatureUpdatePolicy' -ErrorAction SilentlyContinue) {
+                    Set-RomanOSFeatureUpdatePolicy -Mode $selectedTag
+                    Write-CCLog "Directiva de versiones mayores aplicada: $selectedTag"
+                    [System.Windows.MessageBox]::Show("Directiva de versiones mayores aplicada exitosamente:`n$selectedText", "romanOS Control Center — Éxito", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+                }
+            } catch {
+                Write-CCLog "Error al aplicar directiva de versiones mayores: $($_.Exception.Message)" -Level "ERROR"
+                [System.Windows.MessageBox]::Show("Error al aplicar directiva: $($_.Exception.Message)", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+            }
+        }
+    })
+}
+
+# Purgar Actualización Pendiente en Cola (PLAN-0148)
+$btnPurge = $window.FindName('btnPurgePendingWU')
+if ($btnPurge) {
+    $btnPurge.Add_Click({
+        $res = [System.Windows.MessageBox]::Show(
+            "¿Desea purgar y cancelar todas las descargas de actualizaciones pendientes de reinicio (como la versión 26H2)?`n`nEsto detendrá temporalmente Windows Update, vaciará la caché de descargas y limpiará las banderas de reinicio pendiente.",
+            "romanOS Control Center — Purgar Actualizaciones",
+            [System.Windows.MessageBoxButton]::YesNo,
+            [System.Windows.MessageBoxImage]::Warning
+        )
+        if ($res -eq [System.Windows.MessageBoxResult]::Yes) {
+            $tool = Resolve-ToolScript "Purge-PendingWindowsUpdate.ps1"
+            if ($tool) {
+                Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Purga de Actualizaciones en Cola de Reinicio"
+            } else {
+                Write-CCLog "Error: No se pudo localizar Purge-PendingWindowsUpdate.ps1." -Level "ERROR"
+                [System.Windows.MessageBox]::Show("No se pudo localizar Purge-PendingWindowsUpdate.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+            }
+        }
+    })
+}
 
 $window.FindName('btnHelperDefender').Add_Click({
     $st = if (Get-Command 'Get-RomanOSDesktopHelperState' -ErrorAction SilentlyContinue) { Get-RomanOSDesktopHelperState -HelperId "Defender" } else { $null }

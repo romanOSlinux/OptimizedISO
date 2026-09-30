@@ -568,6 +568,7 @@ if ($Mode -eq "Game") {
     if ($PassThru) {
         return [PSCustomObject]@{
             Mode            = "Game"
+            Profile         = $Profile
             InitialFreeGB   = $initialMem.FreeGB
             FinalFreeGB     = $finalMem.FreeGB
             StoppedHyperV   = $stoppedHv

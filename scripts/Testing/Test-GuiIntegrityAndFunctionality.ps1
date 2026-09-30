@@ -405,7 +405,9 @@ $coldSuites = @(
     @{ Button = 'btnHelperPrinting'; Script = 'scripts\Desktop-Helpers\Toggle-Printing.ps1'; Args = '-Action Status' },
     @{ Button = 'btnHelperSharing'; Script = 'scripts\Desktop-Helpers\Toggle-FileSharing.ps1'; Args = '-Action Status' },
     @{ Button = 'btnHelperVBS'; Script = 'scripts\Desktop-Helpers\Toggle-VBS-CoreIsolation.ps1'; Args = '-Action Status' },
-    @{ Button = 'btnHelperRecall'; Script = 'scripts\Desktop-Helpers\Toggle-Recall.ps1'; Args = '-Action Status' }
+    @{ Button = 'btnHelperRecall'; Script = 'scripts\Desktop-Helpers\Toggle-Recall.ps1'; Args = '-Action Status' },
+    @{ Button = 'btnApplyFeatureDeferral'; Script = 'scripts\Desktop-Helpers\Set-FeatureUpdateDeferral.ps1'; Args = '-Action Status' },
+    @{ Button = 'btnPurgePendingWU'; Script = 'scripts\Host-Tools\Purge-PendingWindowsUpdate.ps1'; Args = '-WhatIf' }
 )
 
 if (-not $SkipColdExecution) {

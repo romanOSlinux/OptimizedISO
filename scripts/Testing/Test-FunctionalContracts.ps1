@@ -587,6 +587,21 @@ if (Test-Path $wuHelper) {
     Assert-Contract "Existencia de Toggle-WindowsUpdate.ps1" { return $false }
 }
 
+# ==============================================================================
+# CONTRATO 21.1: Gestor de Cuarentena y Versiones Mayores (Set-FeatureUpdateDeferral.ps1) (PLAN-0148)
+# ==============================================================================
+Write-ContractHeader "CTR-21.1" "Desktop-Helpers" "Gestor de Cuarentena y Versiones Mayores (PLAN-0148)"
+
+$deferralHelper = Join-Path $helpersDir "Set-FeatureUpdateDeferral.ps1"
+if (Test-Path $deferralHelper) {
+    $deferPolicy = & $deferralHelper -Action Status -PassThru -Quiet
+    Assert-Contract "Assert: Set-FeatureUpdateDeferral -Action Status retorna politica de versiones mayores" {
+        return ($deferPolicy -ne $null -and $null -ne $deferPolicy.Mode -and $null -ne $deferPolicy.CurrentOSVersion)
+    } -ExpectedState "Mode y CurrentOSVersion no nulos" -DetailMessage "Modo: $($deferPolicy.Mode) | SO: $($deferPolicy.CurrentOSVersion) | DeferDays: $($deferPolicy.DeferDays)"
+} else {
+    Assert-Contract "Existencia de Set-FeatureUpdateDeferral.ps1" { return $false }
+}
+
 
 # ==============================================================================
 # CONTRATO 22: Conmutador de Defender & SmartScreen (Toggle-Defender.ps1)

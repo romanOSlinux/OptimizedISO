@@ -744,6 +744,62 @@ $global:RomanOS_Policies = @(
         UnattendDesc  = "Defer Quality Updates by 7 Days (KIR Maturation Window)"
     },
     @{
+        Id            = "POL_WU_DEFER_FEATURE"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "DeferFeatureUpdates"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Habilitar aplazamiento y cuarentena para actualizaciones de características mayores (Feature Updates)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update#deferfeatureupdatesperiodindays"
+        UnattendDesc  = "Enable Feature Updates Deferral"
+    },
+    @{
+        Id            = "POL_WU_DEFER_FEATURE_DAYS"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "DeferFeatureUpdatesPeriodInDays"
+        Type          = "REG_DWORD"
+        ExpectedValue = 60
+        Profiles      = @(2, 3)
+        Description   = "Periodo de cuarentena de 60 dias (2 meses) para actualizaciones de caracteristicas mayores"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update#deferfeatureupdatesperiodindays"
+        UnattendDesc  = "Defer Feature Updates by 60 Days (2 Months Maturation Window)"
+    },
+    @{
+        Id            = "POL_WU_TARGET_RELEASE_VERSION"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "TargetReleaseVersion"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(2, 3)
+        Description   = "Habilitar candado de version de destino fija de Windows (TargetReleaseVersion)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update#targetreleaseversioninfo"
+        UnattendDesc  = "Enable Target Release Version Lock"
+    },
+    @{
+        Id            = "POL_WU_PRODUCT_VERSION"
+        Module        = "Base - Windows Update"
+        Category      = "Windows Update & Rendimiento"
+        RegistryKey   = "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        PSPath        = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+        ValueName     = "ProductVersion"
+        Type          = "REG_SZ"
+        ExpectedValue = "Windows 11"
+        Profiles      = @(1, 2, 3)
+        Description   = "Familia de producto para candado de version (Windows 11)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-update#productversion"
+        UnattendDesc  = "Product Version Family (Windows 11)"
+    },
+    @{
         Id            = "POL_DRV_SEARCH_LOCAL"
         Module        = "Base - Controladores"
         Category      = "Hardware & Controladores"
@@ -4410,6 +4466,174 @@ function Set-RomanOSDesktopHelperState {
             if (-not $Quiet) {
                 $statusText = if ($State -eq 1) { "ACTIVADO [Running/Demand]" } else { "DESACTIVADO [Disabled/Stopped]" }
                 Write-Host "  [OK] $($helper.Title) ha sido conmutado a: $statusText" -ForegroundColor Cyan
+            }
+        }
+    }
+}
+
+# -----------------------------------------------------------------------------
+# 11.1 GESTIÓN CANÓNICA DE VERSIONES MAYORES Y CUARENTENA (PLAN-0148)
+# -----------------------------------------------------------------------------
+
+function Get-RomanOSFeatureUpdatePolicy {
+    <#
+    .SYNOPSIS
+        Consulta el estado de las directivas de aplazamiento y anclaje de versiones mayores.
+    #>
+    [CmdletBinding()]
+    param()
+
+    $wuKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+    $deferEnabled = $false
+    $deferDays = 0
+    $isVersionLocked = $false
+    $targetVersion = ""
+    $productVer = "Windows 11"
+
+    if (Test-Path $wuKey) {
+        $props = Get-ItemProperty -Path $wuKey -ErrorAction SilentlyContinue
+        if ($null -ne $props) {
+            if ($null -ne $props.DeferFeatureUpdates -and [int]$props.DeferFeatureUpdates -eq 1) {
+                $deferEnabled = $true
+            }
+            if ($null -ne $props.DeferFeatureUpdatesPeriodInDays) {
+                $deferDays = [int]$props.DeferFeatureUpdatesPeriodInDays
+            }
+            if ($null -ne $props.TargetReleaseVersion -and [int]$props.TargetReleaseVersion -eq 1) {
+                $isVersionLocked = $true
+            }
+            if ($null -ne $props.TargetReleaseVersionInfo) {
+                $targetVersion = [string]$props.TargetReleaseVersionInfo
+            }
+            if ($null -ne $props.ProductVersion) {
+                $productVer = [string]$props.ProductVersion
+            }
+        }
+    }
+
+    $currentOSVersion = "25H2"
+    try {
+        $regNT = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+        if ($regNT -and $regNT.DisplayVersion) {
+            $currentOSVersion = [string]$regNT.DisplayVersion
+        }
+    } catch {
+        Write-Verbose "No se pudo consultar DisplayVersion del SO: $($_.Exception.Message)"
+    }
+
+    $mode = "Immediate"
+    if ($isVersionLocked) {
+        $mode = "LockCurrentVersion"
+    } elseif ($deferEnabled -and $deferDays -eq 15) {
+        $mode = "Defer15"
+    } elseif ($deferEnabled -and $deferDays -eq 30) {
+        $mode = "Defer30"
+    } elseif ($deferEnabled -and $deferDays -eq 60) {
+        $mode = "Defer60"
+    } elseif ($deferEnabled -and $deferDays -eq 90) {
+        $mode = "Defer90"
+    } elseif ($deferEnabled -and $deferDays -eq 180) {
+        $mode = "Defer180"
+    } elseif ($deferEnabled -and $deferDays -gt 0) {
+        $mode = "DeferCustom"
+    }
+
+    return [PSCustomObject]@{
+        DeferEnabled     = $deferEnabled
+        DeferDays        = $deferDays
+        IsVersionLocked  = $isVersionLocked
+        TargetVersion    = $targetVersion
+        CurrentOSVersion = $currentOSVersion
+        ProductVersion   = $productVer
+        Mode             = $mode
+    }
+}
+
+function Set-RomanOSFeatureUpdatePolicy {
+    <#
+    .SYNOPSIS
+        Configura la directiva de aplazamiento y/o anclaje de versión mayor de Windows 11.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("Immediate", "Defer15", "Defer30", "Defer60", "Defer90", "Defer180", "LockCurrentVersion")]
+        [string]$Mode,
+
+        [string]$CustomTargetVersion,
+        [switch]$Quiet
+    )
+
+    if ($PSCmdlet.ShouldProcess("Modo: $Mode", "Configurar directiva de versiones mayores de Windows Update")) {
+        Invoke-RomanOSMutation -TargetName "FeatureUpdatePolicy_$Mode" -ActionScript {
+            $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            if (-not $isAdmin) {
+                Write-Warning "[WindowsUpdate] Configurar directivas de versiones mayores requiere privilegios de Administrador UAC."
+            }
+
+            $wuKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+            if (-not (Test-Path $wuKey)) {
+                New-Item -Path $wuKey -Force | Out-Null
+            }
+
+            $currentOSVersion = "25H2"
+            try {
+                $regNT = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue
+                if ($regNT -and $regNT.DisplayVersion) {
+                    $currentOSVersion = [string]$regNT.DisplayVersion
+                }
+            } catch {
+                Write-Verbose "No se pudo consultar DisplayVersion: $($_.Exception.Message)"
+            }
+
+            $targetVer = if (-not [string]::IsNullOrEmpty($CustomTargetVersion)) { $CustomTargetVersion } else { $currentOSVersion }
+
+            switch ($Mode) {
+                "Immediate" {
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdates" -Value 0 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdatesPeriodInDays" -Value 0 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "TargetReleaseVersion" -Value 0 -Type DWord -Force | Out-Null
+                    Remove-ItemProperty -Path $wuKey -Name "TargetReleaseVersionInfo" -ErrorAction SilentlyContinue | Out-Null
+                    if (-not $Quiet) { Write-Host "[WindowsUpdate] Politica de Versiones Mayores: Inmediata (Sin aplazamiento)." -ForegroundColor Yellow }
+                }
+                "Defer15" {
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdates" -Value 1 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdatesPeriodInDays" -Value 15 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "TargetReleaseVersion" -Value 0 -Type DWord -Force | Out-Null
+                    if (-not $Quiet) { Write-Host "[WindowsUpdate] Politica de Versiones Mayores: Aplazado por 15 dias." -ForegroundColor Green }
+                }
+                "Defer30" {
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdates" -Value 1 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdatesPeriodInDays" -Value 30 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "TargetReleaseVersion" -Value 0 -Type DWord -Force | Out-Null
+                    if (-not $Quiet) { Write-Host "[WindowsUpdate] Politica de Versiones Mayores: Aplazado por 1 mes (30 dias)." -ForegroundColor Green }
+                }
+                "Defer60" {
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdates" -Value 1 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdatesPeriodInDays" -Value 60 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "TargetReleaseVersion" -Value 0 -Type DWord -Force | Out-Null
+                    if (-not $Quiet) { Write-Host "[WindowsUpdate] Politica de Versiones Mayores: Aplazado por 2 meses (60 dias)." -ForegroundColor Green }
+                }
+                "Defer90" {
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdates" -Value 1 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdatesPeriodInDays" -Value 90 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "TargetReleaseVersion" -Value 0 -Type DWord -Force | Out-Null
+                    if (-not $Quiet) { Write-Host "[WindowsUpdate] Politica de Versiones Mayores: Aplazado por 3 meses (90 dias)." -ForegroundColor Green }
+                }
+                "Defer180" {
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdates" -Value 1 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdatesPeriodInDays" -Value 180 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "TargetReleaseVersion" -Value 0 -Type DWord -Force | Out-Null
+                    if (-not $Quiet) { Write-Host "[WindowsUpdate] Politica de Versiones Mayores: Aplazado por 6 meses (180 dias)." -ForegroundColor Green }
+                }
+                "LockCurrentVersion" {
+                    Set-ItemProperty -Path $wuKey -Name "TargetReleaseVersion" -Value 1 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "TargetReleaseVersionInfo" -Value $targetVer -Type String -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "ProductVersion" -Value "Windows 11" -Type String -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdates" -Value 1 -Type DWord -Force | Out-Null
+                    Set-ItemProperty -Path $wuKey -Name "DeferFeatureUpdatesPeriodInDays" -Value 365 -Type DWord -Force | Out-Null
+                    if (-not $Quiet) { Write-Host "[WindowsUpdate] Politica de Versiones Mayores: ANCLAJE BLOQUEADO en $targetVer (Windows 11)." -ForegroundColor Cyan }
+                }
             }
         }
     }
