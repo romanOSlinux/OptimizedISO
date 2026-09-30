@@ -416,17 +416,65 @@ $xamlString = @"
             
             <!-- Pestaña 5 -->
             <TabItem Header="Herramientas del Host">
-                <Grid Margin="15">
-                    <StackPanel Orientation="Vertical">
-                        <TextBlock Text="Despliegue Rápido (Hyper-V)" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,10,0,5" />
-                        <TextBlock Text="Levanta una máquina virtual Gen2 con la última ISO optimizada creada en WinISO_Optimizado para probar el sistema sin instalarlo en hardware real." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
-                        <Button x:Name="btnTestVM" Content="Levantar Máquina Virtual de Prueba" Height="32" Width="280" HorizontalAlignment="Left" Background="{DynamicResource AccentPrimaryBrush}" Foreground="#0D1117" BorderThickness="0" Margin="0,0,0,25" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
+                    <StackPanel Orientation="Vertical" Margin="10">
+                        <!-- Card 1: Optimización y Purga Offline WIM/ISO -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="🗜️ Optimización y Purga de Imágenes (WinSxS ResetBase + WimLib)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Purga actualizaciones acumulativas obsoletas en WinSxS (/ResetBase) y reconstruye el contenedor WIM con compresión multihilo. Reduce ISOs hinchadas de ~12 GB a ~4.5 GB." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
-                        <TextBlock Text="Higiene y Mantenimiento" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,10,0,5" />
-                        <TextBlock Text="Limpia carpetas temporales y desmonta imágenes WIM huérfanas que hayan quedado tras compilaciones abortadas." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
-                        <Button x:Name="btnCleanHost" Content="Limpiar Residuos (Carpetas, Montajes)" Height="32" Width="280" HorizontalAlignment="Left" Background="#D13438" Foreground="White" BorderThickness="0" />
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="135"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Imagen a Optimizar:" Foreground="#E3E3E3" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Column="1" x:Name="txtWimOptPath" Height="26" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" Padding="3" Margin="0,0,6,0"/>
+                                    <Button Grid.Column="2" x:Name="btnBrowseWimOpt" Content="Examinar" Height="26" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" Margin="0,0,6,0"/>
+                                    <Button Grid.Column="3" x:Name="btnUseSourceIso" Content="Copiar de Pestaña 1" Height="26" Background="#2C2C2C" Foreground="#00E5FF" BorderBrush="#00E5FF"/>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Formato de Salida:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <ComboBox x:Name="cmbWimOptFormat" Width="170" Height="26" Margin="0,0,15,0">
+                                        <ComboBoxItem Content="WIM Limpio (.wim)" Tag="WIM" IsSelected="True"/>
+                                        <ComboBoxItem Content="ESD Sólido (.esd)" Tag="ESD"/>
+                                        <ComboBoxItem Content="ISO Reconstruida (.iso)" Tag="ISO"/>
+                                    </ComboBox>
+                                    <Button x:Name="btnCheckWimDeps" Content="🔍 Diagnosticar" Height="26" Width="120" Background="#2C2C2C" Foreground="#E3E3E3" BorderBrush="#555" Margin="0,0,8,0"/>
+                                    <Button x:Name="btnInstallWimDeps" Content="📥 Instalar Herramientas" Height="26" Width="160" Background="#2C2C2C" Foreground="#FFA500" BorderBrush="#FFA500"/>
+                                </StackPanel>
+
+                                <Border Background="#1A1A1A" BorderBrush="#333333" BorderThickness="1" CornerRadius="3" Padding="8" Margin="0,0,0,10">
+                                    <TextBlock x:Name="txtWimOptStatus" Text="Estado: Selecciona una imagen y haz clic en 'Iniciar Purga' o 'Diagnosticar'." Foreground="#00E676" FontSize="11" TextWrapping="Wrap"/>
+                                </Border>
+
+                                <Button x:Name="btnStartWimOpt" Content="🗜️ Iniciar Purgado y Reducción de Imagen" Height="32" Width="300" HorizontalAlignment="Left" Background="{DynamicResource AccentPrimaryBrush}" Foreground="#0D1117" FontWeight="SemiBold" BorderThickness="0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 2: Despliegue Rápido (Hyper-V) -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="Despliegue Rápido (Hyper-V)" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,5" />
+                                <TextBlock Text="Levanta una máquina virtual Gen2 con la última ISO optimizada creada en WinISO_Optimizado para probar el sistema sin instalarlo en hardware real." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                <Button x:Name="btnTestVM" Content="Levantar Máquina Virtual de Prueba" Height="32" Width="280" HorizontalAlignment="Left" Background="{DynamicResource AccentPrimaryBrush}" Foreground="#0D1117" BorderThickness="0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 3: Higiene y Mantenimiento -->
+                        <Border Background="#282828" BorderBrush="#3D3D3D" BorderThickness="1" CornerRadius="4" Padding="12">
+                            <StackPanel>
+                                <TextBlock Text="Higiene y Mantenimiento" Foreground="#E3E3E3" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,5" />
+                                <TextBlock Text="Limpia carpetas temporales y desmonta imágenes WIM huérfanas que hayan quedado tras compilaciones abortadas." Foreground="#A0A0A0" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                <Button x:Name="btnCleanHost" Content="Limpiar Residuos (Carpetas, Montajes)" Height="32" Width="280" HorizontalAlignment="Left" Background="#D13438" Foreground="White" BorderThickness="0" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
-                </Grid>
+                </ScrollViewer>
             </TabItem>
 
             <!-- Pestaña 6 -->
@@ -628,6 +676,9 @@ function Set-StudioUIState {
         $btnBackupDrivers    = $window.FindName('btnBackupDrivers')
         $btnDownloadCritical = $window.FindName('btnDownloadCritical')
         $btnDownloadRuntimes = $window.FindName('btnDownloadRuntimes')
+        $btnStartWimOpt      = $window.FindName('btnStartWimOpt')
+        $btnCheckWimDeps     = $window.FindName('btnCheckWimDeps')
+        $btnInstallWimDeps   = $window.FindName('btnInstallWimDeps')
 
         if ($btnBuild)            { $btnBuild.IsEnabled = -not $IsRunning }
         if ($btnCancel)           { $btnCancel.IsEnabled = $IsRunning }
@@ -637,6 +688,9 @@ function Set-StudioUIState {
         if ($btnBackupDrivers)    { $btnBackupDrivers.IsEnabled = -not $IsRunning }
         if ($btnDownloadCritical) { $btnDownloadCritical.IsEnabled = -not $IsRunning }
         if ($btnDownloadRuntimes) { $btnDownloadRuntimes.IsEnabled = -not $IsRunning }
+        if ($btnStartWimOpt)      { $btnStartWimOpt.IsEnabled = -not $IsRunning }
+        if ($btnCheckWimDeps)     { $btnCheckWimDeps.IsEnabled = -not $IsRunning }
+        if ($btnInstallWimDeps)   { $btnInstallWimDeps.IsEnabled = -not $IsRunning }
 
         if ($IsRunning) {
             if ($progBar) { $progBar.Visibility = "Visible" }
@@ -1199,6 +1253,99 @@ $btnDownloadRuntimes.Add_Click({
     $escapedRuntimes = $runtimesDir -replace "'", "''"
     $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -DestinationPath '$escapedRuntimes' -Unattended *>&1 }`""
     Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Descarga de Runtimes C++/DirectX"
+})
+
+# =============================================================================
+# MANEJADORES DE EVENTOS: OPTIMIZACIÓN Y PURGA OFFLINE WIM / ISO (PLAN-0149)
+# =============================================================================
+$btnBrowseWimOpt = $window.FindName('btnBrowseWimOpt')
+$btnBrowseWimOpt.Add_Click({
+    $dlg = New-Object Microsoft.Win32.OpenFileDialog
+    $dlg.Filter = 'Imágenes de Windows (*.iso;*.wim)|*.iso;*.wim|Imágenes ISO (*.iso)|*.iso|Archivos WIM (*.wim)|*.wim'
+    if ($dlg.ShowDialog() -eq $true) {
+        $window.FindName('txtWimOptPath').Text = $dlg.FileName
+        Write-StudioLog "Imagen seleccionada para purga: $($dlg.FileName)"
+    }
+})
+
+$btnUseSourceIso = $window.FindName('btnUseSourceIso')
+$btnUseSourceIso.Add_Click({
+    $srcIso = $window.FindName('txtSourceISO').Text
+    if (-not [string]::IsNullOrWhiteSpace($srcIso)) {
+        $window.FindName('txtWimOptPath').Text = $srcIso
+        Write-StudioLog "Copiada ruta de ISO desde Pestaña 1 hacia Optimizador: $srcIso"
+    } else {
+        [System.Windows.MessageBox]::Show("Aún no has seleccionado ninguna ISO en la Pestaña 1 (Construcción Base).", "romanOS Studio", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+    }
+})
+
+$btnCheckWimDeps = $window.FindName('btnCheckWimDeps')
+$btnCheckWimDeps.Add_Click({
+    Write-StudioLog "Ejecutando diagnóstico pre-vuelo de herramientas de optimización..."
+    $optEngine = Join-Path $PSScriptRoot "..\Host-Tools\Optimize-OfflineWim.ps1"
+    if (Test-Path $optEngine) {
+        try {
+            $format = "WIM"
+            $cmbFmt = $window.FindName('cmbWimOptFormat')
+            if ($cmbFmt -and $cmbFmt.SelectedItem) {
+                $format = $cmbFmt.SelectedItem.Tag
+            }
+            $diag = & $optEngine -CheckOnly -Unattended -OutputFormat $format
+            $lbl = $window.FindName('txtWimOptStatus')
+            $btnInst = $window.FindName('btnInstallWimDeps')
+
+            $statusText = "Diagnóstico: "
+            $statusText += if ($diag.IsAdmin) { "[Admin: OK] " } else { "[Admin: FALTA] " }
+            $statusText += if ($diag.DismAvailable) { "[DISM: OK] " } else { "[DISM: FALTA] " }
+            $statusText += if ($diag.WimLibAvailable) { "[WimLib: OK] " } else { "[WimLib: FALTA] " }
+            $statusText += if ($diag.OscdimgAvailable) { "[oscdimg: OK] " } else { "[oscdimg: NO DETECTADO] " }
+            $statusText += "[$($diag.FreeSpaceGB) GB libres]"
+
+            $lbl.Text = $statusText
+            if (-not $diag.OscdimgAvailable -and $format -eq "ISO") {
+                $lbl.Foreground = "#FFA500"
+                if ($btnInst) { $btnInst.IsEnabled = $true }
+            } elseif ($diag.AllRequiredReady) {
+                $lbl.Foreground = "#00E676"
+            } else {
+                $lbl.Foreground = "#FFA500"
+            }
+            Write-StudioLog "Resultado diagnóstico pre-vuelo: $statusText"
+        } catch {
+            Write-StudioLog "Error en diagnóstico pre-vuelo: $($_.Exception.Message)" "ERROR"
+        }
+    }
+})
+
+$btnInstallWimDeps = $window.FindName('btnInstallWimDeps')
+$btnInstallWimDeps.Add_Click({
+    Write-StudioLog "Iniciando instalación automática de herramientas faltantes..."
+    $optEngine = Join-Path $PSScriptRoot "..\Host-Tools\Optimize-OfflineWim.ps1"
+    $escapedEngine = $optEngine -replace "'", "''"
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -InstallMissingDependencies -Unattended *>&1 }`""
+    Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Instalación de Dependencias de Servicing (Winget)"
+})
+
+$btnStartWimOpt = $window.FindName('btnStartWimOpt')
+$btnStartWimOpt.Add_Click({
+    $targetPath = $window.FindName('txtWimOptPath').Text
+    if ([string]::IsNullOrWhiteSpace($targetPath) -or -not (Test-Path $targetPath)) {
+        [System.Windows.MessageBox]::Show("Por favor especifica una ruta válida de archivo .iso o .wim para optimizar.", "Archivo no encontrado", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+        return
+    }
+
+    $format = "WIM"
+    $cmbFmt = $window.FindName('cmbWimOptFormat')
+    if ($cmbFmt -and $cmbFmt.SelectedItem) {
+        $format = $cmbFmt.SelectedItem.Tag
+    }
+
+    $optEngine = Join-Path $PSScriptRoot "..\Host-Tools\Optimize-OfflineWim.ps1"
+    $escapedEngine = $optEngine -replace "'", "''"
+    $escapedTarget = $targetPath -replace "'", "''"
+
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -Command `"& { & '$escapedEngine' -ImagePath '$escapedTarget' -OutputFormat '$format' -Unattended *>&1 }`""
+    Start-StudioSubProcess -CommandLine $arguments -TaskTitle "Optimización y Purga de Imagen ($format)"
 })
 
 $window.ShowDialog() | Out-Null
