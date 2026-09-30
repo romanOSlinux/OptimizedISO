@@ -488,14 +488,23 @@ $xamlString = @"
         <!-- Footer / StatusBar -->
         <Border Background="{DynamicResource ConsoleBgBrush}" Height="50" VerticalAlignment="Bottom" BorderBrush="{DynamicResource ConsoleBorderBrush}" BorderThickness="0,1,0,0">
             <Grid>
-                <!-- StatusBar Info -->
-                <TextBlock x:Name="txtStatus" Text="Estado: Listo para compilar" Foreground="#A0A0A0" Margin="15,16,0,0" FontSize="13" HorizontalAlignment="Left" />
-                <ProgressBar x:Name="progBar" IsIndeterminate="True" Visibility="Hidden" HorizontalAlignment="Left" Height="10" Margin="210,20,0,0" Width="180" Foreground="#00E5FF" Background="#222222" BorderThickness="0" Minimum="0" Maximum="100" />
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- StatusBar Info (Stack vertical: texto de estado arriba y barra de progreso abajo sin colisiones) -->
+                <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="15,0,15,0">
+                    <TextBlock x:Name="txtStatus" Text="Estado: Listo para compilar" Foreground="#A0A0A0" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,0,0,5" />
+                    <ProgressBar x:Name="progBar" IsIndeterminate="True" Visibility="Hidden" HorizontalAlignment="Left" Height="6" Width="260" Foreground="#00E5FF" Background="#222222" BorderThickness="0" Minimum="0" Maximum="100" />
+                </StackPanel>
                 
-                <!-- Buttons -->
-                <Button x:Name="btnExportPreset" Content="Solo JSON" Margin="0,0,230,0" Height="30" Width="100" HorizontalAlignment="Right" Background="#333333" Foreground="#E3E3E3" BorderThickness="1" BorderBrush="#454545" ToolTip="Exporta el archivo de configuración sin ejecutar el proceso" />
-                <Button x:Name="btnCancel" Content="Cancelar" Margin="0,0,120,0" Height="30" Width="100" HorizontalAlignment="Right" Background="#C50F1F" Foreground="White" BorderThickness="0" IsEnabled="False" />
-                <Button x:Name="btnBuild" Content="Compilar ISO" Margin="0,0,15,0" Height="30" Width="95" HorizontalAlignment="Right" Background="{DynamicResource AccentPrimaryBrush}" Foreground="#0D1117" BorderThickness="0" FontWeight="SemiBold" ToolTip="Inicia el motor de optimización" />
+                <!-- Action Buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,15,0">
+                    <Button x:Name="btnExportPreset" Content="Solo JSON" Margin="0,0,10,0" Height="30" Width="100" Background="#333333" Foreground="#E3E3E3" BorderThickness="1" BorderBrush="#454545" ToolTip="Exporta el archivo de configuración sin ejecutar el proceso" />
+                    <Button x:Name="btnCancel" Content="Cancelar" Margin="0,0,10,0" Height="30" Width="100" Background="#C50F1F" Foreground="White" BorderThickness="0" IsEnabled="False" />
+                    <Button x:Name="btnBuild" Content="Compilar ISO" Height="30" Width="95" Background="{DynamicResource AccentPrimaryBrush}" Foreground="#0D1117" BorderThickness="0" FontWeight="SemiBold" ToolTip="Inicia el motor de optimización" />
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>
