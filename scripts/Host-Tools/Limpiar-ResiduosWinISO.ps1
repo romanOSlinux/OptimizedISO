@@ -210,7 +210,12 @@ function Remove-Residuo {
     switch ($Item.Tipo) {
         "Carpeta" {
             try {
-                Remove-Item -Path $Item.Ruta -Recurse -Force -ErrorAction Stop
+                [GC]::Collect()
+                [GC]::WaitForPendingFinalizers()
+                if (Test-Path $Item.Ruta) {
+                    & cmd.exe /c "attrib -R `"$($Item.Ruta)\*`" /S /D" 2>&1 | Out-Null
+                    Remove-Item -Path $Item.Ruta -Recurse -Force -ErrorAction Stop
+                }
                 Write-OK "Eliminada: $($Item.Ruta)"
                 return $true
             } catch {
@@ -371,7 +376,16 @@ if ($Unattended) {
         Write-OK "No se detectaron residuos de New-OptimizedWindowsISO en el sistema."
     } else {
         Write-Host "Se encontraron $($hallazgos.Count) elementos residuales. Procediendo a limpiarlos..." -ForegroundColor Yellow
-        foreach ($item in $hallazgos) {
+        $ordenados = $hallazgos | Sort-Object {
+            switch ($_.Tipo) {
+                "ColmenaRegistro" { 1 }
+                "MontajeWIM"      { 2 }
+                "Archivo"          { 3 }
+                "Carpeta"          { 4 }
+                default            { 5 }
+            }
+        }
+        foreach ($item in $ordenados) {
             Remove-Residuo -Item $item | Out-Null
         }
     }
@@ -431,7 +445,16 @@ do {
             } else {
                 $conf = if ([Console]::IsInputRedirected) { "N" } else { Read-Host "  Se eliminarán $($hallazgos.Count) elementos. ¿Confirmar? (S/N)" }
                 if ($conf -match '^[sS]') {
-                    foreach ($item in $hallazgos) { Remove-Residuo -Item $item | Out-Null }
+                    $ordenados = $hallazgos | Sort-Object {
+                        switch ($_.Tipo) {
+                            "ColmenaRegistro" { 1 }
+                            "MontajeWIM"      { 2 }
+                            "Archivo"          { 3 }
+                            "Carpeta"          { 4 }
+                            default            { 5 }
+                        }
+                    }
+                    foreach ($item in $ordenados) { Remove-Residuo -Item $item | Out-Null }
                     Invoke-CleanupMountpoints
                     Write-Titulo "Resultado"
                     $hallazgos = Find-Residuos
