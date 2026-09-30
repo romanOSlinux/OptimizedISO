@@ -209,19 +209,27 @@ function Remove-Residuo {
 
     switch ($Item.Tipo) {
         "Carpeta" {
-            try {
-                [GC]::Collect()
-                [GC]::WaitForPendingFinalizers()
-                if (Test-Path $Item.Ruta) {
-                    & cmd.exe /c "attrib -R `"$($Item.Ruta)\*`" /S /D" 2>&1 | Out-Null
-                    Remove-Item -Path $Item.Ruta -Recurse -Force -ErrorAction Stop
+            $deleted = $false
+            for ($tentativa = 1; $tentativa -le 3; $tentativa++) {
+                try {
+                    [GC]::Collect()
+                    [GC]::WaitForPendingFinalizers()
+                    if (Test-Path $Item.Ruta) {
+                        & cmd.exe /c "attrib -R `"$($Item.Ruta)\*`" /S /D" 2>&1 | Out-Null
+                        Remove-Item -Path $Item.Ruta -Recurse -Force -ErrorAction Stop
+                    }
+                    Write-OK "Eliminada: $($Item.Ruta)"
+                    $deleted = $true
+                    break
+                } catch {
+                    if ($tentativa -lt 3) {
+                        Start-Sleep -Milliseconds 800
+                    } else {
+                        Write-Warn "No se pudo eliminar $($Item.Ruta): $($_.Exception.Message)"
+                    }
                 }
-                Write-OK "Eliminada: $($Item.Ruta)"
-                return $true
-            } catch {
-                Write-Warn "No se pudo eliminar $($Item.Ruta): $($_.Exception.Message)"
-                return $false
             }
+            return $deleted
         }
         "Archivo" {
             try {
@@ -240,16 +248,23 @@ function Remove-Residuo {
                 $ok = $true
             } catch {
                 Write-Warn "Dismount-WindowsImage falló ($($_.Exception.Message)). Intentando desmonte con dism.exe..."
-                & dism.exe /Unmount-Image /MountDir:"$($Item.Ruta)" /Discard 2>&1 | Out-Null
+                & dism.exe /Unmount-Wim /MountDir:"$($Item.Ruta)" /Discard 2>&1 | Out-Null
+                if ($LASTEXITCODE -ne 0) {
+                    & dism.exe /Unmount-Image /MountDir:"$($Item.Ruta)" /Discard 2>&1 | Out-Null
+                }
                 $ok = ($LASTEXITCODE -eq 0)
             }
             if ($ok) {
                 Write-OK "Imagen WIM desmontada (se descartaron los cambios pendientes): $($Item.Ruta)"
+                Start-Sleep -Milliseconds 800
+                [GC]::Collect()
+                [GC]::WaitForPendingFinalizers()
                 if (Test-Path $Item.Ruta) {
                     Remove-Item -Path $Item.Ruta -Recurse -Force -ErrorAction SilentlyContinue
                 }
             } else {
-                Write-Warn "No se pudo desmontar $($Item.Ruta) automáticamente. Puede requerir reiniciar Windows."
+                & dism.exe /Cleanup-Wim 2>&1 | Out-Null
+                Write-Warn "No se pudo desmontar $($Item.Ruta) automáticamente. Se ejecutó /Cleanup-Wim."
             }
             return $ok
         }
@@ -363,6 +378,7 @@ function Show-GestionDependencias {
 
 function Invoke-CleanupMountpoints {
     & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null
+    & dism.exe /Cleanup-Wim 2>&1 | Out-Null
 }
 
 #------------------------------------------------------------------------------
