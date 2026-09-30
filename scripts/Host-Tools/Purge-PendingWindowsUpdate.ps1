@@ -71,13 +71,129 @@ if (Test-Path $wuRebootPath) {
     Write-Host "  [INFO] No habia clave RebootRequired en WindowsUpdate." -ForegroundColor DarkGray
 }
 
+# Helper para remocion forzada de claves protegidas por TrustedInstaller (WRP)
+function Remove-ProtectedCbsKey {
+    param([string]$SubKeyName)
+
+    $definition = @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class Win32CbsCleaner
+{
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern bool LookupPrivilegeValue(string lpSystemName, string lpName, out long lpLuid);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, uint BufferLengthInBytes, IntPtr PreviousState, IntPtr ReturnLengthInBytes);
+
+    [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern int RegOpenKeyEx(UIntPtr hKey, string lpSubKey, uint ulOptions, int samDesired, out UIntPtr phkResult);
+
+    [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern int RegDeleteKeyEx(UIntPtr hKey, string lpSubKey, int samDesired, int Reserved);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern int RegCloseKey(UIntPtr hKey);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr hObject);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct TOKEN_PRIVILEGES
+    {
+        public uint PrivilegeCount;
+        public long Luid;
+        public uint Attributes;
+    }
+
+    private const uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
+    private const uint TOKEN_QUERY = 0x0008;
+    private const uint SE_PRIVILEGE_ENABLED = 0x00000002;
+
+    public const uint REG_OPTION_BACKUP_RESTORE = 0x00000004;
+    public const int KEY_ALL_ACCESS = 0xF003F;
+    public const int KEY_WOW64_64KEY = 0x0100;
+
+    public static readonly UIntPtr HKEY_LOCAL_MACHINE = new UIntPtr(0x80000002u);
+
+    public static bool EnablePrivilege(string privilege)
+    {
+        IntPtr hToken;
+        if (!OpenProcessToken(System.Diagnostics.Process.GetCurrentProcess().Handle, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out hToken))
+            return false;
+
+        try
+        {
+            long luid;
+            if (!LookupPrivilegeValue(null, privilege, out luid))
+                return false;
+
+            TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES();
+            tp.PrivilegeCount = 1;
+            tp.Luid = luid;
+            tp.Attributes = SE_PRIVILEGE_ENABLED;
+
+            return AdjustTokenPrivileges(hToken, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+        }
+        finally
+        {
+            CloseHandle(hToken);
+        }
+    }
+
+    public static int DeleteCbsSubKey(string subKey)
+    {
+        EnablePrivilege("SeBackupPrivilege");
+        EnablePrivilege("SeRestorePrivilege");
+
+        UIntPtr hParentKey;
+        int res = RegOpenKeyEx(HKEY_LOCAL_MACHINE, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing", REG_OPTION_BACKUP_RESTORE, KEY_ALL_ACCESS | KEY_WOW64_64KEY, out hParentKey);
+        if (res != 0)
+        {
+            return res;
+        }
+
+        try
+        {
+            return RegDeleteKeyEx(hParentKey, subKey, KEY_WOW64_64KEY, 0);
+        }
+        finally
+        {
+            RegCloseKey(hParentKey);
+        }
+    }
+}
+'@
+    if (-not ([System.Management.Automation.PSTypeName]'Win32CbsCleaner').Type) {
+        Add-Type -TypeDefinition $definition -ErrorAction SilentlyContinue
+    }
+
+    if (([System.Management.Automation.PSTypeName]'Win32CbsCleaner').Type) {
+        $ret = [Win32CbsCleaner]::DeleteCbsSubKey($SubKeyName)
+        return ($ret -eq 0 -or $ret -eq 2)
+    }
+    return $false
+}
+
 $cbsRebootPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending"
 if (Test-Path $cbsRebootPath) {
+    $cbsRemoved = $false
     try {
         Remove-Item -Path $cbsRebootPath -Recurse -Force -ErrorAction Stop
-        Write-Host "  [OK] Clave RebootPending de CBS eliminada satisfactoriamente." -ForegroundColor Green
+        $cbsRemoved = $true
     } catch {
-        Write-Warning "Fallo al remover RebootPending de CBS: $($_.Exception.Message)"
+        # Si Remove-Item falla por permisos de TrustedInstaller (Acceso denegado), usar bypass de SeRestorePrivilege
+        $cbsRemoved = Remove-ProtectedCbsKey -SubKeyName "RebootPending"
+    }
+
+    if ($cbsRemoved -or -not (Test-Path $cbsRebootPath)) {
+        Write-Host "  [OK] Clave RebootPending de CBS eliminada satisfactoriamente." -ForegroundColor Green
+    } else {
+        Write-Warning "Fallo al remover RebootPending de CBS: Acceso denegado por protección de TrustedInstaller."
     }
 } else {
     Write-Host "  [INFO] No habia clave RebootPending en CBS." -ForegroundColor DarkGray
