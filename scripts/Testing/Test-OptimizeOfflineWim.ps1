@@ -66,12 +66,19 @@ Assert-Condition "Diagnóstico reporta disponibilidad de WimLib" ($diag.PSObject
 Assert-Condition "Diagnóstico reporta disponibilidad de Oscdimg" ($diag.PSObject.Properties['OscdimgAvailable'] -ne $null)
 Assert-Condition "Diagnóstico reporta espacio libre en disco" ($diag.PSObject.Properties['FreeSpaceGB'] -ne $null)
 
+$diagIsoEsd = & $scriptPath -CheckOnly -Unattended -OutputFormat "ISO-ESD"
+Assert-Condition "Diagnóstico con -RequestedOutputFormat 'ISO-ESD' requiere oscdimg" ($diagIsoEsd.RequiresOscdimg -eq $true)
+
+$optContent = Get-Content -LiteralPath $scriptPath -Raw
+Assert-Condition "Optimize-OfflineWim.ps1 soporta formato ISO-ESD en ValidateSet" ($optContent -match '\[ValidateSet\([^)]*ISO-ESD[^)]*\)\]')
+
 # 4. Integración en romanOS Studio
 $studioContent = Get-Content -LiteralPath $studioPath -Raw
 Assert-Condition "romanOS-Studio contiene txtWimOptPath" ($studioContent -match 'txtWimOptPath')
 Assert-Condition "romanOS-Studio contiene btnBrowseWimOpt" ($studioContent -match 'btnBrowseWimOpt')
 Assert-Condition "romanOS-Studio contiene btnUseSourceIso" ($studioContent -match 'btnUseSourceIso')
 Assert-Condition "romanOS-Studio contiene cmbWimOptFormat" ($studioContent -match 'cmbWimOptFormat')
+Assert-Condition "romanOS-Studio incluye opción de salida ISO-ESD (Ultra-Comprimida)" ($studioContent -match 'Tag="ISO-ESD"')
 Assert-Condition "romanOS-Studio contiene btnCheckWimDeps" ($studioContent -match 'btnCheckWimDeps')
 Assert-Condition "romanOS-Studio contiene btnInstallWimDeps" ($studioContent -match 'btnInstallWimDeps')
 Assert-Condition "romanOS-Studio contiene btnStartWimOpt" ($studioContent -match 'btnStartWimOpt')

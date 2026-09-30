@@ -15,7 +15,7 @@
     Carpeta de destino para el archivo procesado. Por defecto se genera en la misma carpeta o subdirectorio.
 
 .PARAMETER OutputFormat
-    Formato de salida deseado: "WIM" (estándar LZX), "ESD" (sólido LZMS) o "ISO" (reconstrucción completa booteable).
+    Formato de salida deseado: "WIM" (estándar LZX), "ESD" (sólido LZMS), "ISO" (reconstrucción estándar WIM) o "ISO-ESD" (reconstrucción ultra-comprimida con ESD sólido).
 
 .PARAMETER WorkDir
     Directorio temporal de trabajo (requiere al menos 35 GB libres).
@@ -45,7 +45,7 @@ param(
     [string]$OutputDir = "",
 
     [Parameter()]
-    [ValidateSet("WIM", "ESD", "ISO")]
+    [ValidateSet("WIM", "ESD", "ISO", "ISO-ESD")]
     [string]$OutputFormat = "WIM",
 
     [Parameter()]
@@ -188,7 +188,7 @@ function Test-WimOptimizationPrerequisites {
     $sufficientSpace = ($freeSpaceGB -ge 30)
 
     # Determinar si todo lo indispensable está listo
-    $requiresOscdimg = ($RequestedOutputFormat -eq "ISO")
+    $requiresOscdimg = ($RequestedOutputFormat -in @("ISO", "ISO-ESD"))
     $allRequiredReady = ($isAdmin -and $dismAvailable -and $wimLibAvailable -and $sufficientSpace -and (-not $requiresOscdimg -or $oscdimgAvailable))
 
     return [PSCustomObject]@{
@@ -263,7 +263,7 @@ if ($CheckOnly) {
 # Si se solicitó instalar dependencias faltantes
 if ($InstallMissingDependencies) {
     $diag = Test-WimOptimizationPrerequisites -RequestedOutputFormat $OutputFormat
-    if (-not $diag.OscdimgAvailable -and $OutputFormat -eq "ISO") {
+    if (-not $diag.OscdimgAvailable -and ($OutputFormat -in @("ISO", "ISO-ESD"))) {
         Install-WimOptimizationDependencies -InstallOscdimg | Out-Null
     }
 }
@@ -291,7 +291,7 @@ if (-not $diag.IsAdmin) {
 if (-not $diag.WimLibAvailable) {
     throw "wimlib-imagex.exe no está disponible en el entorno. Verifique la carpeta tools/wimlib."
 }
-if ($OutputFormat -eq "ISO" -and -not $diag.OscdimgAvailable) {
+if (($OutputFormat -in @("ISO", "ISO-ESD")) -and -not $diag.OscdimgAvailable) {
     Write-Warn "oscdimg.exe no está instalado. Intentando auto-instalación vía winget..."
     Install-WimOptimizationDependencies -InstallOscdimg | Out-Null
     $diag = Test-WimOptimizationPrerequisites -RequestedOutputFormat $OutputFormat
@@ -356,8 +356,8 @@ try {
         $isoVol = $mountedIsoDisk | Get-Volume -ErrorAction Stop
         $isoDrive = "$($isoVol.DriveLetter):\"
 
-        # Si el formato final es ISO, copiamos la estructura completa
-        if ($OutputFormat -eq "ISO") {
+        # Si el formato final es ISO (estándar o ESD sólido), copiamos la estructura base
+        if ($OutputFormat -in @("ISO", "ISO-ESD")) {
             Write-SubStep "Copiando estructura base de la ISO a $isoTreeDir..."
             New-Item -ItemType Directory -Path $isoTreeDir -Force | Out-Null
             & robocopy $isoDrive $isoTreeDir /E /XF "install.wim" "install.esd" "install.swm" /R:1 /W:1 /NFL /NDL /NJH /NJS | Out-Null
@@ -439,7 +439,11 @@ try {
             if ($dismCleanExit -eq 0) {
                 Write-OK "Almacén WinSxS purgado y consolidado exitosamente."
             } elseif ($dismCleanExit -eq -2146498554 -or $dismCleanExit -eq 0x800F0806) {
-                Write-Warn "DISM detectó transacciones pendientes tras slipstream (0x800F0806). WinSxS se consolidará al arrancar el SO."
+                Write-Warn "DISM detectó transacciones pendientes tras slipstream (0x800F0806)."
+                Write-Warn "La consolidación profunda de WinSxS se completará automáticamente en el primer arranque del SO."
+                if ($OutputFormat -eq "ISO-ESD") {
+                    Write-Info "Se aplicará compresión sólida LZMS en la ISO para deduplicar las versiones acumuladas en WinSxS."
+                }
             } else {
                 Write-Warn "DISM StartComponentCleanup finalizó con código: $dismCleanExit."
             }
@@ -474,14 +478,23 @@ try {
         $wimInIso = Join-Path $isoTreeDir "sources\install.wim"
         Write-SubStep "Inyectando WIM purgado en la estructura de la ISO ($wimInIso)..."
         & $diag.WimLibPath export $workingWimPath $ImageIndex $wimInIso --compress=LZX | Out-Null
+    } elseif ($OutputFormat -eq "ISO-ESD") {
+        $wimInIso = Join-Path $isoTreeDir "sources\install.wim"
+        if (Test-Path -LiteralPath $wimInIso) {
+            Remove-Item -LiteralPath $wimInIso -Force -ErrorAction SilentlyContinue
+        }
+        $esdInIso = Join-Path $isoTreeDir "sources\install.esd"
+        Write-SubStep "Inyectando imagen ultra-compacta (ESD Sólido) en la estructura de la ISO ($esdInIso)..."
+        & $diag.WimLibPath export $workingWimPath $ImageIndex $esdInIso --solid | Out-Null
     }
 
     # -------------------------------------------------------------------------
     # PASO 4: REEMPAQUETADO ISO (SI APLICA)
     # -------------------------------------------------------------------------
-    if ($OutputFormat -eq "ISO") {
+    if ($OutputFormat -in @("ISO", "ISO-ESD")) {
         Write-StepHeader 4 4 "Fase 3: Reempaquetando imagen ISO booteable con oscdimg..."
-        $finalArtifactPath = Join-Path $OutputDir "${baseName}_Optimized.iso"
+        $suffix = if ($OutputFormat -eq "ISO-ESD") { "_ESD_Optimized.iso" } else { "_Optimized.iso" }
+        $finalArtifactPath = Join-Path $OutputDir "${baseName}${suffix}"
         
         $etfsboot = Join-Path $isoTreeDir "boot\etfsboot.com"
         $efisys   = Join-Path $isoTreeDir "efi\microsoft\boot\efisys.bin"

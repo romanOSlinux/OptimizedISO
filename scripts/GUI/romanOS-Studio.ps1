@@ -439,10 +439,11 @@ $xamlString = @"
 
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                     <TextBlock Text="Formato de Salida:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <ComboBox x:Name="cmbWimOptFormat" Width="170" Height="26" Margin="0,0,15,0">
-                                        <ComboBoxItem Content="WIM Limpio (.wim)" Tag="WIM" IsSelected="True"/>
+                                    <ComboBox x:Name="cmbWimOptFormat" Width="260" Height="26" Margin="0,0,15,0">
+                                        <ComboBoxItem Content="ISO Ultra-Comprimida (ESD Sólido)" Tag="ISO-ESD" IsSelected="True"/>
+                                        <ComboBoxItem Content="ISO Reconstruida (WIM Estándar)" Tag="ISO"/>
                                         <ComboBoxItem Content="ESD Sólido (.esd)" Tag="ESD"/>
-                                        <ComboBoxItem Content="ISO Reconstruida (.iso)" Tag="ISO"/>
+                                        <ComboBoxItem Content="WIM Limpio (.wim)" Tag="WIM"/>
                                     </ComboBox>
                                     <Button x:Name="btnCheckWimDeps" Content="🔍 Diagnosticar" Height="26" Width="120" Background="#2C2C2C" Foreground="#E3E3E3" BorderBrush="#555" Margin="0,0,8,0"/>
                                     <Button x:Name="btnInstallWimDeps" Content="📥 Instalar Herramientas" Height="26" Width="160" Background="#2C2C2C" Foreground="#FFA500" BorderBrush="#FFA500"/>
@@ -1294,7 +1295,7 @@ $btnCheckWimDeps.Add_Click({
     $optEngine = Join-Path $PSScriptRoot "..\Host-Tools\Optimize-OfflineWim.ps1"
     if (Test-Path $optEngine) {
         try {
-            $format = "WIM"
+            $format = "ISO-ESD"
             $cmbFmt = $window.FindName('cmbWimOptFormat')
             if ($cmbFmt -and $cmbFmt.SelectedItem) {
                 $format = $cmbFmt.SelectedItem.Tag
@@ -1311,7 +1312,7 @@ $btnCheckWimDeps.Add_Click({
             $statusText += "[$($diag.FreeSpaceGB) GB libres]"
 
             $lbl.Text = $statusText
-            if (-not $diag.OscdimgAvailable -and $format -eq "ISO") {
+            if (-not $diag.OscdimgAvailable -and ($format -in @("ISO", "ISO-ESD"))) {
                 $lbl.Foreground = "#FFA500"
                 if ($btnInst) { $btnInst.IsEnabled = $true }
             } elseif ($diag.AllRequiredReady) {
@@ -1343,7 +1344,7 @@ $btnStartWimOpt.Add_Click({
         return
     }
 
-    $format = "WIM"
+    $format = "ISO-ESD"
     $cmbFmt = $window.FindName('cmbWimOptFormat')
     if ($cmbFmt -and $cmbFmt.SelectedItem) {
         $format = $cmbFmt.SelectedItem.Tag

@@ -48,7 +48,14 @@ La causa raíz matemática y sistémica es el **slipstreaming acumulativo sucesi
   - Conectado el botón de ejecución a `Start-StudioSubProcess` con DispatcherTimer para streaming continuo en `txtConsole`.
 
 - [x] **Fase 3: Pruebas Unitarias, Validación y Documentación**
-  - Creada suite de pruebas `scripts/Testing/Test-OptimizeOfflineWim.ps1` con 18 aserciones (18/18 PASS).
+  - Creada suite de pruebas `scripts/Testing/Test-OptimizeOfflineWim.ps1` con 21 aserciones (21/21 PASS).
   - Validada sintaxis, contratos de salida y ejecución simulada bajo Windows PowerShell 5.1 (`powershell.exe`).
   - Actualizado `docs/plans/README.md`.
+
+- [x] **Fase 4: Soporte para ISO Ultra-Comprimida con ESD Sólido (`ISO-ESD`)**
+  - Diagnóstico forense de bloqueo DISM `0x800F0806` (`CBS_E_PENDING`) en imágenes con LCUs pendientes.
+  - Añadido formato `ISO-ESD` en `Optimize-OfflineWim.ps1` con deduplicación multihilo mediante `wimlib-imagex export --solid` directamente a `sources\install.esd` en la estructura de la ISO.
+  - Incorporada la opción "ISO Ultra-Comprimida (ESD Sólido)" en el selector `cmbWimOptFormat` de `romanOS-Studio.ps1`.
+  - Validación completa con `Invoke-TestSuite.ps1` (108 botones certificados, 0 fallos).
+
 

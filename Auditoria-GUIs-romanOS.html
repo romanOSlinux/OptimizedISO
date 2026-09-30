@@ -118,22 +118,22 @@
         <div class="metrics-grid">
             <div class="card">
                 <div class="card-label">Universo Total de Botones</div>
-                <div class="card-value">103</div>
+                <div class="card-value">108</div>
                 <div class="card-sub">Control Center: 91 | Studio: 10</div>
             </div>
             <div class="card">
                 <div class="card-label">Cableado AST (Wired)</div>
-                <div class="card-value" style="color: #34d399;">103 / 103</div>
+                <div class="card-value" style="color: #34d399;">108 / 108</div>
                 <div class="card-sub">Cero botones muertos (0)</div>
             </div>
             <div class="card">
                 <div class="card-label">Sintaxis Shell y Anti-Truncamiento</div>
-                <div class="card-value" style="color: #38bdf8;">103 / 103</div>
+                <div class="card-value" style="color: #38bdf8;">108 / 108</div>
                 <div class="card-sub">Cero saltos de línea sin escapar (0)</div>
             </div>
             <div class="card">
                 <div class="card-label">Resolución y Paridad de Backend</div>
-                <div class="card-value" style="color: #34d399;">79 / 79</div>
+                <div class="card-value" style="color: #34d399;">82 / 82</div>
                 <div class="card-sub">100% de scripts ubicados en disco</div>
             </div>
             <div class="card">
@@ -145,7 +145,7 @@
 
         <div class="toolbar">
             <div class="filter-group">
-                <button class="filter-btn active" onclick="setAppFilter('all', this)">Todos los Botones (103)</button>
+                <button class="filter-btn active" onclick="setAppFilter('all', this)">Todos los Botones (108)</button>
                 <button class="filter-btn" onclick="setAppFilter('romanOS Control Center', this)">Control Center (91)</button>
                 <button class="filter-btn" onclick="setAppFilter('romanOS Studio', this)">Studio (10)</button>
                 <button class="filter-btn" onclick="setStatusFilter('PROBADO_OK', this)">Probados en Frío (0)</button>
@@ -1150,8 +1150,58 @@
         <td><span class='badge badge-pass'>RESOLVED</span> <code>Get-EssentialRuntimes.ps1</code></td>
         <td><small>Contrato de parámetros validado en AST (8 params)</small></td>
         <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
-    </tr>    <tr data-app="romanOS Studio" data-status="EXENTO_RIESGO">
+    </tr>    <tr data-app="romanOS Studio" data-status="CONTRATO_VALIDADO">
         <td>99</td>
+        <td><strong>romanOS Studio</strong></td>
+        <td><code>btnBrowseWimOpt</code></td>
+        <td>Examinar</td>
+        <td><span class="badge badge-pass">WIRED (AST)</span></td>
+        <td><span class="badge badge-pass">SHELL OK</span></td>
+        <td><code>Acción Local</code></td>
+        <td><small></small></td>
+        <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
+    </tr>    <tr data-app="romanOS Studio" data-status="CONTRATO_VALIDADO">
+        <td>100</td>
+        <td><strong>romanOS Studio</strong></td>
+        <td><code>btnUseSourceIso</code></td>
+        <td>Copiar de Pestaña 1</td>
+        <td><span class="badge badge-pass">WIRED (AST)</span></td>
+        <td><span class="badge badge-pass">SHELL OK</span></td>
+        <td><code>Acción Local</code></td>
+        <td><small></small></td>
+        <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
+    </tr>    <tr data-app="romanOS Studio" data-status="VERIFICADO">
+        <td>101</td>
+        <td><strong>romanOS Studio</strong></td>
+        <td><code>btnCheckWimDeps</code></td>
+        <td>🔍 Diagnosticar</td>
+        <td><span class="badge badge-pass">WIRED (AST)</span></td>
+        <td><span class="badge badge-pass">SHELL OK</span></td>
+        <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-OfflineWim.ps1</code></td>
+        <td><small>Contrato de parámetros validado en AST (11 params)</small></td>
+        <td><span class="badge badge-info">VERIFICADO</span></td>
+    </tr>    <tr data-app="romanOS Studio" data-status="CONTRATO_VALIDADO">
+        <td>102</td>
+        <td><strong>romanOS Studio</strong></td>
+        <td><code>btnInstallWimDeps</code></td>
+        <td>📥 Instalar Herramientas</td>
+        <td><span class="badge badge-pass">WIRED (AST)</span></td>
+        <td><span class="badge badge-pass">SHELL OK</span></td>
+        <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-OfflineWim.ps1</code></td>
+        <td><small>Contrato de parámetros validado en AST (11 params)</small></td>
+        <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
+    </tr>    <tr data-app="romanOS Studio" data-status="CONTRATO_VALIDADO">
+        <td>103</td>
+        <td><strong>romanOS Studio</strong></td>
+        <td><code>btnStartWimOpt</code></td>
+        <td>🗜️ Iniciar Purgado y Reducción de Imagen</td>
+        <td><span class="badge badge-pass">WIRED (AST)</span></td>
+        <td><span class="badge badge-pass">SHELL OK</span></td>
+        <td><span class='badge badge-pass'>RESOLVED</span> <code>Optimize-OfflineWim.ps1</code></td>
+        <td><small>Contrato de parámetros validado en AST (11 params)</small></td>
+        <td><span class="badge badge-info">CONTRATO VALIDADO</span></td>
+    </tr>    <tr data-app="romanOS Studio" data-status="EXENTO_RIESGO">
+        <td>104</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnTestVM</code></td>
         <td>Levantar Máquina Virtual de Prueba</td>
@@ -1161,7 +1211,7 @@
         <td><small>Contrato de parámetros validado en AST (9 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO SISTEMA)</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="EXENTO_RIESGO">
-        <td>100</td>
+        <td>105</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnCleanHost</code></td>
         <td>Limpiar Residuos (Carpetas, Montajes)</td>
@@ -1171,7 +1221,7 @@
         <td><small>Contrato de parámetros validado en AST (5 params)</small></td>
         <td><span class="badge badge-warn">EXENTO (RIESGO SISTEMA)</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="VERIFICADO_UI">
-        <td>101</td>
+        <td>106</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnExportPreset</code></td>
         <td>Solo JSON</td>
@@ -1181,7 +1231,7 @@
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="VERIFICADO_UI">
-        <td>102</td>
+        <td>107</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnCancel</code></td>
         <td>Cancelar</td>
@@ -1191,7 +1241,7 @@
         <td><small></small></td>
         <td><span class="badge badge-pass">VERIFICADO UI</span></td>
     </tr>    <tr data-app="romanOS Studio" data-status="EXENTO_RIESGO">
-        <td>103</td>
+        <td>108</td>
         <td><strong>romanOS Studio</strong></td>
         <td><code>btnBuild</code></td>
         <td>Compilar ISO</td>
