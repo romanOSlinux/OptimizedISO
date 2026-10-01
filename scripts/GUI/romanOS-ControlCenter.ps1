@@ -595,6 +595,7 @@ $xamlString = @"
                                 <WrapPanel>
                                     <Button x:Name="btnAuditThermal" Content="Auditar Estado Termico &amp; Throttling" Width="260" Margin="0,0,10,10"/>
                                     <Button x:Name="btnLiveThermalMonitor" Content="Monitoreo en Vivo (5s)" Width="190" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnAdaptiveCpuOptimizer" Content="⚡ Calibrar CPU por Arquitectura (Hardware-Aware)" Width="340" Margin="0,0,10,10" Background="#1A365D" BorderBrush="#3182CE" FontWeight="Bold" ToolTip="Detecta la microarquitectura exacta del procesador (Intel Hibrido, AMD X3D, Zen Moderno, APU UMA, etc.) y aplica la politica de kernel, EPP y frecuencias validada para ese silicio."/>
                                     <Button x:Name="btnCalibrateUltimateEnergy" Content="Calibrar Maximo Rendimiento (Core Unpark)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
                                     <Button x:Name="btnAuditWakeTimers" Content="Auditar Wake Timers &amp; S0ix" Width="220" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
                                     <Button x:Name="btnDisableWakeTimers" Content="Neutralizar Wake Timers Parásitos" Width="240" Margin="0,0,10,10" Background="#3D2D1B" BorderBrush="#FFB300" FontWeight="SemiBold"/>
@@ -1103,7 +1104,13 @@ try {
             $badge.Foreground = [System.Windows.Media.Brushes]::LightGreen
         }
         
-        $window.FindName('lblCpuInfo').Text   = $cpuName
+        $lblCpu = $window.FindName('lblCpuInfo')
+        if ($lblCpu) {
+            $lblCpu.Text = $cpuName
+            if ($hw.CPU.ArchitectureDisplay) {
+                $lblCpu.ToolTip = "Arquitectura de Silicio: $($hw.CPU.ArchitectureDisplay) ($($hw.CPU.ArchitectureFamily))`nFundamento: Detectado por Hardware-Engine (PLAN-0150)"
+            }
+        }
         $window.FindName('lblCoresInfo').Text = $coresText
         $window.FindName('lblRamInfo').Text   = $ramText
         $window.FindName('lblDiskInfo').Text  = $diskText
@@ -1894,6 +1901,18 @@ $window.FindName('btnCalibrateUltimateEnergy').Add_Click({
     $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action CalibrateEnergy -EnergyProfile Ultimate -Unattended" -TaskTitle "Calibracion Energetica & Core Unparking" }
 })
+
+$btnAdaptCpu = $window.FindName('btnAdaptiveCpuOptimizer')
+if ($btnAdaptCpu) {
+    $btnAdaptCpu.Add_Click({
+        $tool = Resolve-ToolScript "Optimize-CpuSilicon.ps1"
+        if ($tool) {
+            Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Optimize -Unattended" -TaskTitle "Optimizacion Polimorfica de CPU por Arquitectura (PLAN-0150)"
+        } else {
+            Write-CCLog "No se encontro Optimize-CpuSilicon.ps1 en rutas conocidas" -Level "WARN"
+        }
+    })
+}
 
 $btnAudWake = $window.FindName('btnAuditWakeTimers')
 if ($btnAudWake) {

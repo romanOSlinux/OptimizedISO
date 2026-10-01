@@ -711,6 +711,35 @@ function Get-SystemHardwareProfile {
     }
 
     # =========================================================================
+    # CLASIFICACION POLIMORFICA DE ARQUITECTURA DE SILICIO (PLAN-0150)
+    # =========================================================================
+    $archFamily = 'Generic_x86_Fallback'
+    $archDisplayName = 'Generica x86/x64 Fallback'
+
+    if ($isHybridCPU) {
+        $archFamily = 'Intel_Hybrid_Heterogeneous'
+        $archDisplayName = 'Intel Hibrido (P-Cores + E-Cores / Thread Director)'
+    } elseif ($isDualCcdX3D) {
+        $archFamily = 'AMD_DualCcd_Asymmetric_X3D'
+        $archDisplayName = 'AMD Dual-CCD Asimetrico 3D V-Cache (96MB L3)'
+    } elseif ($cpuVendor -eq 'AMD' -and ($hasIntegratedGpu -or $hasRdna3Igpu -or $cpuName -match 'Ryzen.*[0-9]{4}G|Athlon.*[0-9]{3}G')) {
+        $archFamily = 'AMD_Monolithic_APU_UMA'
+        $archDisplayName = 'AMD APU Monolitica (Memoria Compartida UMA)'
+    } elseif ($cpuVendor -eq 'AMD' -and ($isRyzen5kPlus -or $cpuName -match 'Ryzen 7 (5800X3D|7800X3D|9800X3D)')) {
+        $archFamily = 'AMD_Zen_Modern_Symmetric'
+        $archDisplayName = 'AMD Zen 3/4/5 Simetrico Monolitico (CPPC2 Preferred Cores)'
+    } elseif ($cpuVendor -eq 'AMD' -and ($cpuName -match 'Ryzen [357] [12][0-9]{3}' -or $cpuName -match 'Threadripper [12][0-9]{3}')) {
+        $archFamily = 'AMD_MultiCcx_Early_Legacy'
+        $archDisplayName = 'AMD Zen 1 / Zen+ Temprano (Multi-CCX con Latencia Inter-Die)'
+    } elseif ($cpuVendor -eq 'Intel' -and ($cpuName -match 'i[3579]-[2-5][0-9]{3}' -or $cpuName -match 'Core 2|Pentium [G|E]|Celeron [G|E]|Core.*[1-5]th Gen')) {
+        $archFamily = 'Intel_Legacy_PreHwp'
+        $archDisplayName = 'Intel Legacy Pre-HWP (Haswell/Ivy/Sandy Bridge sin Speed Shift)'
+    } elseif ($cpuVendor -eq 'Intel' -and $isLegacyIntel) {
+        $archFamily = 'Intel_Modern_Symmetric'
+        $archDisplayName = 'Intel Skylake a Rocket Lake (HWP Speed Shift Simetrico)'
+    }
+
+    # =========================================================================
     # CONSTRUCCION DEL OBJETO ESTRUCTURADO FINAL
     # =========================================================================
     $profileObj = [PSCustomObject]@{
@@ -743,6 +772,8 @@ function Get-SystemHardwareProfile {
             IsDualCcdX3D         = $isDualCcdX3D
             IsLowEnd             = $isLowEndCPU
             IsARM64              = ($cpuVendor -eq 'ARM' -or $env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
+            ArchitectureFamily   = $archFamily
+            ArchitectureDisplay  = $archDisplayName
             IdleTempC            = $cpuTempC
             IdleTempWarn         = $cpuTempWarn
         }
@@ -1443,6 +1474,141 @@ function Get-RomanOSSchedulerRecommendation {
         }
     }
 }
+
+# -----------------------------------------------------------------------------
+# FUNCION POLIMORFICA: Get-RomanOSCpuArchitecturePolicy (PLAN-0150)
+# -----------------------------------------------------------------------------
+function Get-RomanOSCpuArchitecturePolicy {
+    <#
+    .SYNOPSIS
+        Retorna la matriz estricta de directivas de optimización de kernel para la
+        arquitectura de silicio detectada (PLAN-0150).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [PSCustomObject]$HardwareInfo = $null
+    )
+
+    if ($null -eq $HardwareInfo) {
+        $HardwareInfo = Get-SystemHardwareProfile
+    }
+
+    $arch = if ($HardwareInfo.CPU -and $HardwareInfo.CPU.ArchitectureFamily) {
+        $HardwareInfo.CPU.ArchitectureFamily
+    } else {
+        'Generic_x86_Fallback'
+    }
+
+    switch ($arch) {
+        'Intel_Hybrid_Heterogeneous' {
+            return [PSCustomObject]@{
+                ArchitectureFamily          = 'Intel_Hybrid_Heterogeneous'
+                DisplayName                 = 'Intel Hibrido (P-Cores + E-Cores / Thread Director)'
+                ProcThrottleMinPercent      = 5
+                ProcThrottleMaxPercent      = 100
+                EnergyPerformancePreference = 33
+                CoreParkingPolicy           = 'ThreadDirectorManaged'
+                LargeSystemCache            = 0
+                Win32PrioritySeparation     = 2
+                PowerThrottlingMode         = 'SelectiveBackground'
+                AffinityDpcStrategy         = 'SpreadAcrossCPUs'
+                Rationale                   = 'Arquitectura hibrida heterogenea. Se preserva el balanceador Intel Thread Director y se evita Win32PrioritySeparation estatico para no degradar la cola de subprocesos P/E.'
+            }
+        }
+        'AMD_DualCcd_Asymmetric_X3D' {
+            return [PSCustomObject]@{
+                ArchitectureFamily          = 'AMD_DualCcd_Asymmetric_X3D'
+                DisplayName                 = 'AMD Dual-CCD Asimetrico 3D V-Cache (96MB L3)'
+                ProcThrottleMinPercent      = 5
+                ProcThrottleMaxPercent      = 100
+                EnergyPerformancePreference = 0
+                CoreParkingPolicy           = 'AsymmetricX3D_50Percent'
+                LargeSystemCache            = 0
+                Win32PrioritySeparation     = 2
+                PowerThrottlingMode         = 'DisabledGlobal'
+                AffinityDpcStrategy         = 'SpreadAcrossCPUs'
+                Rationale                   = 'Procesador con 3D V-Cache en un solo CCD. Se prohibe el Core Unparking al 100% para forzar a los juegos a ejecutarse en la cache 3D del CCD0 mediante el driver AMD PPM.'
+            }
+        }
+        'AMD_Monolithic_APU_UMA' {
+            return [PSCustomObject]@{
+                ArchitectureFamily          = 'AMD_Monolithic_APU_UMA'
+                DisplayName                 = 'AMD APU Monolitica (Memoria Compartida UMA)'
+                ProcThrottleMinPercent      = 5
+                ProcThrottleMaxPercent      = 100
+                EnergyPerformancePreference = 0
+                CoreParkingPolicy           = 'UnparkAll'
+                LargeSystemCache            = 0
+                Win32PrioritySeparation     = 38
+                PowerThrottlingMode         = 'DisabledGlobal'
+                AffinityDpcStrategy         = 'SpreadAcrossCPUs'
+                Rationale                   = 'APU con GPU integrada compartiendo bus DDR4/DDR5. LargeSystemCache = 0 obligatorio para evitar errores TDR y des-estacionamiento al 100% de nucleos simetricos.'
+            }
+        }
+        'AMD_Zen_Modern_Symmetric' {
+            return [PSCustomObject]@{
+                ArchitectureFamily          = 'AMD_Zen_Modern_Symmetric'
+                DisplayName                 = 'AMD Zen 3/4/5 Simetrico Monolitico (CPPC2 Preferred Cores)'
+                ProcThrottleMinPercent      = 5
+                ProcThrottleMaxPercent      = 100
+                EnergyPerformancePreference = 0
+                CoreParkingPolicy           = 'UnparkAll'
+                LargeSystemCache            = 0
+                Win32PrioritySeparation     = 38
+                PowerThrottlingMode         = 'DisabledGlobal'
+                AffinityDpcStrategy         = 'SpreadAcrossCPUs'
+                Rationale                   = 'Nucleos simetricos en un unico CCX. PROCTHROTTLEMIN al 5% para permitir sueno profundo C6 y liberar margen termico para el boost mononucleo Precision Boost 2.'
+            }
+        }
+        'AMD_MultiCcx_Early_Legacy' {
+            return [PSCustomObject]@{
+                ArchitectureFamily          = 'AMD_MultiCcx_Early_Legacy'
+                DisplayName                 = 'AMD Zen 1 / Zen+ Temprano (Multi-CCX con Latencia Inter-Die)'
+                ProcThrottleMinPercent      = 5
+                ProcThrottleMaxPercent      = 100
+                EnergyPerformancePreference = 0
+                CoreParkingPolicy           = 'UnparkAll'
+                LargeSystemCache            = 0
+                Win32PrioritySeparation     = 38
+                PowerThrottlingMode         = 'DisabledGlobal'
+                AffinityDpcStrategy         = 'SingleCcxContainment'
+                Rationale                   = 'Silicio dividido en multiples complejos CCX con latencia de 140ns en Infinity Fabric. Se prioriza contencion de afinidad a un solo CCX para procesos criticos.'
+            }
+        }
+        'Intel_Legacy_PreHwp' {
+            return [PSCustomObject]@{
+                ArchitectureFamily          = 'Intel_Legacy_PreHwp'
+                DisplayName                 = 'Intel Legacy Pre-HWP (Haswell/Ivy/Sandy Bridge sin Speed Shift)'
+                ProcThrottleMinPercent      = 100
+                ProcThrottleMaxPercent      = 100
+                EnergyPerformancePreference = 0
+                CoreParkingPolicy           = 'UnparkAll'
+                LargeSystemCache            = 0
+                Win32PrioritySeparation     = 38
+                PowerThrottlingMode         = 'DisabledGlobal'
+                AffinityDpcStrategy         = 'SpreadAcrossCPUs'
+                Rationale                   = 'Arquitectura Ring Bus monolitica sin Speed Shift por hardware. PROCTHROTTLEMIN al 100% para evitar la latencia de 30ms en saltos de frecuencia gobernados por software ACPI.'
+            }
+        }
+        default {
+            return [PSCustomObject]@{
+                ArchitectureFamily          = 'Generic_x86_Fallback'
+                DisplayName                 = 'Generica x86/x64 Fallback'
+                ProcThrottleMinPercent      = 5
+                ProcThrottleMaxPercent      = 100
+                EnergyPerformancePreference = 33
+                CoreParkingPolicy           = 'UnparkAll'
+                LargeSystemCache            = 0
+                Win32PrioritySeparation     = 2
+                PowerThrottlingMode         = 'SelectiveBackground'
+                AffinityDpcStrategy         = 'Default'
+                Rationale                   = 'Perfil de reserva seguro de Microsoft. Se aplican invariantes universales sin alterar directivas agresivas de afinidad o cuanta.'
+            }
+        }
+    }
+}
+
 
 # =============================================================================
 # ALIAS CANONICOS DE COMPATIBILIDAD (SSOT)
