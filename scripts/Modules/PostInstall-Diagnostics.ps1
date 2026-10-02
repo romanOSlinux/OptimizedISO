@@ -405,7 +405,7 @@ try {
     # Auditoria de Pila de Red TCP (ECN Capability - PLAN-0034)
     try {
         $tcpGlobal = & netsh.exe int tcp show global 2>&1
-        if ($tcpGlobal -match 'ECN Capability\s*:\s*enabled|Capacidad de ECN\s*:\s*enabled|Capacidad ECN\s*:\s*habilitado') {
+        if ($tcpGlobal -match 'ECN Capability\s*:\s*enabled|Capacidad(?: de)? ECN\s*:\s*(?:enabled|habilitado)|Funcionalidad de ECN\s*:\s*(?:enabled|habilitado)') {
             $passedChecks.Add("Notificacion Explicita de Congestion TCP (ECN) verificada y activa.")
             $reportLines.Add("- **TCP ECN Capability:** Habilitado (RFC 3168 - Mitigacion de Bufferbloat) [OK]")
         } else {

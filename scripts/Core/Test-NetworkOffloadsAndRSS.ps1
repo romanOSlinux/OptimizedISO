@@ -169,9 +169,7 @@ try {
         $tcpAutotuning = $matches[1].Trim()
     }
 
-    if ($tcpGlobal -match 'Capacidad ECN\s*:\s*([a-zA-Z0-9_\-]+)') {
-        $ecnState = $matches[1].Trim()
-    } elseif ($tcpGlobal -match 'ECN Capability\s*:\s*([a-zA-Z0-9_\-]+)') {
+    if ($tcpGlobal -match '(?:Capacidad(?: de)? ECN|Funcionalidad de ECN|ECN Capability)\s*:\s*([a-zA-Z0-9_\-]+)') {
         $ecnState = $matches[1].Trim()
     }
 } catch {

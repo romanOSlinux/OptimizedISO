@@ -418,7 +418,7 @@ Write-StepHeader -StepNumber 6 -TotalSteps 10 -Message "Red & Latencia TCP/IP (G
 try {
     # TCP Global (ECN)
     $tcpGlobal = "$(& netsh.exe int tcp show global 2>&1)".Trim()
-    if ($tcpGlobal -match 'ECN Capability\s*:\s*enabled|Capacidad de ECN\s*:\s*enabled|Capacidad ECN\s*:\s*habilitado') {
+    if ($tcpGlobal -match 'ECN Capability\s*:\s*enabled|Capacidad(?: de)? ECN\s*:\s*(?:enabled|habilitado)|Funcionalidad de ECN\s*:\s*(?:enabled|habilitado)') {
         Register-AuditResult -Category "Red/TCP" -Item "TCP ECN Capability" -Status "OK" -ActualValue "Habilitado (RFC 3168)" -ExpectedValue "Habilitado" -Impact "Mitigacion activa de Bufferbloat y caidas de paquetes en routers" -Source "IETF RFC 3168 / Microsoft Networking Blog"
     } else {
         Register-AuditResult -Category "Red/TCP" -Item "TCP ECN Capability" -Status "WARN" -ActualValue "Deshabilitado" -ExpectedValue "Habilitado" -Impact "Riesgo de bufferbloat en conexiones congestionadas" -Source "IETF RFC 3168" -RemediationCmd "netsh int tcp set global ecncapability=enabled"
@@ -441,18 +441,22 @@ try {
 
     # Green Ethernet & Power Saving en Adaptadores Realtek / Intel
     $ethProps = @(Get-NetAdapterAdvancedProperty -ErrorAction SilentlyContinue)
-    $greenEth = $ethProps | Where-Object { $_.DisplayName -match 'Ethernet ecol[oó]gico|Green Ethernet' }
-    $pwrSave = $ethProps | Where-Object { $_.DisplayName -match 'Power Saving Mode' }
+    $greenEth = @($ethProps | Where-Object { $_.DisplayName -match 'Ethernet ecol[oó]gico|Green Ethernet|Energy Efficient Ethernet' })
+    $pwrSave = @($ethProps | Where-Object { $_.DisplayName -match 'Power Saving Mode|Modo de ahorro de energ[ií]a' })
 
-    if ($greenEth -and $greenEth.DisplayValue -match 'Activado|Enabled') {
-        Register-AuditResult -Category "Red/Hardware" -Item "Ethernet Ecologico (Green Ethernet)" -Status "WARN" -ActualValue "Activado (Ahorro de energia en PHY)" -ExpectedValue "Desactivado" -Impact "Fluctuaciones y micro-latencias en la conexion de red (DPC jitter)" -Source "IEEE 802.3az Low-Power Idle / Realtek Guides" -RemediationCmd "Set-NetAdapterAdvancedProperty -Name '$($greenEth.Name)' -DisplayName '$($greenEth.DisplayName)' -DisplayValue 'Desactivado'"
-    } elseif ($greenEth) {
+    $greenEthActive = @($greenEth | Where-Object { $_.DisplayValue -match '^(Activado|Enabled|Habilitado|1)$' -and $_.DisplayValue -notmatch 'Desactiv|Disabled|Deshabilit' })
+    if ($greenEthActive.Count -gt 0) {
+        $target = $greenEthActive[0]
+        Register-AuditResult -Category "Red/Hardware" -Item "Ethernet Ecologico (Green Ethernet)" -Status "WARN" -ActualValue "Activado (Ahorro de energia en PHY)" -ExpectedValue "Desactivado" -Impact "Fluctuaciones y micro-latencias en la conexion de red (DPC jitter)" -Source "IEEE 802.3az Low-Power Idle / Realtek Guides" -RemediationCmd "Set-NetAdapterAdvancedProperty -Name '$($target.Name)' -DisplayName '$($target.DisplayName)' -DisplayValue 'Desactivado'"
+    } elseif ($greenEth.Count -gt 0) {
         Register-AuditResult -Category "Red/Hardware" -Item "Ethernet Ecologico (Green Ethernet)" -Status "OK" -ActualValue "Desactivado [OK]" -ExpectedValue "Desactivado" -Impact "Maxima estabilidad de reloj de enlace" -Source "IEEE 802.3az"
     }
 
-    if ($pwrSave -and $pwrSave.DisplayValue -match 'Activado|Enabled') {
-        Register-AuditResult -Category "Red/Hardware" -Item "Power Saving Mode (NIC)" -Status "WARN" -ActualValue "Activado" -ExpectedValue "Desactivado" -Impact "Retardos de despertar del transceptor" -Source "Realtek Driver Architecture" -RemediationCmd "Set-NetAdapterAdvancedProperty -Name '$($pwrSave.Name)' -DisplayName '$($pwrSave.DisplayName)' -DisplayValue 'Desactivado'"
-    } elseif ($pwrSave) {
+    $pwrSaveActive = @($pwrSave | Where-Object { $_.DisplayValue -match '^(Activado|Enabled|Habilitado|1)$' -and $_.DisplayValue -notmatch 'Desactiv|Disabled|Deshabilit' })
+    if ($pwrSaveActive.Count -gt 0) {
+        $target = $pwrSaveActive[0]
+        Register-AuditResult -Category "Red/Hardware" -Item "Power Saving Mode (NIC)" -Status "WARN" -ActualValue "Activado" -ExpectedValue "Desactivado" -Impact "Retardos de despertar del transceptor" -Source "Realtek Driver Architecture" -RemediationCmd "Set-NetAdapterAdvancedProperty -Name '$($target.Name)' -DisplayName '$($target.DisplayName)' -DisplayValue 'Desactivado'"
+    } elseif ($pwrSave.Count -gt 0) {
         Register-AuditResult -Category "Red/Hardware" -Item "Power Saving Mode (NIC)" -Status "OK" -ActualValue "Desactivado [OK]" -ExpectedValue "Desactivado" -Impact "Transceptor siempre listo a maxima frecuencia" -Source "Realtek Driver Architecture"
     }
 
