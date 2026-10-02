@@ -687,7 +687,10 @@ if ($SourceWIM -and (Test-Path $SourceWIM)) {
     } catch {
         Write-Warn "No se pudo auditar el WIM base: $($_.Exception.Message)"
     } finally {
-        & dism.exe /Unmount-Image /MountDir:"$wimAuditMount" /Discard 2>&1 | Out-Null
+        $unmountOut = & dism.exe /Unmount-Image /MountDir:"$wimAuditMount" /Discard 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warn "dism.exe /Unmount-Image retornó código no exitoso ($LASTEXITCODE): $unmountOut"
+        }
         Remove-Item $wimAuditMount -Recurse -Force -ErrorAction SilentlyContinue
     }
 }

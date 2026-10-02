@@ -1121,7 +1121,10 @@ function Get-WimPatchLevel {
                     if ($hiveLoaded) {
                         [GC]::Collect()
                         [GC]::WaitForPendingFinalizers()
-                        & reg.exe unload "HKLM\_WIMPATCH_TMP" 2>&1 | Out-Null
+                        $unreg = & reg.exe unload "HKLM\_WIMPATCH_TMP" 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Warn "Get-WimPatchLevel: reg.exe unload HKLM\_WIMPATCH_TMP retornó código no exitoso ($LASTEXITCODE): $unreg"
+                        }
                     }
                 }
             }
@@ -1226,7 +1229,10 @@ function Invoke-SafeWimDismount {
         if (Test-Path $hiveKey -ErrorAction SilentlyContinue) {
             $hiveShort = ($hiveKey -replace 'HKLM:\\', 'HKLM\')
             [GC]::Collect(); [GC]::WaitForPendingFinalizers()
-            & reg.exe unload $hiveShort 2>&1 | Out-Null
+            $unreg = & reg.exe unload $hiveShort 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warn "Pre-dismount: reg.exe unload $hiveShort retornó código no exitoso ($LASTEXITCODE): $unreg"
+            }
         }
     }
 
@@ -1286,8 +1292,14 @@ function Invoke-SafeWimDismount {
 
         if (Get-Command "dism.exe" -ErrorAction SilentlyContinue) {
             try {
-                & dism.exe /Unmount-Wim /MountDir:"$MountDir" /Discard 2>&1 | Out-Null
-                & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null
+                $dismOut1 = & dism.exe /Unmount-Wim /MountDir:"$MountDir" /Discard 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Warn "dism.exe /Unmount-Wim forzado retornó código no exitoso ($LASTEXITCODE): $dismOut1"
+                }
+                $dismOut2 = & dism.exe /Cleanup-Mountpoints 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Warn "dism.exe /Cleanup-Mountpoints retornó código no exitoso ($LASTEXITCODE): $dismOut2"
+                }
             } catch {
                 Write-Warn "dism.exe /Unmount-Wim forzado falló en ($MountDir) - $($_.Exception.Message)"
             }
@@ -1474,7 +1486,10 @@ function Invoke-WimAiHardening {
     } finally {
         if ($hiveLoaded) {
             [GC]::Collect(); [GC]::WaitForPendingFinalizers()
-            & reg.exe unload 'HKLM\_ROMANOS_SW' 2>&1 | Out-Null
+            $unreg = & reg.exe unload 'HKLM\_ROMANOS_SW' 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warn "Invoke-WimAiHardening: reg.exe unload HKLM\_ROMANOS_SW retornó código no exitoso ($LASTEXITCODE): $unreg"
+            }
         }
     }
 
@@ -7964,7 +7979,10 @@ if ($wimFile) {
                                         }
                                     )
                                     foreach ($st in $sysTweaks) {
-                                        & reg.exe add $st.Path /v $st.Name /t $st.Type /d $st.Data /f 2>&1 | Out-Null
+                                        $regAddOut = & reg.exe add $st.Path /v $st.Name /t $st.Type /d $st.Data /f 2>&1
+                                        if ($LASTEXITCODE -ne 0) {
+                                            Write-Warn "Error agregando $($st.Name) a colmena SYSTEM ($LASTEXITCODE): $regAddOut"
+                                        }
                                     }
                                     Write-OK "Optimizaciones oficiales de FileSystem y Scheduler inyectadas en SYSTEM hive offline."
                                     Write-OK "Bloqueo de bloatware BIOS (WPBT) y prevención BitLocker inyectados en SYSTEM hive offline (PLAN-0061)."

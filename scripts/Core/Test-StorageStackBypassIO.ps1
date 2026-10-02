@@ -112,14 +112,14 @@ try {
     Write-Warning "Fallo al leer '$regFs': $($_.Exception.Message)"
 }
 
-$cond8dot3 = if ($StrictLive) { ($val8dot3 -eq 1) } else { ($val8dot3 -ne $null) }
+$cond8dot3 = if ($StrictLive) { ($val8dot3 -eq 1) } else { ($null -ne $val8dot3) }
 Assert-Test -Name "NTFS 8.3 Names Configuration" `
     -Condition $cond8dot3 `
     -SuccessMsg "NtfsDisable8dot3NameCreation inspeccionado (valor actual: $val8dot3, SSOT target: 1)" `
     -FailMsg "No se pudo leer NtfsDisable8dot3NameCreation" `
     -Category "NTFS Registry"
 
-$condLastAcc = if ($StrictLive) { ($valLastAccess -eq 1) } else { ($valLastAccess -ne $null) }
+$condLastAcc = if ($StrictLive) { ($valLastAccess -eq 1) } else { ($null -ne $valLastAccess) }
 Assert-Test -Name "NTFS LastAccess Configuration" `
     -Condition $condLastAcc `
     -SuccessMsg "NtfsDisableLastAccessUpdate inspeccionado (valor actual: $valLastAccess, SSOT target: 1)" `

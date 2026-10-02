@@ -263,7 +263,10 @@ function Remove-Residuo {
                     Remove-Item -Path $Item.Ruta -Recurse -Force -ErrorAction SilentlyContinue
                 }
             } else {
-                & dism.exe /Cleanup-Wim 2>&1 | Out-Null
+                $outCl = & dism.exe /Cleanup-Wim 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Warn "dism.exe /Cleanup-Wim retornó código no exitoso ($LASTEXITCODE): $outCl"
+                }
                 Write-Warn "No se pudo desmontar $($Item.Ruta) automáticamente. Se ejecutó /Cleanup-Wim."
             }
             return $ok
@@ -377,8 +380,14 @@ function Show-GestionDependencias {
 #------------------------------------------------------------------------------
 
 function Invoke-CleanupMountpoints {
-    & dism.exe /Cleanup-Mountpoints 2>&1 | Out-Null
-    & dism.exe /Cleanup-Wim 2>&1 | Out-Null
+    $out1 = & dism.exe /Cleanup-Mountpoints 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "dism.exe /Cleanup-Mountpoints retornó código no exitoso ($LASTEXITCODE): $out1"
+    }
+    $out2 = & dism.exe /Cleanup-Wim 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "dism.exe /Cleanup-Wim retornó código no exitoso ($LASTEXITCODE): $out2"
+    }
 }
 
 #------------------------------------------------------------------------------

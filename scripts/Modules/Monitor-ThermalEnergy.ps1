@@ -389,7 +389,7 @@ function Get-RomanOSWakeTimerStatus {
 
     # 1. Auditoría de Wake Timers
     $rawTimers = @()
-    if ($MockWakeTimers -ne $null) {
+    if ($null -ne $MockWakeTimers) {
         $rawTimers = $MockWakeTimers
     } else {
         try {
@@ -456,7 +456,7 @@ function Get-RomanOSWakeTimerStatus {
 
     # 2. Auditoría de Dispositivos Armados (wake_armed)
     $rawDevices = @()
-    if ($MockArmedDevices -ne $null) {
+    if ($null -ne $MockArmedDevices) {
         $rawDevices = $MockArmedDevices
     } else {
         try {

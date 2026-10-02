@@ -224,7 +224,7 @@ $expPol = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
 #   Setup-Windows_<ts>.log            ← log estructurado con niveles
 #   Setup-Windows_<ts>_transcript.log ← transcripción completa de consola
 # ============================================================
-$logDir = "C:\Logs"
+$logDir = if ($env:SystemDrive) { "$($env:SystemDrive)\Logs" } else { "C:\Logs" }
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 
 $_logTs                = Get-Date -Format 'yyyyMMdd_HHmmss'
@@ -397,7 +397,10 @@ function Set-Reg {
                 $nativePath = $Path -replace '(?i)^HKLM:\\', 'HKLM\' -replace '(?i)^HKCU:\\', 'HKCU\'
                 # Ejecutar reg export de manera segura
                 try {
-                    & reg.exe export $nativePath $backupFile /y *>$null
+                    $regExpOut = & reg.exe export $nativePath $backupFile /y 2>&1
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-WarnEntry -Message "reg.exe export retornó código no exitoso ($LASTEXITCODE) para $($nativePath): $regExpOut" -Cause "Código de salida no cero"
+                    }
                 } catch {
                     Write-WarnEntry -Message "No se pudo exportar copia previa de registro para $nativePath" -Cause $_.Exception.Message
                 }
@@ -504,9 +507,10 @@ Write-Host "" -ForegroundColor Gray
 # --- Detección de Sistema Pre-Optimizado por ISO (romanOS / OptimizedISO) ---
 $isIsoOptimized = $false
 try {
-    $hasSetupScripts = (Test-Path "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1") -or
-                       (Test-Path "C:\Windows\Setup\Scripts\SetupComplete.cmd") -or
-                       (Test-Path "C:\Windows\Setup\Scripts\Add-OptimizedContextMenus.ps1")
+    $sysRoot = if ($env:SystemRoot) { $env:SystemRoot } else { "C:\Windows" }
+    $hasSetupScripts = (Test-Path "$sysRoot\Setup\Scripts\Core\Policy-Engine.ps1") -or
+                       (Test-Path "$sysRoot\Setup\Scripts\SetupComplete.cmd") -or
+                       (Test-Path "$sysRoot\Setup\Scripts\Add-OptimizedContextMenus.ps1")
     $cloudPol = Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -ErrorAction SilentlyContinue
     $telemetryPol = Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection" -ErrorAction SilentlyContinue
     $hasPolEngineDirectives = ($cloudPol -and ($cloudPol.DisableWindowsConsumerFeatures -eq 1 -or $cloudPol.DisableCloudOptimizedContent -eq 1)) -or
@@ -588,7 +592,8 @@ if ($hwProfileObj) {
     $hasNpu   = $false
     $npuName  = 'Ausente'
     $hwProfile = if ($isLaptop) { 'NOTEBOOK' } else { 'PC ESCRITORIO' }
-    $isIsoOptimized = (Test-Path "C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1")
+    $sysRoot = if ($env:SystemRoot) { $env:SystemRoot } else { "C:\Windows" }
+    $isIsoOptimized = (Test-Path "$sysRoot\Setup\Scripts\Core\Policy-Engine.ps1")
 }
 
 $hasMuxRisk = $isLaptop -and ($gpuLabel -match 'NVIDIA') -and ($gpuLabel -match 'AMD|Intel')
@@ -1607,7 +1612,8 @@ if ($applyDark) {
     Set-Reg $theme 'SystemUsesLightTheme' 0
     Set-Reg $theme 'EnableTransparency'   1
 
-    $darkWall = 'C:\Windows\Web\Wallpaper\Windows\img19.jpg'
+    $sysRoot = if ($env:SystemRoot) { $env:SystemRoot } else { "C:\Windows" }
+    $darkWall = "$sysRoot\Web\Wallpaper\Windows\img19.jpg"
     if (Test-Path $darkWall) {
         Set-ItemProperty 'HKCU:\Control Panel\Desktop' -Name WallPaper      -Value $darkWall
         Set-ItemProperty 'HKCU:\Control Panel\Desktop' -Name WallpaperStyle -Value 10

@@ -4392,12 +4392,22 @@ function Set-RomanOSDesktopHelperState {
                         & sc.exe config LanmanWorkstation start= auto 2>&1 | Out-Null
                         & sc.exe start LanmanWorkstation 2>&1 | Out-Null
                         & netsh.exe advfirewall firewall set rule group="File and Printer Sharing" new enable=Yes 2>&1 | Out-Null
+                        $exitEn = $LASTEXITCODE
                         & netsh.exe advfirewall firewall set rule group="Uso compartido de archivos e impresoras" new enable=Yes 2>&1 | Out-Null
+                        $exitEs = $LASTEXITCODE
+                        if ($exitEn -ne 0 -and $exitEs -ne 0) {
+                            Write-Warning "[FileSharing] netsh advfirewall no pudo habilitar la regla para grupo de uso compartido (EN: $exitEn, ES: $exitEs)"
+                        }
                     } else {
                         & sc.exe stop LanmanServer 2>&1 | Out-Null
                         & sc.exe config LanmanServer start= disabled 2>&1 | Out-Null
                         & netsh.exe advfirewall firewall set rule group="File and Printer Sharing" new enable=No 2>&1 | Out-Null
+                        $exitEn = $LASTEXITCODE
                         & netsh.exe advfirewall firewall set rule group="Uso compartido de archivos e impresoras" new enable=No 2>&1 | Out-Null
+                        $exitEs = $LASTEXITCODE
+                        if ($exitEn -ne 0 -and $exitEs -ne 0) {
+                            Write-Warning "[FileSharing] netsh advfirewall no pudo deshabilitar la regla para grupo de uso compartido (EN: $exitEn, ES: $exitEs)"
+                        }
                     }
                 }
 
@@ -4408,7 +4418,10 @@ function Set-RomanOSDesktopHelperState {
                         $vbsPath = "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"
                         if (-not (Test-Path $vbsPath)) { New-Item -Path $vbsPath -Force | Out-Null }
                         Set-ItemProperty -Path $vbsPath -Name "Enabled" -Value $hvciVal -Type DWord -Force | Out-Null
-                        & bcdedit.exe /set hypervisorlaunchtype $hypLaunch 2>&1 | Out-Null
+                        $bcdOut = & bcdedit.exe /set hypervisorlaunchtype $hypLaunch 2>&1
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Warning "[VBS/HVCI] bcdedit retornó código de salida no exitoso ($LASTEXITCODE): $bcdOut"
+                        }
                         Write-Warning "[VBS/HVCI] Directiva establecida (hypervisorlaunchtype=$hypLaunch, HVCI=$hvciVal). Para que el cambio surta efecto en el kernel de Windows se requiere REINICIAR el equipo."
                     } catch {
                         Write-Warning "Fallo al conmutar VBS/HVCI: $($_.Exception.Message)"

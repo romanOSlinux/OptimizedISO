@@ -95,7 +95,7 @@ if (-not $CatalogPath) {
         (Join-Path -Path $scriptRoot -ChildPath "Core\App-Profiles-Catalog.json"),
         (Join-Path -Path $scriptRoot -ChildPath "App-Profiles-Catalog.json"),
         "C:\OptimizedISO\scripts\Core\App-Profiles-Catalog.json",
-        "C:\Windows\Setup\Scripts\Core\App-Profiles-Catalog.json"
+        "$env:SystemRoot\Setup\Scripts\Core\App-Profiles-Catalog.json"
     )
     foreach ($cand in $candidatePaths) {
         if (Test-Path -Path $cand) {
@@ -183,7 +183,7 @@ function Get-RomanOSAppCatalog {
         $candidatePaths = @(
             (Join-Path -Path (Split-Path -Parent $PSCommandPath) -ChildPath "..\Core\App-Profiles-Catalog.json"),
             "C:\OptimizedISO\scripts\Core\App-Profiles-Catalog.json",
-            "C:\Windows\Setup\Scripts\Core\App-Profiles-Catalog.json"
+            "$env:SystemRoot\Setup\Scripts\Core\App-Profiles-Catalog.json"
         )
         foreach ($c in $candidatePaths) {
             if (Test-Path -Path $c) { $targetPath = (Resolve-Path -Path $c).Path; break }

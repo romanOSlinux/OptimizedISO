@@ -631,7 +631,7 @@ try {
     # --------------------------------------------------------------------------
     $fidoApplicable = ($Method -in @("Auto", "DirectCDN")) -and -not $downloadSuccess
     $fidoApplicable = $fidoApplicable -and ($Edition -eq "Consumer") -and -not ($Version -match "LTSC")
-    $fidoApplicable = $fidoApplicable -and ($currentEditionLinks -eq $null -or $currentEditionLinks.FidoSupport -eq $true)
+    $fidoApplicable = $fidoApplicable -and ($null -eq $currentEditionLinks -or $currentEditionLinks.FidoSupport -eq $true)
 
     if ($fidoApplicable) {
         Write-Step "PASO 2: Intento de Descarga Directa CDN (Motor Fido / Rufus)"

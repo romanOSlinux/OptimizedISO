@@ -210,7 +210,7 @@ $script:searchDirs += @(
     "C:\Windows\Setup\Scripts\Drivers",
     "C:\Windows\Setup\Scripts\Builder",
     "C:\Windows\Setup\Scripts\DesktopHelpers",
-    "C:\Users\Public\Desktop\romanOS Helpers",
+    $(if ($env:PUBLIC) { "$env:PUBLIC\Desktop\romanOS Helpers" } else { "C:\Users\Public\Desktop\romanOS Helpers" }),
     "C:\OptimizedISO\scripts\Modules",
     "C:\OptimizedISO\scripts\Drivers",
     "C:\OptimizedISO\scripts\Core",
@@ -1818,7 +1818,7 @@ $window.FindName('btnAuditInvariants').Add_Click({
 $window.FindName('btnOpenHelpersFolder').Add_Click({
     $helpersDir = Join-Path $repoScriptsRoot "Desktop-Helpers"
     if (-not (Test-Path $helpersDir)) {
-        $helpersDir = "C:\Users\Public\Desktop\romanOS Helpers"
+        $helpersDir = if ($env:PUBLIC) { "$env:PUBLIC\Desktop\romanOS Helpers" } else { "C:\Users\Public\Desktop\romanOS Helpers" }
     }
     if (Test-Path $helpersDir) {
         Start-Process "explorer.exe" -ArgumentList "`"$helpersDir`""

@@ -481,7 +481,7 @@ if ($SetDNS) {
 #   Network-Diagnostics_<ts>.log            ← log estructurado
 #   Network-Diagnostics_<ts>_transcript.log ← transcripción completa
 # ============================================================
-$logDir = "C:\Logs"
+$logDir = if ($env:SystemDrive) { "$($env:SystemDrive)\Logs" } else { "C:\Logs" }
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 
 $_logTs                = Get-Date -Format 'yyyyMMdd_HHmmss'
@@ -906,7 +906,13 @@ try {
                     'Local_Reset' {
                         Reset-RomanOSDnsServer -Quiet
                         & netsh.exe winsock reset | Out-Null
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Warning "netsh winsock reset retornó código no exitoso: $LASTEXITCODE"
+                        }
                         & netsh.exe int ip reset | Out-Null
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Warning "netsh int ip reset retornó código no exitoso: $LASTEXITCODE"
+                        }
                     }
                 }
                 

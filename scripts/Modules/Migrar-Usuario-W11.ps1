@@ -43,6 +43,19 @@ try {
 $script:OldUserName = $null
 $script:NewUserName = $null
 
+function Get-ProfilesBasePath {
+    $profilesDir = try {
+        $regProfiles = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction Stop).ProfilesDirectory
+        [System.Environment]::ExpandEnvironmentVariables($regProfiles)
+    } catch {
+        $null
+    }
+    if (-not $profilesDir -or -not (Test-Path $profilesDir)) {
+        $profilesDir = if ($env:SystemDrive) { "$($env:SystemDrive)\Users" } else { "C:\Users" }
+    }
+    return $profilesDir
+}
+
 function Write-Titulo {
     param([string]$Texto)
     if (-not [Console]::IsInputRedirected -and -not $isSimulated) {
@@ -131,7 +144,7 @@ function Crear-CuentaNueva {
     }
 
     Write-Host "`nIMPORTANTE: inicie sesion una vez con '$($script:NewUserName)' antes de migrar datos," -ForegroundColor Yellow
-    Write-Host "asi Windows genera la carpeta de perfil C:\Users\$($script:NewUserName)." -ForegroundColor Yellow
+    Write-Host "asi Windows genera la carpeta de perfil $(Join-Path (Get-ProfilesBasePath) $script:NewUserName)." -ForegroundColor Yellow
     Pausar
 }
 
@@ -139,8 +152,9 @@ function Migrar-Datos {
     Write-Titulo "Migrar datos de usuario"
     Confirmar-NombresUsuario
 
-    $OrigenBase = "C:\Users\$($script:OldUserName)"
-    $DestinoBase = "C:\Users\$($script:NewUserName)"
+    $baseProfiles = Get-ProfilesBasePath
+    $OrigenBase = Join-Path $baseProfiles $script:OldUserName
+    $DestinoBase = Join-Path $baseProfiles $script:NewUserName
 
     if (-not (Test-Path $OrigenBase)) {
         Write-Host "No se encontro el perfil de origen: $OrigenBase" -ForegroundColor Red
@@ -223,7 +237,7 @@ function Eliminar-CuentaVieja {
     }
 
     Write-Host "ADVERTENCIA: esta accion es IRREVERSIBLE." -ForegroundColor Red
-    Write-Host "Se eliminara la cuenta '$($script:OldUserName)' y su carpeta de perfil C:\Users\$($script:OldUserName)." -ForegroundColor Red
+    Write-Host "Se eliminara la cuenta '$($script:OldUserName)' y su carpeta de perfil $(Join-Path (Get-ProfilesBasePath) $script:OldUserName)." -ForegroundColor Red
     Write-Host "Verifique antes que '$($script:NewUserName)' funciona correctamente hace al menos varios dias." -ForegroundColor Yellow
 
     $Confirma1 = Read-Host "`nEscriba ELIMINAR (en mayusculas) para continuar"
@@ -242,7 +256,7 @@ function Eliminar-CuentaVieja {
         return
     }
 
-    $RutaPerfil = "C:\Users\$($script:OldUserName)"
+    $RutaPerfil = Join-Path (Get-ProfilesBasePath) $script:OldUserName
     if (Test-Path $RutaPerfil) {
         $BorrarPerfil = Read-Host "Eliminar tambien la carpeta de perfil $RutaPerfil ? (S/N)"
         if ($BorrarPerfil -eq "S" -or $BorrarPerfil -eq "s") {

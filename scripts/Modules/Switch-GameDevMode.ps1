@@ -360,16 +360,16 @@ if ($Mode -eq "Status") {
     Write-Host ("  Switch Virtual Red   : {0}" -f $(if($vEthernet){$vEthernet.Name + " [ACTIVO - Suma Latencia DPC]"}else{"[DESMONTADO - Latencia Nativa <500us]"})) -ForegroundColor $(if($vEthernet){'Yellow'}else{'Green'})
     
     $sysProfile = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -ErrorAction SilentlyContinue
-    $sysResp = if ($sysProfile -and $sysProfile.SystemResponsiveness -ne $null) { $sysProfile.SystemResponsiveness } else { "N/D" }
-    $netThrot = if ($sysProfile -and $sysProfile.NetworkThrottlingIndex -ne $null) { $sysProfile.NetworkThrottlingIndex } else { "N/D" }
+    $sysResp = if ($sysProfile -and $null -ne $sysProfile.SystemResponsiveness) { $sysProfile.SystemResponsiveness } else { "N/D" }
+    $netThrot = if ($sysProfile -and $null -ne $sysProfile.NetworkThrottlingIndex) { $sysProfile.NetworkThrottlingIndex } else { "N/D" }
     
     Write-Host ("  Planificador Kernel  : SystemResponsiveness = {0} ({1})" -f $sysResp, $(if($sysResp -eq 10){"90% CPU a Juegos [MODO GAMING CALIBRADO]"}elseif($sysResp -eq 20){"20% CPU reservada a background [ESTANDAR]"}else{"Valor configurado: $sysResp"})) -ForegroundColor $(if($sysResp -eq 10){'Green'}else{'Yellow'})
     Write-Host ("  Limitador Red MMCSS  : NetworkThrottlingIndex = {0} ({1})" -f $netThrot, $(if($netThrot -eq 4294967295){"Desactivado (Throughput Maximo)"}else{"Activo ($netThrot paquetes/ms)"})) -ForegroundColor $(if($netThrot -eq 4294967295){'Green'}else{'Yellow'})
     
     $memKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
     $memProps = Get-ItemProperty -Path $memKey -ErrorAction SilentlyContinue
-    $lsc = if ($memProps -and $memProps.LargeSystemCache -ne $null) { $memProps.LargeSystemCache } else { 0 }
-    $dpe = if ($memProps -and $memProps.DisablePagingExecutive -ne $null) { $memProps.DisablePagingExecutive } else { 0 }
+    $lsc = if ($memProps -and $null -ne $memProps.LargeSystemCache) { $memProps.LargeSystemCache } else { 0 }
+    $dpe = if ($memProps -and $null -ne $memProps.DisablePagingExecutive) { $memProps.DisablePagingExecutive } else { 0 }
     Write-Host ("  LargeSystemCache     : {0} ({1})" -f $lsc, $(if($lsc -eq 0){"0 [OK: Prioridad a Procesos y VRAM APU]"}else{"1 [Alerta: Prioriza cache de archivos]"})) -ForegroundColor $(if($lsc -eq 0){'Green'}else{'Yellow'})
     Write-Host ("  DisablePagingExec    : {0} ({1})" -f $dpe, $(if($dpe -eq 1){"1 [OK: Drivers fijados en RAM fisica]"}else{"0 [Paginacion de kernel permitida]"})) -ForegroundColor $(if($dpe -eq 1){'Green'}else{'Yellow'})
     
@@ -636,10 +636,10 @@ if ($Mode -eq "Dev") {
         $restoredResp = 20
         $restoredNet  = 10
         if ($savedSnapshot) {
-            if ($savedSnapshot.'__SystemResponsiveness' -ne $null) {
+            if ($null -ne $savedSnapshot.'__SystemResponsiveness') {
                 $restoredResp = [int]$savedSnapshot.'__SystemResponsiveness'
             }
-            if ($savedSnapshot.'__NetworkThrottlingIndex' -ne $null) {
+            if ($null -ne $savedSnapshot.'__NetworkThrottlingIndex') {
                 $restoredNet = [int]$savedSnapshot.'__NetworkThrottlingIndex'
             }
         }
