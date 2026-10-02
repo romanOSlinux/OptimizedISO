@@ -351,7 +351,7 @@ try {
     # Optimizacion de Rendimiento NTFS (disablelastaccess)
     try {
         $lastAccessQuery = & fsutil behavior query disablelastaccess 2>&1
-        if ($lastAccessQuery -match '1|3|User Managed, Last Access Updates Disabled|System Managed, Last Access Updates Disabled') {
+        if ($lastAccessQuery -match 'DisableLastAccess\s*=\s*[13]|actualizaciones de la hora de [uú]ltimo acceso DESHABILITADAS|User Managed, Last Access Updates Disabled|System Managed, Last Access Updates Disabled') {
             $passedChecks.Add("Desactivacion de registro de ultimo acceso NTFS verificada.")
             $reportLines.Add("- **Optimizacion NTFS (disablelastaccess):** Activa [OK]")
         } else {

@@ -378,7 +378,7 @@ Write-StepHeader -StepNumber 5 -TotalSteps 10 -Message "Almacenamiento & NTFS (T
 try {
     # TRIM
     $trimQuery = "$(& fsutil behavior query DisableDeleteNotify 2>&1)".Trim()
-    if ($trimQuery -match '0|Permite que se env[ií]en operaciones de recorte') {
+    if ($trimQuery -match 'DisableDeleteNotify\s*=\s*0|Permite que se env[ií]en operaciones de recorte') {
         Register-AuditResult -Category "Almacenamiento" -Item "Soporte SSD TRIM" -Status "OK" -ActualValue "Habilitado (DisableDeleteNotify = 0)" -ExpectedValue "Habilitado (0)" -Impact "Mantiene velocidad de escritura sostenida y previene desgaste NAND" -Source "JEDEC / Microsoft Storage Architecture"
     } else {
         Register-AuditResult -Category "Almacenamiento" -Item "Soporte SSD TRIM" -Status "FAIL" -ActualValue "Deshabilitado o no admitido" -ExpectedValue "Habilitado (0)" -Impact "Degradacion severa del rendimiento de escrituras en SSD" -Source "Microsoft Storage Architecture" -RemediationCmd "fsutil behavior set DisableDeleteNotify 0"
@@ -386,7 +386,7 @@ try {
 
     # DisableLastAccess
     $lastAccessQuery = "$(& fsutil behavior query disablelastaccess 2>&1)".Trim()
-    if ($lastAccessQuery -match '1|3|actualizaciones de la hora de [uú]ltimo acceso DESHABILITADAS|User Managed, Last Access Updates Disabled|System Managed, Last Access Updates Disabled') {
+    if ($lastAccessQuery -match 'DisableLastAccess\s*=\s*[13]|actualizaciones de la hora de [uú]ltimo acceso DESHABILITADAS|User Managed, Last Access Updates Disabled|System Managed, Last Access Updates Disabled') {
         Register-AuditResult -Category "Almacenamiento" -Item "NTFS DisableLastAccess" -Status "OK" -ActualValue "Optimo (Actualizaciones Deshabilitadas)" -ExpectedValue "Deshabilitado (1 o 3)" -Impact "Elimina escrituras continuas de metadatos cada vez que un archivo se lee" -Source "Microsoft Learn: fsutil behavior"
     } else {
         Register-AuditResult -Category "Almacenamiento" -Item "NTFS DisableLastAccess" -Status "WARN" -ActualValue "Habilitado (Estandar 0/2)" -ExpectedValue "Deshabilitado (1)" -Impact "Sobrecarga de escrituras de timestamp en particiones NTFS" -Source "Microsoft Learn: fsutil behavior" -RemediationCmd "fsutil behavior set disablelastaccess 1"

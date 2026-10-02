@@ -221,7 +221,7 @@ foreach ($engine in $AntiCheatEngines) {
                     # Comprobar si bcdedit tiene testsigning activo
                     try {
                         $bcdOutput = & bcdedit /enum '{current}' 2>&1 | Out-String
-                        if ($bcdOutput -match "testsigning\s+Yes") {
+                        if ($bcdOutput -match "testsigning\s+(?:Yes|S[ií])") {
                             $reqPassed = $false
                             $statusBadge = "FAIL"
                             $actualState = "TestSigning = Yes (PROHIBIDO)"

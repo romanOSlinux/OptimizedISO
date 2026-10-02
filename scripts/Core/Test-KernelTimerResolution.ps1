@@ -106,25 +106,25 @@ $hpetStatus = "Desactivado en BCD (Óptimo)"
 
 try {
     $bcdOutput = & bcdedit /enum '{current}' 2>&1 | Out-String
-    if ($bcdOutput -match "useplatformclock\s+Yes") {
+    if ($bcdOutput -match "useplatformclock\s+(?:Yes|S[ií])") {
         $bcdUsePlatformClock = "Yes (HPET Lento Forzado)"
         $hpetStatus = "ALERTA: useplatformclock está forzado. Causa latencia en CPUs modernas."
         Write-Warning "HPET forzado en BCD. Se recomienda desactivar useplatformclock para usar el TSC de la CPU."
     }
-    if ($bcdOutput -match "disabledynamictick\s+Yes") {
+    if ($bcdOutput -match "disabledynamictick\s+(?:Yes|S[ií])") {
         $bcdDisabledynamictick = "Yes (Dynamic Tick Desactivado)"
     }
-    if ($bcdOutput -match "syntheticclock\s+Yes") {
+    if ($bcdOutput -match "syntheticclock\s+(?:Yes|S[ií])") {
         $bcdSyntheticClock = "Yes"
     }
 } catch {
     Write-Warning "No se pudo consultar bcdedit: $($_.Exception.Message)"
 }
 
-Write-Host "  useplatformclock   : $bcdUsePlatformClock" -ForegroundColor $(if ($bcdUsePlatformClock -match "Yes") { 'Red' } else { 'Green' })
+Write-Host "  useplatformclock   : $bcdUsePlatformClock" -ForegroundColor $(if ($bcdUsePlatformClock -match "Yes|S[ií]") { 'Red' } else { 'Green' })
 Write-Host "  disabledynamictick : $bcdDisabledynamictick" -ForegroundColor DarkGray
 Write-Host "  syntheticclock     : $bcdSyntheticClock" -ForegroundColor DarkGray
-Write-Host "  Diagnóstico Reloj  : $hpetStatus" -ForegroundColor $(if ($bcdUsePlatformClock -match "Yes") { 'Red' } else { 'Green' })
+Write-Host "  Diagnóstico Reloj  : $hpetStatus" -ForegroundColor $(if ($bcdUsePlatformClock -match "Yes|S[ií]") { 'Red' } else { 'Green' })
 Write-Host ""
 
 # -----------------------------------------------------------------------------

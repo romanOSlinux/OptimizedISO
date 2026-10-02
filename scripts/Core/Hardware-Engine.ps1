@@ -415,7 +415,7 @@ function Get-SystemHardwareProfile {
         $targetDrive = if ($env:SystemDrive) { "$($env:SystemDrive)\" } else { "C:\" }
         try {
             $bypassIoOut = & fsutil.exe bypassIO state $targetDrive 2>&1 | Out-String
-            if ($bypassIoOut -match 'BypassIo is supported' -or $bypassIoOut -match 'BypassIo is enabled') {
+            if ($bypassIoOut -match 'BypassIo is (?:supported|enabled)|est[aá] (?:admitido|habilitado)') {
                 $isBypassIOSupported = $true
                 $directStorageStatus = 'DirectStorage / BypassIO: ACTIVO [OK]'
             } else {
@@ -1111,11 +1111,11 @@ function Test-RomanOSBypassIoState {
     if ($MockOutput) {
         $combined = $MockOutput.Trim()
         $res.RawOutput = $combined
-        if ($combined -match 'BypassIo is supported' -or $combined -match 'BypassIo is enabled') {
+        if ($combined -match 'BypassIo is (?:supported|enabled)|est[aá] (?:admitido|habilitado)') {
             $res.IsSupported = $true
             $res.StatusReason = "BypassIO Soportado y Activo"
         } else {
-            if ($combined -match 'Reason:\s*(.+)') {
+            if ($combined -match '(?:Reason|Motivo|Causa):\s*(.+)') {
                 $res.StatusReason = $matches[1].Trim()
             } else {
                 $res.StatusReason = "BypassIO no habilitado en el volumen"
@@ -1124,7 +1124,7 @@ function Test-RomanOSBypassIoState {
             $lines = $combined -split "`r?`n"
             $filtersFound = [System.Collections.Generic.List[string]]::new()
             foreach ($line in $lines) {
-                if ($line -match 'Driver:\s*([a-zA-Z0-9_\-\.]+)') {
+                if ($line -match '(?:Driver|Controlador):\s*([a-zA-Z0-9_\-\.]+)') {
                     $filtersFound.Add($matches[1].Trim())
                 }
             }
@@ -1152,13 +1152,13 @@ function Test-RomanOSBypassIoState {
             $combined = ($stdout + "`n" + $stderr).Trim()
             $res.RawOutput = $combined
 
-            if ($combined -match 'BypassIo is supported' -or $combined -match 'BypassIo is enabled') {
+            if ($combined -match 'BypassIo is (?:supported|enabled)|est[aá] (?:admitido|habilitado)') {
                 $res.IsSupported = $true
                 $res.StatusReason = "BypassIO Soportado y Activo"
             } elseif ($combined -match 'Acceso denegado' -or $combined -match 'Access is denied' -or $proc.ExitCode -eq 5) {
                 $res.StatusReason = "Requiere elevacion de Administrador para consultar fsutil"
             } else {
-                if ($combined -match 'Reason:\s*(.+)') {
+                if ($combined -match '(?:Reason|Motivo|Causa):\s*(.+)') {
                     $res.StatusReason = $matches[1].Trim()
                 } else {
                     $res.StatusReason = "BypassIO no habilitado en el volumen"

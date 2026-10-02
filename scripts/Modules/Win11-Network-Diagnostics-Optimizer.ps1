@@ -878,7 +878,12 @@ try {
                                     $prop = Get-NetAdapterAdvancedProperty -Name $a.Name -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match $tweak.DisplayMatch }
                                     if ($prop) {
                                         $applied = $false
-                                        $candidateValues = @($tweak.DisplayValue, 'Desactivado', 'Deshabilitado', 'Disabled', '0')
+                                        $isEnabling = ($tweak.DisplayValue -match '^(Enabled|Activado|Habilitado|1)$' -or $tweak.RegistryValue -eq '1')
+                                        $candidateValues = if ($isEnabling) {
+                                            @($tweak.DisplayValue, 'Habilitado', 'Activado', 'Enabled', '1')
+                                        } else {
+                                            @($tweak.DisplayValue, 'Desactivado', 'Deshabilitado', 'Disabled', '0')
+                                        }
                                         foreach ($cv in $candidateValues) {
                                             try {
                                                 Set-NetAdapterAdvancedProperty -Name $a.Name -DisplayName $prop.DisplayName -DisplayValue $cv -ErrorAction Stop | Out-Null
