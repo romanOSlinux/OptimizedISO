@@ -1,6 +1,6 @@
 # OptimizedISO
 
-> Genera una ISO de Windows 10/11 completamente desatendida (Zero-Touch) con limpieza de bloatware y optimizaciones de gaming/rendimiento preintegradas.
+> Genera una ISO de Windows 11 completamente desatendida (Zero-Touch) con limpieza de bloatware y optimizaciones de gaming/rendimiento preintegradas.
 
 [![Lint & Validate](https://github.com/romanOSlinux/OptimizedISO/actions/workflows/lint.yml/badge.svg)](https://github.com/romanOSlinux/OptimizedISO/actions/workflows/lint.yml)
 [![Latest Release](https://img.shields.io/github/v/release/romanOSlinux/OptimizedISO)](https://github.com/romanOSlinux/OptimizedISO/releases/latest)

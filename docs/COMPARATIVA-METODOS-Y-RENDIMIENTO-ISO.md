@@ -1,6 +1,6 @@
 # 📊 Comparativa de Métodos y Rendimiento para Creación de ISOs de Windows
 
-Este documento detalla el análisis técnico de los diferentes métodos, herramientas oficiales de Microsoft y soluciones de alto rendimiento de la comunidad para la personalización, optimización y generación de medios de instalación ISO de Windows 10 y Windows 11.
+Este documento detalla el análisis técnico de los diferentes métodos, herramientas oficiales de Microsoft y soluciones de alto rendimiento de la comunidad para la personalización, optimización y generación de medios de instalación ISO de Windows 11.
 
 ---
 

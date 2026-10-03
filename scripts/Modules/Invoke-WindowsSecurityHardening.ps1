@@ -4,7 +4,7 @@
     Toolkit de SysAdmin y Alto Rendimiento romanOS
 
 .DESCRIPTION
-    Audita la postura de seguridad del sistema operativo Windows 10/11 bajo demanda (sin servicios
+    Audita la postura de seguridad del sistema operativo Windows 11 bajo demanda (sin servicios
     ni procesos residentes en segundo plano). Inspecciona reglas ASR de Microsoft Defender,
     Virtualization-Based Security (VBS/HVCI), protocolos obsoletos (SMBv1, LLMNR, NetBIOS),
     seguridad de credenciales (LSA Protection, NTLM) y configuraciones de superficie de ataque.

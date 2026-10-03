@@ -328,10 +328,10 @@ Descargador multicanal con verificación criptográfica SHA-256:
   -Edition "Consumer" `
   -Language "Spanish"
 
-# Descargar Windows 10 22H2 en Ingles
-& "C:\OptimizedISO\scripts\Get-OfficialWindowsISO.ps1" `
-  -Version "10_22H2" `
-  -Edition "Consumer" `
+# Descargar Windows 11 LTSC 2024 IoT Enterprise en Inglés
+& "C:\OptimizedISO\scripts\Host-Tools\Get-OfficialWindowsISO.ps1" `
+  -Version "11_LTSC_2024" `
+  -Edition "IoTEnterprise" `
   -Language "English"
 ```
 
@@ -343,21 +343,21 @@ Descarga paquetes oficiales `.msu` y `.cab` (LCU, SSU, .NET Framework Cumulative
 
 ```powershell
 # 1. Modo Interactivo con selección asistida y prompt de carpeta de destino:
-& "C:\OptimizedISO\scripts\Get-WindowsUpdates.ps1"
-# O doble clic en: C:\OptimizedISO\scripts\Get-WindowsUpdates.cmd
+& "C:\OptimizedISO\scripts\Builder\Get-WindowsUpdates.ps1"
+# O doble clic en: C:\OptimizedISO\scripts\Builder\Get-WindowsUpdates.cmd
 
 # 2. Descarga desatendida de parches para Windows 11 24H2 en una carpeta específica:
-& "C:\OptimizedISO\scripts\Get-WindowsUpdates.ps1" `
+& "C:\OptimizedISO\scripts\Builder\Get-WindowsUpdates.ps1" `
   -Version "11_24H2" `
   -PackageType "All" `
   -OutputDir "C:\OptimizedISO\Updates" `
   -Unattended
 
-# 3. Descargar solo parches LCU y .NET para Windows 10 22H2:
-& "C:\OptimizedISO\scripts\Get-WindowsUpdates.ps1" `
-  -Version "10_22H2" `
+# 3. Descargar solo parches LCU y .NET para Windows 11 25H2:
+& "C:\OptimizedISO\scripts\Builder\Get-WindowsUpdates.ps1" `
+  -Version "11_25H2" `
   -PackageType "All" `
-  -OutputDir "D:\MisParches\Win10"
+  -OutputDir "C:\OptimizedISO\Updates"
 
 # 4. Incluir SafeOS Dynamic Update para entorno WinRE:
 & "C:\OptimizedISO\scripts\Get-WindowsUpdates.ps1" `

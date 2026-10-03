@@ -1,4 +1,4 @@
-﻿# Referencia Rápida de Comandos — New-OptimizedWindowsISO.ps1
+# Referencia Rápida de Comandos — New-OptimizedWindowsISO.ps1
 
 > 💡 **Guía Completa de la Suite romanOS:** Para consultar todas las opciones de ejecución, menús interactivos y parámetros CLI de **todos los scripts del repositorio** (Toolkit Maestro, Debloat, Mantenimiento, Red, Seguridad, Diagnósticos y Compilación de ISOs), consulta la **[Guía Maestra de Lanzamiento y Comandos](GUIA_DE_EJECUCION_Y_COMANDOS.md)**.
 
@@ -38,11 +38,10 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
   -SourceISO "C:\Users\Roman\Downloads\Win11_24H2_Spanish_x64.iso" `
   -LocalUser "Roman"
 
-# ISO de Windows 10
+# ISO de Windows 11 IoT Enterprise LTSC 2024
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
-  -SourceISO "D:\ISOs\Win10_22H2.iso" `
-  -LocalUser "Roman" `
-  -WindowsVersion "10"
+  -SourceISO "D:\ISOs\Win11_LTSC_2024.iso" `
+  -LocalUser "Roman"
 ```
 
 ---

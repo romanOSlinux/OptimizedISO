@@ -218,7 +218,7 @@ $xamlString = @"
             <!-- Pestaña 1 -->
             <TabItem Header="Construcción Base">
                 <Grid Margin="15">
-                    <TextBlock Text="Imagen de Origen (Windows 10/11 ISO):" Foreground="#E3E3E3" Margin="0,15,0,0" FontWeight="SemiBold"/>
+                    <TextBlock Text="Imagen de Origen (Windows 11 ISO):" Foreground="#E3E3E3" Margin="0,15,0,0" FontWeight="SemiBold"/>
                     <TextBox x:Name="txtSourceISO" Margin="270,10,110,0" Height="28" VerticalAlignment="Top" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" BorderThickness="1" Padding="4"/>
                     <Button x:Name="btnBrowseISO" Content="Examinar" Margin="0,10,10,0" Height="28" Width="90" HorizontalAlignment="Right" VerticalAlignment="Top" Background="#333333" Foreground="#E3E3E3" BorderThickness="1" BorderBrush="#454545"/>
                     

@@ -1,12 +1,12 @@
-﻿# Guía Rápida de Uso: Creador de ISO Optimizada (Zero-Touch v2)
+# Guía Rápida de Uso: Creador de ISO Optimizada (Zero-Touch v2)
 
 > 💡 **Manual Completo y Detallado:** Para consultar la guía paso a paso de toda la suite (Toolkit Maestro, Mantenimiento, Red y Seguridad), consulta [`docs/MANUAL_DE_USO.md`](file:///c:/OptimizedISO/docs/MANUAL_DE_USO.md).
 
-Este documento resume cómo utilizar el script maestro [`scripts/New-OptimizedWindowsISO-v2.ps1`](file:///c:/OptimizedISO/scripts/New-OptimizedWindowsISO-v2.ps1) para generar imágenes de Windows 10 u 11 completamente desatendidas con la suite de herramientas **romanOS Toolkit Maestro** preintegrada en el Menú Inicio.
+Este documento resume cómo utilizar el script maestro [`scripts/Builder/New-OptimizedWindowsISO-v2.ps1`](file:///c:/OptimizedISO/scripts/Builder/New-OptimizedWindowsISO-v2.ps1) para generar imágenes de Windows 11 completamente desatendidas con la suite de herramientas **romanOS Toolkit Maestro** preintegrada en el Menú Inicio.
 
 > **Advertencia Importante:** La ISO generada con este script está configurada como **Zero-Touch**. Al bootear desde el USB, **formateará automáticamente el Disco 0** e instalará Windows sin intervención humana. Úsala solo en equipos donde desees una instalación limpia completa.
 >
-> 💡 **Compatibilidad:** Probado y certificado para **Windows 11 (25H2 / 24H2 / 23H2 / LTSC 2024)** y **Windows 10 (22H2 / LTSC 2021)**.
+> 💡 **Compatibilidad:** Probado y certificado exclusivamente para **Windows 11 (25H2 / 24H2 / 23H2 / 22H2 / LTSC 2024)**.
 
 ---
 

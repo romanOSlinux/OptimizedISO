@@ -1,6 +1,6 @@
 # 📖 Manual de Uso Oficial: romanOS Toolkit & ISO Optimizada v2
 
-Guía integral de uso y referencia técnica para la creación de imágenes ISO desatendidas de Windows 10/11 y la suite de herramientas **romanOS Toolkit Maestro** (Optimización Extrema para Gaming/Streaming, Mantenimiento, Red y Seguridad Desacoplada).
+Guía integral de uso y referencia técnica para la creación de imágenes ISO desatendidas de Windows 11 y la suite de herramientas **romanOS Toolkit Maestro** (Optimización Extrema para Gaming/Streaming, Mantenimiento, Red y Seguridad Desacoplada).
 
 ---
 

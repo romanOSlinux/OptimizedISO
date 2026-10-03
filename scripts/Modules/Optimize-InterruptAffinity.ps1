@@ -4,7 +4,7 @@
     Calibrador de Afinidad de Núcleos, Prioridad IRQ y Descongestión del Núcleo 0 en Vivo
 
 .DESCRIPTION
-    Optimiza el subsistema HAL de interrupciones PCIe de Windows 10/11 (24H2/25H2 Ready):
+    Optimiza el subsistema HAL de interrupciones PCIe de Windows 11 (24H2/25H2 Ready):
       1. Auto-detecta dispositivos críticos (GPU, NVMe Storage y NICs físicos).
       2. Garantiza operación en modo MSI (Message Signaled Interrupts, MSISupported = 1).
       3. Eleva la prioridad de despacho IRQ a High (3) para GPU y NVMe, y Normal (2) para NIC.

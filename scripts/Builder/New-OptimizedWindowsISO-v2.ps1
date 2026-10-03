@@ -2,18 +2,18 @@
 
 <#
 .SYNOPSIS
-Genera una ISO de Windows 10/11 con scripts de optimización integrados — Versión 2.0 (v2).
+Genera una ISO de Windows 11 con scripts de optimización integrados — Versión 2.0 (v2).
 
 .DESCRIPTION
-Constructor automatizado y modular de segunda generación para imágenes de Windows.
+Constructor automatizado y modular de segunda generación para imágenes de Windows 11.
 Soporta ingestión de ISOs locales y descarga dinámica en vivo desde los servidores CDN oficiales
-de Microsoft Learn (Canal General 25H2/24H2/23H2, LTSC 2024 IoT y LTSC 2021).
+de Microsoft Learn (Canal General 25H2/24H2/23H2 y LTSC 2024 IoT).
 Incluye layout GPT con partición WinRE de 500 MB, Modo Oscuro nativo en OOBE, políticas de
 controladores bajo demanda, debloat profundo con whitelist segura, bypasses automáticos
 y reconstrucción dual-boot UEFI/BIOS (El Torito).
 
 .PARAMETER SourceISO
-Ruta a la ISO original de Windows 10 u 11 (si se omite, se ofrece descarga oficial interactiva).
+Ruta a la ISO original de Windows 11 (si se omite, se ofrece descarga oficial interactiva).
 
 .PARAMETER DownloadOfficialISO
 Activa la descarga directa de medios limpios desde los servidores oficiales de Microsoft.
@@ -31,16 +31,13 @@ Idioma oficial de descarga: "Spanish", "Spanish (Mexico)", "English", etc.
 Directorio donde se guardará la ISO resultante y los registros de compilación.
 
 .PARAMETER WindowsVersion
-Fuerza detección: "10" o "11".
+Fuerza detección de versión de Windows ("11").
 
 .PARAMETER AutoInstallDeps
 Instala automáticamente dependencias vía winget si están disponibles.
 
-.PARAMETER InjectWin10Script
-Fuerza intento de inyección de Windows10_PostInstall_Optimizer.ps1.
-
 .PARAMETER InjectWin11Script
-Fuerza intento de inyección de Windows11_PostInstall_Optimizer.ps1.
+Fuerza intento de inyección de script de post-instalación de Windows 11.
 
 .PARAMETER SkipAutoUnattend
 Omite la creación de autounattend.xml.
@@ -68,9 +65,6 @@ Zona horaria de Windows. Ejemplo: Romance Standard Time.
 
 .PARAMETER KeyboardOverride
 Layout de teclado. Si se deja vacío, se usa Language.
-
-.PARAMETER Win10ScriptPath
-Ruta al script optimizador para Windows 10.
 
 .PARAMETER Win11ScriptPath
 Ruta al script optimizador para Windows 11.
@@ -162,9 +156,6 @@ param(
     [switch]$AutoInstallDeps,
 
     [Parameter()]
-    [switch]$InjectWin10Script,
-
-    [Parameter()]
     [switch]$InjectWin11Script,
 
     [Parameter()]
@@ -193,9 +184,6 @@ param(
 
     [Parameter()]
     [string]$KeyboardOverride = "",
-
-    [Parameter()]
-    [string]$Win10ScriptPath = "",
 
     [Parameter()]
     [string]$Win11ScriptPath = "",
@@ -2542,15 +2530,13 @@ function Detect-WindowsVersion {
         return "11"
     }
     Write-Host "`n  Seleccione la versión de Windows que contiene esta ISO:" -ForegroundColor Yellow
-    Write-Host "  [1] Windows 11" -ForegroundColor Cyan
-    Write-Host "  [2] Windows 10" -ForegroundColor Cyan
+    Write-Host "  [1] Windows 11 (22H2 / 23H2 / 24H2 / 25H2 / LTSC 2024)" -ForegroundColor Cyan
     Write-Host "  [0] Cancelar" -ForegroundColor Gray
 
     $choice = Read-Host "`nOpción"
 
     switch ($choice) {
         "1" { return "11" }
-        "2" { return "10" }
         default { return $null }
     }
 }
@@ -3868,8 +3854,7 @@ function Invoke-OfficialWindowsDownload {
     # -----------------------------------------------------------------------
     if (-not $downloadSuccess) {
         Write-Host ""
-        $consumerUrl  = if ($Version -like '11_*') { "https://www.microsoft.com/software-download/windows11" } `
-                        else { "https://www.microsoft.com/software-download/windows10" }
+        $consumerUrl  = "https://www.microsoft.com/software-download/windows11"
         $massgraveUrl = "https://massgrave.dev/genuine-installation-media"
 
         Write-Host "  ┌────────────────────────────────────────────────────────────────────────┐" -ForegroundColor Cyan
@@ -4786,7 +4771,6 @@ $maintScriptCandidate = Join-Path $ScriptsDir "Modules\Invoke-WindowsMaintenance
 $netScriptCandidate   = Join-Path $ScriptsDir "Modules\Win11-Network-Diagnostics-Optimizer.ps1"
 $secScriptCandidate   = Join-Path $ScriptsDir "Modules\Invoke-WindowsSecurityHardening.ps1"
 $contextCandidate     = Join-Path $ScriptsDir "Modules\Add-OptimizedContextMenus.ps1"
-$legacyCandidate      = Join-Path $ScriptsDir "Modules\Windows${detectedVersion}_PostInstall_Optimizer.ps1"
 
 # Verificar si se pasó ruta explícita por parámetro CLI
 if ($detectedVersion -eq "10") {
@@ -4820,7 +4804,6 @@ if ($scriptsToInject.Count -eq 0) {
     $hasNet     = Test-Path $netScriptCandidate
     $hasSec     = Test-Path $secScriptCandidate
     $hasContext = Test-Path $contextCandidate
-    $hasLeg     = Test-Path $legacyCandidate
 
     if ($hasToolkit -or ($hasDeb -and $hasMaint)) {
         Write-Host "  [1] Suite Completa romanOS: Toolkit Maestro + Debloat + Mantenimiento + Red + Seguridad + Menus [Recomendado]" -ForegroundColor Green
@@ -8604,7 +8587,6 @@ if ($wimFile -and (Test-Path $wimFile.FullName)) {
             elseif ($bNum -ge 22631) { $branchTag = "23H2" }
             elseif ($bNum -ge 22621) { $branchTag = "22H2" }
             elseif ($bNum -ge 22000) { $branchTag = "21H2" }
-            elseif ($bNum -ge 19045) { $branchTag = "22H2" }
         }
     } catch {
         Write-Debug "Extracción de branchTag desde WIM omitida: $($_.Exception.Message)"

@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Automatiza el despliegue de una máquina virtual de prueba en Hyper-V para verificar
-    el arranque desatendido de imágenes ISO optimizadas de Windows 10 y Windows 11.
+    el arranque desatendido de imágenes ISO optimizadas de Windows 11.
     
     Características clave:
     - Validación de privilegios de Administrador y disponibilidad del rol Hyper-V.
