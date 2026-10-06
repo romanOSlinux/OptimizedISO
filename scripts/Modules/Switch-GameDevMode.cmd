@@ -1,5 +1,5 @@
 @echo off
-title romanOS - Conmutador Modo Juego y Desarrollo (Game ^& Dev Switch)
+title romanOS - Conmutador de Rendimiento: Modo Juego Adaptativo y Modo Normal
 chcp 65001 >nul 2>&1
 
 :: Comprobar privilegios de Administrador y auto-elevar (si no se solicito solo Status)
@@ -36,8 +36,12 @@ if /i "%~1"=="-Light"      goto :run_game_light_cli
 if /i "%~1"=="Light"       goto :run_game_light_cli
 if /i "%~1"=="-Game"       goto :run_game_light_cli
 if /i "%~1"=="Game"        goto :run_game_light_cli
-if /i "%~1"=="-Dev"        goto :run_dev
-if /i "%~1"=="Dev"         goto :run_dev
+if /i "%~1"=="-Normal"     goto :run_normal_cli
+if /i "%~1"=="Normal"      goto :run_normal_cli
+if /i "%~1"=="-Restore"    goto :run_normal_cli
+if /i "%~1"=="Restore"     goto :run_normal_cli
+if /i "%~1"=="-Dev"        goto :run_normal_cli
+if /i "%~1"=="Dev"         goto :run_normal_cli
 if /i "%~1"=="-Status"     goto :run_status_cli
 if /i "%~1"=="Status"      goto :run_status_cli
 if not "%~1"=="" (
@@ -49,23 +53,23 @@ if not "%~1"=="" (
 cls
 echo.
 echo  ======================================================================
-echo    romanOS - CONMUTADOR MODO JUEGO Y DESARROLLO (GAME OPTIMIZER)
-echo    Optimizador Bimodal de Recursos para Gaming y Pruebas de ISOs
+echo    romanOS - CONMUTADOR DE RENDIMIENTO ADAPTATIVO (HARDWARE-AWARE)
+echo    Optimizador Universal de Recursos para Gaming y Modo Normal
 echo  ======================================================================
 echo.
-echo    [1] Activar MODO JUEGO (Baja Latencia DPC ^& MMCSS Calibrado)
-echo        - Desmonta conmutador virtual de Hyper-V (elimina latencia DPC ^< 500 us)
-echo        - Pausa servicios no esenciales (WSearch, PcaSvc, DPS, DiagTrack, Update)
+echo    [1] Activar MODO JUEGO (Hardware-Aware ^& Baja Latencia DPC)
+echo        - Calibra gobernador de CPU segun arquitectura de silicio
+echo        - Pausa servicios no esenciales en segundo plano
 echo        - Calibra MMCSS (SystemResponsiveness = 10, NetworkThrottling = OFF)
 echo        - Protege VRAM UMA (LargeSystemCache = 0) y fija kernel en RAM fisica
-echo        - CONSERVA el 100%% de tus ventanas y aplicaciones abiertas
+echo        - CONSERVA el 100%% de tus ventanas y navegadores abiertos
 echo.
-echo    [2] Activar MODO DEV / NORMAL (Restauracion Transaccional)
-echo        - Restaura pila completa de Hyper-V (vmms, vmcompute, HNS, HvHost)
-echo        - Reactiva adaptador vEthernet para pruebas de ISOs y VMs
-echo        - Restaura todos los servicios pausados a su estado exacto previo
+echo    [2] Activar MODO NORMAL (Restauracion de Productividad y Estandar Windows)
+echo        - Restaura servicios de sistema, indexacion y productividad
+echo        - Restaura la gestion de energia de CPU al estandar equilibrado
+echo        - Restaura prioridades multimedia oficiales de Windows
 echo.
-echo    [3] Ver Estado Actual y Metricas de Memoria RAM
+echo    [3] Ver Estado Actual, Silicio y Metricas del Sistema
 echo.
 echo    [4] Salir
 echo.
@@ -73,7 +77,7 @@ echo  ======================================================================
 set /p "choice= Seleccione una opcion [1-4]: "
 
 if "%choice%"=="1" goto :run_game
-if "%choice%"=="2" goto :run_dev
+if "%choice%"=="2" goto :run_normal
 if "%choice%"=="3" goto :run_status
 if "%choice%"=="4" exit /b 0
 
@@ -97,8 +101,12 @@ goto :end
 powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" -Mode Game -Unattended
 goto :end
 
-:run_dev
-powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" -Mode Dev
+:run_normal
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" -Mode Normal
+goto :end
+
+:run_normal_cli
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_PS1%" -Mode Normal -Unattended
 goto :end
 
 :run_status

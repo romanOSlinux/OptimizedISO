@@ -1537,13 +1537,13 @@ function Get-RomanOSCpuArchitecturePolicy {
                 DisplayName                 = 'AMD APU Monolitica (Memoria Compartida UMA)'
                 ProcThrottleMinPercent      = 5
                 ProcThrottleMaxPercent      = 100
-                EnergyPerformancePreference = 0
+                EnergyPerformancePreference = 33
                 CoreParkingPolicy           = 'UnparkAll'
                 LargeSystemCache            = 0
                 Win32PrioritySeparation     = 38
                 PowerThrottlingMode         = 'DisabledGlobal'
                 AffinityDpcStrategy         = 'SpreadAcrossCPUs'
-                Rationale                   = 'APU con GPU integrada compartiendo bus DDR4/DDR5. LargeSystemCache = 0 obligatorio para evitar errores TDR y des-estacionamiento al 100% de nucleos simetricos.'
+                Rationale                   = 'APU con GPU integrada compartiendo bus DDR4/DDR5 y paquete termico TDP de 65W. EPP = 33 balancea la frecuencia de CPU para liberar margen electrico a la iGPU Radeon sin saturar ventiladores. LargeSystemCache = 0 obligatorio para proteger VRAM UMA.'
             }
         }
         'AMD_Zen_Modern_Symmetric' {

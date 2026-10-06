@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     Panel de control unificado y desacoplado (Zero-Resident Footprint) para la suite romanOS.
-    Proporciona telemetría de hardware en tiempo real, conmutador bimodal Gaming vs Dev,
+    Proporciona telemetría de hardware en tiempo real, conmutador adaptativo Modo Juego vs Modo Normal,
     limpieza profunda DISM/WinSxS, poda de memoria RAM, optimización de red con benchmark DNS,
     hardening de seguridad y gestión de controladores, con streaming asíncrono a 60 FPS.
 
@@ -538,15 +538,15 @@ $xamlString = @"
                 </ScrollViewer>
             </TabItem>
 
-            <!-- Pestaña 2: Gaming & Bimodal -->
-            <TabItem Header="Gaming &amp; Bimodal">
+            <!-- Pestaña 2: Gaming & Rendimiento Adaptativo -->
+            <TabItem Header="Gaming &amp; Rendimiento">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
                     <StackPanel Margin="10">
-                        <!-- Conmutador Bimodal -->
+                        <!-- Conmutador de Modo Juego Universal -->
                         <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
-                                <TextBlock Text="Conmutador de Recursos romanOS (Switch Game / Dev)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
-                                <TextBlock Text="Permite alternar dinamicamente entre maxima liberacion de memoria para gaming (APU/GPU) y un entorno de trabajo con virtualizacion activa." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                <TextBlock Text="Conmutador de Rendimiento Inteligente (Hardware-Aware)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Detecta dinamicamente la arquitectura de silicio de la CPU y optimiza los recursos para gaming de baja latencia DPC y maximo rendimiento, o restaura el modo estandar de Windows." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"/>
                                 
                                 <Grid Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
@@ -560,8 +560,8 @@ $xamlString = @"
                                     <!-- Card Modo Juego -->
                                     <Border Grid.Column="0" Background="#1E2822" BorderBrush="#00E676" BorderThickness="1" CornerRadius="4" Padding="10">
                                         <StackPanel>
-                                            <TextBlock Text="MODO JUEGO (BAJA LATENCIA)" Foreground="#00E676" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
-                                            <TextBlock Text="Elimina latencia DPC (&lt;500µs), pausa servicios de fondo (WSearch, Telemetria, Update), calibra MMCSS (90% CPU) y fija kernel en RAM." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
+                                            <TextBlock Text="MODO JUEGO (ADAPTATIVO)" Foreground="#00E676" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
+                                            <TextBlock Text="Ajusta el silicio segun tu CPU (Intel/AMD/APU), elimina latencia DPC (&lt;500µs), pausa servicios ruidosos y calibra MMCSS (90% CPU a juegos)." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
                                             <Button x:Name="btnGameAggressive" Content="Activar Modo Juego" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
@@ -569,18 +569,18 @@ $xamlString = @"
                                     <!-- Card Estado y Metricas -->
                                     <Border Grid.Column="2" Background="#1E2530" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="4" Padding="10">
                                         <StackPanel>
-                                            <TextBlock Text="ESTADO Y METRICAS" Foreground="#00E5FF" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
-                                            <TextBlock Text="Audita en tiempo real el consumo de RAM DDR5, latencia de red, estado de conmutadores virtuales y configuracion del Kernel NT." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
+                                            <TextBlock Text="ESTADO Y SILICIO" Foreground="#00E5FF" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
+                                            <TextBlock Text="Audita en tiempo real el consumo de memoria RAM, latencia DPC, servicios y la politica de arquitectura de procesador aplicada." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
                                             <Button x:Name="btnGameLight" Content="Auditar Estado / RAM" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Card Modo Dev -->
-                                    <Border Grid.Column="4" Background="#2D2230" BorderBrush="#E040FB" BorderThickness="1" CornerRadius="4" Padding="10">
+                                    <!-- Card Modo Normal -->
+                                    <Border Grid.Column="4" Background="#1E2638" BorderBrush="#38BDF8" BorderThickness="1" CornerRadius="4" Padding="10">
                                         <StackPanel>
-                                            <TextBlock Text="MODO DEV / TRABAJO" Foreground="#E040FB" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
-                                            <TextBlock Text="Restaura instantaneamente hipervisor, WSL2, Docker, colas de impresion, busqueda y servicios para desarrollo de software." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
-                                            <Button x:Name="btnDevMode" Content="Activar Modo Dev" Background="#4A1E4D" BorderBrush="#E040FB" FontWeight="SemiBold"/>
+                                            <TextBlock Text="MODO NORMAL (ESTANDAR)" Foreground="#38BDF8" FontWeight="Bold" FontSize="12" Margin="0,0,0,4"/>
+                                            <TextBlock Text="Restaura servicios de productividad, indexacion, busqueda y la gestion de energia oficial equilibrada de Windows." Foreground="#A0A0A0" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,10" Height="45"/>
+                                            <Button x:Name="btnDevMode" Content="Restaurar Modo Normal" Background="#1E3A5F" BorderBrush="#38BDF8" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
                                 </Grid>
@@ -1827,20 +1827,20 @@ $window.FindName('btnOpenHelpersFolder').Add_Click({
     }
 })
 
-# --- Pestaña 2: Gaming & Bimodal ---
+# --- Pestaña 2: Gaming & Rendimiento Adaptativo ---
 $window.FindName('btnGameAggressive').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Juego (Baja Latencia DPC)" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Juego Adaptativo (Hardware-Aware)" }
 })
 
 $window.FindName('btnGameLight').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Status -Unattended -SkipElevation" -TaskTitle "Conmutador: Auditoria de Estado y Memoria" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Status -Unattended -SkipElevation" -TaskTitle "Conmutador: Auditoria de Estado y Silicio" }
 })
 
 $window.FindName('btnDevMode').Add_Click({
     $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Dev -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Desarrollo (Hyper-V / Productividad)" }
+    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Normal -Unattended -SkipElevation" -TaskTitle "Conmutador: Restaurar Modo Normal (Estandar Windows)" }
 })
 
 $window.FindName('btnToggleHypervisor').Add_Click({

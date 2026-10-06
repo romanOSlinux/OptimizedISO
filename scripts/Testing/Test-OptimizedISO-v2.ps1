@@ -1630,7 +1630,7 @@ Assert-True "PLAN-0085: romanOS-Toolkit.ps1 acepta GameDevSwitch en ValidateSet"
 Assert-True "PLAN-0085: romanOS-Toolkit.ps1 declara funcion Invoke-UniversalAuditModule" ([bool]($toolkitContent85 -match 'function Invoke-UniversalAuditModule'))
 Assert-True "PLAN-0085: romanOS-Toolkit.ps1 declara funcion Invoke-GameDevSwitchModule" ([bool]($toolkitContent85 -match 'function Invoke-GameDevSwitchModule'))
 Assert-True "PLAN-0085: romanOS-Toolkit.ps1 incluye Auditor Universal en menu interactivo" ([bool]($toolkitContent85 -match 'Auditor Universal de Optimizacion'))
-Assert-True "PLAN-0085: romanOS-Toolkit.ps1 incluye Conmutador Modo Juego/Dev en menu interactivo" ([bool]($toolkitContent85 -match 'Conmutador Modo Juego / Modo Dev'))
+Assert-True "PLAN-0085: romanOS-Toolkit.ps1 incluye Conmutador Modo Juego/Normal en menu interactivo" ([bool]($toolkitContent85 -match 'Conmutador Modo Juego / Modo (Normal|Dev)'))
 
 # 2. Validar inyección garantizada en Builder New-OptimizedWindowsISO-v2.ps1
 $builderContent85 = Get-Content $TargetScript -Raw

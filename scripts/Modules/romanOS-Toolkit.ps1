@@ -427,7 +427,7 @@ function Invoke-GameDevSwitchModule {
     
     $scriptFile = Resolve-ToolScript "Switch-GameDevMode.ps1"
     if ($scriptFile) {
-        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Conmutador Modo Juego / Modo Dev (romanOS GameDev Switch)"
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Conmutador Modo Juego / Modo Normal (romanOS Game Optimizer)"
         & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $scriptFile -Mode $TargetMode -Profile $TargetProfile
     } else {
         Write-ErrorMsg "No se encontro Switch-GameDevMode.ps1"
@@ -636,7 +636,7 @@ function Show-QuickActionsMenu {
         "Depuracion Segura del DriverStore (FileRepository)",
         "Poda Quirurgica de Memoria RAM en Reposo (psapi.dll EmptyWorkingSet)",
         "Auditor Universal de Optimizacion del Sistema (Multi-Hardware)",
-        "Conmutador Modo Juego / Modo Dev (Cortar Devoradores de Recursos / Hyper-V)",
+        "Conmutador Modo Juego / Modo Normal (Baja Latencia DPC & Silicio Hardware-Aware)",
         "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)",
         "Crear Instantanea de Seguridad (romanOS Snapshot Engine)",
         "Gestor de Perfiles de Software y Runtimes de IA (Deploy-AppProfiles)",
@@ -969,7 +969,7 @@ $mainMenuOpts = @(
     "Generar y Abrir Dashboards HTML de Salud y Seguridad",
     "Poda Quirurgica de Memoria RAM en Reposo (SearchHost, WebView2, Shell)",
     "Auditor Universal de Optimizacion (Multi-Hardware, Latencia, Scoring y Remediacion)",
-    "Conmutador Modo Juego / Modo Dev (Liberar RAM para APU y Cortar Devoradores)",
+    "Conmutador Modo Juego / Modo Normal (Hardware-Aware, Baja Latencia y Gaming)",
     "Optimizador de Juegos y Apps Electron (Steam VRAM, Discord, Shaders)",
     "Profiler Forense de Latencia DPC/ISR (Sub-Microsegundo, Invariant TSC, Drivers)",
     "Acciones Rapidas Express (Flush DNS, Restart Explorer, GodMode, SFC)",
