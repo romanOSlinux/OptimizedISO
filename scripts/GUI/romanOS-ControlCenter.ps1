@@ -593,12 +593,12 @@ $xamlString = @"
                                 <TextBlock Text="romanOS Thermal &amp; Energy Profiler (Throttling Shield &amp; Core Unparking)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Diagnostico forense de estrangulamiento termico/energetico (PROCHOT / Clock Stretching), calibracion de energia y des-estacionamiento de nucleos." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
                                 <WrapPanel>
-                                    <Button x:Name="btnAuditThermal" Content="Auditar Estado Termico &amp; Throttling" Width="260" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnAuditThermal" Content="Auditar Estado Termico &amp; Throttling" Width="260" Margin="0,0,10,10" ToolTip="Inspecciona sensores ACPI de temperatura, flags PROCHOT de estrangulamiento y verifica si la CPU sufre bajadas de reloj por calor."/>
                                     <Button x:Name="btnLiveThermalMonitor" Content="Monitoreo en Vivo (5s)" Width="190" Margin="0,0,10,10"/>
                                     <Button x:Name="btnAdaptiveCpuOptimizer" Content="⚡ Optimizar CPU según Silicio (Hardware-Aware)" Width="340" Margin="0,0,10,10" Background="#1A365D" BorderBrush="#3182CE" FontWeight="Bold" ToolTip="Detecta la microarquitectura exacta del procesador (Intel Hibrido, AMD X3D, Zen Moderno, APU UMA, etc.) y aplica la politica de kernel, EPP y frecuencias validada para ese silicio."/>
-                                    <Button x:Name="btnCalibrateUltimateEnergy" Content="Calibrar Maximo Rendimiento (Core Unpark)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnCalibrateUltimateEnergy" Content="Calibrar Maximo Rendimiento (Core Unpark)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Des-estaciona todos los núcleos de CPU (Core Unparking) y desactiva suspensiones C-States profundas para respuesta inmediata a 0 ms."/>
                                     <Button x:Name="btnAuditWakeTimers" Content="Auditar Wake Timers &amp; S0ix" Width="220" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
-                                    <Button x:Name="btnDisableWakeTimers" Content="Neutralizar Wake Timers Parásitos" Width="240" Margin="0,0,10,10" Background="#3D2D1B" BorderBrush="#FFB300" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnDisableWakeTimers" Content="Neutralizar Wake Timers Parásitos" Width="240" Margin="0,0,10,10" Background="#3D2D1B" BorderBrush="#FFB300" FontWeight="SemiBold" ToolTip="Desactiva los temporizadores ocultos que despiertan el equipo en segundo plano para tareas de telemetría y diagnósticos."/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -609,9 +609,9 @@ $xamlString = @"
                                 <TextBlock Text="Calibrador de Afinidad PCIe e Interrupciones IRQ (DPC Steering &amp; MSI Tuning)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Optimiza la distribucion de interrupciones de hardware en la topologia PCIe: eleva la prioridad IRQ de GPU/NVMe a Alta, aisla la GPU del Core 0 y mitiga DPC latency/micro-stuttering." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
                                 <WrapPanel>
-                                    <Button x:Name="btnAuditAffinityGUI" Content="Auditar Topologia &amp; Afinidad IRQ" Width="260" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnOptimizeAffinityGUI" Content="Calibrar Afinidad y DPC Steering (1-Clic)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
-                                    <Button x:Name="btnResetAffinityGUI" Content="Restaurar Politicas IRQ por Defecto" Width="260" Margin="0,0,10,10" Background="#3E2723" BorderBrush="#FF5252"/>
+                                    <Button x:Name="btnAuditAffinityGUI" Content="Auditar Topologia &amp; Afinidad IRQ" Width="260" Margin="0,0,10,10" ToolTip="Analiza la topología física de interrupciones PCIe (MSI vs Line-based) y detecta si la GPU o NVMe comparten el Núcleo 0."/>
+                                    <Button x:Name="btnOptimizeAffinityGUI" Content="Calibrar Afinidad y DPC Steering (1-Clic)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Aísla el Núcleo 0 para el planificador del kernel y redirige las interrupciones pesadas de la GPU a núcleos secundarios, eliminando micro-stuttering."/>
+                                    <Button x:Name="btnResetAffinityGUI" Content="Restaurar Politicas IRQ por Defecto" Width="260" Margin="0,0,10,10" Background="#3E2723" BorderBrush="#FF5252" ToolTip="Restaura la distribución y prioridad de interrupciones de hardware a las políticas estándar de fábrica de Windows."/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -621,11 +621,11 @@ $xamlString = @"
                             <StackPanel>
                                 <TextBlock Text="Ajustes de Latencia y Debloat Adaptativo" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
-                                    <Button x:Name="btnToggleHypervisor" Content="Alternar Hipervisor (VBS / Ring 0)" Width="250" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnToggleHypervisor" Content="Alternar Hipervisor (VBS / Ring 0)" Width="250" Margin="0,0,10,10" ToolTip="Alterna la carga del hipervisor del kernel de Windows (necesario para HVCI/VBS pero causante de 5-15% de sobrecarga de CPU en juegos competitivos)."/>
                                     <Button x:Name="btnAuditDebloat" Content="🔍 Auditar Bloatware (Solo Lectura)" Width="260" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Analiza e inventaria paquetes AppX, Win32 y servicios de telemetria sin modificar ni desinstalar nada."/>
                                     <Button x:Name="btnRunDebloatInteractive" Content="🛠️ Debloat Asistido (Selección Manual)" Width="270" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Abre el asistente interactivo con seleccion visual (Out-GridView) para elegir manualmente que eliminar."/>
-                                    <Button x:Name="btnRunGamingApps" Content="Optimizar Juegos y Apps (VRAM / Electron)" Width="280" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnRunLatencyProfiler" Content="Profiler Forense Latencia DPC (Microsegundos)" Width="310" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnRunGamingApps" Content="Optimizar Juegos y Apps (VRAM / Electron)" Width="280" Margin="0,0,10,10" ToolTip="Aplica banderas de hardware a Discord, Steam y launchers para forzar aceleración por GPU y liberar memoria RAM de procesos Electron."/>
+                                    <Button x:Name="btnRunLatencyProfiler" Content="Profiler Forense Latencia DPC (Microsegundos)" Width="310" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Muestrea en tiempo real la resolución del temporizador del kernel (NtQueryTimerResolution) y latencias DPC para validar estabilidad en eSports."/>
                                     <Button x:Name="btnPurgeGpuShaders" Content="🎮 Purgar Shaders GPU (Anti-Stuttering)" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Limpia caches de shaders DirectX, Vulkan, NVIDIA y AMD para resolver micro-tirones tras actualizar juegos o controladores graficos."/>
                                 </WrapPanel>
                             </StackPanel>
@@ -674,7 +674,7 @@ $xamlString = @"
                                     <Button x:Name="btnAuditInvisibleSpace" Content="🔍 Auditar Espacio Oculto y Residuos" Width="265" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Escanea en segundos zonas ciegas: descargas de Windows Update, almacén WinSxS, papeleras de Windows y externas (.Trash-*), logs y dumps sin modificar archivos."/>
                                     <Button x:Name="btnAnalyzeWinSxS" Content="🔍 Analizar Almacén WinSxS (DISM)" Width="260" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Ejecuta DISM /AnalyzeComponentStore en segundos y determina si la limpieza es recomendada."/>
                                     <Button x:Name="btnRunDiskTrim" Content="⚡ Optimizar Disco (SSD TRIM)" Width="230" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Envía la instrucción TRIM a todas las unidades SSD/NVMe detectadas para restaurar latencia de celdas NAND."/>
-                                    <Button x:Name="btnInspectDismCatalog" Content="Catálogo Componentes DISM (SSOT)" Width="250" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnInspectDismCatalog" Content="Catálogo Componentes DISM (SSOT)" Width="250" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Abre la base de datos canónica de componentes de Windows para auditar cuáles son seguros de remover sin romper DirectX, Anti-Cheats ni dependencias del sistema."/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -748,9 +748,9 @@ $xamlString = @"
                                 </Grid>
 
                                 <WrapPanel>
-                                    <Button x:Name="btnCreateSnapshotGUI" Content="Crear Instantanea (1-Clic)" Width="210" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
-                                    <Button x:Name="btnCreateVssPoint" Content="Crear Punto VSS (Windows)" Width="200" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnRestoreSnapshotGUI" Content="Restaurar Instantanea Seleccionada" Width="250" Margin="0,0,10,10" Background="#3E2723" BorderBrush="#FF5252" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnCreateSnapshotGUI" Content="Crear Instantanea (1-Clic)" Width="210" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Captura de forma inmediata el estado íntegro de directivas, registro, servicios y red de romanOS para permitir marcha atrás rápida."/>
+                                    <Button x:Name="btnCreateVssPoint" Content="Crear Punto VSS (Windows)" Width="200" Margin="0,0,10,10" ToolTip="Genera una instantánea de Recuperación del Sistema (Volume Shadow Copy) nativa de Windows antes de aplicar cambios agresivos."/>
+                                    <Button x:Name="btnRestoreSnapshotGUI" Content="Restaurar Instantanea Seleccionada" Width="250" Margin="0,0,10,10" Background="#3E2723" BorderBrush="#FF5252" FontWeight="SemiBold" ToolTip="Revierte de forma atómica el estado del registro, servicios y red al punto exacto capturado en la instantánea seleccionada."/>
                                     <Button x:Name="btnListSnapshotsCLI" Content="Ver Catalogo Completo" Width="180" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
@@ -763,9 +763,9 @@ $xamlString = @"
                                 <TextBlock Text="Monitorea y previene que Windows Update o procesos en segundo plano reactiven telemetria, diagnostic tracking y servicios degradadores de rendimiento." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
                                 
                                 <WrapPanel>
-                                    <Button x:Name="btnAuditDriftGUI" Content="Auditar Desvio de Servicios" Width="210" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
-                                    <Button x:Name="btnRemediateDriftGUI" Content="Remediar Desvio (1-Clic)" Width="200" Margin="0,0,10,10" Background="#3E2723" BorderBrush="#FF5252" FontWeight="SemiBold"/>
-                                    <Button x:Name="btnInstallDriftTaskGUI" Content="Instalar Tarea Watchdog" Width="180" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnAuditDriftGUI" Content="Auditar Desvio de Servicios" Width="210" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Comprueba si Windows Update o procesos del sistema reactivaron en segundo plano servicios de telemetría o diagnósticos degradadores."/>
+                                    <Button x:Name="btnRemediateDriftGUI" Content="Remediar Desvio (1-Clic)" Width="200" Margin="0,0,10,10" Background="#3E2723" BorderBrush="#FF5252" FontWeight="SemiBold" ToolTip="Reaplica instantáneamente la política estricta de romanOS desactivando los servicios desviados sin requerir reinicio."/>
+                                    <Button x:Name="btnInstallDriftTaskGUI" Content="Instalar Tarea Watchdog" Width="180" Margin="0,0,10,10" ToolTip="Programa un centinela nativo en el Programador de Tareas que audita y bloquea automáticamente el desvío cada vez que Windows se actualiza."/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -797,7 +797,7 @@ $xamlString = @"
                                 </Border>
 
                                 <WrapPanel Margin="0,0,0,12">
-                                    <Button x:Name="btnRunDnsBench" Content="Ejecutar Benchmark DNS en Vivo (RTT)" Width="250" Margin="0,0,12,0" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnRunDnsBench" Content="Ejecutar Benchmark DNS en Vivo (RTT)" Width="250" Margin="0,0,12,0" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Envía paquetes ICMP/UDP hacia Cloudflare, Quad9, Google y AdGuard para medir la latencia real en milisegundos hacia cada servidor."/>
                                     <CheckBox x:Name="chkEnableDoH" Content="Activar Cifrado DoH (DNS-over-HTTPS en Windows 11)" IsChecked="True" Foreground="#E0E0E0" VerticalAlignment="Center"/>
                                 </WrapPanel>
 
@@ -811,7 +811,7 @@ $xamlString = @"
                                     <Button x:Name="btnSetQuad9Dns" Content="Quad9 Seguro (9.9.9.9)" Width="180" Margin="0,0,10,10"/>
                                     <Button x:Name="btnSetGoogleDns" Content="Google (8.8.8.8)" Width="160" Margin="0,0,10,10"/>
                                     <Button x:Name="btnSetAdGuardDns" Content="AdGuard AdBlock (94.140.14.14)" Width="210" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnResetDnsDhcp" Content="Restaurar DNS (DHCP)" Width="170" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnResetDnsDhcp" Content="Restaurar DNS (DHCP)" Width="170" Margin="0,0,10,10" ToolTip="Elimina las direcciones DNS estáticas asignadas y vuelve a obtener los servidores DNS automáticamente desde tu router (DHCP)."/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -822,8 +822,8 @@ $xamlString = @"
                                 <TextBlock Text="Optimizacion de Pila de Red y Latencia TCP" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Desactiva el algoritmo de Nagle (TcpNoDelay) para reducir latencia en partidas online y audita sockets." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,10"/>
                                 <WrapPanel>
-                                    <Button x:Name="btnOptimizeNetworkNagle" Content="Optimizar Latencia TCP / Nagle (1-Clic)" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
-                                    <Button x:Name="btnFullNetworkDiag" Content="Diagnostico Completo de Red &amp; Sockets" Width="280" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnOptimizeNetworkNagle" Content="Optimizar Latencia TCP / Nagle (1-Clic)" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Ajusta TcpAckFrequency y desactiva el retraso de paquetes (Algoritmo de Nagle) para enviar paquetes de juego instantáneamente sin esperar buffers."/>
+                                    <Button x:Name="btnFullNetworkDiag" Content="Diagnostico Completo de Red &amp; Sockets" Width="280" Margin="0,0,10,10" ToolTip="Audita sockets TCP activos, MTU del adaptador, colas de descarte de paquetes y estado de offloads del hardware de red."/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -840,7 +840,7 @@ $xamlString = @"
                                 <TextBlock Text="Optimizacion de Navegadores Web (Oficial)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
                                 <TextBlock Text="Aplica aceleracion por hardware GPU, Sleeping Tabs (50% menos RAM) y purga Copilot/telemetria." Foreground="#A0A0A0" FontSize="11" Margin="0,0,0,10"/>
                                 <WrapPanel Margin="0,0,0,10">
-                                    <Button x:Name="btnOptAllBrowsers" Content="Optimizar Todos los Navegadores" Width="240" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676"/>
+                                    <Button x:Name="btnOptAllBrowsers" Content="Optimizar Todos los Navegadores" Width="240" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" ToolTip="Aplica directivas empresariales oficiales (GPO) para forzar aceleración por GPU, habilitar pestañas en suspensión y bloquear telemetría en todos los navegadores instalados."/>
                                     <Button x:Name="btnOptEdge" Content="Solo Microsoft Edge" Width="160" Margin="0,0,10,10"/>
                                     <Button x:Name="btnOptChrome" Content="Solo Google Chrome" Width="160" Margin="0,0,10,10"/>
                                     <Button x:Name="btnOptBrave" Content="Solo Brave Browser" Width="160" Margin="0,0,10,10"/>
@@ -867,7 +867,7 @@ $xamlString = @"
                                 </Grid>
                                 <WrapPanel>
                                     <Button x:Name="btnCheckSandbox" Content="Verificar Diagnostico Sandbox" Width="210" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnLaunchSandbox" Content="Lanzar Sandbox 1-Clic" Width="180" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676"/>
+                                    <Button x:Name="btnLaunchSandbox" Content="Lanzar Sandbox 1-Clic" Width="180" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" ToolTip="Inicia un contenedor Windows Sandbox aislado y volátil según el perfil seleccionado (se autodestruye al cerrarse sin dejar residuos)."/>
                                     <Button x:Name="btnGenerateSandboxWsb" Content="Generar Archivo .wsb" Width="170" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
@@ -877,8 +877,8 @@ $xamlString = @"
                             <StackPanel>
                                 <TextBlock Text="Auditoria de Seguridad y Dashboards Visuales" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
-                                    <Button x:Name="btnSecurityAudit" Content="Ejecutar Auditoria de Seguridad (ASR / VBS)" Width="270" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnApplySafeHardening" Content="Aplicar Hardening Seguro (Gaming-Safe)" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnSecurityAudit" Content="Ejecutar Auditoria de Seguridad (ASR / VBS)" Width="270" Margin="0,0,10,10" ToolTip="Evalúa el cumplimiento de reglas ASR de Defender, aislamiento de núcleo (HVCI), protección LSA y bloqueo de drivers vulnerables."/>
+                                    <Button x:Name="btnApplySafeHardening" Content="Aplicar Hardening Seguro (Gaming-Safe)" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Aplica políticas de seguridad de nivel industrial (RunAsPPL, DriverBlocklist, ASR) certificadas para no interferir con sistemas Anti-Cheat (EasyAntiCheat, BattlEye, Vanguard)."/>
                                     <Button x:Name="btnGenerateDiagReport" Content="Generar Informe Post-Instalacion (HTML)" Width="270" Margin="0,0,10,10"/>
                                     <Button x:Name="btnOpenHtmlDashboards" Content="Abrir Dashboards HTML en Navegador" Width="260" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
                                 </WrapPanel>
@@ -896,10 +896,10 @@ $xamlString = @"
                             <StackPanel>
                                 <TextBlock Text="Ecosistema de Controladores (Drivers)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
                                 <WrapPanel>
-                                    <Button x:Name="btnBackupDrivers" Content="Respaldar Controladores del Host" Width="240" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnBackupDrivers" Content="Respaldar Controladores del Host" Width="240" Margin="0,0,10,10" ToolTip="Exporta todos los controladores OEM de terceros activos a una carpeta de respaldo para reinstalación o inyección offline en WIM (dism /export-driver)."/>
                                     <Button x:Name="btnAuditDriverStore" Content="🔍 Auditar DriverStore (WhatIf)" Width="230" Margin="0,0,10,10" ToolTip="Muestra que controladores obsoletos/duplicados existen sin eliminarlos."/>
                                     <Button x:Name="btnCleanDriverStore" Content="🗑️ Depurar DriverStore (Interactivo)" Width="250" Margin="0,0,10,10" ToolTip="Abre el asistente con confirmacion explicita [S/N] antes de eliminar controladores."/>
-                                    <Button x:Name="btnGetCriticalDrivers" Content="Descargar Drivers Criticos (VMD / VirtIO)" Width="280" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnGetCriticalDrivers" Content="Descargar Drivers Criticos (VMD / VirtIO)" Width="280" Margin="0,0,10,10" ToolTip="Descarga los paquetes de almacenamiento Intel VMD/RST y VirtIO requeridos para que instaladores de Windows detecten SSDs NVMe y discos virtuales."/>
                                     <Button x:Name="btnMigrateUser" Content="Asistente de Migracion de Usuario" Width="250" Margin="0,0,10,10"/>
                                 </WrapPanel>
                             </StackPanel>
@@ -948,9 +948,9 @@ $xamlString = @"
                                 <WrapPanel>
                                     <Button x:Name="btnDeployProfileGUI" Content="Instalar Perfil Seleccionado" Width="210" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
                                     <Button x:Name="btnDeployCategoryGUI" Content="Instalar Categoría (WinGet)" Width="200" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
-                                    <Button x:Name="btnSimulateProfileGUI" Content="Simular Selección (-WhatIf)" Width="190" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnSimulateProfileGUI" Content="Simular Selección (-WhatIf)" Width="190" Margin="0,0,10,10" ToolTip="Comprueba qué paquetes WinGet faltan por instalar sin modificar nada en el sistema (-WhatIf)."/>
                                     <Button x:Name="btnListCatalogGUI" Content="Explorar Catálogo Curado" Width="180" Margin="0,0,10,10"/>
-                                    <Button x:Name="btnInstallRuntimesGUI" Content="Instalar Solo Runtimes Base" Width="200" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnInstallRuntimesGUI" Content="Instalar Solo Runtimes Base" Width="200" Margin="0,0,10,10" ToolTip="Descarga e instala de forma desatendida los paquetes redistribuibles oficiales de Visual C++ (2015-2022 x86/x64), DirectX y .NET Desktop Runtime."/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -1054,10 +1054,10 @@ $xamlString = @"
 
                         <!-- Botones de Operación -->
                         <WrapPanel Margin="0,0,0,12">
-                            <Button x:Name="btnGenerateUnattendPreview" Content="Generar y Previsualizar XML" Width="210" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
-                            <Button x:Name="btnExportUnattendFile" Content="Exportar autounattend.xml..." Width="220" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold"/>
-                            <Button x:Name="btnValidateUnattendGUI" Content="Certificar Sintaxis y Bypasses" Width="210" Margin="0,0,10,10"/>
-                            <Button x:Name="btnResetUnattendDefaults" Content="Restablecer Valores Recomendados" Width="230" Margin="0,0,10,10"/>
+                            <Button x:Name="btnGenerateUnattendPreview" Content="Generar y Previsualizar XML" Width="210" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Compila las opciones seleccionadas en un archivo de respuesta XML canónico y lo previsualiza en el visor inferior sin escribir en disco."/>
+                            <Button x:Name="btnExportUnattendFile" Content="Exportar autounattend.xml..." Width="220" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Guarda el autounattend.xml generado en una unidad USB o carpeta para despliegues 100% automatizados sin interacción humana."/>
+                            <Button x:Name="btnValidateUnattendGUI" Content="Certificar Sintaxis y Bypasses" Width="210" Margin="0,0,10,10" ToolTip="Certifica contra el esquema oficial de Microsoft que autounattend.xml no contenga errores de sintaxis ni bypasses rotos para 24H2/25H2."/>
+                            <Button x:Name="btnResetUnattendDefaults" Content="Restablecer Valores Recomendados" Width="230" Margin="0,0,10,10" ToolTip="Restablece las opciones del generador a la configuración recomendada de romanOS (bypasses activos, cuenta local y telemetría desactivada)."/>
                         </WrapPanel>
 
                         <!-- Visor de Previsualización XML -->
