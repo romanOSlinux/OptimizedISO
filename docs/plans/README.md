@@ -169,6 +169,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0151 | [PLAN-0151-20261002-auditoria-holistica-4-vectores-calidad-y-resiliencia-repo-wide.md](PLAN-0151-20261002-auditoria-holistica-4-vectores-calidad-y-resiliencia-repo-wide.md) | 2026-10-02 | Auditoría Holística y Blindaje Repo-Wide en 4 Vectores de Calidad y Resiliencia (Null-Safety, ExitCode Nativo, Finally-Guards y Rutas Dinámicas) | COMPLETADO |
 | 0152 | [PLAN-0152-20261002-purga-repo-wide-residuos-win10-y-sincronizacion-win11.md](PLAN-0152-20261002-purga-repo-wide-residuos-win10-y-sincronizacion-win11.md) | 2026-10-02 | Purga Repo-Wide de Residuos de Windows 10 y Sincronización Canónica Exclusiva de Windows 11 | COMPLETADO |
 | 0153 | [PLAN-0153-20261005-modo-juego-hardware-aware-purga-gui-universal.md](PLAN-0153-20261005-modo-juego-hardware-aware-purga-gui-universal.md) | 2026-10-05 | Modo Juego Hardware-Aware Adaptativo, Desacople de Modo Dev y Purga Repo-Wide de Firmas Individuales para Producto Universal | COMPLETADO |
+| 0154 | [PLAN-0154-20261017-suite-mantenimiento-integral-control-center.md](PLAN-0154-20261017-suite-mantenimiento-integral-control-center.md) | 2026-10-17 | Suite Integral de Mantenimiento, Limpieza Profunda del Sistema Operativo y Salud en romanOS Control Center | COMPLETADO |
 
 
 

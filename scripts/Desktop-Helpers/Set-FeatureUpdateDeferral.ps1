@@ -21,9 +21,10 @@ param(
 )
 
 # -----------------------------------------------------------------------------
-# 1. CARGA DEL POLICY-ENGINE (SSOT)
+# 1. CARGA DEL POLICY-ENGINE (SSOT) Y ENTORNO DE DESKTOP HELPERS
 # -----------------------------------------------------------------------------
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Resilencia de ruta en tiempo de ejecucion: (Join-Path $scriptRoot "Desktop-Helpers.ps1")
 $policyEngineCandidates = @(
     (Join-Path $scriptRoot "..\Core\Policy-Engine.ps1"),
     (Join-Path $scriptRoot "Policy-Engine.ps1"),

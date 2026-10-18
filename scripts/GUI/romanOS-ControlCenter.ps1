@@ -626,6 +626,7 @@ $xamlString = @"
                                     <Button x:Name="btnRunDebloatInteractive" Content="🛠️ Debloat Asistido (Selección Manual)" Width="270" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Abre el asistente interactivo con seleccion visual (Out-GridView) para elegir manualmente que eliminar."/>
                                     <Button x:Name="btnRunGamingApps" Content="Optimizar Juegos y Apps (VRAM / Electron)" Width="280" Margin="0,0,10,10"/>
                                     <Button x:Name="btnRunLatencyProfiler" Content="Profiler Forense Latencia DPC (Microsegundos)" Width="310" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnPurgeGpuShaders" Content="🎮 Purgar Shaders GPU (Anti-Stuttering)" Width="280" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Limpia caches de shaders DirectX, Vulkan, NVIDIA y AMD para resolver micro-tirones tras actualizar juegos o controladores graficos."/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -645,21 +646,86 @@ $xamlString = @"
                 </ScrollViewer>
             </TabItem>
 
-            <!-- Pestaña 3: Mantenimiento -->
+            <!-- Pestaña 3: Mantenimiento del Sistema Operativo -->
             <TabItem Header="Mantenimiento">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5">
                     <StackPanel Margin="10">
+                        <!-- Tarjeta 1: Telemetría de Almacenamiento y Salud en Vivo -->
                         <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
-                                <TextBlock Text="Saneamiento Profundo y Reparacion de Imagen" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
-                                <CheckBox x:Name="chkMaintWinSxS" Content="Limpieza profunda de WinSxS con DISM (/StartComponentCleanup /ResetBase)" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
-                                <CheckBox x:Name="chkMaintShaders" Content="Purga de Shaders GPU (DirectX, AMD Radeon Cache, NVIDIA)" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
-                                <CheckBox x:Name="chkMaintTrim" Content="Ejecutar SSD TRIM en todas las unidades NVMe/SATA" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
-                                <CheckBox x:Name="chkMaintSfc" Content="Verificacion y reparacion de archivos corruptos (SFC /scannow + RestoreHealth)" Foreground="#E3E3E3" IsChecked="False" FontSize="12" Margin="0,0,0,14"/>
+                                <TextBlock Text="Telemetría de Almacenamiento y Salud en Vivo" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Monitorea la capacidad física del volumen de sistema y audita la necesidad real de mantenimiento de componentes con DISM sin modificar nada." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                                <Border Background="#10151C" BorderBrush="#21262D" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="lblDiskStorageInfo" Grid.Column="0" Text="Detectando unidad de sistema..." Foreground="#F0F6FC" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                            <Button x:Name="btnRefreshDiskInfo" Grid.Column="1" Content="Actualizar" Height="22" Width="80" FontSize="10"/>
+                                        </Grid>
+                                        <ProgressBar x:Name="pbDiskStorage" Height="10" Minimum="0" Maximum="100" Value="0" Background="#161B22" Foreground="#00E676" BorderThickness="0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <WrapPanel>
+                                    <Button x:Name="btnAnalyzeWinSxS" Content="🔍 Analizar Almacén WinSxS (DISM)" Width="260" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Ejecuta DISM /AnalyzeComponentStore en segundos y determina si la limpieza es recomendada."/>
+                                    <Button x:Name="btnRunDiskTrim" Content="⚡ Optimizar Disco (SSD TRIM)" Width="230" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Envía la instrucción TRIM a todas las unidades SSD/NVMe detectadas para restaurar latencia de celdas NAND."/>
+                                    <Button x:Name="btnInspectDismCatalog" Content="Catálogo Componentes DISM (SSOT)" Width="250" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tarjeta 2: Higiene y Limpieza Profunda de Basura del SO -->
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Higiene y Limpieza Profunda de Basura del Sistema Operativo" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Depura residuos reales acumulados por actualizaciones, controladores inactivos y temporales sin tocar datos personales ni claves de registro." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <!-- Columna 1 -->
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <CheckBox x:Name="chkMaintWinSxS" Content="Almacén de componentes WinSxS (DISM Cleanup)" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,4" ToolTip="Limpia versiones reemplazadas de paquetes de Windows."/>
+                                        <CheckBox x:Name="chkMaintResetBase" Content="  └ Consolidar parches permanentemente (/ResetBase)" Foreground="#A0A0A0" IsChecked="False" FontSize="11" Margin="15,0,0,8" ToolTip="Elimina copias de desinstalación de parches antiguos para maximizar espacio recuperado."/>
+                                        <CheckBox x:Name="chkMaintWinUpdate" Content="Descargas huérfanas de Windows Update y Delivery Optimization" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
+                                        <CheckBox x:Name="chkMaintDriverStore" Content="Controladores obsoletos en DriverStore (FileRepository)" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8" ToolTip="Depura drivers de terceros no activos recuperando hasta 20 GB de forma segura."/>
+                                        <CheckBox x:Name="chkMaintCbsLogs" Content="Registros gigantes de servicio CBS y compresión CAB huérfana" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
+                                        <CheckBox x:Name="chkMaintDeployment" Content="Residuos de instalación y despliegue ($WINDOWS.~BT, Panther)" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
+                                    </StackPanel>
+
+                                    <!-- Columna 2 -->
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                        <CheckBox x:Name="chkMaintTemp" Content="Archivos temporales del sistema y usuarios (%TEMP%, Temp)" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
+                                        <CheckBox x:Name="chkMaintWerCrash" Content="Crash Dumps (MEMORY.DMP/Minidump) y colas de error WER" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
+                                        <CheckBox x:Name="chkMaintAppxOrphans" Content="Carpetas huérfanas de aplicaciones desinstaladas en Packages" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
+                                        <CheckBox x:Name="chkMaintCryptNet" Content="Caché de certificados caducados (CryptnetUrlCache) y miniaturas" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
+                                        <CheckBox x:Name="chkMaintBrowsers" Content="Caché volátil de navegadores (Edge, Chrome, Brave, Firefox)" Foreground="#E3E3E3" IsChecked="False" FontSize="12" Margin="0,0,0,8" ToolTip="Solo caché de disco. Protege al 100% contraseñas, sesiones y cookies."/>
+                                    </StackPanel>
+                                </Grid>
 
                                 <WrapPanel Margin="0,5,0,0">
-                                    <Button x:Name="btnRunMaintenanceBatch" Content="Iniciar Saneamiento Seleccionado" Width="260" HorizontalAlignment="Left" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                                    <Button x:Name="btnInspectDismCatalog" Content="Catalogo Componentes DISM (SSOT)" Width="250" HorizontalAlignment="Left" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
+                                    <Button x:Name="btnRunMaintenanceBatch" Content="🧹 Iniciar Saneamiento Seleccionado" Width="270" HorizontalAlignment="Left" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" Margin="0,0,10,10"/>
+                                    <Button x:Name="btnRunMaintenanceExpress" Content="⚡ Saneamiento Rápido Express" Width="230" HorizontalAlignment="Left" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" Margin="0,0,10,10" ToolTip="Limpia temporales, descargas de Windows Update, certificados caducados y ejecuta TRIM en segundos."/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tarjeta 3: Salud, Integridad y Reparación del SO -->
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Salud, Integridad y Reparación del Sistema Operativo" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Herramientas oficiales de bajo nivel para verificar la consistencia del kernel, corregir archivos protegidos dañados y reparar subsistemas." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <Button x:Name="btnRunSystemRepair" Content="🛠️ Reparación Integral (SFC + DISM RestoreHealth)" Width="330" Margin="0,0,10,10" Background="#1A365D" BorderBrush="#3182CE" FontWeight="SemiBold" ToolTip="Escanea y repara archivos dañados del sistema mediante SFC /scannow y DISM /RestoreHealth."/>
+                                    <Button x:Name="btnRunWmiNtfsRepair" Content="🩺 Autochequeo WMI &amp; NTFS (Repair-Volume)" Width="300" Margin="0,0,10,10" ToolTip="Verifica el repositorio WMI con winmgmt /salvagerepository y repara sectores NTFS en línea."/>
+                                    <Button x:Name="btnRunNgenCompile" Content="⚙️ Precompilar Ensamblados .NET (ngen.exe)" Width="280" Margin="0,0,10,10" ToolTip="Compila colas de tareas nativas pendientes de .NET Framework para optimizar consumo de CPU."/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -1294,6 +1360,64 @@ function Update-ControlCenterDnsState {
 }
 Update-ControlCenterDnsState
 
+# Inicializar y actualizar telemetría de almacenamiento y salud de disco (Card 1)
+function Update-ControlCenterStorageState {
+    try {
+        $lbl = $window.FindName('lblDiskStorageInfo')
+        $pb = $window.FindName('pbDiskStorage')
+        if ($lbl -and $pb) {
+            $sysDrive = $env:SystemDrive
+            if (-not $sysDrive) { $sysDrive = "C:" }
+            $driveLetter = $sysDrive.TrimEnd(':')
+
+            $vol = Get-Volume -DriveLetter $driveLetter -ErrorAction SilentlyContinue
+            if ($vol -and $vol.Size -gt 0) {
+                $sizeGB = [math]::Round($vol.Size / 1GB, 1)
+                $freeGB = [math]::Round($vol.SizeRemaining / 1GB, 1)
+                $usedGB = [math]::Round(($vol.Size - $vol.SizeRemaining) / 1GB, 1)
+                $pctUsed = [math]::Round((($vol.Size - $vol.SizeRemaining) / $vol.Size) * 100, 1)
+
+                $mediaType = "SSD"
+                try {
+                    $part = Get-Partition -DriveLetter $driveLetter -ErrorAction SilentlyContinue
+                    if ($part) {
+                        $pdisk = Get-PhysicalDisk | Where-Object { $_.DeviceId -eq $part.DiskNumber } -ErrorAction SilentlyContinue | Select-Object -First 1
+                        if ($pdisk) {
+                            $mediaType = if ($pdisk.BusType -match "NVMe") { "NVMe SSD" } elseif ($pdisk.MediaType) { $pdisk.MediaType } else { "SSD" }
+                        }
+                    }
+                } catch {
+                    $mediaType = "Almacenamiento"
+                }
+
+                $lbl.Text = "Unidad $sysDrive [$mediaType]: $freeGB GB libres de $sizeGB GB ($pctUsed% ocupado, $usedGB GB usados)"
+                $pb.Value = [math]::Min(100, [math]::Max(0, $pctUsed))
+
+                if ($pctUsed -ge 90) {
+                    $pb.Foreground = [System.Windows.Media.Brushes]::IndianRed
+                } elseif ($pctUsed -ge 75) {
+                    $pb.Foreground = [System.Windows.Media.Brushes]::Orange
+                } else {
+                    $pb.Foreground = [System.Windows.Media.Brushes]::SpringGreen
+                }
+            } else {
+                $disk = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DeviceID='$sysDrive'" -ErrorAction SilentlyContinue
+                if ($disk -and $disk.Size -gt 0) {
+                    $sizeGB = [math]::Round($disk.Size / 1GB, 1)
+                    $freeGB = [math]::Round($disk.FreeSpace / 1GB, 1)
+                    $usedGB = [math]::Round(($disk.Size - $disk.FreeSpace) / 1GB, 1)
+                    $pctUsed = [math]::Round((($disk.Size - $disk.FreeSpace) / $disk.Size) * 100, 1)
+                    $lbl.Text = "Unidad $($sysDrive): $freeGB GB libres de $sizeGB GB ($pctUsed% en uso)"
+                    $pb.Value = [math]::Min(100, [math]::Max(0, $pctUsed))
+                }
+            }
+        }
+    } catch {
+        Write-CCLog "Aviso al consultar telemetria de disco: $($_.Exception.Message)" -Level "WARN"
+    }
+}
+Update-ControlCenterStorageState
+
 # -----------------------------------------------------------------------------
 # 4. MOTOR DE EJECUCIÓN ASÍNCRONA DESACOPLADA (60 FPS)
 # -----------------------------------------------------------------------------
@@ -1485,6 +1609,15 @@ function Start-ControlCenterTask {
                 Write-CCLog "Aviso al refrescar estado de DNS: $($_.Exception.Message)" -Level "WARN"
             }
 
+            # Refrescar telemetría de almacenamiento tras concluir la tarea
+            try {
+                if (Get-Command 'Update-ControlCenterStorageState' -ErrorAction SilentlyContinue) {
+                    $window.Dispatcher.Invoke({ Update-ControlCenterStorageState })
+                }
+            } catch {
+                Write-CCLog "Aviso al refrescar telemetria de disco: $($_.Exception.Message)" -Level "WARN"
+            }
+
             # Re-verificación diferida (1.5s) para permitir el asentamiento de servicios asíncronos
             try {
                 $delayedTimer = New-Object System.Windows.Threading.DispatcherTimer
@@ -1504,6 +1637,13 @@ function Start-ControlCenterTask {
                         }
                     } catch {
                         Write-Verbose "[ControlCenter] Fallo al invocar Update-ControlCenterDnsState en UI dispatcher: $($_.Exception.Message)"
+                    }
+                    try {
+                        if (Get-Command 'Update-ControlCenterStorageState' -ErrorAction SilentlyContinue) {
+                            $window.Dispatcher.Invoke({ Update-ControlCenterStorageState })
+                        }
+                    } catch {
+                        Write-Verbose "[ControlCenter] Fallo al invocar Update-ControlCenterStorageState en UI dispatcher: $($_.Exception.Message)"
                     }
                 })
                 $delayedTimer.Start()
@@ -1886,6 +2026,14 @@ $window.FindName('btnRunLatencyProfiler').Add_Click({
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -DurationSeconds 5" -TaskTitle "Profiler Forense de Latencia DPC/ISR en Vivo" }
 })
 
+$btnShaders = $window.FindName('btnPurgeGpuShaders')
+if ($btnShaders) {
+    $btnShaders.Add_Click({
+        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+        if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ShadersOnly -Unattended" -TaskTitle "Purgado de Shaders GPU (DirectX, Vulkan, NVIDIA, AMD)" }
+    })
+}
+
 # Thermal & Energy Profiler Handlers
 $window.FindName('btnAuditThermal').Add_Click({
     $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
@@ -1963,18 +2111,34 @@ $window.FindName('btnRestoreModernMenu').Add_Click({
 })
 
 # --- Pestaña 3: Mantenimiento ---
-$window.FindName('btnRunMaintenanceBatch').Add_Click({
-    $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
-    if ($tool) {
-        $argsList = @()
-        if ($window.FindName('chkMaintWinSxS').IsChecked) { $argsList += "-DeepClean -ResetBase" }
-        if ($window.FindName('chkMaintShaders').IsChecked) { $argsList += "-ShadersOnly" }
-        if ($window.FindName('chkMaintTrim').IsChecked) { $argsList += "-TrimOnly" }
-        if ($window.FindName('chkMaintSfc').IsChecked) { $argsList += "-RepairOnly" }
-        $argsStr = if ($argsList.Count -gt 0) { $argsList -join " " } else { "-Full" }
-        Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" $argsStr -Unattended" -TaskTitle "Saneamiento de Sistema y WinSxS"
-    }
-})
+
+# Tarjeta 1: Telemetría de Almacenamiento y Salud en Vivo
+$btnRefreshDisk = $window.FindName('btnRefreshDiskInfo')
+if ($btnRefreshDisk) {
+    $btnRefreshDisk.Add_Click({
+        Update-ControlCenterStorageState
+    })
+}
+
+$btnAnalyzeSxS = $window.FindName('btnAnalyzeWinSxS')
+if ($btnAnalyzeSxS) {
+    $btnAnalyzeSxS.Add_Click({
+        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+        if ($tool) {
+            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -AnalyzeOnly -Unattended" -TaskTitle "Auditoria de Componentes WinSxS (DISM)"
+        }
+    })
+}
+
+$btnTrim = $window.FindName('btnRunDiskTrim')
+if ($btnTrim) {
+    $btnTrim.Add_Click({
+        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+        if ($tool) {
+            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -IncludeTrim -Unattended" -TaskTitle "Optimizacion de Almacenamiento SSD (TRIM)"
+        }
+    })
+}
 
 $btnDism = $window.FindName('btnInspectDismCatalog')
 if ($btnDism) {
@@ -1983,6 +2147,89 @@ if ($btnDism) {
         if (-not $peScript) { $peScript = "C:\OptimizedISO\scripts\Core\Policy-Engine.ps1" }
         $cmd = "-NoProfile -ExecutionPolicy Bypass -Command `". '$peScript'; Get-RomanOSDismComponentsCatalog | Format-Table -AutoSize Id, Name, Category, Type, SafeForGaming`""
         Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Catalogo Canónico de Componentes DISM (SSOT)"
+    })
+}
+
+# Tarjeta 2: Higiene y Limpieza Profunda de Basura del SO
+$btnMaintBatch = $window.FindName('btnRunMaintenanceBatch')
+if ($btnMaintBatch) {
+    $btnMaintBatch.Add_Click({
+        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+        if ($tool) {
+            $argsList = @()
+            $cWinSxS   = $window.FindName('chkMaintWinSxS')
+            $cReset    = $window.FindName('chkMaintResetBase')
+            $cWinUpd   = $window.FindName('chkMaintWinUpdate')
+            $cDrvStore = $window.FindName('chkMaintDriverStore')
+            $cCbs      = $window.FindName('chkMaintCbsLogs')
+            $cDeploy   = $window.FindName('chkMaintDeployment')
+            $cTemp     = $window.FindName('chkMaintTemp')
+            $cWer      = $window.FindName('chkMaintWerCrash')
+            $cAppx     = $window.FindName('chkMaintAppxOrphans')
+            $cCrypt    = $window.FindName('chkMaintCryptNet')
+            $cBrowser  = $window.FindName('chkMaintBrowsers')
+
+            # Manejo de WinSxS y ResetBase (preserva compatibilidad con asercion -DeepClean -ResetBase)
+            if ($cWinSxS -and $cWinSxS.IsChecked) {
+                if ($cReset -and $cReset.IsChecked) {
+                    $argsList += "-DeepClean -ResetBase"
+                } else {
+                    $argsList += "-IncludeWinSxS"
+                }
+            }
+
+            if ($cWinUpd -and $cWinUpd.IsChecked) { $argsList += "-IncludeWinUpdate" }
+            if ($cDrvStore -and $cDrvStore.IsChecked) { $argsList += "-IncludeDriverStore" }
+            if ($cCbs -and $cCbs.IsChecked) { $argsList += "-IncludeCbsLogs" }
+            if ($cDeploy -and $cDeploy.IsChecked) { $argsList += "-IncludeDeployment" }
+            if ($cTemp -and $cTemp.IsChecked) { $argsList += "-IncludeTemp" }
+            if ($cWer -and $cWer.IsChecked) { $argsList += "-IncludeWerDumps" }
+            if ($cAppx -and $cAppx.IsChecked) { $argsList += "-IncludeAppxOrphans" }
+            if ($cCrypt -and $cCrypt.IsChecked) { $argsList += "-IncludeCryptNet" }
+            if ($cBrowser -and $cBrowser.IsChecked) { $argsList += "-IncludeBrowsers" }
+
+            $argsStr = if ($argsList.Count -gt 0) { $argsList -join " " } else { "-DeepClean -ResetBase" }
+            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" $argsStr -Unattended" -TaskTitle "Higiene y Limpieza Profunda del Sistema Operativo"
+        }
+    })
+}
+
+$btnExpress = $window.FindName('btnRunMaintenanceExpress')
+if ($btnExpress) {
+    $btnExpress.Add_Click({
+        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+        if ($tool) {
+            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Express -Unattended" -TaskTitle "Saneamiento Rapido Express de Sistema"
+        }
+    })
+}
+
+# Tarjeta 3: Salud, Integridad y Reparación del SO
+$btnSysRepair = $window.FindName('btnRunSystemRepair')
+if ($btnSysRepair) {
+    $btnSysRepair.Add_Click({
+        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+        if ($tool) {
+            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -IncludeRepair -Unattended" -TaskTitle "Reparacion Integral de Archivos Protegidos (SFC + DISM)"
+        }
+    })
+}
+
+$btnWmiNtfs = $window.FindName('btnRunWmiNtfsRepair')
+if ($btnWmiNtfs) {
+    $btnWmiNtfs.Add_Click({
+        $cmd = "-NoProfile -ExecutionPolicy Bypass -Command `"& { Write-Host 'Verificando repositorio WMI...' -ForegroundColor Cyan; winmgmt /salvagerepository; Write-Host 'Iniciando comprobacion NTFS en linea...' -ForegroundColor Cyan; Repair-Volume -DriveLetter C -Scan }`""
+        Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Autochequeo y Reparacion WMI & NTFS"
+    })
+}
+
+$btnNgen = $window.FindName('btnRunNgenCompile')
+if ($btnNgen) {
+    $btnNgen.Add_Click({
+        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+        if ($tool) {
+            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -IncludeNgen -Unattended" -TaskTitle "Precompilacion Nativa de Ensamblados .NET (ngen.exe)"
+        }
     })
 }
 

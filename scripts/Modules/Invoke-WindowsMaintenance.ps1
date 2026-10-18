@@ -54,6 +54,7 @@ param(
     [switch]$DeepClean,
     [switch]$RepairOnly,
     [switch]$Full,
+    [switch]$Express,
     [switch]$SkipDism,
     [switch]$SkipBrowsers,
     [switch]$ResetBase,
@@ -61,7 +62,21 @@ param(
     [switch]$TrimOnly,
     [switch]$Quiet,
     [switch]$PassThru,
-    [switch]$SkipElevation
+    [switch]$SkipElevation,
+    [switch]$AnalyzeOnly,
+    [switch]$IncludeDeployment,
+    [switch]$IncludeWinSxS,
+    [switch]$IncludeWinUpdate,
+    [switch]$IncludeDriverStore,
+    [switch]$IncludeCbsLogs,
+    [switch]$IncludeWerDumps,
+    [switch]$IncludeAppxOrphans,
+    [switch]$IncludeTemp,
+    [switch]$IncludeCryptNet,
+    [switch]$IncludeBrowsers,
+    [switch]$IncludeRepair,
+    [switch]$IncludeTrim,
+    [switch]$IncludeNgen
 )
 
 # Modo simulado -WhatIf
@@ -89,17 +104,32 @@ if (-not $isAdmin -and -not $ShadersOnly -and -not $SkipElevation) {
     $ps51 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
     try {
         $argList = @("-STA", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $myScript)
-        if ($Unattended)       { $argList += "-Unattended" }
-        if ($PostInstall)      { $argList += "-PostInstall" }
-        if ($DeepClean)        { $argList += "-DeepClean" }
-        if ($RepairOnly)       { $argList += "-RepairOnly" }
-        if ($Full)             { $argList += "-Full" }
-        if ($SkipDism)         { $argList += "-SkipDism" }
-        if ($SkipBrowsers)     { $argList += "-SkipBrowsers" }
-        if ($ResetBase)        { $argList += "-ResetBase" }
-        if ($ShadersOnly)      { $argList += "-ShadersOnly" }
-        if ($TrimOnly)         { $argList += "-TrimOnly" }
-        if ($Quiet)            { $argList += "-Quiet" }
+        if ($Unattended)           { $argList += "-Unattended" }
+        if ($PostInstall)          { $argList += "-PostInstall" }
+        if ($DeepClean)            { $argList += "-DeepClean" }
+        if ($RepairOnly)           { $argList += "-RepairOnly" }
+        if ($Full)                 { $argList += "-Full" }
+        if ($Express)              { $argList += "-Express" }
+        if ($SkipDism)             { $argList += "-SkipDism" }
+        if ($SkipBrowsers)         { $argList += "-SkipBrowsers" }
+        if ($ResetBase)            { $argList += "-ResetBase" }
+        if ($ShadersOnly)          { $argList += "-ShadersOnly" }
+        if ($TrimOnly)             { $argList += "-TrimOnly" }
+        if ($Quiet)                { $argList += "-Quiet" }
+        if ($AnalyzeOnly)          { $argList += "-AnalyzeOnly" }
+        if ($IncludeDeployment)    { $argList += "-IncludeDeployment" }
+        if ($IncludeWinSxS)        { $argList += "-IncludeWinSxS" }
+        if ($IncludeWinUpdate)     { $argList += "-IncludeWinUpdate" }
+        if ($IncludeDriverStore)   { $argList += "-IncludeDriverStore" }
+        if ($IncludeCbsLogs)       { $argList += "-IncludeCbsLogs" }
+        if ($IncludeWerDumps)      { $argList += "-IncludeWerDumps" }
+        if ($IncludeAppxOrphans)   { $argList += "-IncludeAppxOrphans" }
+        if ($IncludeTemp)          { $argList += "-IncludeTemp" }
+        if ($IncludeCryptNet)      { $argList += "-IncludeCryptNet" }
+        if ($IncludeBrowsers)      { $argList += "-IncludeBrowsers" }
+        if ($IncludeRepair)        { $argList += "-IncludeRepair" }
+        if ($IncludeTrim)          { $argList += "-IncludeTrim" }
+        if ($IncludeNgen)          { $argList += "-IncludeNgen" }
 
         Start-Process -FilePath $ps51 -ArgumentList $argList -Verb RunAs -ErrorAction Stop
         exit 0
@@ -184,6 +214,28 @@ if (-not $uiLoaded) {
         $header = "[ERROR] $(if($Context){"[$Context] "})$msg"
         Write-Host "  $header" -ForegroundColor Red
         return [PSCustomObject]@{ Header = $header; FullPlainReport = $header }
+    }
+}
+
+if (-not (Get-Command 'Resolve-ToolScript' -ErrorAction SilentlyContinue)) {
+    function Resolve-ToolScript {
+        param([string]$ScriptName)
+        $candidates = @(
+            (Join-Path $PSScriptRoot $ScriptName),
+            (Join-Path (Split-Path $PSScriptRoot -Parent) "Drivers\$ScriptName"),
+            (Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\$ScriptName"),
+            (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\$ScriptName"),
+            (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Drivers\$ScriptName"),
+            (Join-Path (Split-Path $PSScriptRoot -Parent) "scripts\Modules\$ScriptName"),
+            "$env:WINDIR\Setup\Scripts\$ScriptName",
+            "$env:WINDIR\Setup\Scripts\Drivers\$ScriptName",
+            "$env:WINDIR\Setup\Scripts\Modules\$ScriptName",
+            "$env:WINDIR\Setup\Scripts\Core\$ScriptName"
+        )
+        foreach ($cp in $candidates) {
+            if (Test-Path $cp) { return $cp }
+        }
+        return $null
     }
 }
 
@@ -282,53 +334,152 @@ Write-Info "Espacio Libre Inicial ($($sysLetter):): $(Format-Bytes $initialFreeB
 Write-Info "Archivo de Registro: $logFile"
 
 # ============================================================
+# AUDITORIA PREVIA WINSXS (ANALISIS RAPIDO DISM)
+# ============================================================
+if ($AnalyzeOnly) {
+    Show-UnifiedBanner -Title "AUDITORIA DE ALMACEN DE COMPONENTES WINSXS" -Subtitle "Analisis Rapido DISM (Solo Lectura)" -ShowSystemInfo
+    Write-SubStep "Consultando estado del Almacen de Componentes con DISM (/AnalyzeComponentStore)..."
+    try {
+        $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+        $pinfo.FileName = "dism.exe"
+        $pinfo.Arguments = "/Online /Cleanup-Image /AnalyzeComponentStore"
+        $pinfo.UseShellExecute = $false
+        $pinfo.RedirectStandardOutput = $true
+        $pinfo.RedirectStandardError = $true
+        $pinfo.CreateNoWindow = $true
+        $proc = [System.Diagnostics.Process]::Start($pinfo)
+        $stdout = $proc.StandardOutput.ReadToEnd()
+        $stderr = $proc.StandardError.ReadToEnd()
+        $proc.WaitForExit()
+        
+        Write-Host ""
+        Write-Host $stdout -ForegroundColor Cyan
+        if ($stdout -match '(?i)Component Store Cleanup Recommended\s*:\s*Yes|Recomienda limpiar el almac[eé]n de componentes\s*:\s*S[ií]') {
+            Write-OK "Diagnostico: Se RECOMIENDA la limpieza del Almacen WinSxS con DISM."
+        } elseif ($stdout -match '(?i)Component Store Cleanup Recommended\s*:\s*No|Recomienda limpiar el almac[eé]n de componentes\s*:\s*No') {
+            Write-Info "Diagnostico: El Almacen WinSxS esta optimizado. No se requiere limpieza inmediata."
+        }
+    } catch {
+        Write-Warn "Error al ejecutar DISM AnalyzeComponentStore: $($_.Exception.Message)"
+    }
+    try { Stop-Transcript | Out-Null } catch { $null = $_.Exception }
+    return
+}
+
+# ============================================================
 # SELECCION DE MODO DE EJECUCION
 # ============================================================
-$runMod1 = $false # Despliegue e ISO
-$runMod2 = $false # WinSxS y Windows Update
-$runMod3 = $false # Huerfanos AppX / Registro
-$runMod4 = $false # Caches y Navegadores
-$runMod5 = $false # Reparacion y Salud
-$runMod6 = $false # Almacenamiento y TRIM
+$doDeployment  = $false
+$doWinSxS      = $false
+$doWinUpdate   = $false
+$doDriverStore = $false
+$doCbsLogs     = $false
+$doWerDumps    = $false
+$doAppxOrphans = $false
+$doTemp        = $false
+$doCryptNet    = $false
+$doBrowsers    = $false
+$doShaders     = $false
+$doRepair      = $false
+$doTrim        = $false
+$doVss         = $false
+$doNgen        = $false
 
-if ($ShadersOnly) {
-    $runMod4 = $true
-} elseif ($TrimOnly) {
-    $runMod6 = $true
-} elseif ($Full) {
-    $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod5 = $true; $runMod6 = $true
-} elseif ($PostInstall) {
-    $runMod1 = $true; $runMod3 = $true; $runMod4 = $true; $runMod6 = $true
-} elseif ($DeepClean) {
-    $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod6 = $true
-} elseif ($RepairOnly) {
-    $runMod5 = $true
-} elseif ($Unattended) {
-    # Modo por defecto desatendido: Mantenimiento Completo
-    $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod5 = $true; $runMod6 = $true
+$hasGranular = ($IncludeDeployment -or $IncludeWinSxS -or $IncludeWinUpdate -or $IncludeDriverStore -or `
+                $IncludeCbsLogs -or $IncludeWerDumps -or $IncludeAppxOrphans -or $IncludeTemp -or `
+                $IncludeCryptNet -or $IncludeBrowsers -or $IncludeRepair -or $IncludeTrim -or $IncludeNgen -or $Express)
+
+if ($hasGranular) {
+    if ($IncludeDeployment)  { $doDeployment  = $true }
+    if ($IncludeWinSxS)       { $doWinSxS      = $true }
+    if ($IncludeWinUpdate)    { $doWinUpdate   = $true }
+    if ($IncludeDriverStore)  { $doDriverStore = $true }
+    if ($IncludeCbsLogs)      { $doCbsLogs     = $true }
+    if ($IncludeWerDumps)     { $doWerDumps    = $true }
+    if ($IncludeAppxOrphans)  { $doAppxOrphans = $true }
+    if ($IncludeTemp)         { $doTemp        = $true }
+    if ($IncludeCryptNet)     { $doCryptNet    = $true }
+    if ($IncludeBrowsers)     { $doBrowsers    = $true }
+    if ($IncludeRepair)       { $doRepair      = $true }
+    if ($IncludeTrim)         { $doTrim        = $true }
+    if ($IncludeNgen)         { $doNgen        = $true }
+    if ($Express) {
+        $doTemp        = $true
+        $doWinUpdate   = $true
+        $doCryptNet    = $true
+        $doTrim        = $true
+        $doAppxOrphans = $true
+    }
 } else {
-    $maintOpts = @(
-        "Mantenimiento Completo Integral (Limpieza profunda + Reparacion + TRIM) [Recomendado]",
-        "Saneamiento Post-Instalacion ISO (Residuos OOBE, temporales, apps huerfanas, TRIM)",
-        "Limpieza Profunda de Almacenamiento (WinSxS, Windows Update, Shaders, Caches)",
-        "Solo Reparacion y Salud del Sistema (DISM RestoreHealth, SFC, WMI, Red)"
-    )
-    $choice = Show-UnifiedMenu -Title "TIPO DE OPERACION DE MANTENIMIENTO" -Options $maintOpts -DefaultChoice 1 -AllowCancel -CancelText "Salir sin realizar cambios"
+    # Modos agregativos legacy y combinables (Cero colapso en cascada)
+    if ($Full -or ($Unattended -and -not $PostInstall -and -not $DeepClean -and -not $RepairOnly -and -not $ShadersOnly -and -not $TrimOnly)) {
+        $doDeployment = $true; $doWinSxS = $true; $doWinUpdate = $true; $doDriverStore = $true
+        $doCbsLogs = $true; $doWerDumps = $true; $doAppxOrphans = $true; $doTemp = $true
+        $doCryptNet = $true; $doBrowsers = (-not $SkipBrowsers); $doShaders = $true
+        $doRepair = $true; $doTrim = $true; $doVss = $true; $doNgen = $true
+    }
+    if ($DeepClean) {
+        $doDeployment = $true; $doWinSxS = $true; $doWinUpdate = $true; $doDriverStore = $true
+        $doCbsLogs = $true; $doWerDumps = $true; $doAppxOrphans = $true; $doTemp = $true
+        $doCryptNet = $true; $doBrowsers = (-not $SkipBrowsers); $doTrim = $true; $doVss = $true
+    }
+    if ($PostInstall) {
+        $doDeployment = $true; $doAppxOrphans = $true; $doTemp = $true; $doTrim = $true; $doBrowsers = (-not $SkipBrowsers)
+    }
+    if ($RepairOnly) {
+        $doRepair = $true
+    }
+    if ($ShadersOnly) {
+        $doShaders = $true
+    }
+    if ($TrimOnly) {
+        $doTrim = $true
+    }
 
-    switch ($choice) {
-        1 { $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod5 = $true; $runMod6 = $true }
-        2 { $runMod1 = $true; $runMod3 = $true; $runMod4 = $true; $runMod6 = $true }
-        3 { $runMod1 = $true; $runMod2 = $true; $runMod3 = $true; $runMod4 = $true; $runMod6 = $true }
-        4 { $runMod5 = $true }
-        default {
-            Write-Warn "Operacion cancelada por el usuario."
-            try { Stop-Transcript | Out-Null } catch {
-                Write-Info "Transcript detenido: $($_.Exception.Message)"
+    # Si no se paso ningun parametro y no es desatendido, mostrar menu interactivo
+    if (-not $Unattended -and -not $Full -and -not $DeepClean -and -not $PostInstall -and -not $RepairOnly -and -not $ShadersOnly -and -not $TrimOnly) {
+        $maintOpts = @(
+            "Mantenimiento Completo Integral (Limpieza profunda + Reparacion + TRIM) [Recomendado]",
+            "Saneamiento Post-Instalacion ISO (Residuos OOBE, temporales, apps huerfanas, TRIM)",
+            "Limpieza Profunda de Almacenamiento (WinSxS, Windows Update, DriverStore, Caches)",
+            "Solo Reparacion y Salud del Sistema (DISM RestoreHealth, SFC, WMI, Red)"
+        )
+        $choice = Show-UnifiedMenu -Title "TIPO DE OPERACION DE MANTENIMIENTO" -Options $maintOpts -DefaultChoice 1 -AllowCancel -CancelText "Salir sin realizar cambios"
+
+        switch ($choice) {
+            1 {
+                $doDeployment = $true; $doWinSxS = $true; $doWinUpdate = $true; $doDriverStore = $true
+                $doCbsLogs = $true; $doWerDumps = $true; $doAppxOrphans = $true; $doTemp = $true
+                $doCryptNet = $true; $doBrowsers = (-not $SkipBrowsers); $doRepair = $true; $doTrim = $true; $doVss = $true; $doNgen = $true
             }
-            exit 0
+            2 {
+                $doDeployment = $true; $doAppxOrphans = $true; $doTemp = $true; $doTrim = $true; $doBrowsers = (-not $SkipBrowsers)
+            }
+            3 {
+                $doDeployment = $true; $doWinSxS = $true; $doWinUpdate = $true; $doDriverStore = $true
+                $doCbsLogs = $true; $doWerDumps = $true; $doAppxOrphans = $true; $doTemp = $true
+                $doCryptNet = $true; $doBrowsers = (-not $SkipBrowsers); $doTrim = $true
+            }
+            4 {
+                $doRepair = $true
+            }
+            default {
+                Write-Warn "Operacion cancelada por el usuario."
+                try { Stop-Transcript | Out-Null } catch {
+                    Write-Info "Transcript detenido: $($_.Exception.Message)"
+                }
+                exit 0
+            }
         }
     }
 }
+
+$runMod1 = $doDeployment
+$runMod2 = ($doWinSxS -or $doWinUpdate -or $doDriverStore -or $doCbsLogs)
+$runMod3 = ($doAppxOrphans -or $doWerDumps)
+$runMod4 = ($doShaders -or $doBrowsers -or $doTemp -or $doWerDumps -or $doCryptNet)
+$runMod5 = $doRepair
+$runMod6 = ($doTrim -or $doVss -or $doNgen)
 
 # ============================================================
 # MODULO 1: RESIDUOS DE DESPLIEGUE E INSTALACION (ISO & OOBE)
@@ -369,35 +520,37 @@ if ($runMod1) {
 # MODULO 2: ALMACEN DE COMPONENTES (WinSxS) Y WINDOWS UPDATE
 # ============================================================
 if ($runMod2) {
-    Write-Section "2" "Mantenimiento de Componentes (WinSxS), Windows Update y Eventos"
+    Write-Section "2" "Mantenimiento de Componentes (WinSxS), Windows Update, DriverStore y Eventos"
     
     # 2.A Descargas de Windows Update y Delivery Optimization
-    Write-SubStep "Deteniendo transitoriamente servicios de actualizacion..."
-    Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
-    Stop-Service -Name bits     -Force -ErrorAction SilentlyContinue
-    Stop-Service -Name dosvc    -Force -ErrorAction SilentlyContinue
+    if ($doWinUpdate) {
+        Write-SubStep "Deteniendo transitoriamente servicios de actualizacion..."
+        Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+        Stop-Service -Name bits     -Force -ErrorAction SilentlyContinue
+        Stop-Service -Name dosvc    -Force -ErrorAction SilentlyContinue
 
-    $wuDownloadDir = "$env:WINDIR\SoftwareDistribution\Download"
-    if (Test-Path $wuDownloadDir) {
-        Write-SubStep "Vaciando cache de descargas de Windows Update ($wuDownloadDir)..."
-        Remove-PathSilently -Path $wuDownloadDir -ContentsOnly | Out-Null
-        Write-OK "Descargas temporales de Windows Update eliminadas."
+        $wuDownloadDir = "$env:WINDIR\SoftwareDistribution\Download"
+        if (Test-Path $wuDownloadDir) {
+            Write-SubStep "Vaciando cache de descargas de Windows Update ($wuDownloadDir)..."
+            Remove-PathSilently -Path $wuDownloadDir -ContentsOnly | Out-Null
+            Write-OK "Descargas temporales de Windows Update eliminadas."
+        }
+
+        $doCacheDir = "$env:WINDIR\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Cache"
+        if (Test-Path $doCacheDir) {
+            Write-SubStep "Vaciando cache de Optimizacion de Distribucion (Delivery Optimization)..."
+            Remove-PathSilently -Path $doCacheDir -ContentsOnly | Out-Null
+            Write-OK "Cache de Delivery Optimization purgada."
+        }
+
+        Write-SubStep "Reanudando servicios de Windows Update..."
+        Start-Service -Name dosvc    -ErrorAction SilentlyContinue
+        Start-Service -Name bits     -ErrorAction SilentlyContinue
+        Start-Service -Name wuauserv -ErrorAction SilentlyContinue
     }
-
-    $doCacheDir = "$env:WINDIR\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Cache"
-    if (Test-Path $doCacheDir) {
-        Write-SubStep "Vaciando cache de Optimizacion de Distribucion (Delivery Optimization)..."
-        Remove-PathSilently -Path $doCacheDir -ContentsOnly | Out-Null
-        Write-OK "Cache de Delivery Optimization purgada."
-    }
-
-    Write-SubStep "Reanudando servicios de Windows Update..."
-    Start-Service -Name dosvc    -ErrorAction SilentlyContinue
-    Start-Service -Name bits     -ErrorAction SilentlyContinue
-    Start-Service -Name wuauserv -ErrorAction SilentlyContinue
 
     # 2.B Limpieza de Almacen WinSxS con DISM
-    if (-not $SkipDism) {
+    if ($doWinSxS -and -not $SkipDism) {
         Write-SubStep "Ejecutando limpieza oficial de componentes WinSxS (DISM /StartComponentCleanup)..."
         try {
             $dismArgs = @("/Online", "/Cleanup-Image", "/StartComponentCleanup")
@@ -420,26 +573,73 @@ if ($runMod2) {
         } catch {
             Write-Warn "Error ejecutando DISM: $($_.Exception.Message)"
         }
-    } else {
+    } elseif ($SkipDism) {
         Write-Info "DISM omitido por parametro -SkipDism."
     }
 
-    # 2.C Purgado de Registros de Eventos Masivos (.evtx)
-    Write-SubStep "Depurando registros de eventos masivos de Windows..."
-    try {
-        $eventLogs = Get-WinEvent -ListLog * -ErrorAction SilentlyContinue | Where-Object { $_.RecordCount -gt 0 }
-        $clearedLogs = 0
-        foreach ($l in $eventLogs) {
-            try {
-                [System.Diagnostics.Eventing.Reader.EventLogSession]::GlobalSession.ClearLog($l.LogName)
-                $clearedLogs++
-            } catch {
-                Write-LogEntry -Level "DEBUG" -Message "No se pudo vaciar registro de eventos $($l.LogName): $($_.Exception.Message)"
+    # 2.C Saneamiento de Logs Gigantes de CBS y Archivos CAB Huerfanos
+    if ($doCbsLogs) {
+        Write-SubStep "Depurando registros de servicio CBS y compresion CAB huerfana..."
+        try {
+            Stop-Service -Name TrustedInstaller -Force -ErrorAction SilentlyContinue
+            Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+
+            $cbsDir = "$env:WINDIR\Logs\CBS"
+            if (Test-Path $cbsDir) {
+                Get-ChildItem -Path $cbsDir -Filter "CbsPersist_*.log" -File -ErrorAction SilentlyContinue | ForEach-Object {
+                    Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+                }
+                Get-ChildItem -Path $cbsDir -Filter "CbsPersist_*.cab" -File -ErrorAction SilentlyContinue | ForEach-Object {
+                    Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+                }
             }
+
+            Get-ChildItem -Path "$env:WINDIR\Temp" -Filter "cab_*" -File -ErrorAction SilentlyContinue | ForEach-Object {
+                Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+            }
+            Write-OK "Logs de CBS y residuos de compresion CAB saneados."
+        } catch {
+            Write-Warn "Aviso al sanear logs de CBS: $($_.Exception.Message)"
+        } finally {
+            Start-Service -Name TrustedInstaller -ErrorAction SilentlyContinue
+            Start-Service -Name wuauserv -ErrorAction SilentlyContinue
         }
-        Write-OK "Registros de eventos depurados ($clearedLogs logs limpiados)."
-    } catch {
-        Write-Info "Limpieza de eventos completada con saltos de seguridad."
+    }
+
+    # 2.D Depuracion Segura de Controladores en DriverStore (FileRepository)
+    if ($doDriverStore) {
+        Write-SubStep "Depurando controladores obsoletos en DriverStore (FileRepository)..."
+        try {
+            $driverStoreScript = Resolve-ToolScript "Clean-DriverStore.ps1"
+            if ($driverStoreScript) {
+                & powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File $driverStoreScript -Force -SkipElevation
+                Write-OK "Depuracion de DriverStore completada."
+            } else {
+                Write-Info "Clean-DriverStore.ps1 no localizado; omitiendo paso de DriverStore."
+            }
+        } catch {
+            Write-Warn "Aviso al depurar DriverStore: $($_.Exception.Message)"
+        }
+    }
+
+    # 2.E Purgado de Registros de Eventos Masivos (.evtx)
+    if ($doWinSxS -or $Full -or $DeepClean) {
+        Write-SubStep "Depurando registros de eventos masivos de Windows..."
+        try {
+            $eventLogs = Get-WinEvent -ListLog * -ErrorAction SilentlyContinue | Where-Object { $_.RecordCount -gt 0 }
+            $clearedLogs = 0
+            foreach ($l in $eventLogs) {
+                try {
+                    [System.Diagnostics.Eventing.Reader.EventLogSession]::GlobalSession.ClearLog($l.LogName)
+                    $clearedLogs++
+                } catch {
+                    Write-LogEntry -Level "DEBUG" -Message "No se pudo vaciar registro de eventos $($l.LogName): $($_.Exception.Message)"
+                }
+            }
+            Write-OK "Registros de eventos depurados ($clearedLogs logs limpiados)."
+        } catch {
+            Write-Info "Limpieza de eventos completada con saltos de seguridad."
+        }
     }
 }
 
@@ -450,130 +650,144 @@ if ($runMod3) {
     Write-Section "3" "Saneamiento Inteligente de Residuos de Apps (Debloat) y Registro"
     
     # 3.A Purga de Carpetas Huerfanas de AppX en perfiles de usuario
-    Write-SubStep "Analizando paquetes AppX/MSIX activos para detectar carpetas huerfanas..."
-    try {
-        $activePackages = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Select-Object -ExpandProperty PackageFamilyName -Unique
-        $userProfiles = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special -and $_.LocalPath }
+    if ($doAppxOrphans) {
+        Write-SubStep "Analizando paquetes AppX/MSIX activos para detectar carpetas huerfanas..."
+        try {
+            $activePackages = Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Select-Object -ExpandProperty PackageFamilyName -Unique
+            $userProfiles = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special -and $_.LocalPath }
 
-        $orphanCount = 0
-        foreach ($prof in $userProfiles) {
-            $packagesRoot = Join-Path $prof.LocalPath "AppData\Local\Packages"
-            if (Test-Path $packagesRoot) {
-                $dirList = Get-ChildItem -LiteralPath $packagesRoot -Directory -ErrorAction SilentlyContinue
-                foreach ($d in $dirList) {
-                    # Si el directorio no coincide con ningun paquete AppX activo registrado
-                    if ($activePackages -and ($activePackages -notcontains $d.Name)) {
-                        # Verificar si es una app de sistema protegida de Windows
-                        if ($d.Name -notmatch '(?i)Microsoft\.Windows\.|Microsoft\.DesktopAppInstaller|Microsoft\.UI\.Xaml|Microsoft\.NET\.Native') {
-                            Remove-PathSilently -Path $d.FullName | Out-Null
-                            $orphanCount++
+            $orphanCount = 0
+            foreach ($prof in $userProfiles) {
+                $packagesRoot = Join-Path $prof.LocalPath "AppData\Local\Packages"
+                if (Test-Path $packagesRoot) {
+                    $dirList = Get-ChildItem -LiteralPath $packagesRoot -Directory -ErrorAction SilentlyContinue
+                    foreach ($d in $dirList) {
+                        # Si el directorio no coincide con ningun paquete AppX activo registrado
+                        if ($activePackages -and ($activePackages -notcontains $d.Name)) {
+                            # Verificar si es una app de sistema protegida de Windows
+                            if ($d.Name -notmatch '(?i)Microsoft\.Windows\.|Microsoft\.DesktopAppInstaller|Microsoft\.UI\.Xaml|Microsoft\.NET\.Native') {
+                                Remove-PathSilently -Path $d.FullName | Out-Null
+                                $orphanCount++
+                            }
                         }
                     }
                 }
             }
+            Write-OK "Carpetas huerfanas de paquetes desinstalados eliminadas: $orphanCount"
+        } catch {
+            Write-Warn "Advertencia al escanear paquetes AppX: $($_.Exception.Message)"
         }
-        Write-OK "Carpetas huerfanas de paquetes desinstalados eliminadas: $orphanCount"
-    } catch {
-        Write-Warn "Advertencia al escanear paquetes AppX: $($_.Exception.Message)"
     }
 
     # 3.B Purgado de colas congeladas de WER y Logs de Telemetria
-    $werPaths = @(
-        "$env:ProgramData\Microsoft\Windows\WER\ReportArchive",
-        "$env:ProgramData\Microsoft\Windows\WER\ReportQueue",
-        "$env:ProgramData\Microsoft\Windows\WER\Temp",
-        "$env:ProgramData\Microsoft\Diagnosis\ETLLogs"
-    )
-    foreach ($wPath in $werPaths) {
-        if (Test-Path -LiteralPath $wPath) {
-            Remove-PathSilently -Path $wPath -ContentsOnly | Out-Null
-            Write-OK "Cola depurada: $wPath"
+    if ($doWerCrash) {
+        $werPaths = @(
+            "$env:ProgramData\Microsoft\Windows\WER\ReportArchive",
+            "$env:ProgramData\Microsoft\Windows\WER\ReportQueue",
+            "$env:ProgramData\Microsoft\Windows\WER\Temp",
+            "$env:ProgramData\Microsoft\Diagnosis\ETLLogs"
+        )
+        foreach ($wPath in $werPaths) {
+            if (Test-Path -LiteralPath $wPath) {
+                Remove-PathSilently -Path $wPath -ContentsOnly | Out-Null
+                Write-OK "Cola depurada: $wPath"
+            }
         }
     }
 }
 
 # ============================================================
-# MODULO 4: CACHES DE GPU/SHADERS, NAVEGADORES Y TEMPORALES
+# MODULO 4: CACHES DEL SISTEMA, CRASH DUMPS Y TEMPORALES
 # ============================================================
 if ($runMod4) {
-    Write-Section "4" "Caches de Rendimiento: GPU Shaders, Navegadores y Temporales"
+    Write-Section "4" "Caches de Rendimiento: Navegadores, Temporales y Certificados"
     
-    # 4.A Shaders de GPU (DirectX, NVIDIA, AMD)
-    Write-SubStep "Purgando caches de shaders de GPU (resuelve micro-stuttering en juegos)..."
-    $userProfiles = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special -and $_.LocalPath }
-    if (-not $userProfiles -or @($userProfiles).Count -eq 0) {
-        $userProfiles = @([PSCustomObject]@{ LocalPath = $env:USERPROFILE })
-    }
-    
-    foreach ($prof in $userProfiles) {
-        $shaderPaths = @(
-            (Join-Path $prof.LocalPath "AppData\Local\D3DSCache"),
-            (Join-Path $prof.LocalPath "AppData\Local\NVIDIA\DXCache"),
-            (Join-Path $prof.LocalPath "AppData\Local\NVIDIA\GLCache"),
-            (Join-Path $prof.LocalPath "AppData\Local\NVIDIA Corporation\NV_Cache"),
-            (Join-Path $prof.LocalPath "AppData\LocalLow\NVIDIA\PerDriverVersion\DXCache"),
-            (Join-Path $prof.LocalPath "AppData\Local\AMD\DxCache"),
-            (Join-Path $prof.LocalPath "AppData\Local\AMD\GLCache"),
-            (Join-Path $prof.LocalPath "AppData\Local\Intel\ShaderCache"),
-            (Join-Path $prof.LocalPath "AppData\Local\Intel\DXCache"),
-            (Join-Path $prof.LocalPath "AppData\Local\Intel\IGC")
-        )
-        foreach ($sP in $shaderPaths) {
-            if (Test-Path -LiteralPath $sP) {
-                Remove-PathSilently -Path $sP -ContentsOnly | Out-Null
-                Write-OK "Shader Cache purgada: $sP"
+    # 4.A Shaders de GPU (DirectX, NVIDIA, AMD, Intel)
+    if ($doShaders) {
+        Write-SubStep "Purgando caches de shaders de GPU (resuelve micro-stuttering en juegos)..."
+        $userProfiles = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special -and $_.LocalPath }
+        if (-not $userProfiles -or @($userProfiles).Count -eq 0) {
+            $userProfiles = @([PSCustomObject]@{ LocalPath = $env:USERPROFILE })
+        }
+        
+        foreach ($prof in $userProfiles) {
+            $shaderPaths = @(
+                (Join-Path $prof.LocalPath "AppData\Local\D3DSCache"),
+                (Join-Path $prof.LocalPath "AppData\Local\NVIDIA\DXCache"),
+                (Join-Path $prof.LocalPath "AppData\Local\NVIDIA\GLCache"),
+                (Join-Path $prof.LocalPath "AppData\Local\NVIDIA Corporation\NV_Cache"),
+                (Join-Path $prof.LocalPath "AppData\LocalLow\NVIDIA\PerDriverVersion\DXCache"),
+                (Join-Path $prof.LocalPath "AppData\Local\AMD\DxCache"),
+                (Join-Path $prof.LocalPath "AppData\Local\AMD\GLCache"),
+                (Join-Path $prof.LocalPath "AppData\Local\Intel\ShaderCache"),
+                (Join-Path $prof.LocalPath "AppData\Local\Intel\DXCache"),
+                (Join-Path $prof.LocalPath "AppData\Local\Intel\IGC")
+            )
+            foreach ($sP in $shaderPaths) {
+                if (Test-Path -LiteralPath $sP) {
+                    Remove-PathSilently -Path $sP -ContentsOnly | Out-Null
+                    Write-OK "Shader Cache purgada: $sP"
+                }
             }
         }
     }
 
-    if (-not $ShadersOnly) {
-        # 4.B Caches Seguras de Navegadores Web (Preservando Sesiones, Cookies y Passwords)
-        if (-not $SkipBrowsers) {
-            Write-SubStep "Limpiando caches volatiles de navegadores (Edge, Chrome, Brave, Firefox)..."
-            foreach ($prof in $userProfiles) {
-                $browserCachePaths = @(
-                    # Microsoft Edge (Chromium)
-                    (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\Cache"),
-                    (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\Code Cache"),
-                    (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\GPUCache"),
-                    (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Crashpad\reports"),
-                    # Google Chrome
-                    (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\Cache"),
-                    (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\Code Cache"),
-                    (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\GPUCache"),
-                    (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Crashpad\reports"),
-                    # Brave Browser
-                    (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\Cache"),
-                    (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\Code Cache"),
-                    (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\GPUCache"),
-                    # Mozilla Firefox (Volatile cache2)
-                    (Join-Path $prof.LocalPath "AppData\Local\Mozilla\Firefox\Profiles")
-                )
+    # 4.B Caches Seguras de Navegadores Web (Preservando Sesiones, Cookies y Passwords)
+    if ($doBrowsers -and -not $SkipBrowsers) {
+        Write-SubStep "Limpiando caches volatiles de navegadores (Edge, Chrome, Brave, Firefox)..."
+        $userProfiles = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special -and $_.LocalPath }
+        if (-not $userProfiles -or @($userProfiles).Count -eq 0) {
+            $userProfiles = @([PSCustomObject]@{ LocalPath = $env:USERPROFILE })
+        }
+        foreach ($prof in $userProfiles) {
+            $browserCachePaths = @(
+                # Microsoft Edge (Chromium)
+                (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\Cache"),
+                (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\Code Cache"),
+                (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Default\GPUCache"),
+                (Join-Path $prof.LocalPath "AppData\Local\Microsoft\Edge\User Data\Crashpad\reports"),
+                # Google Chrome
+                (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\Cache"),
+                (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\Code Cache"),
+                (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Default\GPUCache"),
+                (Join-Path $prof.LocalPath "AppData\Local\Google\Chrome\User Data\Crashpad\reports"),
+                # Brave Browser
+                (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\Cache"),
+                (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\Code Cache"),
+                (Join-Path $prof.LocalPath "AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\GPUCache"),
+                # Mozilla Firefox (Volatile cache2)
+                (Join-Path $prof.LocalPath "AppData\Local\Mozilla\Firefox\Profiles")
+            )
 
-                foreach ($bPath in $browserCachePaths) {
-                    if (Test-Path -LiteralPath $bPath) {
-                        if ($bPath -match 'Mozilla\\Firefox\\Profiles') {
-                            $ffProfiles = Get-ChildItem -LiteralPath $bPath -Directory -ErrorAction SilentlyContinue
-                            foreach ($ffP in $ffProfiles) {
-                                $c2 = Join-Path $ffP.FullName "cache2"
-                                if (Test-Path $c2) { Remove-PathSilently -Path $c2 -ContentsOnly | Out-Null }
-                                $sc = Join-Path $ffP.FullName "startupCache"
-                                if (Test-Path $sc) { Remove-PathSilently -Path $sc -ContentsOnly | Out-Null }
-                            }
-                        } else {
-                            Remove-PathSilently -Path $bPath -ContentsOnly | Out-Null
+            foreach ($bPath in $browserCachePaths) {
+                if (Test-Path -LiteralPath $bPath) {
+                    if ($bPath -match 'Mozilla\\Firefox\\Profiles') {
+                        $ffProfiles = Get-ChildItem -LiteralPath $bPath -Directory -ErrorAction SilentlyContinue
+                        foreach ($ffP in $ffProfiles) {
+                            $c2 = Join-Path $ffP.FullName "cache2"
+                            if (Test-Path $c2) { Remove-PathSilently -Path $c2 -ContentsOnly | Out-Null }
+                            $sc = Join-Path $ffP.FullName "startupCache"
+                            if (Test-Path $sc) { Remove-PathSilently -Path $sc -ContentsOnly | Out-Null }
                         }
+                    } else {
+                        Remove-PathSilently -Path $bPath -ContentsOnly | Out-Null
                     }
                 }
             }
-            Write-OK "Caches de navegadores purgadas de forma segura (Sesiones y Cookies protegidas)."
-        } else {
-            Write-Info "Limpieza de navegadores omitida por parametro -SkipBrowsers."
         }
+        Write-OK "Caches de navegadores purgadas de forma segura (Sesiones y Cookies protegidas)."
+    } elseif ($SkipBrowsers) {
+        Write-Info "Limpieza de navegadores omitida por parametro -SkipBrowsers."
+    }
 
-        # 4.C Archivos Temporales del Sistema y Usuarios
+    # 4.C Archivos Temporales del Sistema y Usuarios
+    if ($doTemp) {
         Write-SubStep "Saneando archivos temporales globales (%TEMP% y Windows Temp)..."
         Remove-PathSilently -Path "$env:WINDIR\Temp" -ContentsOnly | Out-Null
+        $userProfiles = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special -and $_.LocalPath }
+        if (-not $userProfiles -or @($userProfiles).Count -eq 0) {
+            $userProfiles = @([PSCustomObject]@{ LocalPath = $env:USERPROFILE })
+        }
         foreach ($prof in $userProfiles) {
             $uTemp = Join-Path $prof.LocalPath "AppData\Local\Temp"
             if (Test-Path $uTemp) {
@@ -581,20 +795,47 @@ if ($runMod4) {
             }
         }
         Write-OK "Archivos temporales del sistema y usuarios purgados."
+    }
 
-        # 4.D Crash Dumps y Volcados de Memoria
+    # 4.D Crash Dumps y Volcados de Memoria
+    if ($doWerCrash) {
         Write-SubStep "Buscando volcados de memoria y crash dumps obsoletos..."
         if (Test-Path "$env:WINDIR\MEMORY.DMP") { Remove-Item "$env:WINDIR\MEMORY.DMP" -Force -ErrorAction SilentlyContinue }
         if (Test-Path "$env:WINDIR\Minidump")   { Remove-PathSilently -Path "$env:WINDIR\Minidump" -ContentsOnly | Out-Null }
         Write-OK "Volcados de memoria depurados."
+    }
 
-        # 4.E Cache de Fuentes y Miniaturas
+    # 4.E Cache de Fuentes y Miniaturas
+    if ($doTemp -or $doCryptNet -or $Full -or $DeepClean) {
         Write-SubStep "Regenerando cache de fuentes y miniaturas..."
         Stop-Service -Name "FontCache" -Force -ErrorAction SilentlyContinue
         $fontCacheFile = "$env:WINDIR\ServiceProfiles\LocalService\AppData\Local\FontCache\FntCache.dat"
         if (Test-Path $fontCacheFile) { Remove-Item -LiteralPath $fontCacheFile -Force -ErrorAction SilentlyContinue }
         Start-Service -Name "FontCache" -ErrorAction SilentlyContinue
         Write-OK "Cache de fuentes regenerada."
+    }
+
+    # 4.F Cache Criptografica de Certificados (CryptnetUrlCache) y Miniaturas Explorer
+    if ($doCryptNet) {
+        Write-SubStep "Depurando cache de certificados caducados (CryptnetUrlCache) y miniaturas..."
+        $userProfiles = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special -and $_.LocalPath }
+        if (-not $userProfiles -or @($userProfiles).Count -eq 0) {
+            $userProfiles = @([PSCustomObject]@{ LocalPath = $env:USERPROFILE })
+        }
+        foreach ($prof in $userProfiles) {
+            $crlMeta = Join-Path $prof.LocalPath "AppData\LocalLow\Microsoft\CryptnetUrlCache\MetaData"
+            $crlCont = Join-Path $prof.LocalPath "AppData\LocalLow\Microsoft\CryptnetUrlCache\Content"
+            if (Test-Path $crlMeta) { Remove-PathSilently -Path $crlMeta -ContentsOnly | Out-Null }
+            if (Test-Path $crlCont) { Remove-PathSilently -Path $crlCont -ContentsOnly | Out-Null }
+            
+            $thumbDir = Join-Path $prof.LocalPath "AppData\Local\Microsoft\Windows\Explorer"
+            if (Test-Path $thumbDir) {
+                Get-ChildItem -Path $thumbDir -Filter "thumbcache_*.db" -File -ErrorAction SilentlyContinue | ForEach-Object {
+                    Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+                }
+            }
+        }
+        Write-OK "Cache criptografica y miniaturas de explorador saneadas."
     }
 }
 
@@ -604,73 +845,79 @@ if ($runMod4) {
 if ($runMod5) {
     Write-Section "5" "Subsistema Oficial de Reparacion y Salud del Sistema"
     
-    # 5.A Reparacion de Imagen DISM RestoreHealth y SFC
-    Write-SubStep "Ejecutando reparacion de imagen con DISM (/RestoreHealth)..."
-    try {
-        $dismRes = Start-Process -FilePath "DISM.exe" -ArgumentList @("/Online", "/Cleanup-Image", "/RestoreHealth") -Wait -PassThru -NoNewWindow
-        if ($dismRes.ExitCode -eq 0) {
-            Write-OK "DISM RestoreHealth finalizado exitosamente."
-        } else {
-            $dismLogPath = "$env:WINDIR\Logs\DISM\dism.log"
-            Write-ForensicProcessFailure -TaskDescription "DISM RestoreHealth" `
-                -FilePath "DISM.exe" `
-                -CommandLine "/Online /Cleanup-Image /RestoreHealth" `
-                -ExitCode $dismRes.ExitCode `
-                -LogFilePath $dismLogPath `
-                -IsWarningOnly | Out-Null
+    if ($doRepair) {
+        # 5.A Reparacion de Imagen DISM RestoreHealth y SFC
+        Write-SubStep "Ejecutando reparacion de imagen con DISM (/RestoreHealth)..."
+        try {
+            $dismRes = Start-Process -FilePath "DISM.exe" -ArgumentList @("/Online", "/Cleanup-Image", "/RestoreHealth") -Wait -PassThru -NoNewWindow
+            if ($dismRes.ExitCode -eq 0) {
+                Write-OK "DISM RestoreHealth finalizado exitosamente."
+            } else {
+                $dismLogPath = "$env:WINDIR\Logs\DISM\dism.log"
+                Write-ForensicProcessFailure -TaskDescription "DISM RestoreHealth" `
+                    -FilePath "DISM.exe" `
+                    -CommandLine "/Online /Cleanup-Image /RestoreHealth" `
+                    -ExitCode $dismRes.ExitCode `
+                    -LogFilePath $dismLogPath `
+                    -IsWarningOnly | Out-Null
+            }
+        } catch {
+            Write-ForensicException -Record $_ -Context "DISM RestoreHealth"
         }
-    } catch {
-        Write-ForensicException -Record $_ -Context "DISM RestoreHealth"
-    }
 
-    Write-SubStep "Ejecutando verificacion de archivos protegidos con SFC (/scannow)..."
-    try {
-        $sfcRes = Start-Process -FilePath "sfc.exe" -ArgumentList @("/scannow") -Wait -PassThru -NoNewWindow
-        if ($sfcRes.ExitCode -eq 0) {
-            Write-OK "SFC /scannow no encontro violaciones de integridad."
-        } else {
-            Write-OK "SFC /scannow reparo archivos corruptos o finalizo con codigo: $($sfcRes.ExitCode)."
+        Write-SubStep "Ejecutando verificacion de archivos protegidos con SFC (/scannow)..."
+        try {
+            $sfcRes = Start-Process -FilePath "sfc.exe" -ArgumentList @("/scannow") -Wait -PassThru -NoNewWindow
+            if ($sfcRes.ExitCode -eq 0) {
+                Write-OK "SFC /scannow no encontro violaciones de integridad."
+            } else {
+                Write-OK "SFC /scannow reparo archivos corruptos o finalizo con codigo: $($sfcRes.ExitCode)."
+            }
+        } catch {
+            Write-Warn "Error ejecutando SFC: $($_.Exception.Message)"
         }
-    } catch {
-        Write-Warn "Error ejecutando SFC: $($_.Exception.Message)"
-    }
 
-    # 5.B Reparacion del Repositorio WMI / CIM
-    Write-SubStep "Comprobando y salvando repositorio WMI (winmgmt /salvagerepository)..."
-    try {
-        $wmiRes = Start-Process -FilePath "winmgmt.exe" -ArgumentList @("/salvagerepository") -Wait -PassThru -NoNewWindow
-        Write-OK "Repositorio WMI consistente y verificado."
-    } catch {
-        Write-Warn "Error verificando WMI: $($_.Exception.Message)"
-    }
+        # 5.B Reparacion del Repositorio WMI / CIM
+        Write-SubStep "Comprobando y salvando repositorio WMI (winmgmt /salvagerepository)..."
+        try {
+            $wmiRes = Start-Process -FilePath "winmgmt.exe" -ArgumentList @("/salvagerepository") -Wait -PassThru -NoNewWindow
+            Write-OK "Repositorio WMI consistente y verificado."
+        } catch {
+            Write-Warn "Error verificando WMI: $($_.Exception.Message)"
+        }
 
-    # 5.C Autoreparacion de Sistema de Archivos NTFS en Linea
-    Write-SubStep "Ejecutando escaneo y autoreparacion NTFS en linea (Repair-Volume -Scan)..."
-    try {
-        $volScan = Repair-Volume -DriveLetter C -Scan -ErrorAction SilentlyContinue
-        Write-OK "Escaneo de volumen C: completado ($volScan)."
-    } catch {
-        Write-Warn "No se pudo completar Repair-Volume: $($_.Exception.Message)"
+        # 5.C Autoreparacion de Sistema de Archivos NTFS en Linea
+        Write-SubStep "Ejecutando escaneo y autoreparacion NTFS en linea (Repair-Volume -Scan)..."
+        try {
+            $volScan = Repair-Volume -DriveLetter C -Scan -ErrorAction SilentlyContinue
+            Write-OK "Escaneo de volumen C: completado ($volScan)."
+        } catch {
+            Write-Warn "No se pudo completar Repair-Volume: $($_.Exception.Message)"
+        }
     }
 
     # 5.D Reinicio de Pila de Red Completa
-    Write-SubStep "Restableciendo sockets Winsock y pila TCP/IP..."
-    try {
-        Start-Process -FilePath "netsh.exe" -ArgumentList @("winsock", "reset") -Wait -PassThru -NoNewWindow | Out-Null
-        Start-Process -FilePath "netsh.exe" -ArgumentList @("int", "ip", "reset") -Wait -PassThru -NoNewWindow | Out-Null
-        Start-Process -FilePath "ipconfig.exe" -ArgumentList @("/flushdns") -Wait -PassThru -NoNewWindow | Out-Null
-        Write-OK "Pila de red y cache DNS restablecidas correctamente."
-    } catch {
-        Write-Warn "Error restableciendo red: $($_.Exception.Message)"
+    if ($doRepair -or $Full) {
+        Write-SubStep "Restableciendo sockets Winsock y pila TCP/IP..."
+        try {
+            Start-Process -FilePath "netsh.exe" -ArgumentList @("winsock", "reset") -Wait -PassThru -NoNewWindow | Out-Null
+            Start-Process -FilePath "netsh.exe" -ArgumentList @("int", "ip", "reset") -Wait -PassThru -NoNewWindow | Out-Null
+            Start-Process -FilePath "ipconfig.exe" -ArgumentList @("/flushdns") -Wait -PassThru -NoNewWindow | Out-Null
+            Write-OK "Pila de red y cache DNS restablecidas correctamente."
+        } catch {
+            Write-Warn "Error restableciendo red: $($_.Exception.Message)"
+        }
     }
 
     # 5.E Verificacion del Entorno de Recuperacion WinRE
-    Write-SubStep "Verificando estado del entorno de recuperacion (reagentc /info)..."
-    try {
-        $reagentRes = Start-Process -FilePath "reagentc.exe" -ArgumentList @("/info") -Wait -PassThru -NoNewWindow
-        Write-OK "Estado de WinRE consultado."
-    } catch {
-        Write-Warn "Error consultando reagentc.exe /info: $($_.Exception.Message)"
+    if ($doRepair -or $Full) {
+        Write-SubStep "Verificando estado del entorno de recuperacion (reagentc /info)..."
+        try {
+            $reagentRes = Start-Process -FilePath "reagentc.exe" -ArgumentList @("/info") -Wait -PassThru -NoNewWindow
+            Write-OK "Estado de WinRE consultado."
+        } catch {
+            Write-Warn "Error consultando reagentc.exe /info: $($_.Exception.Message)"
+        }
     }
 }
 
@@ -681,47 +928,49 @@ if ($runMod6) {
     Write-Section "6" "Optimizacion de Almacenamiento, SSD TRIM y Rendimiento"
     
     # 6.A Recorte NAND (TRIM) en SSDs / NVMe
-    Write-SubStep "Detectando tipo de almacenamiento y ejecutando TRIM (Optimize-Volume)..."
-    try {
-        $volumes = Get-Volume -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 'Fixed' -and $_.DriveLetter }
-        if (-not $volumes) {
-            $volumes = @([PSCustomObject]@{ DriveLetter = 'C' })
-        }
-        foreach ($vol in $volumes) {
-            $dl = $vol.DriveLetter
-            try {
-                $part = Get-Partition -DriveLetter $dl -ErrorAction SilentlyContinue
-                $disk = if ($part) { Get-Disk -Number $part.DiskNumber -ErrorAction SilentlyContinue } else { $null }
-                $pdisk = if ($disk) { Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object DeviceId -eq $disk.Number } else { $null }
-
-                $isSolidState = $false
-                if ($pdisk -and $pdisk.MediaType -eq 'SSD') {
-                    $isSolidState = $true
-                } elseif ($disk -and $disk.BusType -eq 'NVMe') {
-                    $isSolidState = $true
-                } elseif ($pdisk -and $pdisk.MediaType -eq 'HDD') {
-                    $isSolidState = $false
-                } else {
-                    # Fallback si no hay WMI Storage: asumir SSD si no es explicitamente HDD
-                    $isSolidState = $true
-                }
-
-                if ($isSolidState) {
-                    Optimize-Volume -DriveLetter $dl -ReTrim -Verbose -ErrorAction SilentlyContinue
-                    Write-OK "Comando TRIM ejecutado en unidad ${dl}: (Rendimiento NAND restaurado)."
-                } else {
-                    Write-Info "Unidad ${dl}: detectada como HDD mecanico ($($disk.BusType)). Omitiendo comando TRIM."
-                }
-            } catch {
-                Write-Warn "No se pudo ejecutar TRIM en unidad ${dl}: $($_.Exception.Message)"
+    if ($doTrim) {
+        Write-SubStep "Detectando tipo de almacenamiento y ejecutando TRIM (Optimize-Volume)..."
+        try {
+            $volumes = Get-Volume -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 'Fixed' -and $_.DriveLetter }
+            if (-not $volumes) {
+                $volumes = @([PSCustomObject]@{ DriveLetter = 'C' })
             }
+            foreach ($vol in $volumes) {
+                $dl = $vol.DriveLetter
+                try {
+                    $part = Get-Partition -DriveLetter $dl -ErrorAction SilentlyContinue
+                    $disk = if ($part) { Get-Disk -Number $part.DiskNumber -ErrorAction SilentlyContinue } else { $null }
+                    $pdisk = if ($disk) { Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object DeviceId -eq $disk.Number } else { $null }
+
+                    $isSolidState = $false
+                    if ($pdisk -and $pdisk.MediaType -eq 'SSD') {
+                        $isSolidState = $true
+                    } elseif ($disk -and $disk.BusType -eq 'NVMe') {
+                        $isSolidState = $true
+                    } elseif ($pdisk -and $pdisk.MediaType -eq 'HDD') {
+                        $isSolidState = $false
+                    } else {
+                        # Fallback si no hay WMI Storage: asumir SSD si no es explicitamente HDD
+                        $isSolidState = $true
+                    }
+
+                    if ($isSolidState) {
+                        Optimize-Volume -DriveLetter $dl -ReTrim -Verbose -ErrorAction SilentlyContinue
+                        Write-OK "Comando TRIM ejecutado en unidad ${dl}: (Rendimiento NAND restaurado)."
+                    } else {
+                        Write-Info "Unidad ${dl}: detectada como HDD mecanico ($($disk.BusType)). Omitiendo comando TRIM."
+                    }
+                } catch {
+                    Write-Warn "No se pudo ejecutar TRIM en unidad ${dl}: $($_.Exception.Message)"
+                }
+            }
+        } catch {
+            Write-Warn "No se pudo ejecutar Optimize-Volume: $($_.Exception.Message)"
         }
-    } catch {
-        Write-Warn "No se pudo ejecutar Optimize-Volume: $($_.Exception.Message)"
     }
 
-    if (-not $TrimOnly) {
-        # 6.B Depuracion de Copias de Sombra VSS Obsoletas
+    # 6.B Depuracion de Copias de Sombra VSS Obsoletas
+    if ($doVss) {
         Write-SubStep "Depurando instantaneas de volumen VSS antiguas..."
         try {
             $sysDrive = if ($env:SystemDrive) { $env:SystemDrive } else { "C:" }
@@ -730,8 +979,10 @@ if ($runMod6) {
         } catch {
             Write-Warn "Error depurando instantáneas VSS en $sysDrive - $($_.Exception.Message)"
         }
+    }
 
-        # 6.C Precompilacion de Ensamblados .NET NGen
+    # 6.C Precompilacion de Ensamblados .NET NGen
+    if ($doNgen) {
         Write-SubStep "Compilando tareas nativas de .NET Framework pendientes (ngen.exe)..."
         try {
             $ngenPath = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\ngen.exe"
