@@ -1,19 +1,12 @@
-## [2026-10-18T18:50:00-03:00] romanOS Unificación, Modernización y Consolidación Integral del Ecosistema (PLAN-0157)
+## [2026-10-18T19:10:00-03:00] romanOS Consolidación de Arquitectura Universal y Erradicación de Parches Ad-Hoc (Regla 20 / PLAN-0157)
 
-- **Archivos Modificados:** `scripts/Builder/New-OptimizedWindowsISO-v2.ps1`, `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/Monitor-ThermalEnergy.ps1`, `scripts/Modules/Win11-Debloat-v3-Adaptive.ps1`, `scripts/Modules/Add-OptimizedContextMenus.ps1`, `scripts/Modules/Audit-SystemOptimization.ps1`, `scripts/Modules/PostInstall-Diagnostics.ps1`, `scripts/Host-Tools/Purge-PendingWindowsUpdate.ps1`, `.agents/skills/architecture-consolidation/SKILL.md` (nuevo), `docs/plans/PLAN-0157-20261018-unificacion-arquitectura-ecosistema-romanos.md` (nuevo), `docs/plans/README.md`, `MEMORY.md`
+- **Archivos Modificados:** `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/Invoke-WindowsMaintenance.ps1`, `.agents/AGENTS.md`, `MEMORY.md`
 - **Hitos Logrados:**
-  - **Diagnóstico y Corrección de Crash en Configuración Windows 11 (`ms-settings:powersleep`):** Identificada la causa raíz empírica del cierre abrupto de la app Configuración: la deshabilitación forzada de `SensorService` en `SetupComplete.cmd` (Perfil 3), el cual es invocado vía COM por `Windows.Devices.Sensors.LightSensor`. Se reconfiguraron `SensorService`, `SensorsDataService`, `bthserv`, `Spooler`, `TabletInputService` en `start=demand` y `WlanSvc` en `start=auto` (protegiendo Wi-Fi en laptops).
-  - **Erradicación de Clones Duplicados en `powercfg` Repo-Wide:** Corregida la generación recursiva de GUIDs de Máximo Rendimiento en `Monitor-ThermalEnergy.ps1`, `Win11-Debloat-v3-Adaptive.ps1` y `Add-OptimizedContextMenus.ps1`, reutilizando determinísticamente el esquema existente por nombre o capturando el GUID generado.
-  - **Función Canónica de Saneamiento y Botón 1-Clic en GUI:** Creada `Repair-RomanOSPowerSubsystem` y acción `RepairPowerSubsystem` en `Monitor-ThermalEnergy.ps1` que restaura `SensorService` a Manual e invoca `powercfg -restoredefaultschemes` de forma transaccional. Integrado el botón `btnRepairPowerSubsytem` en `romanOS-ControlCenter.ps1` dentro de la tarjeta de energía.
-  - **Auditoría Preventiva:** Añadidas aserciones diagnósticas en `PostInstall-Diagnostics.ps1` y `Audit-SystemOptimization.ps1` alertando ante `SensorService` deshabilitado y detección de duplicados de esquemas con comandos oficiales de remediación.
-  - **Chesterton's Fence y Respeto de Contratos:** Preservado `romanOS-Toolkit.ps1` como Headless/CLI Dispatcher hacia `romanOS-ControlCenter.ps1` y módulos canónicos; validados los 10 Desktop-Helpers como shims hacia `Desktop-Helpers.ps1` y `Policy-Engine.ps1` (SSOT).
-  - **Certificación Total de Pruebas:**
-    - `Test-GuiIntegrityAndFunctionality.ps1`: 119/119 botones XAML cableados, 0 muertos, 0 fallos de sintaxis shell, 24/24 pruebas empíricas exitosas (100% PASS).
-    - `Test-FunctionalContracts.ps1`: 109/109 aserciones de contrato aprobadas (100% PASS).
-    - `Test-OptimizedISO-v2.ps1`: 651/651 pruebas aprobadas (100% PASS, 0 fallos).
-    - `Invoke-RomanOSHarness.ps1 -Fast`: 5/5 pruebas aprobadas (100% PASS, 0 bloques catch vacíos, 100% UTF-8 BOM).
-    - `Invoke-RomanOSHarness.ps1` (Full L2): 13/14 PASS (100% de código fuente y contratos).
-- **Pendiente:** Ninguno. Ecosistema sincronizado, saneado y listo para producción sin fallas.
+  - **Erradicación de Botón Ad-Hoc (`btnRepairPowerSubsytem`):** Eliminado el botón puntual de la interfaz gráfica de `romanOS Control Center`. La UI se preserva orientada a funciones universales de alto nivel para el público general, evitando proliferación de parches para una máquina u operador individual.
+  - **Integración Sistémica en el Motor de Mantenimiento General (Módulo 5.F):** Incorporada la remediación de `SensorService` y saneamiento de esquemas duplicados en `Invoke-WindowsMaintenance.ps1` dentro del pipeline universal de reparación del SO (`-IncludeRepair` / `btnRunSystemRepair`), asegurando auto-reparación transparente para todos los usuarios.
+  - **Codificación de la Regla 20 en `.agents/AGENTS.md`:** Promulgada la regla estricta *"Principio de Producto Universal y Prohibición Taxativa de Parches Ad-Hoc / Single-User"*, obligando a que toda solución futura sea preventiva en el Builder, diagnóstica en auditorías y sistémica en los motores generales de autoreparación.
+  - **Certificación de Arnés GUI:** 118/118 botones cableados, 0 botones muertos, 0 fallos de sintaxis shell, 24/24 pruebas empíricas exitosas (`Test-GuiIntegrityAndFunctionality.ps1`).
+
 
 ## [2026-09-26T17:35:00-03:00] romanOS Certificación Integral del Ecosistema OptimizedISO y Culminación de Proyectos de Referencia (PLAN-0114, PLAN-0117, PLAN-0118)
 

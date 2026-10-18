@@ -599,7 +599,6 @@ $xamlString = @"
                                     <Button x:Name="btnCalibrateUltimateEnergy" Content="Calibrar Maximo Rendimiento (Core Unpark)" Width="290" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Des-estaciona todos los núcleos de CPU (Core Unparking) y desactiva suspensiones C-States profundas para respuesta inmediata a 0 ms."/>
                                     <Button x:Name="btnAuditWakeTimers" Content="Auditar Wake Timers &amp; S0ix" Width="220" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}"/>
                                     <Button x:Name="btnDisableWakeTimers" Content="Neutralizar Wake Timers Parásitos" Width="240" Margin="0,0,10,10" Background="#3D2D1B" BorderBrush="#FFB300" FontWeight="SemiBold" ToolTip="Desactiva los temporizadores ocultos que despiertan el equipo en segundo plano para tareas de telemetría y diagnósticos."/>
-                                    <Button x:Name="btnRepairPowerSubsytem" Content="🛠️ Reparar Energía &amp; Sensores" Width="250" Margin="0,0,10,10" Background="#1A365D" BorderBrush="#3182CE" FontWeight="SemiBold" ToolTip="Restaura SensorService a inicio Manual (solucionando el crash de ms-settings:powersleep en Win11) y depura esquemas duplicados de powercfg."/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -2078,14 +2077,6 @@ if ($btnDisWake) {
     $btnDisWake.Add_Click({
         $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
         if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action DisableWakeTimers -Unattended" -TaskTitle "Neutralizacion de Wake Timers Parasitos & Blindaje S0ix" }
-    })
-}
-
-$btnPowerRepair = $window.FindName('btnRepairPowerSubsytem')
-if ($btnPowerRepair) {
-    $btnPowerRepair.Add_Click({
-        $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
-        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action RepairPowerSubsystem -Unattended" -TaskTitle "Reparar Subsistema de Energia & Sensores" }
     })
 }
 

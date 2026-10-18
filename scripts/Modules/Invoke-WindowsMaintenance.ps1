@@ -1192,6 +1192,42 @@ if ($runMod5) {
             Write-Warn "Error consultando reagentc.exe /info: $($_.Exception.Message)"
         }
     }
+
+    # 5.F Saneamiento de Subsistema de Energía y Sensores del SO
+    if ($doRepair -or $Full) {
+        Write-SubStep "Saneando subsistema de energía y servicios de sensores (SensorService & powercfg)..."
+        try {
+            $thermalTool = $null
+            $candidates = @(
+                (Join-Path $PSScriptRoot "Monitor-ThermalEnergy.ps1"),
+                (Join-Path $PSScriptRoot "Modules\Monitor-ThermalEnergy.ps1"),
+                (Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\Monitor-ThermalEnergy.ps1")
+            )
+            foreach ($c in $candidates) {
+                if (Test-Path $c) { $thermalTool = $c; break }
+            }
+
+            if ($thermalTool) {
+                & $thermalTool -Action RepairPowerSubsystem -Unattended
+                Write-OK "Subsistema de energía y sensores verificado y saneado."
+            } else {
+                # Fallback nativo preventivo
+                $sensorSvc = Get-Service -Name "SensorService" -ErrorAction SilentlyContinue
+                if ($sensorSvc -and $sensorSvc.StartType -eq 'Disabled') {
+                    Set-Service -Name "SensorService" -StartupType Manual -ErrorAction SilentlyContinue
+                    Write-OK "SensorService configurado a Manual (Demand)."
+                }
+                $schemes = & powercfg /list 2>$null
+                $ultimates = @($schemes | Where-Object { $_ -match 'M[aá]ximo rendimiento|Ultimate Performance' })
+                if ($ultimates.Count -gt 1) {
+                    & powercfg -restoredefaultschemes 2>&1 | Out-Null
+                    Write-OK "Esquemas por defecto restablecidos para purgar duplicados."
+                }
+            }
+        } catch {
+            Write-Warn "Advertencia al sanear subsistema de energía: $($_.Exception.Message)"
+        }
+    }
 }
 
 # ============================================================

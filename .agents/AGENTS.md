@@ -254,5 +254,23 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
      - **OFICIAL Y EFECTIVO:** Respaldado con documentación oficial y beneficio técnico comprobado. $\rightarrow$ **Conservar y blindar con pruebas.**
   4. *Fase 4 — Telemetría y Verificación Empírica en Hardware Real:* Solo una vez saneado el diseño y verificada la intención contra fuentes oficiales, se autoriza la ejecución del script en modo de diagnóstico seguro sobre el hardware físico del host, midiendo su impacto con herramientas y sensores canónicos (`Coreinfo64`, `Test-KernelTimerResolution`, `fsutil bypassIo`, contadores de rendimiento).
 
+## 20. Principio de Producto Universal y Prohibición Taxativa de Parches Ad-Hoc / Single-User (Universal Architecture & Public Product Principle)
+- **20.1. Filosofía de Producto Universal para el Público General:**
+  1. Todo componente, script, interfaz gráfica, tarea programada y política de configuración en este repositorio está concebido para su distribución pública universal (entornos de producción, empresas, gamers y creadores de contenido).
+  2. Queda TERMINANTEMENTE PROHIBIDO concebir o implementar soluciones "a medida para el operador actual" (*single-user workarounds* o parches ad-hoc para la máquina local).
+  3. Cada línea de código, control visual o módulo de reparación debe responder a la pregunta: *"¿Esta solución es escalable, intuitiva, necesaria y beneficiosa para los millones de usuarios finales del sistema operativo?"*.
+- **20.2. Prohibición Absoluta de Botones Ad-Hoc en la Interfaz Gráfica (Anti-Bespoke UI):**
+  1. Queda estrictamente prohibido agregar botones, pestañas o controles en las interfaces gráficas (`romanOS-ControlCenter.ps1`, `romanOS-Studio.ps1`, etc.) cuyo único propósito sea parchar un problema puntual experimentado por el operador durante el desarrollo o prueba.
+  2. La UI debe mantenerse limpia, minimalista y profesional. La proliferación de botones hiper-específicos para cada subsistema menor degrada la ergonomía y genera una interfaz dispersa e incomprensible para el usuario general.
+- **20.3. Canalización Canónica: Diagnóstico y Reparación Sistémica en 3 Capas:**
+  Ante cualquier falla o degradación detectada en un subsistema del SO (ej. un servicio deshabilitado que hace colapsar Opciones de Energía, o esquemas de energía duplicados), el agente DEBE canalizar la solución exclusivamente a través del ecosistema canónico:
+  1. *Capa Preventiva (Source/Builder):* Corregir el origen del defecto en los scripts de compilación, imágenes WIM o comandos de aprovisionamiento (`SetupComplete.cmd`, `autounattend.xml`, `Policy-Engine.ps1`) para que la ISO genere un sistema libre del defecto desde el primer arranque.
+  2. *Capa Diagnóstica (Audit & Telemetry):* Integrar la detección del problema en las suites generales de auditoría (`Audit-SystemOptimization.ps1`, `PostInstall-Diagnostics.ps1`, `Watchdog-ServiceDrift.ps1`) para que cualquier usuario o administrador pueda identificar el síntoma en un reporte unificado.
+  3. *Capa de Auto-Reparación Integral (Universal Self-Healing):* Integrar la remediación dentro de los motores de reparación existentes (ej. `Invoke-WindowsMaintenance.ps1 -IncludeRepair` en el Módulo 5: Reparación Integral de Archivos y Subsistemas del SO), al cual el usuario general ya accede mediante el botón canónico de reparación del sistema.
+- **20.4. Mentalidad de Ingeniero de Software vs. Operador de Scripts:**
+  1. El agente debe actuar siempre como un Ingeniero de Software de Sistemas Operativos, no como un creador de atajos efímeros.
+  2. Si el usuario reporta un fallo en su entorno, el agente tiene prohibido proponer o crear botones o atajos personales. Debe investigar la causa raíz en el sistema operativo, clasificarla dentro de la arquitectura universal, erradicarla en el origen e integrarla en el pipeline general de mantenimiento y diagnóstico.
+
+
 
 
