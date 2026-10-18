@@ -671,6 +671,7 @@ $xamlString = @"
                                 </Border>
 
                                 <WrapPanel>
+                                    <Button x:Name="btnAuditInvisibleSpace" Content="🔍 Auditar Espacio Oculto y Residuos" Width="265" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Escanea en segundos zonas ciegas: descargas de Windows Update, almacén WinSxS, papeleras de Windows y externas (.Trash-*), logs y dumps sin modificar archivos."/>
                                     <Button x:Name="btnAnalyzeWinSxS" Content="🔍 Analizar Almacén WinSxS (DISM)" Width="260" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" ToolTip="Ejecuta DISM /AnalyzeComponentStore en segundos y determina si la limpieza es recomendada."/>
                                     <Button x:Name="btnRunDiskTrim" Content="⚡ Optimizar Disco (SSD TRIM)" Width="230" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Envía la instrucción TRIM a todas las unidades SSD/NVMe detectadas para restaurar latencia de celdas NAND."/>
                                     <Button x:Name="btnInspectDismCatalog" Content="Catálogo Componentes DISM (SSOT)" Width="250" Margin="0,0,10,10" Background="{DynamicResource AccentAuditBgBrush}" BorderBrush="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold"/>
@@ -702,6 +703,7 @@ $xamlString = @"
 
                                     <!-- Columna 2 -->
                                     <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                        <CheckBox x:Name="chkMaintRecycleBin" Content="Papelera de reciclaje y papeleras externas (.Trash-*)" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8" ToolTip="Vacía la papelera oficial de Windows (Clear-RecycleBin) y purga residuos de sistemas Linux/WSL montados en NTFS."/>
                                         <CheckBox x:Name="chkMaintTemp" Content="Archivos temporales del sistema y usuarios (%TEMP%, Temp)" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
                                         <CheckBox x:Name="chkMaintWerCrash" Content="Crash Dumps (MEMORY.DMP/Minidump) y colas de error WER" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
                                         <CheckBox x:Name="chkMaintAppxOrphans" Content="Carpetas huérfanas de aplicaciones desinstaladas en Packages" Foreground="#E3E3E3" IsChecked="True" FontSize="12" Margin="0,0,0,8"/>
@@ -2120,6 +2122,16 @@ if ($btnRefreshDisk) {
     })
 }
 
+$btnAuditSpace = $window.FindName('btnAuditInvisibleSpace')
+if ($btnAuditSpace) {
+    $btnAuditSpace.Add_Click({
+        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
+        if ($tool) {
+            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -AuditStorage -Unattended" -TaskTitle "Auditoria Forense de Espacio Oculto y Residuos"
+        }
+    })
+}
+
 $btnAnalyzeSxS = $window.FindName('btnAnalyzeWinSxS')
 if ($btnAnalyzeSxS) {
     $btnAnalyzeSxS.Add_Click({
@@ -2168,6 +2180,7 @@ if ($btnMaintBatch) {
             $cAppx     = $window.FindName('chkMaintAppxOrphans')
             $cCrypt    = $window.FindName('chkMaintCryptNet')
             $cBrowser  = $window.FindName('chkMaintBrowsers')
+            $cRecycle  = $window.FindName('chkMaintRecycleBin')
 
             # Manejo de WinSxS y ResetBase (preserva compatibilidad con asercion -DeepClean -ResetBase)
             if ($cWinSxS -and $cWinSxS.IsChecked) {
@@ -2187,6 +2200,7 @@ if ($btnMaintBatch) {
             if ($cAppx -and $cAppx.IsChecked) { $argsList += "-IncludeAppxOrphans" }
             if ($cCrypt -and $cCrypt.IsChecked) { $argsList += "-IncludeCryptNet" }
             if ($cBrowser -and $cBrowser.IsChecked) { $argsList += "-IncludeBrowsers" }
+            if ($cRecycle -and $cRecycle.IsChecked) { $argsList += "-IncludeRecycleBin" }
 
             $argsStr = if ($argsList.Count -gt 0) { $argsList -join " " } else { "-DeepClean -ResetBase" }
             Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" $argsStr -Unattended" -TaskTitle "Higiene y Limpieza Profunda del Sistema Operativo"

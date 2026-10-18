@@ -64,6 +64,8 @@ param(
     [switch]$PassThru,
     [switch]$SkipElevation,
     [switch]$AnalyzeOnly,
+    [switch]$AuditStorage,
+    [switch]$IncludeRecycleBin,
     [switch]$IncludeDeployment,
     [switch]$IncludeWinSxS,
     [switch]$IncludeWinUpdate,
@@ -117,6 +119,8 @@ if (-not $isAdmin -and -not $ShadersOnly -and -not $SkipElevation) {
         if ($TrimOnly)             { $argList += "-TrimOnly" }
         if ($Quiet)                { $argList += "-Quiet" }
         if ($AnalyzeOnly)          { $argList += "-AnalyzeOnly" }
+        if ($AuditStorage)         { $argList += "-AuditStorage" }
+        if ($IncludeRecycleBin)    { $argList += "-IncludeRecycleBin" }
         if ($IncludeDeployment)    { $argList += "-IncludeDeployment" }
         if ($IncludeWinSxS)        { $argList += "-IncludeWinSxS" }
         if ($IncludeWinUpdate)     { $argList += "-IncludeWinUpdate" }
@@ -322,6 +326,230 @@ function Remove-PathSilently {
     return $deletedCount
 }
 
+function Get-SafeFolderSizeBytes {
+    param([string]$Path)
+    $exists = $false
+    try {
+        $exists = Test-Path -LiteralPath $Path -ErrorAction Stop
+    } catch {
+        return 0
+    }
+    if (-not $exists) { return 0 }
+    $total = 0
+    try {
+        $files = Get-ChildItem -LiteralPath $Path -Force -Recurse -File -ErrorAction SilentlyContinue
+        if ($files) {
+            $sum = ($files | Measure-Object -Property Length -Sum).Sum
+            if ($sum) { $total = $sum }
+        }
+    } catch {
+        Write-LogEntry -Level "DEBUG" -Message "No se pudo medir directorio ($Path): $($_.Exception.Message)"
+    }
+    return [double]$total
+}
+
+function Get-RomanOSStorageFootprint {
+    [CmdletBinding()]
+    param(
+        [switch]$ShowUI = $true
+    )
+
+    $sysLetter = if ($env:SystemDrive) { $env:SystemDrive.TrimEnd(':') } else { 'C' }
+    $vol = Get-Volume -DriveLetter $sysLetter -ErrorAction SilentlyContinue
+    $totalDiskBytes = if ($vol) { $vol.Size } else { 0 }
+    $freeDiskBytes  = if ($vol) { $vol.SizeRemaining } else { 0 }
+
+    if ($ShowUI) {
+        Show-UnifiedBanner -Title "AUDITORIA FORENSE DE ALMACENAMIENTO OCULTO" -Subtitle "Inspeccion de Zonas Ciegas, Papeleras y Residuos de Windows Update" -ShowSystemInfo
+        Write-Host "  Iniciando escaneo no destructivo de almacenamiento en el sistema..." -ForegroundColor Cyan
+        Write-Host ""
+    }
+
+    $auditItems = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $totalRecoverableBytes = 0
+
+    # 1. Windows Update y Delivery Optimization
+    $wuDownload = "$env:WINDIR\SoftwareDistribution\Download"
+    $wuBytes = Get-SafeFolderSizeBytes -Path $wuDownload
+    $doCache = "$env:WINDIR\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Windows\DeliveryOptimization\Cache"
+    $doBytes = Get-SafeFolderSizeBytes -Path $doCache
+    $wuTotalBytes = $wuBytes + $doBytes
+    $totalRecoverableBytes += $wuTotalBytes
+    $auditItems.Add([PSCustomObject]@{
+        Categoria  = "Windows Update"
+        Componente = "SoftwareDistribution\Download y DeliveryOptimization"
+        Bytes      = $wuTotalBytes
+        Tamano     = (Format-Bytes $wuTotalBytes)
+        Accion     = if ($wuTotalBytes -gt 100MB) { "Limpieza Recomendada (Residuos de parches)" } else { "Optimizado" }
+    })
+
+    # 2. Papelera de Reciclaje de Windows ($Recycle.Bin)
+    $recycleBytes = 0
+    $fixedDrives = Get-CimInstance Win32_LogicalDisk -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 3 }
+    foreach ($d in $fixedDrives) {
+        $binPath = "$($d.DeviceID)\`$Recycle.Bin"
+        if (Test-Path -LiteralPath $binPath) {
+            $sidDirs = Get-ChildItem -LiteralPath $binPath -Force -ErrorAction SilentlyContinue
+            foreach ($sd in $sidDirs) {
+                $fList = Get-ChildItem -LiteralPath $sd.FullName -Recurse -Force -File -ErrorAction SilentlyContinue
+                if ($fList) {
+                    $s = ($fList | Measure-Object -Property Length -Sum).Sum
+                    if ($s) { $recycleBytes += $s }
+                }
+            }
+        }
+    }
+    $totalRecoverableBytes += $recycleBytes
+    $auditItems.Add([PSCustomObject]@{
+        Categoria  = "Papelera Windows"
+        Componente = 'Papelera de reciclaje ($Recycle.Bin)'
+        Bytes      = $recycleBytes
+        Tamano     = (Format-Bytes $recycleBytes)
+        Accion     = if ($recycleBytes -gt 500MB) { "Vaciado Recomendado (Archivos eliminados retenidos)" } else { "Optimizado" }
+    })
+
+    # 3. Papeleras Externas POSIX / Linux (.Trash-*)
+    $posixBytes = 0
+    foreach ($d in $fixedDrives) {
+        $devId = $d.DeviceID
+        $trashDirs = Get-ChildItem -LiteralPath "$devId\" -Force -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^\.Trash-\d+$' }
+        foreach ($td in $trashDirs) {
+            $tFiles = Get-ChildItem -LiteralPath $td.FullName -Recurse -Force -File -ErrorAction SilentlyContinue
+            if ($tFiles) {
+                $sum = ($tFiles | Measure-Object -Property Length -Sum).Sum
+                if ($sum) { $posixBytes += $sum }
+            }
+        }
+    }
+    $totalRecoverableBytes += $posixBytes
+    $auditItems.Add([PSCustomObject]@{
+        Categoria  = "Papeleras Externas"
+        Componente = "Residuos POSIX/Linux (.Trash-*)"
+        Bytes      = $posixBytes
+        Tamano     = (Format-Bytes $posixBytes)
+        Accion     = if ($posixBytes -gt 100MB) { "Purga Recomendada (Archivos borrados desde Linux/WSL)" } else { "Limpio / Inexistente" }
+    })
+
+    # 4. Residuos de Despliegue y Rollback ($WINDOWS.~BT, Panther)
+    $deployPaths = @(
+        (Join-Path "$($sysLetter):\" '$WINDOWS.~BT'),
+        (Join-Path "$($sysLetter):\" '$WinREAgent'),
+        (Join-Path "$($sysLetter):\" '$SysReset'),
+        "$env:WINDIR\Panther"
+    )
+    $deployBytes = 0
+    foreach ($dp in $deployPaths) {
+        $deployBytes += (Get-SafeFolderSizeBytes -Path $dp)
+    }
+    $totalRecoverableBytes += $deployBytes
+    $auditItems.Add([PSCustomObject]@{
+        Categoria  = "Despliegue/Rollback"
+        Componente = "Residuos de instalacion previa ($WINDOWS.~BT, Panther)"
+        Bytes      = $deployBytes
+        Tamano     = (Format-Bytes $deployBytes)
+        Accion     = if ($deployBytes -gt 50MB) { "Limpieza Recomendada (Residuos de version anterior)" } else { "Optimizado" }
+    })
+
+    # 5. Logs masivos CBS y residuos CAB
+    $cbsDir = "$env:WINDIR\Logs\CBS"
+    $cbsBytes = 0
+    if (Test-Path $cbsDir) {
+        $cbsFiles = Get-ChildItem -Path $cbsDir -Filter "CbsPersist_*" -File -ErrorAction SilentlyContinue
+        if ($cbsFiles) {
+            $cbsBytes += ($cbsFiles | Measure-Object -Property Length -Sum).Sum
+        }
+    }
+    $cabFiles = Get-ChildItem -Path "$env:WINDIR\Temp" -Filter "cab_*" -File -ErrorAction SilentlyContinue
+    if ($cabFiles) {
+        $cbsBytes += ($cabFiles | Measure-Object -Property Length -Sum).Sum
+    }
+    $totalRecoverableBytes += $cbsBytes
+    $auditItems.Add([PSCustomObject]@{
+        Categoria  = "Logs de Mantenimiento"
+        Componente = "Registros CBS y compresion CAB huerfana"
+        Bytes      = $cbsBytes
+        Tamano     = (Format-Bytes $cbsBytes)
+        Accion     = if ($cbsBytes -gt 100MB) { "Limpieza Recomendada" } else { "Optimizado" }
+    })
+
+    # 6. Archivos Temporales y Crashes (Temp, WER)
+    $tempBytes = (Get-SafeFolderSizeBytes -Path "$env:WINDIR\Temp")
+    $userProfiles = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue | Where-Object { -not $_.Special -and $_.LocalPath }
+    if (-not $userProfiles -or @($userProfiles).Count -eq 0) {
+        $userProfiles = @([PSCustomObject]@{ LocalPath = $env:USERPROFILE })
+    }
+    foreach ($prof in $userProfiles) {
+        $tempBytes += (Get-SafeFolderSizeBytes -Path (Join-Path $prof.LocalPath "AppData\Local\Temp"))
+    }
+    $werPaths = @(
+        "$env:ProgramData\Microsoft\Windows\WER",
+        "$env:WINDIR\Minidump"
+    )
+    foreach ($wp in $werPaths) {
+        $tempBytes += (Get-SafeFolderSizeBytes -Path $wp)
+    }
+    if (Test-Path "$env:WINDIR\MEMORY.DMP") {
+        $dmp = Get-Item "$env:WINDIR\MEMORY.DMP" -ErrorAction SilentlyContinue
+        if ($dmp) { $tempBytes += $dmp.Length }
+    }
+    $totalRecoverableBytes += $tempBytes
+    $auditItems.Add([PSCustomObject]@{
+        Categoria  = "Temporales y Crashes"
+        Componente = "Carpetas Temp del sistema/usuarios y colas WER"
+        Bytes      = $tempBytes
+        Tamano     = (Format-Bytes $tempBytes)
+        Accion     = if ($tempBytes -gt 200MB) { "Limpieza Recomendada" } else { "Optimizado" }
+    })
+
+    # 7. Memoria Virtual y Kernel (pagefile, swapfile, hiberfil) - Informativo
+    $vMemBytes = 0
+    foreach ($vmFile in @("$($sysLetter):\pagefile.sys", "$($sysLetter):\swapfile.sys", "$($sysLetter):\hiberfil.sys")) {
+        if (Test-Path -LiteralPath $vmFile) {
+            $f = Get-Item -LiteralPath $vmFile -Force -ErrorAction SilentlyContinue
+            if ($f) { $vMemBytes += $f.Length }
+        }
+    }
+    $auditItems.Add([PSCustomObject]@{
+        Categoria  = "Memoria Virtual"
+        Componente = "pagefile.sys / swapfile.sys / hiberfil.sys"
+        Bytes      = $vMemBytes
+        Tamano     = (Format-Bytes $vMemBytes)
+        Accion     = "Estructural del SO (Administrado por Windows)"
+    })
+
+    # Presentacion Visual en Consola
+    if ($ShowUI) {
+        Write-Host "  ---------------------------------------------------------------------------------------------------" -ForegroundColor DarkGray
+        Write-Host ("  {0,-22} | {1,-38} | {2,10} | {3}" -f "CATEGORIA", "COMPONENTE", "TAMANO", "ESTADO / RECOMENDACION") -ForegroundColor White
+        Write-Host "  ---------------------------------------------------------------------------------------------------" -ForegroundColor DarkGray
+        foreach ($item in $auditItems) {
+            $color = if ($item.Accion -match 'Recomendad') { 'Yellow' } elseif ($item.Accion -match 'Estructural') { 'DarkGray' } else { 'Green' }
+            Write-Host ("  {0,-22} | {1,-38} | {2,10} | " -f $item.Categoria, $item.Componente, $item.Tamano) -NoNewline -ForegroundColor Gray
+            Write-Host $item.Accion -ForegroundColor $color
+        }
+        Write-Host "  ---------------------------------------------------------------------------------------------------" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host ("  Espacio Libre Actual en ({0}:): {1}" -f $sysLetter, (Format-Bytes $freeDiskBytes)) -ForegroundColor Cyan
+        Write-Host ("  Espacio Total Recuperable Estimado: {0}" -f (Format-Bytes $totalRecoverableBytes)) -ForegroundColor Green
+        Write-Host ""
+        if ($totalRecoverableBytes -gt 1GB) {
+            Write-Host "  [i] Para recuperar este espacio, ejecute el Saneamiento Seleccionado incluyendo" -ForegroundColor Yellow
+            Write-Host "      las opciones de Windows Update, Almacen WinSxS y Papelera de reciclaje." -ForegroundColor Yellow
+        } else {
+            Write-Host "  [OK] El almacenamiento no presenta acumulacion critica de residuos ocultos." -ForegroundColor Green
+        }
+        Write-Host ""
+    }
+
+    return [PSCustomObject]@{
+        SysLetter        = $sysLetter
+        TotalDiskBytes   = $totalDiskBytes
+        FreeDiskBytes    = $freeDiskBytes
+        RecoverableBytes = $totalRecoverableBytes
+        Items            = $auditItems
+    }
+}
+
 # ============================================================
 # MEDIDAS INICIALES DE ESPACIO
 # ============================================================
@@ -332,6 +560,15 @@ $osInfo = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
 Show-UnifiedBanner -Title "MANTENIMIENTO Y REPARACION DE WINDOWS" -Subtitle "Optimizacion de Espacio, WinSxS, Shaders y Reparacion DISM" -ShowSystemInfo
 Write-Info "Espacio Libre Inicial ($($sysLetter):): $(Format-Bytes $initialFreeBytes)"
 Write-Info "Archivo de Registro: $logFile"
+
+# ============================================================
+# AUDITORIA FORENSE DE ALMACENAMIENTO OCULTO (SOLO LECTURA)
+# ============================================================
+if ($AuditStorage) {
+    Get-RomanOSStorageFootprint -ShowUI | Out-Null
+    try { Stop-Transcript | Out-Null } catch { $null = $_.Exception }
+    return
+}
 
 # ============================================================
 # AUDITORIA PREVIA WINSXS (ANALISIS RAPIDO DISM)
@@ -384,10 +621,12 @@ $doRepair      = $false
 $doTrim        = $false
 $doVss         = $false
 $doNgen        = $false
+$doRecycleBin  = $false
 
 $hasGranular = ($IncludeDeployment -or $IncludeWinSxS -or $IncludeWinUpdate -or $IncludeDriverStore -or `
                 $IncludeCbsLogs -or $IncludeWerDumps -or $IncludeAppxOrphans -or $IncludeTemp -or `
-                $IncludeCryptNet -or $IncludeBrowsers -or $IncludeRepair -or $IncludeTrim -or $IncludeNgen -or $Express)
+                $IncludeCryptNet -or $IncludeBrowsers -or $IncludeRepair -or $IncludeTrim -or $IncludeNgen -or `
+                $IncludeRecycleBin -or $Express)
 
 if ($hasGranular) {
     if ($IncludeDeployment)  { $doDeployment  = $true }
@@ -403,12 +642,14 @@ if ($hasGranular) {
     if ($IncludeRepair)       { $doRepair      = $true }
     if ($IncludeTrim)         { $doTrim        = $true }
     if ($IncludeNgen)         { $doNgen        = $true }
+    if ($IncludeRecycleBin)   { $doRecycleBin  = $true }
     if ($Express) {
         $doTemp        = $true
         $doWinUpdate   = $true
         $doCryptNet    = $true
         $doTrim        = $true
         $doAppxOrphans = $true
+        $doRecycleBin  = $true
     }
 } else {
     # Modos agregativos legacy y combinables (Cero colapso en cascada)
@@ -416,12 +657,12 @@ if ($hasGranular) {
         $doDeployment = $true; $doWinSxS = $true; $doWinUpdate = $true; $doDriverStore = $true
         $doCbsLogs = $true; $doWerDumps = $true; $doAppxOrphans = $true; $doTemp = $true
         $doCryptNet = $true; $doBrowsers = (-not $SkipBrowsers); $doShaders = $true
-        $doRepair = $true; $doTrim = $true; $doVss = $true; $doNgen = $true
+        $doRepair = $true; $doTrim = $true; $doVss = $true; $doNgen = $true; $doRecycleBin = $true
     }
     if ($DeepClean) {
         $doDeployment = $true; $doWinSxS = $true; $doWinUpdate = $true; $doDriverStore = $true
         $doCbsLogs = $true; $doWerDumps = $true; $doAppxOrphans = $true; $doTemp = $true
-        $doCryptNet = $true; $doBrowsers = (-not $SkipBrowsers); $doTrim = $true; $doVss = $true
+        $doCryptNet = $true; $doBrowsers = (-not $SkipBrowsers); $doTrim = $true; $doVss = $true; $doRecycleBin = $true
     }
     if ($PostInstall) {
         $doDeployment = $true; $doAppxOrphans = $true; $doTemp = $true; $doTrim = $true; $doBrowsers = (-not $SkipBrowsers)
@@ -477,7 +718,7 @@ if ($hasGranular) {
 $runMod1 = $doDeployment
 $runMod2 = ($doWinSxS -or $doWinUpdate -or $doDriverStore -or $doCbsLogs)
 $runMod3 = ($doAppxOrphans -or $doWerDumps)
-$runMod4 = ($doShaders -or $doBrowsers -or $doTemp -or $doWerDumps -or $doCryptNet)
+$runMod4 = ($doShaders -or $doBrowsers -or $doTemp -or $doWerDumps -or $doCryptNet -or $doRecycleBin)
 $runMod5 = $doRepair
 $runMod6 = ($doTrim -or $doVss -or $doNgen)
 
@@ -836,6 +1077,38 @@ if ($runMod4) {
             }
         }
         Write-OK "Cache criptografica y miniaturas de explorador saneadas."
+    }
+
+    # 4.G Papelera de Reciclaje del Sistema y Papeleras Externas (.Trash-*)
+    if ($doRecycleBin) {
+        Write-SubStep "Vaciando papelera de reciclaje oficial de Windows (Clear-RecycleBin)..."
+        try {
+            Clear-RecycleBin -Force -ErrorAction Stop
+            Write-OK "Papelera de reciclaje de Windows vaciada con exito."
+        } catch {
+            Write-Warn "Aviso al vaciar papelera de reciclaje: $($_.Exception.Message)"
+        }
+
+        Write-SubStep "Detectando papeleras residuales POSIX/Linux (.Trash-*) en volumenes NTFS..."
+        try {
+            $fixedDrives = Get-CimInstance Win32_LogicalDisk -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 3 }
+            $purgedTrashCount = 0
+            foreach ($d in $fixedDrives) {
+                $devId = $d.DeviceID
+                $trashItems = Get-ChildItem -LiteralPath "$devId\" -Force -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^\.Trash-\d+$' }
+                foreach ($tItem in $trashItems) {
+                    Write-SubStep "Purgando residuos en $($tItem.FullName)..."
+                    Remove-Item -LiteralPath $tItem.FullName -Recurse -Force -ErrorAction Stop
+                    $purgedTrashCount++
+                    Write-OK "Papelera externa eliminada: $($tItem.FullName)"
+                }
+            }
+            if ($purgedTrashCount -eq 0) {
+                Write-Info "No se detectaron papeleras externas residuales (.Trash-*)."
+            }
+        } catch {
+            Write-Warn "Aviso al purgar papeleras externas: $($_.Exception.Message)"
+        }
     }
 }
 
