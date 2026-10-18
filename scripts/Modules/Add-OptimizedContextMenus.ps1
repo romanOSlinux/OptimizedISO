@@ -292,7 +292,7 @@ function Install-OptimizedContextMenus {
     Set-ShellVerb -Path $gamerBase -MUIVerb "Gaming y Rendimiento ⚡" `
         -Icon "%SystemRoot%\System32\imageres.dll,264" -SubCommands ""
 
-    $cmdPowerMax = "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command `"try { `$l = powercfg /l; if (`$l -notmatch 'e9a42b02-d5df-448d-aa00-03f14749eb61') { powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 | Out-Null }; powercfg /s e9a42b02-d5df-448d-aa00-03f14749eb61; Write-Host 'Plan de Maximo Rendimiento Activado' -ForegroundColor Green; Start-Sleep -Seconds 2 } catch { Write-Host 'Error activando plan de energia' -ForegroundColor Red; Start-Sleep -Seconds 3 }`""
+    $cmdPowerMax = "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command `"try { `$l = powercfg /l; `$m = (`$l | Where-Object { `$_ -match 'Máximo rendimiento|Ultimate Performance' } | Select-Object -First 1); if (`$m -and `$m -match '([0-9a-fA-F-]{36})') { `$g = `$matches[1] } else { `$out = powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61; if (`$out -match '([0-9a-fA-F-]{36})') { `$g = `$matches[1] } else { `$g = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' } }; powercfg /s `$g; Write-Host 'Plan de Maximo Rendimiento Activado' -ForegroundColor Green; Start-Sleep -Seconds 2 } catch { Write-Host 'Error activando plan de energia' -ForegroundColor Red; Start-Sleep -Seconds 3 }`""
     Set-ShellVerb -Path "$gamerBase\shell\01_PowerMax" -MUIVerb "Activar Plan Máximo Rendimiento" `
         -Icon "%SystemRoot%\System32\shell32.dll,238" `
         -Command $cmdPowerMax

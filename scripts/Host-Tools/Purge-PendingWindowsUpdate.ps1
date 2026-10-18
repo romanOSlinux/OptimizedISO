@@ -308,6 +308,6 @@ if (-not $Unattended -and -not $isWhatIf -and [System.Environment]::UserInteract
             $null = [System.Console]::ReadKey($true)
         }
     } catch {
-        # Silencioso en modo desatendido o consola embebida GUI
+        Write-Verbose "Consola no interactiva o entrada redirigida: $($_.Exception.Message)"
     }
 }

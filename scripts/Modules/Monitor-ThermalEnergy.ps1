@@ -37,7 +37,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet('Audit', 'Monitor', 'CalibrateEnergy', 'UnparkCores', 'Status', 'AuditWakeTimers', 'DisableWakeTimers')]
+    [ValidateSet('Audit', 'Monitor', 'CalibrateEnergy', 'UnparkCores', 'Status', 'AuditWakeTimers', 'DisableWakeTimers', 'RepairPowerSubsystem')]
     [string]$Action = 'Status',
 
     [int]$SampleDurationSec = 5,
@@ -320,16 +320,27 @@ function Set-CalibratedEnergyProfile {
 
     if ($PSCmdlet.ShouldProcess("Sistema", "Establecer Plan de Energia $TargetProfile ($targetGuid)")) {
         try {
-            # Verificar si el esquema existe en el sistema
+            # Verificar si el esquema existe en el sistema sin duplicar clones recursivos
             $schemes = & powercfg /list
-            if ($schemes -notmatch $targetGuid -and $targetGuid -eq $guidUltimate) {
-                Write-ThermalLog "[INFO] Duplicando esquema de Maximo Rendimiento oficial..." 'INFO'
-                & powercfg -duplicatescheme $guidUltimate 2>&1 | Out-Null
+            $activeTargetGuid = $targetGuid
+            if ($targetGuid -eq $guidUltimate) {
+                $existingUltimate = $schemes | Where-Object { $_ -match 'Máximo rendimiento|Ultimate Performance' } | Select-Object -First 1
+                if ($existingUltimate -and $existingUltimate -match '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})') {
+                    $activeTargetGuid = $matches[1]
+                } else {
+                    Write-ThermalLog "[INFO] Duplicando esquema de Maximo Rendimiento oficial (unica vez)..." 'INFO'
+                    $dupOut = & powercfg -duplicatescheme $guidUltimate 2>&1
+                    if ($dupOut -match '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})') {
+                        $activeTargetGuid = $matches[1]
+                    } else {
+                        $activeTargetGuid = $guidHighPerf
+                    }
+                }
             }
 
             # Asignar esquema activo
-            & powercfg /setactive $targetGuid
-            Write-ThermalLog "[OK] Plan de energia asignado exitosamente: $targetGuid ($TargetProfile)" 'OK'
+            & powercfg /setactive $activeTargetGuid
+            Write-ThermalLog "[OK] Plan de energia asignado exitosamente: $activeTargetGuid ($TargetProfile)" 'OK'
         } catch {
             Write-ThermalLog "[ERROR] Error al cambiar plan de energia: $($_.Exception.Message)" 'ERROR'
         }
@@ -586,6 +597,69 @@ function Disable-RomanOSParasiticWakeTimers {
 }
 
 
+function Repair-RomanOSPowerSubsystem {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [switch]$PassThru
+    )
+
+    Write-ThermalLog "=== Saneamiento y Reparacion del Subsistema de Energia & Sensores ===" 'TITLE'
+
+    $sensorOk = $false
+    $cleanedSchemes = 0
+
+    # 1. Reparar SensorService para evitar crash de Configuracion en Win11
+    if ($PSCmdlet.ShouldProcess("SensorService", "Configurar en Manual e Iniciar")) {
+        try {
+            Write-ThermalLog "[1/2] Verificando SensorService (Windows 11 Settings)..." 'INFO'
+            $svc = Get-Service -Name 'SensorService' -ErrorAction SilentlyContinue
+            if ($svc) {
+                Set-Service -Name 'SensorService' -StartupType Manual -ErrorAction Stop
+                if ($svc.Status -ne 'Running') {
+                    Start-Service -Name 'SensorService' -ErrorAction SilentlyContinue
+                }
+                Write-ThermalLog "[OK] SensorService configurado en Manual (Demand) y activo. Previene crash de ms-settings:powersleep." 'OK'
+                $sensorOk = $true
+            } else {
+                Write-ThermalLog "[INFO] SensorService no instalado en esta edicion." 'INFO'
+                $sensorOk = $true
+            }
+        } catch {
+            Write-ThermalLog "[WARN] No se pudo configurar SensorService: $($_.Exception.Message)" 'WARN'
+        }
+    }
+
+    # 2. Saneamiento de duplicados de esquemas en powercfg
+    if ($PSCmdlet.ShouldProcess("powercfg", "Purgar esquemas duplicados y restaurar de fabrica")) {
+        try {
+            Write-ThermalLog "[2/2] Auditando esquemas duplicados de energia..." 'INFO'
+            $rawList = & powercfg /list 2>&1
+            $schemes = @($rawList | Where-Object { $_ -match 'GUID' })
+            $ultimates = @($schemes | Where-Object { $_ -match 'M[aá]ximo rendimiento|Ultimate Performance' })
+            if ($ultimates.Count -gt 1) {
+                Write-ThermalLog "[WARN] Se detectaron $($ultimates.Count) esquemas duplicados de Maximo Rendimiento. Restaurando esquemas de fabrica..." 'WARN'
+                & powercfg -restoredefaultschemes
+                $cleanedSchemes = $ultimates.Count
+                Write-ThermalLog "[OK] Esquemas de energia restaurados a valores oficiales de fabrica." 'OK'
+            } else {
+                Write-ThermalLog "[OK] Catalogo de esquemas de energia limpio ($($ultimates.Count) esquema detectado)." 'OK'
+            }
+        } catch {
+            Write-ThermalLog "[WARN] Error al verificar esquemas de energia: $($_.Exception.Message)" 'WARN'
+        }
+    }
+
+    Write-ThermalLog "Saneamiento de subsistema de energia finalizado exitosamente." 'OK'
+
+    if ($PassThru) {
+        return [PSCustomObject]@{
+            SensorServiceRepaired = $sensorOk
+            DuplicateSchemesCleaned = $cleanedSchemes
+        }
+    }
+}
+
+
 # -----------------------------------------------------------------------------
 # 4. EJECUCION DE ACCIONES
 # -----------------------------------------------------------------------------
@@ -694,6 +768,11 @@ switch ($Action) {
 
     'UnparkCores' {
         Set-CalibratedEnergyProfile -TargetProfile 'Ultimate'
+    }
+
+    'RepairPowerSubsystem' {
+        $rep = Repair-RomanOSPowerSubsystem -PassThru:$PassThru
+        if ($PassThru) { return $rep }
     }
 }
 

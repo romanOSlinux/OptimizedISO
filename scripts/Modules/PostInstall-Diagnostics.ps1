@@ -310,6 +310,22 @@ try {
     $activeScheme = & powercfg -getactivescheme 2>&1
     $reportLines.Add("- **Plan de Energia:** $activeScheme")
 
+    # Auditoria de Esquemas de Energia y Deteccion de Duplicados
+    try {
+        $allSchemes = & powercfg /list 2>&1
+        $schemeLines = @($allSchemes | Where-Object { $_ -match 'GUID' })
+        $reportLines.Add("- **Esquemas de Energia Detectados:** $($schemeLines.Count)")
+        $ultimateSchemes = @($schemeLines | Where-Object { $_ -match 'M[aá]ximo rendimiento|Ultimate Performance' })
+        if ($ultimateSchemes.Count -gt 1) {
+            $warnings.Add("Se detectaron $($ultimateSchemes.Count) esquemas duplicados de Maximo Rendimiento. Se recomienda sanear con 'powercfg -restoredefaultschemes'.")
+            $reportLines.Add("  -> [WARN] Duplicados de Maximo Rendimiento detectados ($($ultimateSchemes.Count)). Limpieza recomendada.")
+        } else {
+            $passedChecks.Add("Esquemas de energia limpios (sin duplicados redundantes).")
+        }
+    } catch {
+        Write-Warn -Message "Error al auditar esquemas de energia (powercfg /list)" -Cause $_.Exception.Message -Action "Continuando"
+    }
+
     $reportLines.Add("")
 
     # 5. Auditoria de Optimizaciones y Bypasses
@@ -595,6 +611,10 @@ try {
             $startMode = (Get-CimInstance Win32_Service -Filter "Name='$sName'" -ErrorAction SilentlyContinue).StartMode
             $reportLines.Add("- **Servicio $($sName):** Estado: $($svc.Status) | Inicio: $startMode")
             $servicesData.Add([PSCustomObject]@{ Name = $sName; Status = "$($svc.Status)"; StartMode = "$startMode" })
+            if ($sName -eq 'SensorService' -and $startMode -eq 'Disabled') {
+                $warnings.Add("SensorService esta deshabilitado. En Windows 11 esto provoca el cierre inesperado (crash) de la app Configuracion en 'Energia y bateria' (ms-settings:powersleep). Se debe restaurar a inicio Manual.")
+                $reportLines.Add("  -> [WARN] SensorService deshabilitado colapsa la app Configuracion en Windows 11 (ms-settings:powersleep). Se recomienda inicio Manual.")
+            }
         } else {
             $reportLines.Add("- **Servicio $($sName):** No instalado en esta edicion.")
             $servicesData.Add([PSCustomObject]@{ Name = $sName; Status = "No instalado"; StartMode = "N/A" })

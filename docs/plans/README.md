@@ -172,6 +172,7 @@ PLAN-<NNNN>-<fecha>-<slug>.md
 | 0154 | [PLAN-0154-20261017-suite-mantenimiento-integral-control-center.md](PLAN-0154-20261017-suite-mantenimiento-integral-control-center.md) | 2026-10-17 | Suite Integral de Mantenimiento, Limpieza Profunda del Sistema Operativo y Salud en romanOS Control Center | COMPLETADO |
 | 0155 | [PLAN-0155-20261017-auditoria-espacio-oculto-y-limpieza-papeleras-controlcenter.md](PLAN-0155-20261017-auditoria-espacio-oculto-y-limpieza-papeleras-controlcenter.md) | 2026-10-17 | Auditoría Forense de Espacio Oculto en Disco y Limpieza Segura de Papeleras en romanOS Control Center | COMPLETADO |
 | 0156 | [PLAN-0156-20261017-tooltips-explicativos-botones-complejos-controlcenter.md](PLAN-0156-20261017-tooltips-explicativos-botones-complejos-controlcenter.md) | 2026-10-17 | Incorporación de ToolTips Explicativos en Botones Complejos de romanOS Control Center | COMPLETADO |
+| 0157 | [PLAN-0157-20261018-unificacion-arquitectura-ecosistema-romanos.md](PLAN-0157-20261018-unificacion-arquitectura-ecosistema-romanos.md) | 2026-10-18 | Unificación, Modernización y Consolidación Integral del Ecosistema romanOS (Builder, SSOT y Control Center) | COMPLETADO |
 
 
 

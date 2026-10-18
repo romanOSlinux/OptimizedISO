@@ -2024,12 +2024,21 @@ if (-not $isLaptop) {
     $upGuid = 'e9a42b02-d5df-448d-aa00-03f14749eb61'
     $hpGuid = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'
     try {
-        $existing = powercfg /list | Select-String $upGuid
-        if (-not $existing) {
-            powercfg /duplicatescheme $upGuid 2>&1 | Out-Null
+        $schemesList = & powercfg /list
+        $targetSchemeGuid = $null
+        $existingUltimate = $schemesList | Where-Object { $_ -match 'Máximo rendimiento|Ultimate Performance' } | Select-Object -First 1
+        if ($existingUltimate -and $existingUltimate -match '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})') {
+            $targetSchemeGuid = $matches[1]
+        } else {
+            $dupOut = & powercfg /duplicatescheme $upGuid 2>&1
+            if ($dupOut -match '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})') {
+                $targetSchemeGuid = $matches[1]
+            } else {
+                $targetSchemeGuid = $hpGuid
+            }
         }
-        powercfg /setactive $upGuid 2>&1 | Out-Null
-        Write-Host "    - Plan de energia configurado a Ultimate Performance (Desktop)." -ForegroundColor Green
+        powercfg /setactive $targetSchemeGuid 2>&1 | Out-Null
+        Write-Host "    - Plan de energia configurado a Ultimate Performance (Desktop: $targetSchemeGuid)." -ForegroundColor Green
     } catch {
         try {
             powercfg /setactive $hpGuid 2>&1 | Out-Null
@@ -2326,13 +2335,22 @@ if ($applyUltimate) {
     Write-Host "  [12.C] Activando plan de energia Ultimate Performance..." -ForegroundColor Gray
     try {
         $upGuid   = 'e9a42b02-d5df-448d-aa00-03f14749eb61'
-        $existing = powercfg /list | Select-String $upGuid
-        if (-not $existing) {
-            powercfg /duplicatescheme $upGuid | Out-Null
-            Write-Host "    - Plan Ultimate Performance duplicado." -ForegroundColor Green
+        $hpGuid   = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'
+        $schemesList = & powercfg /list
+        $targetSchemeGuid = $null
+        $existingUltimate = $schemesList | Where-Object { $_ -match 'Máximo rendimiento|Ultimate Performance' } | Select-Object -First 1
+        if ($existingUltimate -and $existingUltimate -match '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})') {
+            $targetSchemeGuid = $matches[1]
+        } else {
+            $dupOut = & powercfg /duplicatescheme $upGuid 2>&1
+            if ($dupOut -match '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})') {
+                $targetSchemeGuid = $matches[1]
+            } else {
+                $targetSchemeGuid = $hpGuid
+            }
         }
-        powercfg /setactive $upGuid | Out-Null
-        Write-Host "    - Plan Ultimate Performance activado." -ForegroundColor Green
+        powercfg /setactive $targetSchemeGuid 2>&1 | Out-Null
+        Write-Host "    - Plan Ultimate Performance activado ($targetSchemeGuid)." -ForegroundColor Green
     } catch {
         Write-Host "    ! No se pudo activar Ultimate Performance: $($_.Exception.Message)" -ForegroundColor Yellow
     }

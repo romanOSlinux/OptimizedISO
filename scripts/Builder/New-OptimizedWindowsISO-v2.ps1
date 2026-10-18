@@ -5672,10 +5672,9 @@ $optimizationsBlock = @"
 REM ===========================================================
 REM Configuracion de Planes de Energia y Rendimiento
 REM ===========================================================
-echo [%DATE% %TIME%] Configurando plan de energia... >> "%LOG%"
+echo [%DATE% %TIME%] Configurando plan de energia base... >> "%LOG%"
 powercfg -h off >> "%LOG%" 2>&1
-powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 >> "%LOG%" 2>&1
-powercfg -setactive e9a42b02-d5df-448d-aa00-03f14749eb61 >> "%LOG%" 2>&1 || powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >> "%LOG%" 2>&1
+powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c >> "%LOG%" 2>&1 || powercfg -setactive 381b4222-f694-41f0-9685-ff5bb260df2e >> "%LOG%" 2>&1
 
 REM ===========================================================
 REM Mitigacion de Bufferbloat de Red (ECN - RFC 3168) (PLAN-0034)
@@ -5740,19 +5739,17 @@ sc config SysMain start=disabled >> "%LOG%" 2>&1
 if ($optProfileIntSetup -eq 3) {
     $optimizationsBlock += @'
 REM ===========================================================
-REM Deshabilitar Servicios Hardcore y Latencia Minima (Perfil 3)
+REM Servicios Hardcore y Optimizacion de Latencia (Perfil 3)
+REM Se configuran en demand para no saturar memoria ni romper la UI
 REM ===========================================================
-echo [%DATE% %TIME%] Deshabilitando servicios hardcore... >> "%LOG%"
+echo [%DATE% %TIME%] Configurando servicios hardcore en demanda... >> "%LOG%"
 sc config WSearch start=disabled >> "%LOG%" 2>&1
-sc config Spooler start=disabled >> "%LOG%" 2>&1
-sc config WlanSvc start=disabled >> "%LOG%" 2>&1
-sc config bthserv start=disabled >> "%LOG%" 2>&1
-sc config SensorService start=disabled >> "%LOG%" 2>&1
-sc config SensorsDataService start=disabled >> "%LOG%" 2>&1
-sc config TabletInputService start=disabled >> "%LOG%" 2>&1
-
-echo [%DATE% %TIME%] Configurando hipervisor en modo latencia minima... >> "%LOG%"
-bcdedit /set hypervisorlaunchtype off >> "%LOG%" 2>&1
+sc config Spooler start=demand >> "%LOG%" 2>&1
+sc config WlanSvc start=auto >> "%LOG%" 2>&1
+sc config bthserv start=demand >> "%LOG%" 2>&1
+sc config SensorService start=demand >> "%LOG%" 2>&1
+sc config SensorsDataService start=demand >> "%LOG%" 2>&1
+sc config TabletInputService start=demand >> "%LOG%" 2>&1
 
 '@
 }

@@ -277,7 +277,21 @@ try {
     } elseif ($isLaptop) {
         Register-AuditResult -Category "CPU/Energia" -Item "Plan Activo" -Status "OK" -ActualValue "Equilibrado (Laptop)" -ExpectedValue "Equilibrado en Portatil" -Impact "Preserva autonomia de bateria y previene thermal throttling" -Source "AMD/Intel Mobile Guides"
     } else {
-        Register-AuditResult -Category "CPU/Energia" -Item "Plan Activo" -Status "WARN" -ActualValue "Equilibrado / Economizador" -ExpectedValue "Maximo Rendimiento" -Impact "Latencia variable en transiciones de reloj" -Source "Microsoft Performance Tuning" -RemediationCmd "powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61; powercfg -setactive e9a42b02-d5df-448d-aa00-03f14749eb61"
+        Register-AuditResult -Category "CPU/Energia" -Item "Plan Activo" -Status "WARN" -ActualValue "Equilibrado / Economizador" -ExpectedValue "Maximo Rendimiento" -Impact "Latencia variable en transiciones de reloj" -Source "Microsoft Performance Tuning" -RemediationCmd "powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
+    }
+
+    # Auditoria de Esquemas Duplicados de Energia
+    try {
+        $allSchemes = & powercfg /list 2>&1
+        $schemeLines = @($allSchemes | Where-Object { $_ -match 'GUID' })
+        $ultimateSchemes = @($schemeLines | Where-Object { $_ -match 'M[aá]ximo rendimiento|Ultimate Performance' })
+        if ($ultimateSchemes.Count -gt 1) {
+            Register-AuditResult -Category "CPU/Energia" -Item "Duplicados de Esquemas" -Status "WARN" -ActualValue "$($ultimateSchemes.Count) esquemas Ultimate detectados" -ExpectedValue "1 unico esquema" -Impact "Desorden en el panel de energia y colision de GUIDs" -Source "powercfg documentation" -RemediationCmd "powercfg -restoredefaultschemes"
+        } else {
+            Register-AuditResult -Category "CPU/Energia" -Item "Duplicados de Esquemas" -Status "OK" -ActualValue "Catalogo limpio ($($ultimateSchemes.Count))" -ExpectedValue "Sin duplicados" -Impact "Consistencia del subsistema de energia" -Source "powercfg documentation"
+        }
+    } catch {
+        Write-Warn "Error al auditar esquemas duplicados de energia ($($_.Exception.Message)). Continuando..."
     }
 } catch {
     Register-AuditResult -Category "CPU/Energia" -Item "Plan Activo" -Status "WARN" -ActualValue "Error de consulta" -ExpectedValue "Ultimate" -Impact "Desconocido" -Source "powercfg"
@@ -522,6 +536,7 @@ $servicesToAudit = @(
     @{ Name = 'DiagTrack'; Description = 'Telemetria y Experiencia Conectada'; Expected = 'Disabled' },
     @{ Name = 'dmwappushservice'; Description = 'Servicio de Enrutamiento WAP Push'; Expected = 'Disabled' },
     @{ Name = 'WerSvc'; Description = 'Informes de Errores de Windows'; Expected = 'Disabled' },
+    @{ Name = 'SensorService'; Description = 'Servicio de Sensores (Requerido por Configuracion Win11)'; Expected = 'Manual' },
     @{ Name = 'SysMain'; Description = 'Superfetch / Prefetch de Disco'; Expected = $(if ($isSSD){ 'Disabled' } else { 'Running' }) },
     @{ Name = 'WSearch'; Description = 'Indexacion de Busqueda en Disco'; Expected = 'Disabled' },
     @{ Name = 'Spooler'; Description = 'Cola de Impresion'; Expected = 'Disabled' },
@@ -533,7 +548,13 @@ foreach ($s in $servicesToAudit) {
     if ($svc) {
         $startMode = (Get-CimInstance Win32_Service -Filter "Name='$($s.Name)'" -ErrorAction SilentlyContinue).StartMode
         $isOptimal = ($svc.Status -eq 'Stopped' -and $startMode -eq $s.Expected)
-        if ($s.Name -eq 'SysMain' -and -not $isSSD) {
+        if ($s.Name -eq 'SensorService') {
+            if ($startMode -eq 'Disabled') {
+                Register-AuditResult -Category "Servicios" -Item "$($s.Name) ($($s.Description))" -Status "WARN" -ActualValue "Deshabilitado (Provoca crash en Configuracion de Win11)" -ExpectedValue "Manual / Running" -Impact "Cierre inesperado de ms-settings:powersleep" -Source "Microsoft Learn Windows 11 Settings Architecture" -RemediationCmd "Set-Service -Name 'SensorService' -StartupType Manual; Start-Service -Name 'SensorService' -ErrorAction SilentlyContinue"
+            } else {
+                Register-AuditResult -Category "Servicios" -Item "$($s.Name) ($($s.Description))" -Status "OK" -ActualValue "$($svc.Status) (Inicio: $startMode)" -ExpectedValue "Manual / Running" -Impact "Configuracion de energia y brillo de Windows 11 100% funcional" -Source "Microsoft Learn Windows 11 Settings Architecture"
+            }
+        } elseif ($s.Name -eq 'SysMain' -and -not $isSSD) {
             # En HDD es util
             Register-AuditResult -Category "Servicios" -Item "$($s.Name) ($($s.Description))" -Status "OK" -ActualValue "$($svc.Status) ($startMode)" -ExpectedValue "Activo en HDD" -Impact "Mejora precarga de bloques en discos mecanicos lentos" -Source "Microsoft Storage Internals"
         } elseif ($isOptimal) {
