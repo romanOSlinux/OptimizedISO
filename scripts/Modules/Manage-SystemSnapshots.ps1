@@ -127,8 +127,7 @@ function Resolve-PolicyEngine {
         (Join-Path $PSScriptRoot "..\Core\Policy-Engine.ps1"),
         (Join-Path $PSScriptRoot "Core\Policy-Engine.ps1"),
         (Join-Path $PSScriptRoot "Policy-Engine.ps1"),
-        "$env:WINDIR\Setup\Scripts\Core\Policy-Engine.ps1",
-        "C:\OptimizedISO\scripts\Core\Policy-Engine.ps1"
+        "$env:WINDIR\Setup\Scripts\Core\Policy-Engine.ps1"
     )
     foreach ($c in $candidates) {
         if (Test-Path $c) {

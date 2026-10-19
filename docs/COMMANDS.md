@@ -1,4 +1,4 @@
-# Referencia Rápida de Comandos — New-OptimizedWindowsISO.ps1
+﻿# Referencia Rápida de Comandos — New-OptimizedWindowsISO.ps1
 
 > 💡 **Guía Completa de la Suite romanOS:** Para consultar todas las opciones de ejecución, menús interactivos y parámetros CLI de **todos los scripts del repositorio** (Toolkit Maestro, Debloat, Mantenimiento, Red, Seguridad, Diagnósticos y Compilación de ISOs), consulta la **[Guía Maestra de Lanzamiento y Comandos](GUIA_DE_EJECUCION_Y_COMANDOS.md)**.
 
@@ -21,11 +21,11 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 ## Uso Básico con Usuario Local
 
 ```powershell
-# Usuario "Roman" sin contraseña
-.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -LocalUser "Roman"
+# Usuario "Usuario" sin contraseña
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -LocalUser "Usuario"
 
-# Usuario "Roman" con contraseña
-.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -LocalUser "Roman" -LocalPassword "MiClave123"
+# Usuario "Usuario" con contraseña
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -LocalUser "Usuario" -LocalPassword "MiClave123"
 ```
 
 ---
@@ -35,13 +35,13 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 ```powershell
 # ISO de Windows 11 descargada manualmente
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
-  -SourceISO "C:\Users\Roman\Downloads\Win11_24H2_Spanish_x64.iso" `
-  -LocalUser "Roman"
+  -SourceISO "C:\Users\Usuario\Downloads\Win11_24H2_Spanish_x64.iso" `
+  -LocalUser "Usuario"
 
 # ISO de Windows 11 IoT Enterprise LTSC 2024
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "D:\ISOs\Win11_LTSC_2024.iso" `
-  -LocalUser "Roman"
+  -LocalUser "Usuario"
 ```
 
 ---
@@ -52,35 +52,35 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 # España (por defecto)
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -Language "es-ES" `
   -Timezone "Romance Standard Time"
 
 # Argentina
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -Language "es-AR" `
   -Timezone "Argentina Standard Time"
 
 # México
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -Language "es-MX" `
   -Timezone "Central Standard Time (Mexico)"
 
 # Estados Unidos (Inglés)
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -Language "en-US" `
   -Timezone "Eastern Standard Time"
 
 # Brasil (Portugués)
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -Language "pt-BR" `
   -Timezone "E. South America Standard Time"
 ```
@@ -93,14 +93,14 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 # Idioma español de España, pero teclado latinoamericano
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -Language "es-ES" `
   -KeyboardOverride "es-419"
 
 # Idioma español, teclado US International
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -Language "es-ES" `
   -KeyboardOverride "en-US"
 ```
@@ -113,19 +113,19 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 # Solo inyectar en Windows 11 Pro (índice 3, verificar con el menú)
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -TargetWimIndex "3"
 
 # Inyectar en dos ediciones específicas (ej. Home e Pro)
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -TargetWimIndex "1,3"
 
 # Inyectar en TODAS las ediciones (mismo efecto que omitirlo y elegir "A")
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -TargetWimIndex "all"
 ```
 
@@ -137,13 +137,13 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 # Guardar la ISO en otra carpeta
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -OutputDir "D:\ISOs_Modificadas"
 
 # Guardar directamente en un pendrive (letra E:)
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -OutputDir "E:\"
 ```
 
@@ -155,7 +155,7 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 # El script instalará 7-Zip y oscdimg via winget si no están presentes
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -AutoInstallDeps
 ```
 
@@ -167,7 +167,7 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 # Iniciar sesión automáticamente 3 veces (útil para scripts que necesitan reiniciar)
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -AutoLogonCount 3
 ```
 
@@ -179,7 +179,7 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 # Extrae, inyecta y prepara todo, pero NO empaqueta la ISO final
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
   -SourceISO "C:\Win11.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -SkipISOCreation
 ```
 
@@ -201,10 +201,10 @@ El script pedirá la ISO origen, el script optimizador y mostrará menús de sel
 
 ```powershell
 .\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 `
-  -SourceISO "C:\Users\Roman\Downloads\Win11_24H2_Spanish_x64.iso" `
+  -SourceISO "C:\Users\Usuario\Downloads\Win11_24H2_Spanish_x64.iso" `
   -OutputDir "D:\ISOs_Modificadas" `
   -WindowsVersion "11" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -LocalPassword "Secreta123" `
   -AutoLogonCount 1 `
   -Language "es-AR" `

@@ -50,7 +50,7 @@ function Assert-Test {
 
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot "scripts"))) {
-    $repoRoot = "C:\OptimizedISO"
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 }
 
 $corePolicyEngine = Join-Path $repoRoot "scripts\Core\Policy-Engine.ps1"

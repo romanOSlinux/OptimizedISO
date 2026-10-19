@@ -3,14 +3,14 @@ setlocal EnableDelayedExpansion
 
 REM ======================================================================
 REM  Lanzador de Suite de Despliegue Post-Instalacion (Dev-IA & Gaming)
-REM  romanOS Workstation Setup - Edicion AMD Ryzen 5 8600G
+REM  romanOS Workstation Setup - Entorno Post-Instalacion Universal
 REM
 REM  Cumplimiento de Reglas:
 REM    - Regla 1: Entorno nativo Windows y elevacion UAC transparente
 REM    - Regla 4: Modo grafico STA obligatorio (-STA) en PowerShell 5.1
 REM ======================================================================
 
-title romanOS Workstation Setup - Despliegue Host
+title romanOS Workstation Setup - Aprovisionamiento Post-Instalacion
 
 REM ----------------------------------------------------------------------
 REM 1. Verificacion y Auto-elevacion de privilegios de Administrador [UAC]
@@ -36,12 +36,14 @@ if exist "%~dp0Desplegar-Setup-Host.ps1" (
     set "PS_SCRIPT=%~dp0Desplegar-Setup-Host.ps1"
 ) else if exist "%WINDIR%\Setup\Scripts\Desplegar-Setup-Host.ps1" (
     set "PS_SCRIPT=%WINDIR%\Setup\Scripts\Desplegar-Setup-Host.ps1"
-) else if exist "C:\Windows\Setup\Scripts\Desplegar-Setup-Host.ps1" (
-    set "PS_SCRIPT=C:\Windows\Setup\Scripts\Desplegar-Setup-Host.ps1"
 ) else if exist "%WINDIR%\Setup\Scripts\Host-Tools\Desplegar-Setup-Host.ps1" (
     set "PS_SCRIPT=%WINDIR%\Setup\Scripts\Host-Tools\Desplegar-Setup-Host.ps1"
-) else if exist "C:\OptimizedISO\scripts\Host-Tools\Desplegar-Setup-Host.ps1" (
-    set "PS_SCRIPT=C:\OptimizedISO\scripts\Host-Tools\Desplegar-Setup-Host.ps1"
+) else if exist "%~dp0..\Host-Tools\Desplegar-Setup-Host.ps1" (
+    set "PS_SCRIPT=%~dp0..\Host-Tools\Desplegar-Setup-Host.ps1"
+) else if exist "%~dp0Host-Tools\Desplegar-Setup-Host.ps1" (
+    set "PS_SCRIPT=%~dp0Host-Tools\Desplegar-Setup-Host.ps1"
+) else if exist "%~dp0scripts\Host-Tools\Desplegar-Setup-Host.ps1" (
+    set "PS_SCRIPT=%~dp0scripts\Host-Tools\Desplegar-Setup-Host.ps1"
 )
 
 if not defined PS_SCRIPT (

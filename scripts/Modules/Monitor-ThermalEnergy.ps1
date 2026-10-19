@@ -98,7 +98,7 @@ if (-not $SkipElevation -and -not (Test-IsAdministrator) -and -not $WhatIfPrefer
 $scriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 
 if (-not $LogPath) {
-    $logDir = if (Test-Path -Path "C:\OptimizedISO\Log") { "C:\OptimizedISO\Log" } else { $env:TEMP }
+    $repoLog = if ($scriptRoot) { Join-Path (Split-Path (Split-Path $scriptRoot -Parent) -Parent) "Log" } else { $null }; $logDir = if ($repoLog -and (Test-Path -Path $repoLog)) { $repoLog } else { $env:TEMP }
     $LogPath = Join-Path -Path $logDir -ChildPath "ThermalEnergy-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 }
 

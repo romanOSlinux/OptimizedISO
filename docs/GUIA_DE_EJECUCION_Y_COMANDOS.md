@@ -1,4 +1,4 @@
-# Guía Maestra de Lanzamiento, Comandos y Trazabilidad — romanOS / OptimizedISO
+﻿# Guía Maestra de Lanzamiento, Comandos y Trazabilidad — romanOS / OptimizedISO
 
 Esta guía documenta exhaustivamente todas las formas de ejecución, parámetros de línea de comandos (CLI), lanzadores por lotes (`.cmd`), menús interactivos y recetas prácticas de toda la suite de scripts del repositorio.
 
@@ -258,10 +258,10 @@ Evalúa el estado de una instalación limpia de Windows o de una imagen optimiza
 ### ⚡ Compilaciones Desatendidas vía CLI
 
 ```powershell
-# 1. Compilar ISO de Windows 11 con usuario local "Roman", perfil Gaming y Zero-Touch
+# 1. Compilar ISO de Windows 11 con usuario local "Usuario", perfil Gaming y Zero-Touch
 & "C:\OptimizedISO\scripts\New-OptimizedWindowsISO-v2.ps1" `
   -SourceISO "C:\ISOs\Win11_24H2_Spanish_x64.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -OptimizationProfile "1" `
   -ZeroTouch `
   -Language "es-ES" `
@@ -270,14 +270,14 @@ Evalúa el estado de una instalación limpia de Windows o de una imagen optimiza
 # 2. Compilar ISO para Laptop o Máquina Virtual (Perfil 3 - Eficiencia Energética / Plan Equilibrado)
 & "C:\OptimizedISO\scripts\New-OptimizedWindowsISO-v2.ps1" `
   -SourceISO "C:\ISOs\Win11_24H2.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -OptimizationProfile "3" `
   -ZeroTouch
 
 # 3. Guardar la configuración actual como Preset JSON reutilizable (-SavePreset)
 & "C:\OptimizedISO\scripts\New-OptimizedWindowsISO-v2.ps1" `
   -SourceISO "C:\ISOs\Win11_24H2.iso" `
-  -LocalUser "Roman" `
+  -LocalUser "Usuario" `
   -OptimizationProfile "3" `
   -SavePreset
 

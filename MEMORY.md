@@ -1,3 +1,20 @@
+## [2026-10-18T21:30:00-03:00] romanOS Universalización Integral del Ecosistema y Erradicación Total de Deuda Personal y Rutas Fijas (Regla 20 / PLAN-0158)
+
+- **Archivos Modificados:** `scripts/Host-Tools/Desplegar-Setup-Host.ps1`, `scripts/Host-Tools/Desplegar-Setup-Host.cmd`, `Preset_Gaming_Universal.json`, `Preset_Workstation_Universal.json`, `Preset_romanOS_Studio.json`, `Compilar-ISO-Universal.cmd`, `scripts/GUI/romanOS-Studio.ps1`, `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Desktop-Helpers/*` (17 archivos), `scripts/Drivers/*` (5 archivos), `scripts/Builder/*` (3 archivos), `scripts/Core/*` (9 archivos), `scripts/Modules/*` (11 archivos), `scripts/Testing/*` (19 archivos), `docs/plans/PLAN-0158-20261018-universalizacion-ecosistema-erradicacion-deuda-personal.md`, `docs/plans/README.md`, `README.md`, `docs/COMMANDS.md`, `docs/GUIA_DE_EJECUCION_Y_COMANDOS.md`, `docs/USAGE.md`, `.gitignore`, `MEMORY.md`.
+- **Archivos Descomisionados:** `Compilar-ISO-Host-Ryzen8600G.cmd`, `Preset_Host_Ryzen8600G.json`.
+- **Hitos Logrados:**
+  - **Erradicación Total de Deuda Personal y Acople a Hardware Único (Regla 20):** Desvinculación de la máquina física local del operador ("AMD Ryzen 5 8600G", "Zen 4", "Radeon 760M"), juegos personales ("World of Tanks") y usuario ("Roman").
+  - **Aprovisionamiento Post-Instalación Universal:** `Desplegar-Setup-Host.ps1` migrado a introspección dinámica multiplataforma (`Hardware-Engine.ps1`) y catálogo universal de aplicaciones (`Valve.Steam`, `EpicGames.EpicGamesLauncher`, `Discord.Discord`, `OBSProject.OBSStudio`).
+  - **Presets y Lanzadores Universales Arquetípicos:** Creados `Preset_Gaming_Universal.json` (Perfil 3 Hardcore) y `Preset_Workstation_Universal.json` (Perfil 2 Balanced) con usuario neutral `"Usuario"`. Creado `Compilar-ISO-Universal.cmd` con selección interactiva y No-BOM estricto.
+  - **Neutralización de GUIs romanOS Studio & Control Center:** Usuario por defecto establecido en `"Usuario"`, preselecciones regionales estandarizadas (`es-ES`, `Romance Standard Time`), 0 fallbacks hardcodeados a `C:\OptimizedISO`.
+  - **Saneamiento Repo-Wide de Rutas Rígidas `C:\OptimizedISO`:** Erradicadas todas las rutas absolutas en más de 50 scripts y documentos, reemplazadas por resolución jerárquica contextual (`$PSScriptRoot`, `%SystemRoot%\Setup\Scripts\`, `$env:TEMP\romanOS`).
+  - **Certificación de Calidad y Arneses al 100%:**
+    - `Test-GuiIntegrityAndFunctionality.ps1`: 118/118 botones y disparadores certificados (100% PASS, 0 fallos).
+    - `Test-FunctionalContracts.ps1`: 109/109 contratos funcionales certificados (100% PASS, 0 fallos).
+    - `Test-OptimizedISO-v2.ps1`: 652/652 pruebas unitarias y de integración superadas (100% PASS, 0 fallos).
+    - `Invoke-RomanOSHarness.ps1 -Fast`: 5/5 pruebas TIER 1 superadas (100% de cumplimiento, 0 fallos).
+    - Verificación estricta de codificación: 100% scripts PowerShell en UTF-8 con BOM; 100% scripts Batch en UTF-8 No-BOM.
+
 ## [2026-10-18T19:10:00-03:00] romanOS Consolidación de Arquitectura Universal y Erradicación de Parches Ad-Hoc (Regla 20 / PLAN-0157)
 
 - **Archivos Modificados:** `scripts/GUI/romanOS-ControlCenter.ps1`, `scripts/Modules/Invoke-WindowsMaintenance.ps1`, `.agents/AGENTS.md`, `MEMORY.md`

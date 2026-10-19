@@ -18,8 +18,8 @@ if exist "%~dp0Toggle-Defender.ps1" (
     set "TARGET_PS1=%~dp0Toggle-Defender.ps1"
 ) else if exist "%SystemRoot%\Setup\Scripts\DesktopHelpers\Toggle-Defender.ps1" (
     set "TARGET_PS1=%SystemRoot%\Setup\Scripts\DesktopHelpers\Toggle-Defender.ps1"
-) else if exist "C:\OptimizedISO\scripts\Desktop-Helpers\Toggle-Defender.ps1" (
-    set "TARGET_PS1=C:\OptimizedISO\scripts\Desktop-Helpers\Toggle-Defender.ps1"
+) else if exist "%~dp0..\..\scripts\Desktop-Helpers\Toggle-Defender.ps1" (
+    set "TARGET_PS1=%~dp0..\..\scripts\Desktop-Helpers\Toggle-Defender.ps1"
 )
 
 if not defined TARGET_PS1 (
@@ -27,7 +27,7 @@ if not defined TARGET_PS1 (
     echo Se buscaron las siguientes rutas sin exito:
     echo   1. %~dp0Toggle-Defender.ps1
     echo   2. %SystemRoot%\Setup\Scripts\DesktopHelpers\Toggle-Defender.ps1
-    echo   3. C:\OptimizedISO\scripts\Desktop-Helpers\Toggle-Defender.ps1
+    echo   3. %~dp0..\..\scripts\Desktop-Helpers\Toggle-Defender.ps1
     echo.
     echo Asegurate de que la suite romanOS Helpers este instalada correctamente en el sistema.
     echo.

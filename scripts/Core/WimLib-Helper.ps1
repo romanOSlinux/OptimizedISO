@@ -18,7 +18,7 @@ function Get-WimLibPath {
     }
 
     # 2. Ruta estándar fija de contingencia
-    $fixedPath = 'c:\OptimizedISO\tools\wimlib\wimlib-imagex.exe'
+    $fixedPath = Join-Path $env:SystemRoot 'Setup\tools\wimlib\wimlib-imagex.exe'
     if (Test-Path -LiteralPath $fixedPath) {
         return $fixedPath
     }

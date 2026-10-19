@@ -49,8 +49,6 @@ Write-Host ""
 if ([string]::IsNullOrWhiteSpace($DestinationPath)) {
     if ($PSScriptRoot -and (Test-Path $PSScriptRoot)) {
         $DestinationPath = $PSScriptRoot
-    } elseif (Test-Path "C:\OptimizedISO\scripts\Drivers") {
-        $DestinationPath = "C:\OptimizedISO\scripts\Drivers"
     } else {
         $DestinationPath = Join-Path (Get-Location) "Drivers"
     }

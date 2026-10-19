@@ -25,8 +25,6 @@ if exist "%~dp0Get-CriticalDrivers.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\Drivers\Get-CriticalDrivers.ps1" %*
 ) else if exist "%WINDIR%\Setup\Scripts\Get-CriticalDrivers.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\Get-CriticalDrivers.ps1" %*
-) else if exist "C:\OptimizedISO\scripts\Drivers\Get-CriticalDrivers.ps1" (
-    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\OptimizedISO\scripts\Drivers\Get-CriticalDrivers.ps1" %*
 ) else if exist "C:\Windows\Setup\Scripts\Drivers\Get-CriticalDrivers.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\Drivers\Get-CriticalDrivers.ps1" %*
 ) else (

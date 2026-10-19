@@ -35,7 +35,7 @@ Write-Host "====================================================================
 Write-Host " [romanOS] Test Suite: Integracion MSMG Toolkit y Servicing DISM (PLAN-0118)" -ForegroundColor Cyan
 Write-Host "==========================================================================" -ForegroundColor Cyan
 
-$projectRoot = "C:\OptimizedISO"
+$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 if (-not (Test-Path $projectRoot)) {
     $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 }

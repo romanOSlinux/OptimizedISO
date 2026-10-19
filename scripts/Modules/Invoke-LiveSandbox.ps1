@@ -83,8 +83,7 @@ $ErrorActionPreference = 'Continue'
 $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Definition }
 $repoRootCandidates = @(
     (Split-Path (Split-Path $scriptDir -Parent) -Parent),
-    (Split-Path $scriptDir -Parent),
-    "C:\OptimizedISO"
+    (Split-Path $scriptDir -Parent)
 )
 $repoRoot = $repoRootCandidates | Where-Object { (Test-Path (Join-Path $_ ".agents")) -or (Test-Path (Join-Path $_ "scripts\Core")) } | Select-Object -First 1
 if (-not $repoRoot) { $repoRoot = $repoRootCandidates[0] }

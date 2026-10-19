@@ -1402,13 +1402,13 @@ if ((Test-Path $thermalPath) -and (Test-Path $latencyPath) -and (Test-Path $post
     } -ExpectedState "Parámetros DurationSeconds, SamplingSeconds y SkipElevation declarados en AST" -DetailMessage "Parametros auditados en AST"
 
     # 3. Validación de PostInstall-Diagnostics en modo PassThru
-    $diagRes = & $postDiagPath -OutputDir "C:\OptimizedISO\Log" -PassThru -SkipElevation
+    $diagRes = & $postDiagPath -OutputDir (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "Log") -PassThru -SkipElevation
     Assert-Contract "Assert: PostInstall-Diagnostics ejecuta con código 0 y genera reportes" {
         return ($null -ne $diagRes -and $diagRes.Success -eq $true -and $diagRes.PassedChecks -ge 50 -and (Test-Path $diagRes.MarkdownReport))
     } -ExpectedState "Success=True con >=50 verificaciones y reporte Markdown" -DetailMessage "Checks: $($diagRes.PassedChecks) | Errors: $($diagRes.CriticalErrors)"
 
     # 4. Validación de Audit-SystemOptimization en modo PassThru
-    $auditRes = & $auditSysPath -OutputDir "C:\OptimizedISO\Log" -PassThru -SkipElevation
+    $auditRes = & $auditSysPath -OutputDir (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "Log") -PassThru -SkipElevation
     Assert-Contract "Assert: Audit-SystemOptimization evalúa directivas oficiales sin fallos críticos" {
         return ($null -ne $auditRes -and $auditRes.Success -eq $true -and $auditRes.TotalAudited -ge 25 -and $auditRes.FailCount -eq 0)
     } -ExpectedState "Success=True con TotalAudited>=25 y FailCount=0" -DetailMessage "Audited: $($auditRes.TotalAudited) | Ok: $($auditRes.OkCount) | Fails: $($auditRes.FailCount)"

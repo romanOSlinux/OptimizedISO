@@ -1,0 +1,18 @@
+{
+    "SourceISO": "",
+    "OptimizationProfile": "2",
+    "LocalUser": "Usuario",
+    "LocalPassword": "",
+    "Language": "es-ES",
+    "Locale": "es-ES",
+    "Timezone": "Romance Standard Time",
+    "KeyboardOverride": "040a:0000040a",
+    "BlockOneDrive": true,
+    "InjectVisualTweaks": true,
+    "WimCompression": "Max",
+    "Architecture": "amd64",
+    "DriversPath": "Drivers",
+    "EnableHyperV": true,
+    "InjectWin11Script": false,
+    "ExportedAt": "2026-10-18 20:45:00"
+}

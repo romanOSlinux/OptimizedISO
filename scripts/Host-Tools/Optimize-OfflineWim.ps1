@@ -76,7 +76,6 @@ $uiEnginePaths = @(
     (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "..\Core\UI-Engine.ps1"),
-    "C:\OptimizedISO\scripts\Core\UI-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
 )
 $uiLoaded = $false
@@ -103,8 +102,7 @@ if (-not $uiLoaded) {
 # -----------------------------------------------------------------------------
 $wimLibHelperPaths = @(
     (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\WimLib-Helper.ps1"),
-    (Join-Path $PSScriptRoot "..\Core\WimLib-Helper.ps1"),
-    "C:\OptimizedISO\scripts\Core\WimLib-Helper.ps1"
+    (Join-Path $PSScriptRoot "..\Core\WimLib-Helper.ps1")
 )
 foreach ($wp in $wimLibHelperPaths) {
     if (Test-Path -LiteralPath $wp) {
@@ -164,7 +162,7 @@ function Test-WimOptimizationPrerequisites {
     $wimLibPath = if (Get-Command 'Get-WimLibPath' -ErrorAction SilentlyContinue) {
         Get-WimLibPath
     } else {
-        $fixed = "C:\OptimizedISO\tools\wimlib\wimlib-imagex.exe"
+        $fixed = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "tools\wimlib\wimlib-imagex.exe"
         if (Test-Path -LiteralPath $fixed) { $fixed } else {
             $c = Get-Command "wimlib-imagex.exe" -ErrorAction SilentlyContinue
             if ($c) { $c.Source } else { $null }

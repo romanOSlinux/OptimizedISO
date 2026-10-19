@@ -56,8 +56,7 @@ $uiEnginePaths = @(
     (Join-Path $scriptRoot "Core\UI-Engine.ps1"),
     (Join-Path $scriptRoot "UI-Engine.ps1"),
     "$env:WINDIR\Setup\Scripts\Core\UI-Engine.ps1",
-    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1",
-    "C:\OptimizedISO\scripts\Core\UI-Engine.ps1"
+    "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
 )
 $uiLoaded = $false
 foreach ($p in $uiEnginePaths) {
@@ -84,8 +83,7 @@ $hwEnginePaths = @(
     (Join-Path $scriptRoot "Core\Hardware-Engine.ps1"),
     (Join-Path $scriptRoot "Hardware-Engine.ps1"),
     "$env:WINDIR\Setup\Scripts\Core\Hardware-Engine.ps1",
-    "C:\Windows\Setup\Scripts\Core\Hardware-Engine.ps1",
-    "C:\OptimizedISO\scripts\Core\Hardware-Engine.ps1"
+    "C:\Windows\Setup\Scripts\Core\Hardware-Engine.ps1"
 )
 $hwLoaded = $false
 foreach ($hp in $hwEnginePaths) {

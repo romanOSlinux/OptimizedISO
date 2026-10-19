@@ -1,12 +1,12 @@
 {
-    "SourceISO": "Win11_25H2_Spanish_x64_v2.iso",
+    "SourceISO": "",
     "OptimizationProfile": "3",
-    "LocalUser": "Roman",
+    "LocalUser": "Usuario",
     "LocalPassword": "",
     "Language": "es-ES",
-    "Locale": "es-AR",
-    "Timezone": "Argentina Standard Time",
-    "KeyboardOverride": "es-419",
+    "Locale": "es-ES",
+    "Timezone": "Romance Standard Time",
+    "KeyboardOverride": "040a:0000040a",
     "BlockOneDrive": true,
     "InjectVisualTweaks": true,
     "WimCompression": "Max",
@@ -14,5 +14,5 @@
     "DriversPath": "Drivers",
     "EnableHyperV": true,
     "InjectWin11Script": true,
-    "ExportedAt": "2026-09-08 16:55:00"
+    "ExportedAt": "2026-10-18 20:45:00"
 }

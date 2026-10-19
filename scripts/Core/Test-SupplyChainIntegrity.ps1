@@ -59,7 +59,7 @@ $repoRoot = if ($TargetPath) {
     if (-not (Test-Path (Join-Path $p ".agents"))) {
         $p = Split-Path $PSScriptRoot -Parent
         if (-not (Test-Path (Join-Path $p ".agents"))) {
-            $p = "C:\OptimizedISO"
+            $p = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
         }
     }
     $p

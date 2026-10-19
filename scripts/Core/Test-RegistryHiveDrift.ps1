@@ -50,7 +50,7 @@ Write-Host ""
 # -----------------------------------------------------------------------------
 $policyEnginePath = Join-Path $PSScriptRoot "Policy-Engine.ps1"
 if (-not (Test-Path $policyEnginePath)) {
-    $policyEnginePath = "C:\OptimizedISO\scripts\Core\Policy-Engine.ps1"
+    $policyEnginePath = Join-Path $env:SystemRoot "Setup\Scripts\Core\Policy-Engine.ps1"
 }
 
 if (-not (Test-Path $policyEnginePath)) {

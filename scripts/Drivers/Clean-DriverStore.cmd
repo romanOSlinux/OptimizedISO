@@ -25,8 +25,6 @@ if exist "%~dp0Clean-DriverStore.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\Drivers\Clean-DriverStore.ps1" %*
 ) else if exist "%WINDIR%\Setup\Scripts\Clean-DriverStore.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\Clean-DriverStore.ps1" %*
-) else if exist "C:\OptimizedISO\scripts\Drivers\Clean-DriverStore.ps1" (
-    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\OptimizedISO\scripts\Drivers\Clean-DriverStore.ps1" %*
 ) else if exist "C:\Windows\Setup\Scripts\Drivers\Clean-DriverStore.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\Drivers\Clean-DriverStore.ps1" %*
 ) else (

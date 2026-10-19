@@ -17,11 +17,11 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [string]$OutputPath = 'c:\OptimizedISO\Auditoria-Ecosistema.html'
+    [string]$OutputPath = ''
 )
 
 $ErrorActionPreference = 'Continue'
-$projectRoot = 'c:\OptimizedISO'
+$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path; if ([string]::IsNullOrWhiteSpace($OutputPath)) { $OutputPath = Join-Path $projectRoot 'Auditoria-Ecosistema.html' }
 
 Write-Host "==========================================================================" -ForegroundColor Cyan
 Write-Host " [romanOS] Orquestador de Cadena de Auditoría Integral del Ecosistema" -ForegroundColor Cyan

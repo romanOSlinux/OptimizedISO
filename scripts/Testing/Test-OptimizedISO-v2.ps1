@@ -16,30 +16,45 @@
       https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_scripts
 
 .PARAMETER LogDir
-    Ruta del directorio donde se guardara el reporte Markdown de resultados. (Default: C:\OptimizedISO\Log)
+    Ruta del directorio donde se guardara el reporte Markdown de resultados. (Default: .\Log)
 
 .PARAMETER TargetScript
     Ruta del script New-OptimizedWindowsISO-v2.ps1 a evaluar.
 
 .EXAMPLE
     .\Test-OptimizedISO-v2.ps1
-    .\Test-OptimizedISO-v2.ps1 -LogDir "C:\OptimizedISO\Log"
+    .\Test-OptimizedISO-v2.ps1 -LogDir ".\Log"
 #>
 
 [CmdletBinding()]
 param(
-    [string]$LogDir       = "C:\OptimizedISO\Log",
-    [string]$TargetScript = "C:\OptimizedISO\New-OptimizedWindowsISO-v2.ps1"
+    [string]$LogDir       = "",
+    [string]$TargetScript = ""
 )
 
-if (-not (Test-Path $TargetScript)) {
+$scriptBase = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+if (-not $scriptBase -or -not (Test-Path $scriptBase)) {
+    $scriptBase = Split-Path -Parent $PSCommandPath
+    if (-not $scriptBase -or -not (Test-Path $scriptBase)) {
+        $scriptBase = (Get-Location).Path
+    }
+}
+$projectRootDir = Split-Path (Split-Path $scriptBase -Parent) -Parent
+if (-not $projectRootDir -or -not (Test-Path $projectRootDir)) {
+    $projectRootDir = (Get-Location).Path
+}
+
+if ([string]::IsNullOrWhiteSpace($LogDir)) {
+    $LogDir = Join-Path $projectRootDir "Log"
+}
+
+if ([string]::IsNullOrWhiteSpace($TargetScript) -or -not (Test-Path $TargetScript)) {
     $candidates = @(
-        (Join-Path (Split-Path $PSScriptRoot -Parent) "Builder\New-OptimizedWindowsISO-v2.ps1"),
-        (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "scripts\Builder\New-OptimizedWindowsISO-v2.ps1"),
-        "C:\OptimizedISO\scripts\Builder\New-OptimizedWindowsISO-v2.ps1"
+        (Join-Path (Split-Path $scriptBase -Parent) "Builder\New-OptimizedWindowsISO-v2.ps1"),
+        (Join-Path $projectRootDir "scripts\Builder\New-OptimizedWindowsISO-v2.ps1")
     )
     foreach ($c in $candidates) {
-        if (Test-Path $c) { $TargetScript = $c; break }
+        if ($c -and (Test-Path $c)) { $TargetScript = (Resolve-Path $c).Path; break }
     }
 }
 
@@ -294,9 +309,8 @@ $loadedCount = 0
 $loadErrors  = 0
 
 $uiCandidates = @(
-    (Join-Path (Split-Path $TargetScript -Parent) 'Core\UI-Engine.ps1'),
-    (Join-Path (Split-Path (Split-Path $TargetScript -Parent) -Parent) 'scripts\Core\UI-Engine.ps1'),
-    "C:\OptimizedISO\scripts\Core\UI-Engine.ps1"
+    (Join-Path $projectRootDir 'scripts\Core\UI-Engine.ps1'),
+    (Join-Path (Split-Path $TargetScript -Parent) '..\Core\UI-Engine.ps1')
 )
 $UIEngine = $uiCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 $scriptsToLoad = @($UIEngine, $TargetScript)
@@ -662,8 +676,7 @@ Assert-False "autounattend.xml: Sin directivas invalidas WillContinueOnFailure" 
 # Validar y ejecutar sintacticamente el script fisico canonico PostInstall-Diagnostics.ps1 en sandbox
 $diagPhysCandidates = @(
     (Join-Path (Split-Path $PSScriptRoot -Parent) "Modules\PostInstall-Diagnostics.ps1"),
-    (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "scripts\Modules\PostInstall-Diagnostics.ps1"),
-    "C:\OptimizedISO\scripts\Modules\PostInstall-Diagnostics.ps1"
+    (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "scripts\Modules\PostInstall-Diagnostics.ps1")
 )
 $physicalDiagPath = $diagPhysCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 Assert-True "PLAN-0040: Archivo fisico canonico PostInstall-Diagnostics.ps1 existe en disco" ([bool]$physicalDiagPath)
@@ -921,7 +934,7 @@ Assert-True "PLAN-0022: romanOS-Toolkit.ps1 carga Core/Policy-Engine.ps1" ([bool
 $repoRoot          = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $agentsPath1       = Join-Path $repoRoot ".agents\AGENTS.md"
 $agentsPath2       = Join-Path (Split-Path $PSScriptRoot -Parent) ".agents\AGENTS.md"
-$agentsPath3       = "C:\OptimizedISO\.agents\AGENTS.md"
+$agentsPath3       = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) ".agents\AGENTS.md"
 $agentsRulePath    = @($agentsPath1, $agentsPath2, $agentsPath3) | Where-Object { Test-Path $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
 $agentsRuleContent = if ($agentsRulePath) { Get-Content -Path $agentsRulePath -Raw -ErrorAction SilentlyContinue } else { '' }
 if (-not $agentsRuleContent) { $agentsRuleContent = '' }
@@ -1574,21 +1587,24 @@ if (Test-Path $desplegarPs1Path) {
 $desplegarCmdPath = Join-Path $projectRootDir "scripts\Host-Tools\Desplegar-Setup-Host.cmd"
 Assert-True "PLAN-0063: Desplegar-Setup-Host.cmd existe en Host-Tools" (Test-Path $desplegarCmdPath)
 
-# 3. Validar Preset_Host_Ryzen8600G.json
-$presetHostPath = Join-Path $projectRootDir "Preset_Host_Ryzen8600G.json"
-Assert-True "PLAN-0063: Preset_Host_Ryzen8600G.json existe en la raiz" (Test-Path $presetHostPath)
+# 3. Validar Presets Universales (PLAN-0158)
+$presetGamingPath = Join-Path $projectRootDir "Preset_Gaming_Universal.json"
+Assert-True "PLAN-0158: Preset_Gaming_Universal.json existe en la raiz" (Test-Path $presetGamingPath)
 
-if (Test-Path $presetHostPath) {
-    $presetJson = Get-Content $presetHostPath -Raw | ConvertFrom-Json
-    Assert-Equal "PLAN-0063: Preset OptimizationProfile es 3 (Hardcore)" $presetJson.OptimizationProfile "3"
-    Assert-Equal "PLAN-0063: Preset LocalUser es Roman" $presetJson.LocalUser "Roman"
-    Assert-Equal "PLAN-0063: Preset DriversPath apunta a Drivers" $presetJson.DriversPath "Drivers"
-    Assert-True "PLAN-0063: Preset EnableHyperV esta activado" ([bool]$presetJson.EnableHyperV)
+if (Test-Path $presetGamingPath) {
+    $presetJson = Get-Content $presetGamingPath -Raw | ConvertFrom-Json
+    Assert-Equal "PLAN-0158: Preset OptimizationProfile es 3 (Hardcore)" $presetJson.OptimizationProfile "3"
+    Assert-Equal "PLAN-0158: Preset LocalUser es Usuario" $presetJson.LocalUser "Usuario"
+    Assert-Equal "PLAN-0158: Preset DriversPath apunta a Drivers" $presetJson.DriversPath "Drivers"
+    Assert-True "PLAN-0158: Preset EnableHyperV esta activado" ([bool]$presetJson.EnableHyperV)
 }
 
-# 4. Validar lanzador 1-clic Compilar-ISO-Host-Ryzen8600G.cmd
-$compilarCmdPath = Join-Path $projectRootDir "Compilar-ISO-Host-Ryzen8600G.cmd"
-Assert-True "PLAN-0063: Compilar-ISO-Host-Ryzen8600G.cmd existe en la raiz" (Test-Path $compilarCmdPath)
+$presetWorkstationPath = Join-Path $projectRootDir "Preset_Workstation_Universal.json"
+Assert-True "PLAN-0158: Preset_Workstation_Universal.json existe en la raiz" (Test-Path $presetWorkstationPath)
+
+# 4. Validar lanzador 1-clic universal Compilar-ISO-Universal.cmd
+$compilarCmdPath = Join-Path $projectRootDir "Compilar-ISO-Universal.cmd"
+Assert-True "PLAN-0158: Compilar-ISO-Universal.cmd existe en la raiz" (Test-Path $compilarCmdPath)
 
 # 5. Validar soporte de EnableHyperV e inyección de Host-Tools en Builder
 $builderContent63 = Get-Content $TargetScript -Raw

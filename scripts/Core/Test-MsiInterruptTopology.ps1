@@ -17,7 +17,7 @@
     .\Test-MsiInterruptTopology.ps1
 
 .EXAMPLE
-    .\Test-MsiInterruptTopology.ps1 -ExportJson "C:\OptimizedISO\Log\MsiTopology.json"
+    .\Test-MsiInterruptTopology.ps1 -ExportJson ".\Log\MsiTopology.json"
 #>
 
 [CmdletBinding(SupportsShouldProcess = $true)]

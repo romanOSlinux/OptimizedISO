@@ -27,7 +27,7 @@ function Get-SysinternalsToolPath {
     }
 
     # 2. Ruta fija estándar
-    $fixedPath = "c:\OptimizedISO\tools\sysinternals\$ToolName"
+    $fixedPath = Join-Path $env:SystemRoot "Setup\tools\sysinternals\$ToolName"
     if (Test-Path -LiteralPath $fixedPath) {
         return $fixedPath
     }

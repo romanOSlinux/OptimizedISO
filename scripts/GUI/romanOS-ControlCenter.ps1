@@ -65,7 +65,10 @@ Add-Type -AssemblyName WindowsBase
 # Resolucion robusta de rutas base
 $scriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Definition }
 if (-not $scriptRoot -or -not (Test-Path $scriptRoot)) {
-    $scriptRoot = "C:\OptimizedISO\scripts\GUI"
+    $scriptRoot = Split-Path -Parent $PSCommandPath
+    if (-not $scriptRoot -or -not (Test-Path $scriptRoot)) {
+        $scriptRoot = (Get-Location).Path
+    }
 }
 
 # Inicializacion de logs locales
@@ -95,7 +98,7 @@ Write-CCLog "Iniciando sesion de romanOS Control Center GUI"
 # -----------------------------------------------------------------------------
 # 1. CARGA DE MOTORES CORE (SSOT)
 # -----------------------------------------------------------------------------
-$repoScriptsRoot = if ($scriptRoot) { Split-Path $scriptRoot -Parent } else { "C:\OptimizedISO\scripts" }
+$repoScriptsRoot = if ($scriptRoot) { Split-Path $scriptRoot -Parent } else { Join-Path (Get-Location).Path "scripts" }
 
 $script:coreEngineDirs = @()
 if ($repoScriptsRoot -and (Test-Path $repoScriptsRoot)) {
@@ -111,8 +114,7 @@ if ($scriptRoot -and (Test-Path $scriptRoot)) {
 }
 $script:coreEngineDirs += @(
     "C:\Windows\Setup\Scripts\Core",
-    "$env:WINDIR\Setup\Scripts\Core",
-    "C:\OptimizedISO\scripts\Core"
+    "$env:WINDIR\Setup\Scripts\Core"
 )
 
 function Resolve-CoreModule {
@@ -210,15 +212,19 @@ $script:searchDirs += @(
     "C:\Windows\Setup\Scripts\Drivers",
     "C:\Windows\Setup\Scripts\Builder",
     "C:\Windows\Setup\Scripts\DesktopHelpers",
-    $(if ($env:PUBLIC) { "$env:PUBLIC\Desktop\romanOS Helpers" } else { "C:\Users\Public\Desktop\romanOS Helpers" }),
-    "C:\OptimizedISO\scripts\Modules",
-    "C:\OptimizedISO\scripts\Drivers",
-    "C:\OptimizedISO\scripts\Core",
-    "C:\OptimizedISO\scripts\Testing",
-    "C:\OptimizedISO\scripts\Builder",
-    "C:\OptimizedISO\scripts\Desktop-Helpers",
-    "C:\OptimizedISO\scripts\Host-Tools"
+    $(if ($env:PUBLIC) { "$env:PUBLIC\Desktop\romanOS Helpers" } else { "C:\Users\Public\Desktop\romanOS Helpers" })
 )
+if ($repoScriptsRoot -and (Test-Path $repoScriptsRoot)) {
+    $script:searchDirs += @(
+        (Join-Path $repoScriptsRoot "Modules"),
+        (Join-Path $repoScriptsRoot "Drivers"),
+        (Join-Path $repoScriptsRoot "Core"),
+        (Join-Path $repoScriptsRoot "Testing"),
+        (Join-Path $repoScriptsRoot "Builder"),
+        (Join-Path $repoScriptsRoot "Desktop-Helpers"),
+        (Join-Path $repoScriptsRoot "Host-Tools")
+    )
+}
 
 function Resolve-ToolScript {
     param([string]$ScriptName)
@@ -1698,7 +1704,7 @@ if ($btnExportProf) {
             $saveDialog = New-Object Microsoft.Win32.SaveFileDialog
             $saveDialog.Filter = "Perfil romanOS (*.json)|*.json"
             $saveDialog.FileName = "romanOS-Profile-$env:COMPUTERNAME-$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
-            $saveDialog.InitialDirectory = "C:\OptimizedISO"
+            $saveDialog.InitialDirectory = [Environment]::GetFolderPath('Desktop')
             if ($saveDialog.ShowDialog() -eq $true) {
                 $targetJson = $saveDialog.FileName
                 $osInfo = Get-CimInstance Win32_OperatingSystem
@@ -2156,7 +2162,7 @@ $btnDism = $window.FindName('btnInspectDismCatalog')
 if ($btnDism) {
     $window.FindName('btnInspectDismCatalog').Add_Click({
         $peScript = Resolve-ToolScript "Policy-Engine.ps1"
-        if (-not $peScript) { $peScript = "C:\OptimizedISO\scripts\Core\Policy-Engine.ps1" }
+        if (-not $peScript) { $peScript = Resolve-CoreModule "Policy-Engine.ps1" }
         $cmd = "-NoProfile -ExecutionPolicy Bypass -Command `". '$peScript'; Get-RomanOSDismComponentsCatalog | Format-Table -AutoSize Id, Name, Category, Type, SafeForGaming`""
         Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Catalogo Canónico de Componentes DISM (SSOT)"
     })

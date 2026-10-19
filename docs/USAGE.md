@@ -1,4 +1,4 @@
-# Guía Rápida de Uso: Creador de ISO Optimizada (Zero-Touch v2)
+﻿# Guía Rápida de Uso: Creador de ISO Optimizada (Zero-Touch v2)
 
 > 💡 **Manual Completo y Detallado:** Para consultar la guía paso a paso de toda la suite (Toolkit Maestro, Mantenimiento, Red y Seguridad), consulta [`docs/MANUAL_DE_USO.md`](file:///c:/OptimizedISO/docs/MANUAL_DE_USO.md).
 
@@ -29,13 +29,13 @@ Inicia el asistente en 6 pasos para seleccionar origen de ISO, suite de scripts,
 ### 2. Descarga oficial automática y compilación directa
 
 ```powershell
-.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -DownloadOfficialISO -LocalUser "Roman" -OptProfile 2
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -DownloadOfficialISO -LocalUser "Usuario" -OptProfile 2
 ```
 
 ### 3. Usar una ISO local existente
 
 ```powershell
-.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -SourceISO "C:\Users\Roman\Downloads\Win11_Spanish_x64.iso" -LocalUser "Roman"
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -SourceISO "C:\Users\Usuario\Downloads\Win11_Spanish_x64.iso" -LocalUser "Usuario"
 ```
 
 ### 5. Cambiar idioma y zona horaria
@@ -47,7 +47,7 @@ Inicia el asistente en 6 pasos para seleccionar origen de ISO, suite de scripts,
 ### 6. Guardar la ISO en otra carpeta o pendrive
 
 ```powershell
-.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -OutputDir "D:\ISOs_Modificadas" -LocalUser "Roman"
+.\scripts\Builder\New-OptimizedWindowsISO-v2.ps1 -OutputDir "D:\ISOs_Modificadas" -LocalUser "Usuario"
 ```
 
 ---

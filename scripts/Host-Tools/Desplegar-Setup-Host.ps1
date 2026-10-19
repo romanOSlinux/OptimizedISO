@@ -3,8 +3,8 @@
     Desplegar-Setup-Host.ps1 - Suite Modular de Despliegue Post-Instalacion (Dev-IA & Gaming) para romanOS.
 
 .DESCRIPTION
-    Aprovisiona a demanda el entorno completo de trabajo y entretenimiento para la estacion de trabajo
-    personalizada (AMD Ryzen 5 8600G / Radeon 760M / NPU XDNA / DDR5).
+    Aprovisiona a demanda el entorno completo de trabajo y entretenimiento para cualquier estacion de
+    trabajo, incorporando introspeccion heuristica y adaptativa de hardware (CPU, GPU y NPU).
 
     Caracteristicas:
     - 100% Idempotente: puede ejecutarse multiples veces sin conflictos ni duplicados.
@@ -59,6 +59,15 @@ function Write-HostWarn {
 function Write-HostErr {
     param([string]$Text)
     Write-Host "  [ERROR] $Text" -ForegroundColor Red
+}
+
+function Get-HostHardwareSummary {
+    $cpuName = try { (Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue).Name.Trim() } catch { "Procesador Central" }
+    $gpuName = try { ((Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue) | Select-Object -First 1).Name.Trim() } catch { "Acelerador Grafico" }
+    return [PSCustomObject]@{
+        CPU = $cpuName
+        GPU = $gpuName
+    }
 }
 
 function Test-InternetConnectivity {
@@ -131,7 +140,7 @@ function Install-WingetPackage {
 }
 
 function Configure-GamingOptimizations {
-    Write-HostBanner "OPTIMIZACIONES DE RED Y LATENCIA PARA GAMING (WORLD OF TANKS)"
+    Write-HostBanner "OPTIMIZACIONES DE RED Y LATENCIA PARA GAMING (BAJA LATENCIA TCP)"
 
     if ($PSCmdlet.ShouldProcess("Red y TCP", "Ajustar TCPNoDelay (Desactivar Nagle)")) {
         try {
@@ -172,6 +181,7 @@ function Configure-GamingOptimizations {
 }
 
 function Configure-DevAndAIEcosystem {
+    $hw = Get-HostHardwareSummary
     Write-HostBanner "DESPLIEGUE DEL ENTORNO DE DESARROLLO CON IA & VIRTUALIZACION"
 
     # 1. Paquetes esenciales via WinGet
@@ -185,7 +195,7 @@ function Configure-DevAndAIEcosystem {
         try {
             $hvFeature = Get-WindowsOptionalFeature -Online -FeatureName "Microsoft-Hyper-V-All" -ErrorAction SilentlyContinue
             if ($hvFeature -and $hvFeature.State -eq 'Enabled') {
-                Write-HostOK "Hyper-V ya se encuentra habilitado y operativo en este procesador AMD Zen 4."
+                Write-HostOK "Hyper-V ya se encuentra habilitado y operativo en este procesador ($($hw.CPU))."
             } else {
                 Write-HostStep "Habilitando Hyper-V..."
                 Enable-WindowsOptionalFeature -Online -FeatureName "Microsoft-Hyper-V-All" -NoRestart -ErrorAction SilentlyContinue | Out-Null
@@ -200,13 +210,14 @@ function Configure-DevAndAIEcosystem {
     Write-HostStep "Localizando script de aprovisionamiento de Antigravity..."
     $candidateScripts = @(
         (Join-Path $PSScriptRoot "Setup-AntigravityWindows.ps1"),
-        "C:\Windows\Setup\Scripts\Setup-AntigravityWindows.ps1",
-        "C:\OptimizedISO\scripts\Host-Tools\Setup-AntigravityWindows.ps1"
+        "$env:WINDIR\Setup\Scripts\Setup-AntigravityWindows.ps1",
+        "$env:WINDIR\Setup\Scripts\Host-Tools\Setup-AntigravityWindows.ps1",
+        (Join-Path (Split-Path $PSScriptRoot -Parent) "Host-Tools\Setup-AntigravityWindows.ps1")
     )
 
     $antigravityFound = $null
     foreach ($c in $candidateScripts) {
-        if (Test-Path $c) {
+        if ($c -and (Test-Path $c)) {
             $antigravityFound = $c
             break
         }
@@ -226,8 +237,8 @@ function Configure-DevAndAIEcosystem {
         Write-HostWarn "Setup-AntigravityWindows.ps1 no encontrado en las rutas estandar. El entorno podra inicializarse luego."
     }
 
-    # 4. Auditoria de acelerador de IA (NPU AMD XDNA)
-    Write-HostStep "Verificando estado de la NPU AMD XDNA (Ryzen AI)..."
+    # 4. Auditoria de aceleradores de IA (NPU o GPU Tensor / DirectML)
+    Write-HostStep "Verificando aceleradores de IA (NPU / DirectML)..."
     try {
         $npuDevice = Get-PnpDevice -FriendlyName "*NPU*" -ErrorAction SilentlyContinue | Select-Object -First 1
         if (-not $npuDevice) {
@@ -235,26 +246,29 @@ function Configure-DevAndAIEcosystem {
         }
         if ($npuDevice) {
             Write-HostOK "Dispositivo NPU detectado: $($npuDevice.FriendlyName) [Estado: $($npuDevice.Status)]"
-            Write-Host "      * Capacidades: 16 TOPS certificados para aceleracion de inferencia local." -ForegroundColor Gray
+            Write-Host "      * Capacidades: Aceleracion de inferencia local por hardware disponible." -ForegroundColor Gray
             Write-Host "      * Runtime recomendado: ONNX Runtime con DirectML Execution Provider." -ForegroundColor Gray
         } else {
-            Write-HostWarn "No se detecto dispositivo NPU etiquetado explícitamente. Revisa el Administrador de Dispositivos."
+            Write-HostOK "Aceleracion de inferencia local orientada a GPU ($($hw.GPU)) via DirectML."
         }
     } catch {
-        Write-HostWarn "No se pudo consultar el bus PnP para la NPU: $($_.Exception.Message)"
+        Write-HostWarn "No se pudo consultar el bus PnP para aceleradores de IA: $($_.Exception.Message)"
     }
 }
 
 function Configure-GamingPlatforms {
-    Write-HostBanner "DESPLIEGUE DEL ENTORNO GAMING (STEAM & WORLD OF TANKS)"
+    Write-HostBanner "DESPLIEGUE DEL ENTORNO GAMING (PLATAFORMAS Y HERRAMIENTAS)"
 
     # 1. Plataforma Steam
     $null = Install-WingetPackage -PackageId "Valve.Steam" -DisplayName "Steam Client"
 
-    # 2. Wargaming Game Center para World of Tanks
-    $null = Install-WingetPackage -PackageId "Wargaming.GameCenter" -DisplayName "Wargaming.net Game Center (World of Tanks)"
+    # 2. Epic Games Launcher
+    $null = Install-WingetPackage -PackageId "EpicGames.EpicGamesLauncher" -DisplayName "Epic Games Launcher"
 
-    # 3. Optimizaciones de red y latencia
+    # 3. Discord
+    $null = Install-WingetPackage -PackageId "Discord.Discord" -DisplayName "Discord"
+
+    # 4. Optimizaciones de red y latencia
     Configure-GamingOptimizations
 }
 
@@ -266,7 +280,9 @@ function Show-CustomMenu {
         @{ Name = "PowerShell 7 (pwsh)"; Id = "Microsoft.PowerShell"; Category = "Dev" },
         @{ Name = "7-Zip Utility"; Id = "7zip.7zip"; Category = "Tools" },
         @{ Name = "Steam Client"; Id = "Valve.Steam"; Category = "Gaming" },
-        @{ Name = "Wargaming.net Game Center"; Id = "Wargaming.GameCenter"; Category = "Gaming" }
+        @{ Name = "Epic Games Launcher"; Id = "EpicGames.EpicGamesLauncher"; Category = "Gaming" },
+        @{ Name = "Discord"; Id = "Discord.Discord"; Category = "Gaming/Comms" },
+        @{ Name = "OBS Studio"; Id = "OBSProject.OBSStudio"; Category = "Streaming" }
     )
 
     foreach ($pkg in $packages) {
@@ -306,20 +322,22 @@ while ($running) {
             $running = $false
             break
         }
+        $hw = Get-HostHardwareSummary
         Clear-Host
         Write-Host ""
         Write-Host "======================================================================" -ForegroundColor Cyan
-        Write-Host "   romanOS Workstation Setup - Edicion AMD Ryzen 5 8600G" -ForegroundColor Cyan
+        Write-Host "   romanOS Workstation Setup — Entorno Post-Instalacion" -ForegroundColor Cyan
+        Write-Host "   Hardware Detectado: $($hw.CPU) | $($hw.GPU)" -ForegroundColor DarkCyan
         Write-Host "======================================================================" -ForegroundColor Cyan
         Write-Host ""
         Write-Host "  [1] Despliegue Completo (Dev + IA + Gaming)" -ForegroundColor White
         Write-Host "      Instala todo el ecosistema de trabajo y entretenimiento." -ForegroundColor Gray
         Write-Host ""
         Write-Host "  [2] Solo Entorno de Desarrollo con IA" -ForegroundColor White
-        Write-Host "      Git, PowerShell 7, 7-Zip, Antigravity IDE, NPU Ryzen AI y Hyper-V." -ForegroundColor Gray
+        Write-Host "      Git, PowerShell 7, 7-Zip, Antigravity IDE, IA y Virtualizacion Hyper-V." -ForegroundColor Gray
         Write-Host ""
         Write-Host "  [3] Solo Entorno Gaming" -ForegroundColor White
-        Write-Host "      Steam, Wargaming Game Center (World of Tanks) y baja latencia TCP." -ForegroundColor Gray
+        Write-Host "      Steam, Epic Games, Discord y baja latencia de red TCP." -ForegroundColor Gray
         Write-Host ""
         Write-Host "  [4] Seleccion Personalizada" -ForegroundColor White
         Write-Host "      Elegir paquete por paquete de forma interactiva." -ForegroundColor Gray

@@ -840,7 +840,7 @@ function Show-QuickActionsMenu {
         26 {
             Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Catalogo Canonico de Componentes Opcionales DISM (SSOT)"
             $peScript = Resolve-ToolScript "Policy-Engine.ps1"
-            if (-not $peScript) { $peScript = "C:\OptimizedISO\scripts\Core\Policy-Engine.ps1" }
+            if (-not $peScript) { $peScript = (Join-Path (Split-Path $PSScriptRoot -Parent) "Core\Policy-Engine.ps1") }
             if (Test-Path $peScript) {
                 . $peScript
                 if (Get-Command 'Get-RomanOSDismComponentsCatalog' -ErrorAction SilentlyContinue) {

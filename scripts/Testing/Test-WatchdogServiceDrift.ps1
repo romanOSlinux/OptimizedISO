@@ -16,7 +16,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$LogDir = "C:\OptimizedISO\Log"
+    [string]$LogDir = ""
 )
 
 $ErrorActionPreference = 'Continue'
@@ -24,7 +24,7 @@ $testStart = Get-Date
 
 $repoRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot "scripts\Core"))) {
-    $repoRoot = "C:\OptimizedISO"
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 }
 
 $passCount = 0

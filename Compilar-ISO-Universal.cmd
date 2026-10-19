@@ -2,16 +2,16 @@
 setlocal EnableDelayedExpansion
 
 REM ======================================================================
-REM  Compilador 1-Clic de ISO romanOS Personalizada a Medida del Host
-REM  Plataforma: AMD Ryzen 5 8600G / Radeon 760M / NPU XDNA / 16GB DDR5
-REM  Preset: Preset_Host_Ryzen8600G.json (Perfil 3 Hardcore, es-AR, Roman)
+REM  Compilador 1-Clic de ISO romanOS Universal
+REM  Preset: Preset_Gaming_Universal.json (Perfil 3 Hardcore, Universal)
 REM
 REM  Cumplimiento de Reglas:
 REM    - Regla 1: Entorno nativo Windows y elevacion UAC transparente
 REM    - Regla 4: Modo grafico STA obligatorio (-STA) en PowerShell 5.1
+REM    - Regla 20: Principio de Producto Universal (Cero supuestos de hardware o usuario)
 REM ======================================================================
 
-title romanOS - Compilar ISO A Medida (AMD Ryzen 5 8600G)
+title romanOS - Compilar ISO Universal
 
 REM ----------------------------------------------------------------------
 REM 1. Verificacion y Auto-elevacion de privilegios de Administrador [UAC]
@@ -35,12 +35,12 @@ cd /d "%~dp0"
 
 echo.
 echo ======================================================================
-echo   romanOS ISO Builder - Compilacion A Medida para AMD Ryzen 5 8600G
-echo   Preset: Preset_Host_Ryzen8600G.json
+echo   romanOS ISO Builder - Compilacion Universal Automatizada
+echo   Preset: Preset_Gaming_Universal.json
 echo ======================================================================
 echo.
 
-set "PRESET_FILE=%~dp0Preset_Host_Ryzen8600G.json"
+set "PRESET_FILE=%~dp0Preset_Gaming_Universal.json"
 
 if not exist "%PRESET_FILE%" (
     echo [ERROR] No se encontro el archivo de preset:

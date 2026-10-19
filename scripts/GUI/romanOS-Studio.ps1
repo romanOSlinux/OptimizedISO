@@ -59,7 +59,6 @@ function Write-StudioLog {
 $uiEngineCandidates = @(
     (Join-Path $PSScriptRoot "..\Core\UI-Engine.ps1"),
     (Join-Path $PSScriptRoot "Core\UI-Engine.ps1"),
-    "C:\OptimizedISO\scripts\Core\UI-Engine.ps1",
     "C:\Windows\Setup\Scripts\Core\UI-Engine.ps1"
 )
 foreach ($cand in $uiEngineCandidates) {
@@ -273,7 +272,7 @@ $xamlString = @"
                                         <ColumnDefinition Width="200"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="Nombre de Usuario:" Foreground="#E3E3E3" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Column="1" x:Name="txtLocalUser" Text="Roman" Height="26" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" Padding="3"/>
+                                    <TextBox Grid.Column="1" x:Name="txtLocalUser" Text="Usuario" Height="26" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" Padding="3"/>
                                     <TextBlock Grid.Column="2" Text="Contraseña (opcional):" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="15,0,0,0"/>
                                     <TextBox Grid.Column="3" x:Name="txtLocalPassword" Text="" Height="26" Background="#333333" Foreground="#E3E3E3" BorderBrush="#454545" Padding="3" ToolTip="Dejar en blanco para instalación sin contraseña"/>
                                 </Grid>
@@ -307,23 +306,23 @@ $xamlString = @"
                                     
                                     <TextBlock Grid.Row="0" Grid.Column="2" Text="Configuración Regional:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="15,0,0,0"/>
                                     <ComboBox Grid.Row="0" Grid.Column="3" x:Name="cmbLocale" Height="26">
-                                        <ComboBoxItem Content="es-AR (Argentina)" IsSelected="True"/>
+                                        <ComboBoxItem Content="es-ES (España)" IsSelected="True"/>
+                                        <ComboBoxItem Content="es-AR (Argentina)"/>
                                         <ComboBoxItem Content="es-MX (México)"/>
-                                        <ComboBoxItem Content="es-ES (España)"/>
                                         <ComboBoxItem Content="en-US (Estados Unidos)"/>
                                     </ComboBox>
 
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Distribución Teclado:" Foreground="#E3E3E3" VerticalAlignment="Center"/>
                                     <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cmbKeyboard" Height="26">
-                                        <ComboBoxItem Content="es-419 (Latinoamérica)" IsSelected="True"/>
-                                        <ComboBoxItem Content="es-ES (España)"/>
+                                        <ComboBoxItem Content="es-ES (España)" IsSelected="True"/>
+                                        <ComboBoxItem Content="es-419 (Latinoamérica)"/>
                                         <ComboBoxItem Content="us (Estados Unidos)"/>
                                     </ComboBox>
                                     
                                     <TextBlock Grid.Row="2" Grid.Column="2" Text="Zona Horaria:" Foreground="#E3E3E3" VerticalAlignment="Center" Margin="15,0,0,0"/>
                                     <ComboBox Grid.Row="2" Grid.Column="3" x:Name="cmbTimezone" Height="26">
-                                        <ComboBoxItem Content="Argentina Standard Time" IsSelected="True"/>
-                                        <ComboBoxItem Content="Romance Standard Time"/>
+                                        <ComboBoxItem Content="Romance Standard Time" IsSelected="True"/>
+                                        <ComboBoxItem Content="Argentina Standard Time"/>
                                         <ComboBoxItem Content="Pacific Standard Time"/>
                                         <ComboBoxItem Content="Central Standard Time (Mexico)"/>
                                     </ComboBox>
@@ -937,16 +936,16 @@ function Get-StudioBuildConfig {
     $optLang = if ($cmbLang -and $cmbLang.Text) { ($cmbLang.Text -split ' ')[0] } else { 'es-ES' }
     
     $cmbLoc = $window.FindName('cmbLocale')
-    $optLoc = if ($cmbLoc -and $cmbLoc.Text) { ($cmbLoc.Text -split ' ')[0] } else { 'es-AR' }
+    $optLoc = if ($cmbLoc -and $cmbLoc.Text) { ($cmbLoc.Text -split ' ')[0] } else { 'es-ES' }
     
     $cmbKb = $window.FindName('cmbKeyboard')
-    $optKb = if ($cmbKb -and $cmbKb.Text) { ($cmbKb.Text -split ' ')[0] } else { 'es-419' }
+    $optKb = if ($cmbKb -and $cmbKb.Text) { ($cmbKb.Text -split ' ')[0] } else { 'es-ES' }
     
     $cmbTz = $window.FindName('cmbTimezone')
-    $optTz = if ($cmbTz -and $cmbTz.Text) { $cmbTz.Text.Trim() } else { 'Argentina Standard Time' }
+    $optTz = if ($cmbTz -and $cmbTz.Text) { $cmbTz.Text.Trim() } else { 'Romance Standard Time' }
     
     $txtUser = $window.FindName('txtLocalUser')
-    $localUser = if ($txtUser -and -not [string]::IsNullOrWhiteSpace($txtUser.Text)) { $txtUser.Text.Trim() } else { 'Roman' }
+    $localUser = if ($txtUser -and -not [string]::IsNullOrWhiteSpace($txtUser.Text)) { $txtUser.Text.Trim() } else { 'Usuario' }
     
     $txtPass = $window.FindName('txtLocalPassword')
     $localPass = if ($txtPass) { $txtPass.Text } else { '' }

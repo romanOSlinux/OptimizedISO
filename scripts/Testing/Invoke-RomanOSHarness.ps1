@@ -16,16 +16,14 @@
 param(
     [switch]$Fast,
     [switch]$ExportJson,
-    [string]$JsonPath = "c:\OptimizedISO\scratch\RomanOS-Harness-Report.json"
+    [string]$JsonPath = ""
 )
 
 $ErrorActionPreference = 'Stop'
 $startTime = Get-Date
 
-$repoRoot = "C:\OptimizedISO"
-if (-not (Test-Path $repoRoot)) {
-    $repoRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
-}
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+if ([string]::IsNullOrWhiteSpace($JsonPath)) { $JsonPath = Join-Path $repoRoot "scratch\RomanOS-Harness-Report.json" }
 
 Write-Host "==========================================================================" -ForegroundColor Cyan
 Write-Host "   romanOS / OptimizedISO — EVALUATION & ASSURANCE HARNESS (REPO-WIDE)    " -ForegroundColor Cyan
@@ -350,7 +348,7 @@ Assert-Harness "Tier5_Artifacts_Environment" "Diagnóstico de Privilegios y Esta
         $sizeGB = [math]::Round($compiledIso.Length / 1GB, 2)
         Write-Host "    [INFO] ISO Compilada Presente: $($compiledIso.FullName) ($sizeGB GB)" -ForegroundColor Green
     } else {
-        Write-Host "    [INFO] ISO de Windows aún no compilada en disco (Pendiente de ejecución de Compilar-ISO-Host-Ryzen8600G.cmd con UAC)." -ForegroundColor Yellow
+        Write-Host "    [INFO] ISO de Windows aún no compilada en disco (Pendiente de ejecución de Compilar-ISO-Universal.cmd con UAC)." -ForegroundColor Yellow
     }
     return $true
 }

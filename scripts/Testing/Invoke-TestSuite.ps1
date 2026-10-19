@@ -16,7 +16,7 @@
     Ejecuta únicamente las fases rápidas (AST/BOM, XML, Entorno e Higiene Git) en menos de 5 segundos.
 
 .PARAMETER LogDir
-    Directorio donde se almacenará el reporte consolidado. (Default: C:\OptimizedISO\Log)
+    Directorio donde se almacenará el reporte consolidado. (Default: .\Log)
 
 .EXAMPLE
     .\Invoke-TestSuite.ps1

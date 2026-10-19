@@ -9,7 +9,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$ExpectedISOPath = "C:\OptimizedISO\Windows_11_Optimized_Test.iso",
+    [string]$ExpectedISOPath = "",
     [string]$ExpectedVMName  = "Test_Optimized_Win11"
 )
 
@@ -36,9 +36,9 @@ $report = [ordered]@{
 }
 
 # 1. Comprobación Física de la Imagen ISO Compilada
-$targetIso = $ExpectedISOPath
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path; if ([string]::IsNullOrWhiteSpace($ExpectedISOPath)) { $ExpectedISOPath = Join-Path $repoRoot "Windows_11_Optimized_Test.iso" }; $targetIso = $ExpectedISOPath
 if (-not (Test-Path -LiteralPath $targetIso)) {
-    $autoIso = Get-ChildItem -Path "C:\OptimizedISO", "$HOME\Desktop\WinISO_Optimizado" -Filter "Windows_11*.iso" -File -ErrorAction SilentlyContinue |
+    $autoIso = Get-ChildItem -Path (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path, "$HOME\Desktop\WinISO_Optimizado" -Filter "Windows_11*.iso" -File -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -notmatch '^Win11_25H2_Spanish_x64_v2\.iso$' } |
         Select-Object -First 1
     if ($autoIso) {

@@ -13,10 +13,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [string]$Path = 'c:\OptimizedISO\sources\autounattend.xml'
+    [string]$Path = ''
 )
 
-if (-not (Test-Path -LiteralPath $Path)) {
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path; if ([string]::IsNullOrWhiteSpace($Path)) { $Path = Join-Path $repoRoot 'sources\autounattend.xml' }; if (-not (Test-Path -LiteralPath $Path)) {
     Write-Error "El archivo autounattend.xml no existe en: $Path"
     exit 1
 }

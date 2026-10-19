@@ -20,7 +20,7 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [string]$OutputPath = 'c:\OptimizedISO\Auditoria-GUIs-romanOS.html',
+    [string]$OutputPath = '',
 
     [Parameter()]
     [switch]$SkipColdExecution,
@@ -30,7 +30,7 @@ param(
 )
 
 $ErrorActionPreference = 'Continue'
-$projectRoot = 'c:\OptimizedISO'
+$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path; if ([string]::IsNullOrWhiteSpace($OutputPath)) { $OutputPath = Join-Path $projectRoot 'Auditoria-GUIs-romanOS.html' }
 
 Write-Host "==========================================================================" -ForegroundColor Cyan
 Write-Host " [romanOS] Arnés de Blindaje E2E de GUIs y Contratos de Subprocesos" -ForegroundColor Cyan

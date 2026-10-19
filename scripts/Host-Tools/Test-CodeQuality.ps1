@@ -29,11 +29,9 @@ if ($ScriptPath) {
     $targetFiles = @(Get-Item -LiteralPath $ScriptPath)
 } else {
     if (-not $Path) {
-        $parentScripts = Join-Path (Split-Path -Parent $PSScriptRoot) "scripts"
-        if (Test-Path -LiteralPath $parentScripts) {
+        $parentScripts = Split-Path -Parent $PSScriptRoot
+        if (Test-Path -LiteralPath (Join-Path $parentScripts "Core")) {
             $Path = $parentScripts
-        } elseif (Test-Path -LiteralPath 'c:\OptimizedISO\scripts') {
-            $Path = 'c:\OptimizedISO\scripts'
         } else {
             $Path = $PSScriptRoot
         }

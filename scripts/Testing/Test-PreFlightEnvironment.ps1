@@ -25,7 +25,7 @@ $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot "CONSTRAINTS.md"))) {
     $repoRoot = Split-Path $PSScriptRoot -Parent
     if (-not (Test-Path (Join-Path $repoRoot "CONSTRAINTS.md"))) {
-        $repoRoot = "C:\OptimizedISO"
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
     }
 }
 

@@ -25,7 +25,9 @@ Log/*_transcript.log
 
 # Presets generados localmente por el usuario o builder
 Preset_*.json
-!Preset_Host_Ryzen8600G.json
+!Preset_Gaming_Universal.json
+!Preset_Workstation_Universal.json
+!Preset_romanOS_Studio.json
 
 # VS Code / IDE settings locales
 .vscode/

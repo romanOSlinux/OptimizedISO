@@ -29,7 +29,7 @@
     Omite la creación preventiva de instantánea de seguridad antes de modificar el registro.
 
 .PARAMETER LogDir
-    Ruta para almacenar logs y reportes forenses. (Default: C:\OptimizedISO\Log)
+    Ruta para almacenar logs y reportes forenses. (Default: .\Log)
 
 .PARAMETER Unattended
     Omite pausas interactivas en consola.
@@ -50,7 +50,7 @@ param(
     [string]$AffinityStrategy = "SpreadAcrossCPUs",
 
     [switch]$SkipSnapshot,
-    [string]$LogDir = "C:\OptimizedISO\Log",
+    [string]$LogDir = "",
     [switch]$Unattended,
     [switch]$SkipElevation
 )
@@ -63,17 +63,16 @@ $scriptStartTime = Get-Date
 # -----------------------------------------------------------------------------
 $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Definition }
 if (-not $scriptDir -or -not (Test-Path $scriptDir)) {
-    $scriptDir = "C:\OptimizedISO\scripts\Modules"
+    $scriptDir = Split-Path -Parent $PSCommandPath
 }
 
 if (-not (Get-Variable -Name "repoRoot" -Scope Script -ErrorAction SilentlyContinue) -or -not (Test-Path (Join-Path $repoRoot "scripts\Core"))) {
     $repoRootCandidates = @(
         (Split-Path (Split-Path $scriptDir -Parent) -Parent),
-        (Split-Path $scriptDir -Parent),
-        "C:\OptimizedISO"
+        (Split-Path $scriptDir -Parent)
     )
     $repoRoot = $repoRootCandidates | Where-Object { (Test-Path (Join-Path $_ "scripts\Core")) } | Select-Object -First 1
-    if (-not $repoRoot) { $repoRoot = "C:\OptimizedISO" }
+    if (-not $repoRoot) { $repoRoot = Split-Path $scriptDir -Parent }
 }
 
 $isWhatIf = ($PSBoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
@@ -101,7 +100,6 @@ if (-not $isAdmin -and -not $SkipElevation -and -not $isWhatIf -and ($Action -in
 $coreEngineDirs = @(
     (Join-Path $repoRoot "Core"),
     (Join-Path $scriptDir "..\Core"),
-    "C:\OptimizedISO\scripts\Core",
     "$env:WINDIR\Setup\Scripts\Core",
     "C:\Windows\Setup\Scripts\Core"
 )

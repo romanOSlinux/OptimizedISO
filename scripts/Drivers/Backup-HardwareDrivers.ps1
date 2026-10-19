@@ -12,7 +12,7 @@
 
 .PARAMETER DestinationPath
     Ruta donde se guardarán los controladores exportados.
-    Por defecto: carpeta 'Drivers' relativa o 'C:\OptimizedISO\scripts\Drivers'.
+    Por defecto: carpeta 'Drivers' relativa a la ubicaciÃ³n de ejecuciÃ³n.
 
 .PARAMETER IncludeInbox
     Si se especifica, incluye también controladores que vienen por defecto con Windows (inbox).
@@ -22,7 +22,7 @@
     Suprime los mensajes informativos en consola para ejecución desatendida.
 
 .EXAMPLE
-    .\Backup-HardwareDrivers.ps1 -DestinationPath "C:\OptimizedISO\scripts\Drivers"
+    .\Backup-HardwareDrivers.ps1 -DestinationPath ".\Drivers"
 #>
 
 [CmdletBinding(SupportsShouldProcess = $true)]
@@ -50,8 +50,6 @@ function Write-DriverLog {
 if ([string]::IsNullOrWhiteSpace($DestinationPath)) {
     if ($PSScriptRoot -and (Test-Path $PSScriptRoot)) {
         $DestinationPath = $PSScriptRoot
-    } elseif (Test-Path "C:\OptimizedISO\scripts\Drivers") {
-        $DestinationPath = "C:\OptimizedISO\scripts\Drivers"
     } else {
         $DestinationPath = Join-Path (Get-Location) "Drivers"
     }

@@ -44,7 +44,7 @@
     (Abre el asistente interactivo con menús unificados)
 
 .EXAMPLE
-    .\Get-WindowsUpdates.ps1 -Version "11_24H2" -PackageType "All" -OutputDir "C:\OptimizedISO\Updates" -Unattended
+    .\Get-WindowsUpdates.ps1 -Version "11_24H2" -PackageType "All" -OutputDir ".\Updates" -Unattended
 #>
 
 [CmdletBinding(SupportsShouldProcess = $true)]
@@ -184,7 +184,7 @@ if (-not $uiLoaded) {
 # -----------------------------------------------------------------------------
 $defaultBaseDir = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "Updates"
 if (-not (Test-Path (Split-Path $PSScriptRoot -Parent))) {
-    $defaultBaseDir = "C:\OptimizedISO\Updates"
+    $defaultBaseDir = Join-Path $env:TEMP "romanOS\Updates"
 }
 
 if ([string]::IsNullOrWhiteSpace($OutputDir)) {

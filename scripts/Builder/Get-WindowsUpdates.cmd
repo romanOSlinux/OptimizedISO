@@ -25,8 +25,6 @@ if exist "%~dp0Get-WindowsUpdates.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\Builder\Get-WindowsUpdates.ps1" %*
 ) else if exist "%WINDIR%\Setup\Scripts\Get-WindowsUpdates.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\Get-WindowsUpdates.ps1" %*
-) else if exist "C:\OptimizedISO\scripts\Builder\Get-WindowsUpdates.ps1" (
-    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\OptimizedISO\scripts\Builder\Get-WindowsUpdates.ps1" %*
 ) else if exist "C:\Windows\Setup\Scripts\Builder\Get-WindowsUpdates.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\Builder\Get-WindowsUpdates.ps1" %*
 ) else if exist "C:\Windows\Setup\Scripts\Get-WindowsUpdates.ps1" (

@@ -94,7 +94,6 @@ if (-not $CatalogPath) {
         (Join-Path -Path $scriptRoot -ChildPath "..\Core\App-Profiles-Catalog.json"),
         (Join-Path -Path $scriptRoot -ChildPath "Core\App-Profiles-Catalog.json"),
         (Join-Path -Path $scriptRoot -ChildPath "App-Profiles-Catalog.json"),
-        "C:\OptimizedISO\scripts\Core\App-Profiles-Catalog.json",
         "$env:SystemRoot\Setup\Scripts\Core\App-Profiles-Catalog.json"
     )
     foreach ($cand in $candidatePaths) {
@@ -106,7 +105,7 @@ if (-not $CatalogPath) {
 }
 
 if (-not $LogPath) {
-    $logDir = if (Test-Path -Path "C:\OptimizedISO\Log") { "C:\OptimizedISO\Log" } else { $env:TEMP }
+    $repoLog = if ($scriptRoot) { Join-Path (Split-Path (Split-Path $scriptRoot -Parent) -Parent) "Log" } else { $null }; $logDir = if ($repoLog -and (Test-Path -Path $repoLog)) { $repoLog } else { $env:TEMP }
     $LogPath = Join-Path -Path $logDir -ChildPath "Deploy-AppProfiles-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 }
 
@@ -182,7 +181,6 @@ function Get-RomanOSAppCatalog {
     if (-not $targetPath -or -not (Test-Path -Path $targetPath)) {
         $candidatePaths = @(
             (Join-Path -Path (Split-Path -Parent $PSCommandPath) -ChildPath "..\Core\App-Profiles-Catalog.json"),
-            "C:\OptimizedISO\scripts\Core\App-Profiles-Catalog.json",
             "$env:SystemRoot\Setup\Scripts\Core\App-Profiles-Catalog.json"
         )
         foreach ($c in $candidatePaths) {
@@ -412,7 +410,7 @@ if ($AutoDetectHardware) {
     Write-DeployLog "[INFO] Analizando topologia de hardware mediante Hardware-Engine.ps1..." 'INFO'
     $hwEnginePath = Join-Path -Path $scriptRoot -ChildPath "..\Core\Hardware-Engine.ps1"
     if (-not (Test-Path -Path $hwEnginePath)) {
-        $hwEnginePath = "C:\OptimizedISO\scripts\Core\Hardware-Engine.ps1"
+        $hwEnginePath = Join-Path $env:SystemRoot "Setup\Scripts\Core\Hardware-Engine.ps1"
     }
     
     if (Test-Path -Path $hwEnginePath) {

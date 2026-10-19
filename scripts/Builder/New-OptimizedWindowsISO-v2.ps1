@@ -293,7 +293,6 @@ if ($loc) {
     $uiEnginePaths.Add((Join-Path $loc.Path "scripts\Core\UI-Engine.ps1"))
     $uiEnginePaths.Add((Join-Path $loc.Path "UI-Engine.ps1"))
 }
-$uiEnginePaths.Add("C:\OptimizedISO\scripts\Core\UI-Engine.ps1")
 $uiEnginePaths.Add("C:\scripts\Core\UI-Engine.ps1")
 $uiEnginePaths.Add("C:\scripts\UI-Engine.ps1")
 $uiEnginePaths.Add("C:\Windows\Setup\Scripts\Core\UI-Engine.ps1")
@@ -789,7 +788,6 @@ if ($loc) {
     $policyEnginePaths.Add((Join-Path $loc.Path "scripts\Core\Policy-Engine.ps1"))
     $policyEnginePaths.Add((Join-Path $loc.Path "Policy-Engine.ps1"))
 }
-$policyEnginePaths.Add("C:\OptimizedISO\scripts\Core\Policy-Engine.ps1")
 $policyEnginePaths.Add("C:\scripts\Core\Policy-Engine.ps1")
 $policyEnginePaths.Add("C:\scripts\Policy-Engine.ps1")
 $policyEnginePaths.Add("C:\Windows\Setup\Scripts\Core\Policy-Engine.ps1")
@@ -1154,8 +1152,6 @@ function Resolve-RuntimesDirectory {
             $candidates.Add((Join-Path $PSScriptRoot "Runtimes"))
             $candidates.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Runtimes"))
         }
-        $candidates.Add("C:\OptimizedISO\scripts\Runtimes")
-        $candidates.Add("C:\OptimizedISO\Runtimes")
         $candidates.Add("C:\scripts\Runtimes")
         $candidates.Add("C:\Runtimes")
     }
@@ -4588,8 +4584,6 @@ if ($script:SkipUpdates -or $SkipUpdates) {
             $candidateUpdates.Add((Join-Path $PSScriptRoot "Updates"))
             $candidateUpdates.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Updates"))
         }
-        $candidateUpdates.Add("C:\OptimizedISO\scripts\Updates")
-        $candidateUpdates.Add("C:\OptimizedISO\Updates")
         $candidateUpdates.Add("C:\scripts\Updates")
     }
 
@@ -4633,8 +4627,6 @@ if ($script:SkipDrivers -or $SkipDrivers) {
             $candidateDrivers.Add((Join-Path $PSScriptRoot "Drivers"))
             $candidateDrivers.Add((Join-Path (Split-Path -Parent $PSScriptRoot) "Drivers"))
         }
-        $candidateDrivers.Add("C:\OptimizedISO\scripts\Drivers")
-        $candidateDrivers.Add("C:\OptimizedISO\Drivers")
         $candidateDrivers.Add("C:\scripts\Drivers")
     }
     $resolvedDriversDir = $null
@@ -6818,7 +6810,6 @@ if ($wimFile) {
                         $candidateUpdates = @(
                             $UpdatesPath,
                             (Join-Path (Split-Path -Parent $ScriptsDir) "Updates"),
-                            "C:\OptimizedISO\Updates",
                             (Join-Path (Get-Location) "Updates"),
                             (Join-Path $ScriptsDir "Updates")
                         )
@@ -7055,7 +7046,6 @@ if ($wimFile) {
                         $candidateDrivers = @(
                             $DriversPath,
                             (Join-Path (Split-Path -Parent $ScriptsDir) "Drivers"),
-                            "C:\OptimizedISO\Drivers",
                             (Join-Path (Get-Location) "Drivers"),
                             (Join-Path $ScriptsDir "Drivers")
                         )

@@ -2598,9 +2598,7 @@ if ($applyNagle) {
         "$env:WINDIR\Setup\Scripts\Modules\Win11-Network-Diagnostics-Optimizer.ps1",
         "$env:WINDIR\Setup\Scripts\Win11-Network-Diagnostics-Optimizer.ps1",
         "C:\Windows\Setup\Scripts\Modules\Win11-Network-Diagnostics-Optimizer.ps1",
-        "C:\Windows\Setup\Scripts\Win11-Network-Diagnostics-Optimizer.ps1",
-        "C:\OptimizedISO\scripts\Modules\Win11-Network-Diagnostics-Optimizer.ps1",
-        "C:\OptimizedISO\scripts\Win11-Network-Diagnostics-Optimizer.ps1"
+        "C:\Windows\Setup\Scripts\Win11-Network-Diagnostics-Optimizer.ps1"
     )
     foreach ($cand in $netCandidates) {
         if (Test-Path $cand) { $netScript = $cand; break }
@@ -2672,9 +2670,7 @@ if ($contextAlreadyInstalled) {
             "$env:WINDIR\Setup\Scripts\Modules\Add-OptimizedContextMenus.ps1",
             "$env:WINDIR\Setup\Scripts\Add-OptimizedContextMenus.ps1",
             "C:\Windows\Setup\Scripts\Modules\Add-OptimizedContextMenus.ps1",
-            "C:\Windows\Setup\Scripts\Add-OptimizedContextMenus.ps1",
-            "C:\OptimizedISO\scripts\Modules\Add-OptimizedContextMenus.ps1",
-            "C:\OptimizedISO\scripts\Add-OptimizedContextMenus.ps1"
+            "C:\Windows\Setup\Scripts\Add-OptimizedContextMenus.ps1"
         )
         foreach ($cand in $candidates) {
             if (Test-Path $cand) { $helperScript = $cand; break }

@@ -17,7 +17,7 @@
     .\Test-KernelTimerResolution.ps1
 
 .EXAMPLE
-    .\Test-KernelTimerResolution.ps1 -ExportJson "C:\OptimizedISO\Log\TimerResolution.json"
+    .\Test-KernelTimerResolution.ps1 -ExportJson ".\Log\TimerResolution.json"
 #>
 
 [CmdletBinding(SupportsShouldProcess = $true)]

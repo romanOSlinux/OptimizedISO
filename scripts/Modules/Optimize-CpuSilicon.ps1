@@ -38,7 +38,7 @@ $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $repoRoot "scripts\Core\Hardware-Engine.ps1"))) {
     $repoRoot = Split-Path $PSScriptRoot -Parent
     if (-not (Test-Path (Join-Path $repoRoot "scripts\Core\Hardware-Engine.ps1"))) {
-        $repoRoot = "C:\OptimizedISO"
+        $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     }
 }
 

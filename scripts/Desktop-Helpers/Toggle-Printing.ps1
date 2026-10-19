@@ -21,7 +21,7 @@ $moduleCandidates = @(
     (Join-Path $scriptRoot "Desktop-Helpers.ps1"),
     (Join-Path $env:SystemRoot "Setup\Scripts\DesktopHelpers\Desktop-Helpers.ps1"),
     (Join-Path $env:SystemRoot "Setup\Scripts\Modules\Desktop-Helpers.ps1"),
-    "C:\OptimizedISO\scripts\Modules\Desktop-Helpers.ps1"
+    (Join-Path (Split-Path (Split-Path $scriptRoot -Parent) -Parent) "scripts\Modules\Desktop-Helpers.ps1")
 )
 
 $moduleLoaded = $false

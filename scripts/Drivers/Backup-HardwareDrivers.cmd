@@ -25,8 +25,6 @@ if exist "%~dp0Backup-HardwareDrivers.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\Drivers\Backup-HardwareDrivers.ps1" %*
 ) else if exist "%WINDIR%\Setup\Scripts\Backup-HardwareDrivers.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "%WINDIR%\Setup\Scripts\Backup-HardwareDrivers.ps1" %*
-) else if exist "C:\OptimizedISO\scripts\Drivers\Backup-HardwareDrivers.ps1" (
-    powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\OptimizedISO\scripts\Drivers\Backup-HardwareDrivers.ps1" %*
 ) else if exist "C:\Windows\Setup\Scripts\Drivers\Backup-HardwareDrivers.ps1" (
     powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\Setup\Scripts\Drivers\Backup-HardwareDrivers.ps1" %*
 ) else (
