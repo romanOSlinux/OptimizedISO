@@ -257,7 +257,7 @@ function Invoke-StartupEcosystemOptimization {
     if (-not $SkipSnap -and (Test-Path $snapshotScript)) {
         Write-StartupLog "Creando instantánea previa de servicios y registro con Manage-SystemSnapshots.ps1..." "INFO" Yellow
         try {
-            & $snapshotScript -Action Create -Tag "PRE_STARTUP_OPTIMIZE" -ErrorAction Stop | Out-Null
+            & $snapshotScript -Action Create -Name "PRE_STARTUP_OPTIMIZE" -Description "Instantanea previa a optimizacion de inicio romanOS" -Unattended -ErrorAction Stop | Out-Null
             Write-StartupLog "Instantánea de seguridad 'PRE_STARTUP_OPTIMIZE' creada con éxito." "INFO" Green
         } catch {
             Write-StartupLog "No se pudo crear la instantánea preventiva: $($_.Exception.Message)" "WARN" Yellow
