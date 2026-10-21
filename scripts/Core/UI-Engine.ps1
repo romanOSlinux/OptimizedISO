@@ -81,19 +81,33 @@ function Show-UnifiedBanner {
 
     Write-Host "  ╚$border╝" -ForegroundColor DarkCyan
 
-    # Telemetria de sistema opcional o por defecto
+    # Telemetria de sistema opcional o por defecto (SSOT via Get-HostTelemetry.ps1)
     if ($ShowSystemInfo) {
         try {
             $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
             $adminBadge = if ($isAdmin) { " (Admin)" } else { " (Standard)" }
-            $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+            
+            $telemetryScript = Join-Path $PSScriptRoot "Get-HostTelemetry.ps1"
+            $hostData = $null
+            if (Test-Path $telemetryScript) {
+                if (-not $global:RomanOS_CachedHostTelemetry) {
+                    $global:RomanOS_CachedHostTelemetry = & $telemetryScript -Quiet -ErrorAction SilentlyContinue
+                }
+                $hostData = $global:RomanOS_CachedHostTelemetry
+            }
+
             $sysLetter = if ($env:SystemDrive) { $env:SystemDrive } else { "C:" }
             $sysDrive = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$sysLetter'" -ErrorAction SilentlyContinue
             $freeGB = if ($sysDrive) { [math]::Round($sysDrive.FreeSpace / 1GB, 1) } else { "N/A" }
 
             Write-Host "  Host: $env:COMPUTERNAME | Usuario: $env:USERNAME$adminBadge" -ForegroundColor Gray
-            if ($os) {
-                Write-Host "  SO  : $($os.Caption) ($($os.OSArchitecture)) | $sysLetter $freeGB GB libres" -ForegroundColor Gray
+            if ($hostData) {
+                Write-Host "  SO  : $($hostData.Caption) $($hostData.DisplayVersion) (Build $($hostData.FullBuild)) | $sysLetter $freeGB GB libres | RAM: $($hostData.UsedPhysicalRAM) GB / $($hostData.TotalVisibleRAM) GB" -ForegroundColor Gray
+            } else {
+                $osFallback = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+                if ($osFallback) {
+                    Write-Host "  SO  : $($osFallback.Caption) ($($osFallback.OSArchitecture)) | $sysLetter $freeGB GB libres" -ForegroundColor Gray
+                }
             }
         } catch {
             Write-Warning "[UI-Engine] No se pudo adquirir telemetría de sistema: $($_.Exception.Message)"
