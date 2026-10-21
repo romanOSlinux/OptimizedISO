@@ -29,3 +29,9 @@ El agente **DEBE OBLIGATORIAMENTE** usar la herramienta `grep_search` apuntando 
 
 ### 4. Prohibición de Diagnósticos Prematuros
 El agente tiene terminantemente prohibido decirle al usuario "Encontré el problema" basándose en una corazonada visual. Debe construir una cadena de evidencia sólida cruzando el tamaño de archivos reales (ej. ejecutando un Measure-Object en disco) contra los parámetros descubiertos en el log.
+
+### 5. Cerrojo Anti-Anclaje de Identidad del Host (Regla 21)
+Está **estrictamente prohibido** inferir o extraer la versión, edición, build o release de Windows a partir de nombres de paquetes o cadenas en logs (`CBS.log`, `DISM.log`, user-agents o salidas de instaladores).
+Los logs de CBS frecuentemente indexan paquetes residuales o de compatibilidad con builds distintas a la del SO en ejecución.
+- La identidad del host **DEBE** consultarse siempre de forma determinista mediante `scripts/Core/Get-HostTelemetry.ps1` o `Win32_OperatingSystem`.
+

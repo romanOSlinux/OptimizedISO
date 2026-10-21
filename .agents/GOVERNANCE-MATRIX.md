@@ -109,6 +109,8 @@
 | *"Solo toqué un archivo, no hace falta correr el arnés completo."* | **RECHAZADO (CONSTRAINTS.md).** Obligatorio ejecutar `check:fast` tras cualquier edición y `check:task` al cerrar tarea. |
 | *"El log es muy largo, asumo que todo salió bien porque vi líneas verdes al final."* | **RECHAZADO (Regla 12).** Prohibido sesgo de confirmación. Obligatorio `grep_search` buscando `FAIL`, `ERROR` o `Exception` en el archivo físico de log. |
 | *"El script superó la prueba con ExitCode 0, así que está verificado y correcto."* | **RECHAZADO (Regla 19 / Dimensión F).** Falacia de validación circular. Una prueba no es válida si convalida un placebo, comando deprecado (`wmic`) o tweak dañino. Obligatorio contrastar primero con especificación oficial. |
+| *"Vi la versión del SO o parámetros en una línea de log o paquete de CBS/DISM, así que asumo que esa es la versión del sistema host."* | **RECHAZADO (Regla 21 / Anti-Log Anchoring).** Toda afirmación sobre el entorno host DEBE provenir de `scripts/Core/Get-HostTelemetry.ps1` o `Win32_OperatingSystem`. Prohibido inferir el SO a partir de paquetes evaluados en logs. |
+
 
 ---
 

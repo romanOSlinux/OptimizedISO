@@ -1033,14 +1033,15 @@ if (Test-Path $toolkitScript) {
         return ($pipeExit -eq 0 -and $hasNonInteractiveMsg)
     } -ExpectedState "ExitCode = 0 y detección de ejecución no interactiva" -DetailMessage "ExitCode: $pipeExit"
 
-    # 3. Paridad de opciones de menú: 24 opciones
+    # 3. Paridad de opciones de menú: 25 opciones (PLAN-0159: Gobernanza de Inicio en Opción 24, GUI en 25)
     $tkContent = Get-Content -Path $toolkitScript -Raw -Encoding UTF8
-    Assert-Contract "Assert: romanOS-Toolkit.ps1 mantiene paridad total de 24 opciones de menú y módulos core" {
-        $has24Opts = $tkContent -match '24\s*\{\s*Invoke-ControlCenterGUI'
+    Assert-Contract "Assert: romanOS-Toolkit.ps1 mantiene paridad total de 25 opciones de menú y módulos core" {
+        $has25Opts = $tkContent -match '25\s*\{\s*Invoke-ControlCenterGUI'
+        $hasStartup = $tkContent -match '24\s*\{\s*Invoke-StartupEcosystemModule'
         $hasGaming = $tkContent -match '1\s*\{\s*Invoke-GamingModule'
         $hasSandbox = $tkContent -match '21\s*\{\s*Invoke-SandboxModule'
-        return ($has24Opts -and $hasGaming -and $hasSandbox)
-    } -ExpectedState "24 opciones de menú enlazadas a funciones Invoke-* sin ramas huérfanas"
+        return ($has25Opts -and $hasStartup -and $hasGaming -and $hasSandbox)
+    } -ExpectedState "25 opciones de menú enlazadas a funciones Invoke-* sin ramas huérfanas"
 } else {
     Assert-Contract "Existencia de romanOS-Toolkit.ps1" { return $false }
 }

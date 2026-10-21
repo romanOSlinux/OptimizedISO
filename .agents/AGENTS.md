@@ -271,6 +271,19 @@ Las siguientes reglas son de cumplimiento obligatorio e incondicional para cualq
   1. El agente debe actuar siempre como un Ingeniero de Software de Sistemas Operativos, no como un creador de atajos efímeros.
   2. Si el usuario reporta un fallo en su entorno, el agente tiene prohibido proponer o crear botones o atajos personales. Debe investigar la causa raíz en el sistema operativo, clasificarla dentro de la arquitectura universal, erradicarla en el origen e integrarla en el pipeline general de mantenimiento y diagnóstico.
 
-
-
-
+## 21. Protocolo de Inviolabilidad de Identidad del Host y Prohibición Taxativa de Inferencia de Metadatos desde Logs (Host Identity Gate & Anti-Log Anchoring)
+- **21.1. Prohibición Absoluta de Inferencia de Metadatos del SO desde Logs (Anti-Log Anchoring):**
+  1. Queda TERMINANTEMENTE PROHIBIDO para el agente deducir, inferir o asumir el sistema operativo, la edición, la versión de lanzamiento (`DisplayVersion`), la compilación (`CurrentBuild`), la revisión acumulativa (`UBR`) o la arquitectura del host a partir de nombres de paquetes en archivos de registro (`CBS.log`, `DISM.log`), salidas de instaladores, cadenas de user-agents o texto incidental de consola.
+  2. Toda afirmación sobre las especificaciones del entorno host basada en la lectura de logs se considerará una **alucinación por anclaje (Anchoring Bias / Hallucination)** y una infracción directa de la gobernanza del repositorio.
+- **21.2. Compuerta de Telemetría Obligatoria (Host Telemetry Gate / SSOT):**
+  1. Antes de reportar o citar las especificaciones del entorno host en cualquier mensaje, auditoría o reporte, el agente DEBE ejecutar obligatoriamente el inspector canónico:
+     `& "scripts\Core\Get-HostTelemetry.ps1"`
+     o los cmdlets de introspección directa contra `Win32_OperatingSystem` y `HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion`.
+  2. Queda estrictamente prohibido emitir diagnósticos o declarar compatibilidad con una versión de Windows (ej. 24H2, 25H2, 26H2) sin haber ejecutado la compuerta de lectura en el mismo turno o consultado la entidad `HostEnvironment_Physical` en el servidor MCP `memory`.
+- **21.3. Certificación Forense en 5 Campos Obligatorios:**
+  Todo reporte de entorno host debe desglosar explícitamente los 5 campos canónicos verificados:
+  - `Caption` (ej. Microsoft Windows 11 Pro for Workstations)
+  - `EditionID` (ej. ProfessionalWorkstation)
+  - `DisplayVersion` (ej. 26H2)
+  - `CurrentBuild` (ej. 26300)
+  - `UBR` (ej. 9711)
