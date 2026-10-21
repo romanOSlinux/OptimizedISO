@@ -5396,6 +5396,23 @@ if (Test-Path $affinitySrc) {
     Add-AuditRecord -Resource "Optimize-InterruptAffinity" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
 }
 
+$startupEcoSrc    = Join-Path $ScriptsDir "Modules\Optimize-StartupEcosystem.ps1"
+$startupEcoCmdSrc = Join-Path $ScriptsDir "Modules\Optimize-StartupEcosystem.cmd"
+if (Test-Path $startupEcoSrc) {
+    Copy-Item -Path $startupEcoSrc -Destination (Join-Path $OEMScriptsDir "Optimize-StartupEcosystem.ps1") -Force
+    Copy-Item -Path $startupEcoSrc -Destination (Join-Path $OEMScriptsDir1 "Optimize-StartupEcosystem.ps1") -Force
+    Copy-Item -Path $startupEcoSrc -Destination (Join-Path $destModulesDir "Optimize-StartupEcosystem.ps1") -Force
+    Copy-Item -Path $startupEcoSrc -Destination (Join-Path $destModulesDir1 "Optimize-StartupEcosystem.ps1") -Force
+    if (Test-Path $startupEcoCmdSrc) {
+        Copy-Item -Path $startupEcoCmdSrc -Destination (Join-Path $OEMScriptsDir "Optimize-StartupEcosystem.cmd") -Force
+        Copy-Item -Path $startupEcoCmdSrc -Destination (Join-Path $OEMScriptsDir1 "Optimize-StartupEcosystem.cmd") -Force
+        Copy-Item -Path $startupEcoCmdSrc -Destination (Join-Path $destModulesDir "Optimize-StartupEcosystem.cmd") -Force
+        Copy-Item -Path $startupEcoCmdSrc -Destination (Join-Path $destModulesDir1 "Optimize-StartupEcosystem.cmd") -Force
+    }
+    Write-OK "Gobernador de Inicio y Servicios a Demanda (Optimize-StartupEcosystem) inyectado en `$OEM`$."
+    Add-AuditRecord -Resource "Optimize-StartupEcosystem" -Target '$OEM$' -Status "OK" -Details "Inyectado en Scripts y Modules"
+}
+
 $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"
 $ccLauncherSrc = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter-Launcher.cs"
 $ccCmdSrc      = Join-Path (Split-Path $ScriptsDir -Parent) "Lanzar-romanOS-ControlCenter.cmd"
@@ -8176,6 +8193,19 @@ if ($wimFile) {
                           }
                           Write-OK "Inyectado en WIM índice ${wimIndex}: Optimize-InterruptAffinity.ps1 y .cmd"
                           Add-AuditRecord -Resource "Optimize-InterruptAffinity" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
+                      }
+
+                      $startupEcoSrc    = Join-Path $ScriptsDir "Modules\Optimize-StartupEcosystem.ps1"
+                      $startupEcoCmdSrc = Join-Path $ScriptsDir "Modules\Optimize-StartupEcosystem.cmd"
+                      if (Test-Path $startupEcoSrc) {
+                          Copy-Item -Path $startupEcoSrc -Destination (Join-Path $wimScriptsDir "Optimize-StartupEcosystem.ps1") -Force
+                          Copy-Item -Path $startupEcoSrc -Destination (Join-Path $wimModulesDest "Optimize-StartupEcosystem.ps1") -Force
+                          if (Test-Path $startupEcoCmdSrc) {
+                              Copy-Item -Path $startupEcoCmdSrc -Destination (Join-Path $wimScriptsDir "Optimize-StartupEcosystem.cmd") -Force
+                              Copy-Item -Path $startupEcoCmdSrc -Destination (Join-Path $wimModulesDest "Optimize-StartupEcosystem.cmd") -Force
+                          }
+                          Write-OK "Inyectado en WIM índice ${wimIndex}: Optimize-StartupEcosystem.ps1 y .cmd"
+                          Add-AuditRecord -Resource "Optimize-StartupEcosystem" -Target "WIM Idx $wimIndex" -Status "OK" -Details "Inyectado en Scripts y Modules"
                       }
 
                       $ccScriptSrc   = Join-Path $ScriptsDir "GUI\romanOS-ControlCenter.ps1"

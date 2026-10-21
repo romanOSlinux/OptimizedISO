@@ -1,7 +1,7 @@
 # PLAN-0159: Gobernanza Integral de Inicio, Optimización de Servicios a Demanda y Erradicación del Flagelo Post-Boot
 
-**Estado:** EN PROGRESO  
-**Fecha:** 2026-10-20  
+**Estado:** COMPLETADO  
+**Fecha:** 2026-10-20 (Completado: 2026-10-20)  
 **Área:** Arquitectura Core, Servicios del Sistema, Autostart Governor, GUI Control Center, Pruebas  
 **Autor:** Antigravity (Advanced Agentic Coding)
 
@@ -49,34 +49,34 @@ La inspección forense matemática y no destructiva reveló la causa raíz y un 
 ## 4. Fases de Implementación
 
 ### Fase 1: Expansión de la Fuente Única de Verdad (`scripts/Core/Policy-Engine.ps1`)
-- [ ] Registrar directivas de supresión de mantenimiento automático en logon (`POL_MAINTENANCE_DISABLE_LOGON_SPIKE`).
-- [ ] Completar directivas de supresión de Bing en `SearchHost` (`BingSearchEnabled = 0`, `AllowSearchToUseLocation = 0`, `CortanaConsent = 0`).
-- [ ] Definir el catálogo canónico de servicios para transición segura a `Demand-Start` (`Get-RomanOSDemandServices`).
-- [ ] Definir catálogo de tareas y claves de autostart de terceros reconocidas (`Get-RomanOSStartupThirdPartyCatalog`).
+- [x] Registrar directivas de supresión de mantenimiento automático en logon (`POL_MAINTENANCE_DISABLE_LOGON_SPIKE`).
+- [x] Completar directivas de supresión de Bing en `SearchHost` (`BingSearchEnabled = 0`, `AllowSearchToUseLocation = 0`, `CortanaConsent = 0`).
+- [x] Definir el catálogo canónico de servicios para transición segura a `Demand-Start` (`Get-RomanOSDemandServices`).
+- [x] Definir catálogo de tareas y claves de autostart de terceros reconocidas (`Get-RomanOSStartupThirdPartyCatalog`).
 
 ### Fase 2: Módulo Canónico de Gobernanza de Inicio (`scripts/Modules/Optimize-StartupEcosystem.ps1`)
-- [ ] Crear el módulo con codificación estricta UTF-8 con BOM.
-- [ ] Integrar guardas Fail-Visible (CWE-390) con telemetría clara en consola.
-- [ ] Implementar captura automática de instantánea con `Manage-SystemSnapshots.ps1` antes de aplicar cambios.
-- [ ] Implementar función `Set-StartupEcosystemDemandServices` con parámetro `-WhatIf` / `-Simulate`.
-- [ ] Implementar función `Set-StartupThirdPartyGovernor` para alternar autostart de terceros (AMD, Steam, ExitLag, Brave, etc.) sin eliminar ejecutables ni tocar drivers de kernel.
-- [ ] Implementar función de restauración/reversión `Restore-StartupEcosystemDefaults`.
+- [x] Crear el módulo con codificación estricta UTF-8 con BOM.
+- [x] Integrar guardas Fail-Visible (CWE-390) con telemetría clara en consola.
+- [x] Implementar captura automática de instantánea con `Manage-SystemSnapshots.ps1` antes de aplicar cambios.
+- [x] Implementar función `Set-StartupEcosystemDemandServices` con parámetro `-WhatIf` / `-Simulate`.
+- [x] Implementar función `Set-StartupThirdPartyGovernor` para alternar autostart de terceros (AMD, Steam, ExitLag, Brave, etc.) sin eliminar ejecutables ni tocar drivers de kernel.
+- [x] Implementar función de restauración/reversión `Restore-StartupEcosystemDefaults`.
 
 ### Fase 3: Integración en el Generador de ISO y Debloater Adaptativo
-- [ ] Sincronizar `scripts/Modules/Win11-Debloat-v3-Adaptive.ps1` para consumir el nuevo catálogo de servicios a demanda.
-- [ ] Sincronizar `scripts/Builder/New-OptimizedWindowsISO-v2.ps1` y exportación de comandos `autounattend.xml` para aplicar `sc.exe config <svc> start= demand` offline.
+- [x] Sincronizar `scripts/Modules/Win11-Debloat-v3-Adaptive.ps1` para consumir el nuevo catálogo de servicios a demanda.
+- [x] Sincronizar `scripts/Builder/New-OptimizedWindowsISO-v2.ps1` y exportación de comandos `autounattend.xml` para aplicar `sc.exe config <svc> start= demand` offline.
 
 ### Fase 4: Integración Visual en `romanOS-ControlCenter.ps1`
-- [ ] Añadir sección/control de "Gobernanza de Inicio y Servicios a Demanda" en el Control Center.
-- [ ] Incorporar feedback visual del estado actual (Servicios en Auto vs Manual, Apps en Autostart detectadas).
-- [ ] Vincular acciones seguras de Optimizar / Restaurar bajo el hilo STA.
+- [x] Añadir sección/control de "Gobernanza de Inicio y Servicios a Demanda" en el Control Center.
+- [x] Incorporar feedback visual del estado actual (Servicios en Auto vs Manual, Apps en Autostart detectadas).
+- [x] Vincular acciones seguras de Optimizar / Restaurar bajo el hilo STA.
 
 ### Fase 5: Arnés de Pruebas y Certificación Multi-Hardware
-- [ ] Crear suite de pruebas unitarias `scripts/Testing/Test-StartupEcosystem.ps1`.
-- [ ] Validar compatibilidad en Windows PowerShell 5.1 (`powershell.exe -STA`).
-- [ ] Probar contra Mocks CIM/WMI sin requerir elevación de Hyper-V.
-- [ ] Ejecutar auditoría holística de cero fallos silenciosos y verificar en `Invoke-TestSuite.ps1`.
+- [x] Crear suite de pruebas unitarias `scripts/Testing/Test-StartupEcosystem.ps1` (18 aserciones).
+- [x] Validar compatibilidad en Windows PowerShell 5.1 (`powershell.exe -STA`) (18/18 PASS).
+- [x] Probar contra Mocks CIM/WMI sin requerir elevación de Hyper-V.
+- [x] Ejecutar auditoría holística de cero fallos silenciosos y verificar en `Invoke-TestSuite.ps1` (16 Fases PASS).
 
 ### Fase 6: Cierre, Documentación y Commit Atómico
-- [ ] Actualizar `docs/plans/README.md`.
-- [ ] Realizar commit atómico descriptivo y sincronizar.
+- [x] Actualizar `docs/plans/README.md`.
+- [x] Realizar commit atómico descriptivo y sincronizar.

@@ -1837,6 +1837,26 @@ foreach ($t in $tasks) {
         Write-Host "  - Tarea no encontrada (OK): $tName" -ForegroundColor DarkGray
     }
 }
+
+# --- [PLAN-0159] Gobernanza de Inicio y Servicios a Demanda (Demand-Start) ---
+Write-Host "`n  [PLAN-0159] Optimizando servicios del sistema a demanda (Demand-Start)..." -ForegroundColor Cyan
+if (Get-Command Get-RomanOSDemandServices -ErrorAction SilentlyContinue) {
+    $demandList = Get-RomanOSDemandServices | Where-Object { -not $_.IsThirdParty }
+    foreach ($ds in $demandList) {
+        $dsSvc = Get-Service -Name $ds.Name -ErrorAction SilentlyContinue
+        if ($dsSvc -and $dsSvc.StartType -ne [System.ServiceProcess.ServiceStartMode]::Manual -and $dsSvc.StartType -ne [System.ServiceProcess.ServiceStartMode]::Disabled) {
+            try {
+                Set-Service -Name $ds.Name -StartupType Manual -ErrorAction Stop
+                Write-Host "  - Servicio a Demanda: $($ds.Name) ($($ds.DisplayName)) -> Manual" -ForegroundColor Green
+            } catch {
+                Write-Warning "  - No se pudo ajustar $($ds.Name) a Manual: $($_.Exception.Message)"
+            }
+        }
+    }
+}
+Set-Reg 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance' 'MaintenanceDisabled' 1 'DWord'
+Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' 'BingSearchEnabled' 0 'DWord'
+Set-Reg 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search' 'CortanaConsent' 0 'DWord'
 #endregion
 
 # ============================================================

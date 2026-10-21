@@ -169,6 +169,48 @@ $global:RomanOS_Policies = @(
         OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
         UnattendDesc  = "Disable Search from Using Device Location"
     },
+    @{
+        Id            = "POL_SEARCH_BING_ENABLED_HKCU"
+        Module        = "Modulo F - Bing Web Search"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\Search"
+        PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search"
+        ValueName     = "BingSearchEnabled"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar resultados web de Bing en la busqueda local (evita carga de msedgewebview2)"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
+        UnattendDesc  = "Disable Bing Search in Windows Search UI"
+    },
+    @{
+        Id            = "POL_SEARCH_CORTANA_CONSENT_HKCU"
+        Module        = "Modulo F - Bing Web Search"
+        Category      = "Privacidad & Shell"
+        RegistryKey   = "HKCU\Software\Microsoft\Windows\CurrentVersion\Search"
+        PSPath        = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search"
+        ValueName     = "CortanaConsent"
+        Type          = "REG_DWORD"
+        ExpectedValue = 0
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar consentimiento de Cortana en la busqueda local"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-search"
+        UnattendDesc  = "Disable Cortana Consent in Search"
+    },
+    @{
+        Id            = "POL_MAINTENANCE_DISABLE_LOGON_SPIKE"
+        Module        = "Modulo S - Sistema & Mantenimiento"
+        Category      = "Rendimiento & Arranque"
+        RegistryKey   = "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance"
+        PSPath        = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\Maintenance"
+        ValueName     = "MaintenanceDisabled"
+        Type          = "REG_DWORD"
+        ExpectedValue = 1
+        Profiles      = @(1, 2, 3)
+        Description   = "Desactivar mantenimiento automatico durante el inicio de sesion para erradicar picos de TiWorker"
+        OfficialDoc   = "https://learn.microsoft.com/en-us/windows/win32/power/automatic-maintenance"
+        UnattendDesc  = "Disable Automatic Maintenance on User Logon"
+    },
 
     # --- MÓDULO ONEDRIVE: BLOQUEO INTEGRAL (PLAN-0078) ---
     @{
@@ -3008,10 +3050,23 @@ function Export-RomanOSUnattendCommands {
         $curOrder++
     }
 
+    # [PLAN-0159] Comandos de Servicios a Demanda (Demand-Start)
+    if (Get-Command Get-RomanOSDemandServices -ErrorAction SilentlyContinue) {
+        $demandServices = Get-RomanOSDemandServices | Where-Object { -not $_.IsThirdParty }
+        foreach ($ds in $demandServices) {
+            $xmlLines.Add("        <RunSynchronousCommand wcm:action=`"add`">")
+            $xmlLines.Add("          <Order>$curOrder</Order>")
+            $xmlLines.Add("          <Description>Configurar servicio $($ds.Name) a demanda (Demand-Start)</Description>")
+            $xmlLines.Add("          <Path>$($ds.SCCommand)</Path>")
+            $xmlLines.Add("        </RunSynchronousCommand>")
+            $curOrder++
+        }
+    }
+
     return [PSCustomObject]@{
         XmlContent = ($xmlLines -join "`r`n")
         NextOrder  = $curOrder
-        Count      = $policies.Count
+        Count      = $curOrder - $StartOrder
     }
 }
 
@@ -4918,6 +4973,240 @@ function Get-RomanOSDismComponentsCatalog {
         }
     )
 }
+
+# -----------------------------------------------------------------------------
+# 16. CATÁLOGOS CANÓNICOS DE GOBERNANZA DE INICIO Y SERVICIOS A DEMANDA (PLAN-0159)
+# -----------------------------------------------------------------------------
+
+function Get-RomanOSDemandServices {
+    <#
+    .SYNOPSIS
+        Retorna el catálogo canónico de servicios del sistema optimizados para demanda (Demand-Start / Start=3).
+    .DESCRIPTION
+        Servicios que en Windows 11 vienen por defecto en Automatic (Start=2) pero que no tienen clientes
+        inmediatos al inicio de sesión y no rompen ninguna API si se configuran en Demand (Manual).
+        Permanecen con 0 bytes de RAM y 0 hilos de CPU hasta que una aplicación o subsistema los invoca.
+    #>
+    [CmdletBinding()]
+    param()
+
+    return @(
+        [PSCustomObject]@{
+            Name           = "WSAIFabricSvc"
+            DisplayName    = "Host de componentes de IA de Windows"
+            Category       = "IA & Telemetria"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config WSAIFabricSvc start= demand"
+            Reason         = "Infraestructura local de IA/Copilot (Win11 24H2). Innecesario en arranque estándar."
+            GamingImpact   = "Nulo. Libera hilos de CPU y memoria."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "whesvc"
+            DisplayName    = "Estado y experiencias optimizadas de Windows"
+            Category       = "Telemetria & Diagnostico"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config whesvc start= demand"
+            Reason         = "Telemetría y evaluación de estado para sugerencias. Cero dependientes."
+            GamingImpact   = "Nulo."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "vmms"
+            DisplayName    = "Administración de máquinas virtuales de Hyper-V"
+            Category       = "Virtualizacion"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config vmms start= demand"
+            Reason         = "Gestor de VMs de Hyper-V. Consume 30-50MB RAM fijos. Arranca bajo demanda al abrir Hyper-V o iniciar VM."
+            GamingImpact   = "Nulo. Libera 30-50 MB de RAM permanentemente."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "CDPSvc"
+            DisplayName    = "Servicio de plataforma de dispositivos conectados"
+            Category       = "Conectividad"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config CDPSvc start= demand"
+            Reason         = "Sincronización con Enlace Móvil (Phone Link). Cero dependientes."
+            GamingImpact   = "Nulo."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "PcaSvc"
+            DisplayName    = "Servicio Asistente para la compatibilidad de programas"
+            Category       = "Sistema"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config PcaSvc start= demand"
+            Reason         = "Supervisión legacy de ejecutables. Elimina overhead de inspección en lanzadores de juegos."
+            GamingImpact   = "Positivo. Reduce inspección innecesaria de procesos."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "StiSvc"
+            DisplayName    = "Adquisición de imágenes de Windows (WIA)"
+            Category       = "Perifericos"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config StiSvc start= demand"
+            Reason         = "Protocolo para escáneres y cámaras USB de fotos. Las webcams usan UVC/DirectShow y no dependen de WIA."
+            GamingImpact   = "Nulo."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "DusmSvc"
+            DisplayName    = "Uso de datos"
+            Category       = "Red & Telemetria"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config DusmSvc start= demand"
+            Reason         = "Contador de bytes para gráficos en la app Configuración. Cero dependientes."
+            GamingImpact   = "Nulo."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "InventorySvc"
+            DisplayName    = "Servicio de inventario y compatibilidad de proveedores"
+            Category       = "Telemetria & Diagnostico"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config InventorySvc start= demand"
+            Reason         = "Indexador de software instalado para telemetría de Microsoft."
+            GamingImpact   = "Nulo."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "DPS"
+            DisplayName    = "Servicio de directivas de diagnóstico"
+            Category       = "Diagnostico"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config DPS start= demand"
+            Reason         = "Marco de diagnósticos automáticos y telemetría de errores. Cero dependientes."
+            GamingImpact   = "Nulo."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "ssh-agent"
+            DisplayName    = "OpenSSH Authentication Agent"
+            Category       = "Desarrollo & Red"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config ssh-agent start= demand"
+            Reason         = "Agente de autenticación SSH. Innecesario en arranque estándar si no se cargan claves automáticas."
+            GamingImpact   = "Nulo."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "LanmanServer"
+            DisplayName    = "Servidor (Compartir archivos SMB)"
+            Category       = "Red"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config LanmanServer start= demand"
+            Reason         = "Servidor de archivos en red local (puerto SMB 445). En PCs cliente/gaming es vector de red prescindible en arranque."
+            GamingImpact   = "Nulo / Seguro. Reduce superficie de red."
+            IsThirdParty   = $false
+        },
+        [PSCustomObject]@{
+            Name           = "AsusUpdateCheck"
+            DisplayName    = "AsusUpdateCheck"
+            Category       = "Terceros"
+            DefaultWindows = "Automatic"
+            TargetStartup  = "Manual"
+            SCCommand      = "sc.exe config AsusUpdateCheck start= demand"
+            Reason         = "Comprobador de actualizaciones de ASUS System Control Interface. No afecta hardware ni drivers."
+            GamingImpact   = "Nulo."
+            IsThirdParty   = $true
+        }
+    )
+}
+
+function Get-RomanOSStartupThirdPartyCatalog {
+    <#
+    .SYNOPSIS
+        Retorna el catálogo canónico de aplicaciones y tareas de terceros conocidas en autostart.
+    .DESCRIPTION
+        Identifica tareas programadas en la raíz y claves Run de usuario que pueden conmutarse
+        a demanda sin eliminar los programas ni alterar drivers de hardware.
+    #>
+    [CmdletBinding()]
+    param()
+
+    return @(
+        [PSCustomObject]@{
+            Id             = "STARTUP_AMD_ADRENALIN"
+            Name           = "AMD Radeon Software (GUI & Hotkeys)"
+            Vendor         = "AMD"
+            TargetType     = "ScheduledTask"
+            TargetNames    = @("StartCN", "StartDVR")
+            RunKeyNames    = @("AMDNoiseSuppression")
+            Description    = "Interfaz en bandeja de AMD Adrenalin y atajos de teclado Alt+R/Alt+Z. El driver kernel de pantalla permanece 100% activo."
+            RAMSavingsMB   = 120
+            CanDisableSafe = $true
+        },
+        [PSCustomObject]@{
+            Id             = "STARTUP_STEAM"
+            Name           = "Steam Client (Background Silent)"
+            Vendor         = "Valve"
+            TargetType     = "RunKey"
+            TargetNames    = @()
+            RunKeyNames    = @("Steam")
+            Description    = "Inicio de Steam al logon con procesos steamwebhelper basados en Chromium. La app abre normal al clickearla."
+            RAMSavingsMB   = 850
+            CanDisableSafe = $true
+        },
+        [PSCustomObject]@{
+            Id             = "STARTUP_EXITLAG"
+            Name           = "ExitLag Autostart"
+            Vendor         = "ExitLag"
+            TargetType     = "ScheduledTask"
+            TargetNames    = @("exitlag-*")
+            RunKeyNames    = @()
+            Description    = "Conexión en segundo plano de rutas ExitLag al iniciar Windows. Se inicia manualmente solo al jugar."
+            RAMSavingsMB   = 30
+            CanDisableSafe = $true
+        },
+        [PSCustomObject]@{
+            Id             = "STARTUP_BRAVE_UPDATE"
+            Name           = "Brave Browser Update"
+            Vendor         = "Brave Software"
+            TargetType     = "RunKey"
+            TargetNames    = @("BraveSoftwareUpdateTask*")
+            RunKeyNames    = @("BraveSoftware Update")
+            Description    = "Comprobador de actualizaciones de Brave al arranque. El navegador se actualiza solo durante su uso."
+            RAMSavingsMB   = 20
+            CanDisableSafe = $true
+        },
+        [PSCustomObject]@{
+            Id             = "STARTUP_PATRIOT_VIPER"
+            Name           = "Patriot Viper Headset Software"
+            Vendor         = "Patriot Memory"
+            TargetType     = "StartupFolder"
+            TargetNames    = @("Patriot Viper V380.lnk")
+            RunKeyNames    = @()
+            Description    = "Software de control de auriculares en shell:startup. Los auriculares operan con el driver de audio estándar."
+            RAMSavingsMB   = 70
+            CanDisableSafe = $true
+        },
+        [PSCustomObject]@{
+            Id             = "STARTUP_MSI_AFTERBURNER"
+            Name           = "MSI Afterburner"
+            Vendor         = "MSI / Guru3D"
+            TargetType     = "ScheduledTask"
+            TargetNames    = @("MSIAfterburner")
+            RunKeyNames    = @()
+            Description    = "Monitor y overclock de GPU. Conservar en inicio si usas perfiles activos de undervolt; desactivar si solo lo usas para medir FPS."
+            RAMSavingsMB   = 25
+            CanDisableSafe = $true
+        }
+    )
+}
+
 
 
 

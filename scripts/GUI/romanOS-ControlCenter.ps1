@@ -622,6 +622,19 @@ $xamlString = @"
                             </StackPanel>
                         </Border>
 
+                        <!-- Tarjeta romanOS Startup Ecosystem & Demand-Start Services (PLAN-0159) -->
+                        <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Gobernanza Integral de Inicio &amp; Servicios a Demanda (Liberar ~1.4 GB RAM)" Foreground="#00E5FF" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
+                                <TextBlock Text="Audita y conmuta a demanda servicios nativos en automatico (sin clientes inmediatos), suprime el spike de CBS/TiWorker en el logon, erradica Edge WebView2 en busqueda local y desactiva el autostart de terceros (AMD, Steam, ExitLag) con reversion total en 1-clic." Foreground="#A0A0A0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <Button x:Name="btnAuditStartupGUI" Content="Auditar Ecosistema de Inicio &amp; RAM" Width="260" Margin="0,0,10,10" ToolTip="Analiza en vivo el consumo de memoria de servicios en automatico sin clientes, tareas de autostart de terceros y spikes de mantenimiento pendientes."/>
+                                    <Button x:Name="btnOptimizeStartupGUI" Content="🚀 Optimizar Inicio &amp; Servicios (Liberar RAM)" Width="310" Margin="0,0,10,10" Background="#1B4D3E" BorderBrush="#00E676" FontWeight="SemiBold" ToolTip="Crea un Snapshot preventivo, pasa servicios nativos seguros a Manual (Demand-Start), erradica el spike de TiWorker y detiene el autostart de apps pesadas sin desinstalarlas."/>
+                                    <Button x:Name="btnRestoreStartupGUI" Content="Restaurar Inicio a Valores de Fabrica" Width="260" Margin="0,0,10,10" Background="#3E2723" BorderBrush="#FF5252" ToolTip="Restaura servicios a Automatico y re-habilita los disparadores de inicio de aplicaciones de terceros a su estado original."/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Optimizaciones Gaming Adicionales -->
                         <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14" Margin="0,0,0,12">
                             <StackPanel>
@@ -2101,6 +2114,31 @@ $window.FindName('btnResetAffinityGUI').Add_Click({
     $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
     if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Reset -Unattended" -TaskTitle "Restauracion de Politicas IRQ de Hardware" }
 })
+
+# Handlers: Gobernanza Integral de Inicio y Servicios a Demanda (PLAN-0159)
+$btnAuditStartup = $window.FindName('btnAuditStartupGUI')
+if ($btnAuditStartup) {
+    $btnAuditStartup.Add_Click({
+        $tool = Resolve-ToolScript "Optimize-StartupEcosystem.ps1"
+        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status -Unattended" -TaskTitle "Auditoria de Ecosistema de Inicio y Servicios" }
+    })
+}
+
+$btnOptStartup = $window.FindName('btnOptimizeStartupGUI')
+if ($btnOptStartup) {
+    $btnOptStartup.Add_Click({
+        $tool = Resolve-ToolScript "Optimize-StartupEcosystem.ps1"
+        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Optimize -Unattended" -TaskTitle "Gobernanza de Inicio y Servicios a Demanda" }
+    })
+}
+
+$btnRestStartup = $window.FindName('btnRestoreStartupGUI')
+if ($btnRestStartup) {
+    $btnRestStartup.Add_Click({
+        $tool = Resolve-ToolScript "Optimize-StartupEcosystem.ps1"
+        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Restore -Unattended" -TaskTitle "Restauracion de Inicio y Servicios" }
+    })
+}
 
 # Handlers: Menus Contextuales Optimizados
 $window.FindName('btnEnableClassicMenu').Add_Click({

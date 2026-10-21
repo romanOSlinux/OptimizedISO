@@ -25,7 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling", "Sandbox", "LiveSandbox", "Watchdog", "AntiDrift", "InterruptAffinity", "PCIeAffinity", "IRQSteering", "TestDNS", "DNSBenchmark")]
+    [ValidateSet("Gaming", "GamingApps", "LatencyProfiler", "TraceLatency", "Network", "Maintenance", "Diagnostics", "FootprintAudit", "Security", "Dashboards", "QuickActions", "Browsers", "Updates", "ContextMenu", "Drivers", "UserMigration", "MemoryTrim", "UniversalAudit", "SystemAudit", "GameDevSwitch", "GameSwitch", "GameAggressive", "DevSwitch", "GUI", "ControlCenter", "Snapshot", "Snapshots", "Rollback", "AppProfiles", "AIProfiles", "Apps", "Thermal", "Energy", "Throttling", "Sandbox", "LiveSandbox", "Watchdog", "AntiDrift", "InterruptAffinity", "PCIeAffinity", "IRQSteering", "TestDNS", "DNSBenchmark", "Startup", "StartupEcosystem", "DemandServices")]
     [string]$Module,
     [string]$AppProfile,
     [string[]]$AppCategories = @(),
@@ -37,6 +37,8 @@ param(
     [string]$WatchdogAction = 'Status',
     [string]$AffinityAction = 'Status',
     [switch]$OptimizeAffinity,
+    [string]$StartupAction = 'Status',
+    [switch]$OptimizeStartup,
     [switch]$ShowDashboards,
     [switch]$GUI,
     [switch]$Snapshot,
@@ -409,6 +411,22 @@ function Invoke-InterruptAffinityModule {
         & powershell.exe @argList
     } else {
         Write-ErrorMsg "No se encontro Optimize-InterruptAffinity.ps1"
+        pause
+    }
+}
+
+function Invoke-StartupEcosystemModule {
+    param(
+        [string]$Action = "Status"
+    )
+    $scriptFile = Resolve-ToolScript "Optimize-StartupEcosystem.ps1"
+    if ($scriptFile) {
+        Write-StepHeader -StepNumber 1 -TotalSteps 1 -Message "Iniciando Gobernanza de Inicio y Servicios a Demanda (romanOS Startup Governor)"
+        $argList = @('-STA', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptFile, '-Action', $Action)
+        if ($WhatIfPreference -or $PSBoundParameters.ContainsKey('WhatIf')) { $argList += '-WhatIf' }
+        & powershell.exe @argList
+    } else {
+        Write-ErrorMsg "No se encontro Optimize-StartupEcosystem.ps1"
         pause
     }
 }
@@ -911,11 +929,19 @@ if ($Module) {
         "InterruptAffinity" { Invoke-InterruptAffinityModule -Action $AffinityAction; exit }
         "PCIeAffinity"      { Invoke-InterruptAffinityModule -Action $AffinityAction; exit }
         "IRQSteering"       { Invoke-InterruptAffinityModule -Action $AffinityAction; exit }
+        "Startup"           { Invoke-StartupEcosystemModule -Action $StartupAction; exit }
+        "StartupEcosystem"  { Invoke-StartupEcosystemModule -Action $StartupAction; exit }
+        "DemandServices"    { Invoke-StartupEcosystemModule -Action $StartupAction; exit }
         "QuickActions"    { Show-QuickActionsMenu; exit }
         "GamingApps"      { Invoke-GamingAndAppsModule; exit }
         "LatencyProfiler" { Invoke-LatencyTraceModule; exit }
         "TraceLatency"    { Invoke-LatencyTraceModule; exit }
     }
+}
+
+if ($OptimizeStartup) {
+    Invoke-StartupEcosystemModule -Action "Optimize"
+    exit
 }
 
 if ($OptimizeAffinity) {
@@ -979,6 +1005,7 @@ $mainMenuOpts = @(
     "Entorno Sandbox Descartable en Vivo (Invoke-LiveSandbox)",
     "Guardian Anti-Drift de Servicios y Tareas (Watchdog-ServiceDrift)",
     "Calibrador de Afinidad PCIe e Interrupciones IRQ (DPC Steering & MSI Tuning)",
+    "Gobernanza de Inicio y Servicios a Demanda (Liberar RAM, CBS y Autostart)",
     "Abrir romanOS Control Center (Interfaz Grafica Moderna WPF & Telemetria)"
 )
 
@@ -1010,7 +1037,8 @@ while ($true) {
         21 { Invoke-SandboxModule -Action "Status"; pause }
         22 { Invoke-WatchdogModule -Action "Status"; pause }
         23 { Invoke-InterruptAffinityModule -Action "Status"; pause }
-        24 { Invoke-ControlCenterGUI; pause }
+        24 { Invoke-StartupEcosystemModule -Action "Status"; pause }
+        25 { Invoke-ControlCenterGUI; pause }
         0  {
             Write-Host "`n  Cerrando romanOS Toolkit Maestro...`n" -ForegroundColor Gray
             exit
