@@ -122,6 +122,7 @@ foreach ($hp in $hwEnginePaths) {
 $script:HardwareProfile = if ($hwLoaded -and (Get-Command Get-SystemHardwareProfile -ErrorAction SilentlyContinue)) {
     Get-SystemHardwareProfile
 } else { $null }
+$script:IsApuUmaActive = [bool]($script:HardwareProfile -and $script:HardwareProfile.GPU.HasIntegratedGpu -and -not $script:HardwareProfile.GPU.HasDedicatedGpu)
 
 # -----------------------------------------------------------------------------
 # 2. LISTAS MAESTRAS Y BLINDAJE INVIOLABLE (ANTI-CHEAT Y HARDWARE)
@@ -326,10 +327,12 @@ if ($Mode -eq "Status") {
     Show-UnifiedBanner -Title "romanOS GAME OPTIMIZER" -Subtitle "Auditoria de Estado de Rendimiento y Memoria" -ShowSystemInfo
     
     $mem = Get-SystemMemoryMetrics
-    Write-StepHeader -StepNumber 1 -TotalSteps 2 -Message "Metricas de Memoria RAM del Sistema (DDR5 / UMA)"
+    $ramModeSuffix = if ($script:IsApuUmaActive) { "(DDR4/DDR5 / UMA)" } else { "(Memoria Fisica del Sistema)" }
+    Write-StepHeader -StepNumber 1 -TotalSteps 2 -Message "Metricas de Memoria RAM $ramModeSuffix"
     Write-Host ("  Memoria Total : {0,6} GB" -f $mem.TotalGB) -ForegroundColor White
     Write-Host ("  Memoria Usada : {0,6} GB ({1}%)" -f $mem.UsedGB, $mem.PercentUsed) -ForegroundColor $(if($mem.PercentUsed -gt 75){'Yellow'}else{'Green'})
-    Write-Host ("  Memoria Libre : {0,6} GB (Disponible para Juegos y VRAM APU)" -f $mem.FreeGB) -ForegroundColor Cyan
+    $freeRamDesc = if ($script:IsApuUmaActive) { "(Disponible para Juegos y VRAM APU)" } else { "(Disponible para Juegos y Sistema)" }
+    Write-Host ("  Memoria Libre : {0,6} GB {1}" -f $mem.FreeGB, $freeRamDesc) -ForegroundColor Cyan
     
     Write-StepHeader -StepNumber 2 -TotalSteps 2 -Message "Inspeccion de Servicios de Virtualizacion y MMCSS"
     $vmms = Get-Service -Name "vmms" -ErrorAction SilentlyContinue
@@ -351,7 +354,12 @@ if ($Mode -eq "Status") {
     $memProps = Get-ItemProperty -Path $memKey -ErrorAction SilentlyContinue
     $lsc = if ($memProps -and $null -ne $memProps.LargeSystemCache) { $memProps.LargeSystemCache } else { 0 }
     $dpe = if ($memProps -and $null -ne $memProps.DisablePagingExecutive) { $memProps.DisablePagingExecutive } else { 0 }
-    Write-Host ("  LargeSystemCache     : {0} ({1})" -f $lsc, $(if($lsc -eq 0){"0 [OK: Prioridad a Procesos y VRAM APU]"}else{"1 [Alerta: Prioriza cache de archivos]"})) -ForegroundColor $(if($lsc -eq 0){'Green'}else{'Yellow'})
+    $lscDesc = if ($lsc -eq 0) {
+        if ($script:IsApuUmaActive) { "0 [OK: Prioridad a Procesos y VRAM APU]" } else { "0 [OK: Prioridad a Procesos de Primer Plano]" }
+    } else {
+        "1 [Alerta: Prioriza cache de archivos]"
+    }
+    Write-Host ("  LargeSystemCache     : {0} ({1})" -f $lsc, $lscDesc) -ForegroundColor $(if($lsc -eq 0){'Green'}else{'Yellow'})
     Write-Host ("  DisablePagingExec    : {0} ({1})" -f $dpe, $(if($dpe -eq 1){"1 [OK: Drivers fijados en RAM fisica]"}else{"0 [Paginacion de kernel permitida]"})) -ForegroundColor $(if($dpe -eq 1){'Green'}else{'Yellow'})
     
     Write-Host ""
@@ -390,7 +398,7 @@ if ($Mode -eq "Game") {
     
     if (-not $Quiet) {
         $gpuName = if ($script:HardwareProfile -and $script:HardwareProfile.GPU.Devices.Count -gt 0) { $script:HardwareProfile.GPU.Devices[0].Name } else { "GPU" }
-        $targetVramLabel = if ($script:HardwareProfile -and $script:HardwareProfile.GPU.HasIntegratedGpu) { "VRAM Compartida UMA ($gpuName)" } else { "GPU ($gpuName)" }
+        $targetVramLabel = if ($script:IsApuUmaActive) { "VRAM Compartida UMA ($gpuName)" } else { "GPU ($gpuName)" }
         Show-UnifiedBanner -Title "romanOS GAME OPTIMIZER" -Subtitle "Modo Juego de Baja Latencia DPC y Optimizacion de Recursos" -ShowSystemInfo
         Write-Host "  RAM Inicial: $($initialMem.UsedGB) GB usados | $($initialMem.FreeGB) GB libres" -ForegroundColor Yellow
         Write-Host "  Objetivo   : Eliminar latencia DPC (<500us), ruido ETW y optimizar $targetVramLabel" -ForegroundColor Cyan
@@ -475,7 +483,8 @@ if ($Mode -eq "Game") {
         }
     } else {
         if (-not $Quiet) {
-            Write-Info "Margen de RAM optimo: $($curMem.FreeGB) GB libres para VRAM dinamica y assets del juego."
+            $ramMarginLabel = if ($script:IsApuUmaActive) { "VRAM dinamica y assets del juego" } else { "assets del juego y renderizado" }
+            Write-Info "Margen de RAM optimo: $($curMem.FreeGB) GB libres para $ramMarginLabel."
         }
     }
     
@@ -555,7 +564,8 @@ if ($Mode -eq "Game") {
         Write-Host ""
         Write-Host "  ===============================================================" -ForegroundColor Green
         Write-Host "  [OK] MODO JUEGO ACTIVADO EXITOSAMENTE (romanOS Game Optimizer)" -ForegroundColor Green
-        Write-Host ("  RAM Libre Actual    : {0,5} GB (Pool optimo para Juegos y VRAM APU)" -f $finalMem.FreeGB) -ForegroundColor Yellow
+        $finalPoolLabel = if ($script:IsApuUmaActive) { "Pool optimo para Juegos y VRAM APU" } else { "Pool optimo para Juegos y Sistema" }
+        Write-Host ("  RAM Libre Actual    : {0,5} GB ({1})" -f $finalMem.FreeGB, $finalPoolLabel) -ForegroundColor Yellow
         Write-Host "  Latencia DPC de Red : Optimizada (vmswitch.sys desactivado / <500 us)" -ForegroundColor Cyan
         Write-Host "  Planificador Kernel : MMCSS SystemResponsiveness = 10 | GPU Priority = 8" -ForegroundColor Green
         Write-Host "  Memoria Real        : LargeSystemCache = 0 | DisablePagingExecutive = 1" -ForegroundColor Cyan

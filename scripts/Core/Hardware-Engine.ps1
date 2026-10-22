@@ -722,12 +722,16 @@ function Get-SystemHardwareProfile {
     } elseif ($isDualCcdX3D) {
         $archFamily = 'AMD_DualCcd_Asymmetric_X3D'
         $archDisplayName = 'AMD Dual-CCD Asimetrico 3D V-Cache (96MB L3)'
-    } elseif ($cpuVendor -eq 'AMD' -and ($hasIntegratedGpu -or $hasRdna3Igpu -or $cpuName -match 'Ryzen.*[0-9]{4}G|Athlon.*[0-9]{3}G')) {
+    } elseif ($cpuVendor -eq 'AMD' -and -not $hasDedicatedGpu -and ($hasIntegratedGpu -or $hasRdna3Igpu -or $cpuName -match 'Ryzen.*[0-9]{4}G|Athlon.*[0-9]{3}G')) {
         $archFamily = 'AMD_Monolithic_APU_UMA'
         $archDisplayName = 'AMD APU Monolitica (Memoria Compartida UMA)'
-    } elseif ($cpuVendor -eq 'AMD' -and ($isRyzen5kPlus -or $cpuName -match 'Ryzen 7 (5800X3D|7800X3D|9800X3D)')) {
+    } elseif ($cpuVendor -eq 'AMD' -and ($isRyzen5kPlus -or $cpuName -match 'Ryzen [3579] [3-9][0-9]{3}' -or $cpuName -match 'Ryzen 7 (5800X3D|7800X3D|9800X3D)' -or ($hasDedicatedGpu -and $cpuName -match 'Ryzen.*[0-9]{4}G|Athlon.*[0-9]{3}G'))) {
         $archFamily = 'AMD_Zen_Modern_Symmetric'
-        $archDisplayName = 'AMD Zen 3/4/5 Simetrico Monolitico (CPPC2 Preferred Cores)'
+        $archDisplayName = if ($hasDedicatedGpu -and ($cpuName -match 'Ryzen.*[0-9]{4}G|Athlon.*[0-9]{3}G')) {
+            'AMD Zen Moderno Simetrico (dGPU Activa / CPPC2)'
+        } else {
+            'AMD Zen 3/4/5 Simetrico Monolitico (CPPC2 Preferred Cores)'
+        }
     } elseif ($cpuVendor -eq 'AMD' -and ($cpuName -match 'Ryzen [357] [12][0-9]{3}' -or $cpuName -match 'Threadripper [12][0-9]{3}')) {
         $archFamily = 'AMD_MultiCcx_Early_Legacy'
         $archDisplayName = 'AMD Zen 1 / Zen+ Temprano (Multi-CCX con Latencia Inter-Die)'
@@ -1547,9 +1551,14 @@ function Get-RomanOSCpuArchitecturePolicy {
             }
         }
         'AMD_Zen_Modern_Symmetric' {
+            $isApuWithDgpu = ($HardwareInfo.GPU -and $HardwareInfo.GPU.HasDedicatedGpu -and ($HardwareInfo.CPU.Name -match 'Ryzen.*[0-9]{4}G|Athlon.*[0-9]{3}G'))
             return [PSCustomObject]@{
                 ArchitectureFamily          = 'AMD_Zen_Modern_Symmetric'
-                DisplayName                 = 'AMD Zen 3/4/5 Simetrico Monolitico (CPPC2 Preferred Cores)'
+                DisplayName                 = if ($isApuWithDgpu) {
+                    'AMD Zen Moderno Simetrico (dGPU Activa / CPPC2)'
+                } else {
+                    'AMD Zen 3/4/5 Simetrico Monolitico (CPPC2 Preferred Cores)'
+                }
                 ProcThrottleMinPercent      = 5
                 ProcThrottleMaxPercent      = 100
                 EnergyPerformancePreference = 0
@@ -1558,7 +1567,11 @@ function Get-RomanOSCpuArchitecturePolicy {
                 Win32PrioritySeparation     = 38
                 PowerThrottlingMode         = 'DisabledGlobal'
                 AffinityDpcStrategy         = 'SpreadAcrossCPUs'
-                Rationale                   = 'Nucleos simetricos en un unico CCX. PROCTHROTTLEMIN al 5% para permitir sueno profundo C6 y liberar margen termico para el boost mononucleo Precision Boost 2.'
+                Rationale                   = if ($isApuWithDgpu) {
+                    'APU con GPU dedicada PCIe activa (iGPU en reposo). Presupuesto electrico TDP liberado al 100% para computo Zen. EPP = 0 para maxima respuesta Precision Boost 2 y Win32PrioritySeparation = 38.'
+                } else {
+                    'Nucleos simetricos en un unico CCX. PROCTHROTTLEMIN al 5% para permitir sueno profundo C6 y liberar margen termico para el boost mononucleo Precision Boost 2.'
+                }
             }
         }
         'AMD_MultiCcx_Early_Legacy' {
