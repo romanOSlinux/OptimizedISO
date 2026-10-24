@@ -514,9 +514,16 @@ function Restore-RomanOSSnapshot {
         [switch]$SkipConfirmation
     )
 
-    if (-not $TargetSnapshotId) {
-        Write-Error "[Snapshot-Engine] Debe especificar el parametro -SnapshotId para realizar la restauracion."
-        return $false
+    if (-not $TargetSnapshotId -or $TargetSnapshotId -eq 'Latest') {
+        $latest = Get-ChildItem -Path $BaseDir -Directory -ErrorAction SilentlyContinue | 
+            Sort-Object CreationTime -Descending | Select-Object -First 1
+        if ($latest) {
+            $TargetSnapshotId = $latest.FullName
+            Write-Host "  [*] SnapshotId no especificado. Seleccionando la instantanea mas reciente: $($latest.Name)" -ForegroundColor Cyan
+        } else {
+            Write-Error "[Snapshot-Engine] No se encontraron instantaneas disponibles en '$BaseDir' para restaurar."
+            return $false
+        }
     }
 
     # Resolver ruta de snapshot

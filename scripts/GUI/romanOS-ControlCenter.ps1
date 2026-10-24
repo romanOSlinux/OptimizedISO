@@ -373,6 +373,11 @@ $xamlString = @"
                     <TextBlock Text="Hub Maestro de Optimizacion, Gaming, Red y SysAdmin" Foreground="{DynamicResource AccentPrimaryBrush}" FontSize="11"/>
                 </StackPanel>
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Horizontal">
+                    <Button x:Name="btnRestoreInitialState" Content="↩ Revertir al Estado Inicial en 1 Clic" 
+                            Background="{DynamicResource AccentAuditBgBrush}" Foreground="{DynamicResource AccentPrimaryBrush}" 
+                            BorderBrush="{DynamicResource AccentPrimaryBrush}" BorderThickness="1" 
+                            FontSize="11" FontWeight="Bold" Padding="10,4" Margin="0,0,10,0"
+                            ToolTip="Restaura inmediatamente el snapshot de seguridad previo al estado inicial (directivas, servicios y puntos de restauración)."/>
                     <Border Background="{DynamicResource WindowBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,3" Margin="0,0,10,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="ðŸŽ¨ " FontSize="11" VerticalAlignment="Center"/>
@@ -1443,12 +1448,54 @@ Update-ControlCenterStorageState
 # 4. MOTOR DE EJECUCIÓN ASÍNCRONA DESACOPLADA (60 FPS)
 # -----------------------------------------------------------------------------
 $script:activeSubProcessState = $null
+$script:hasCreatedSessionSnapshot = $false
+
+function Ensure-PreOptimizationSnapshot {
+    param(
+        [string]$Reason = "Pre-Optimizacion-romanOS",
+        [bool]$ForceTrigger = $false
+    )
+    
+    if ($script:hasCreatedSessionSnapshot -and -not $ForceTrigger) {
+        return $true
+    }
+    
+    $snapTool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
+    if (-not $snapTool) {
+        Write-CCLog "Aviso: Manage-SystemSnapshots.ps1 no localizado para snapshot preventivo." -Level "WARN"
+        return $true
+    }
+
+    try {
+        Write-CCLog "[Seguridad] Creando snapshot preventivo obligatorio del sistema ($Reason)..."
+        $procInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $procInfo.FileName = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+        $procInfo.Arguments = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$snapTool`" -Action Create -Name `"$Reason`" -IncludeVSS -Unattended"
+        $procInfo.UseShellExecute = $false
+        $procInfo.CreateNoWindow = $true
+        $proc = [System.Diagnostics.Process]::Start($procInfo)
+        if ($proc) {
+            $proc.WaitForExit(35000) | Out-Null
+        }
+        $script:hasCreatedSessionSnapshot = $true
+        Write-CCLog "[Seguridad] Snapshot preventivo creado exitosamente (Reversibilidad en 1 Clic asegurada)."
+        return $true
+    } catch {
+        Write-CCLog "[Seguridad] Aviso al generar snapshot preventivo: $($_.Exception.Message)" "WARN"
+        return $true
+    }
+}
 
 function Start-ControlCenterTask {
     param(
         [string]$CommandLine,
         [string]$TaskTitle
     )
+    
+    # Disparo automático de snapshot preventivo ante optimizaciones o modificaciones profundas
+    if ($CommandLine -match 'Optimize|Apply|Set-|Clean-|Toggle-|Install|Purge' -and $CommandLine -notmatch 'Audit|Test-|Status|Inspect|ShowReport|AnalyzeOnly|List|Restore|Manage-SystemSnapshots') {
+        Ensure-PreOptimizationSnapshot -Reason ("Pre-" + ($TaskTitle -replace '[^a-zA-Z0-9_\-]', '-'))
+    }
     
     $btnCancel = $window.FindName('btnCancelProcess')
     $lblStatus = $window.FindName('lblStatus')
@@ -2347,6 +2394,29 @@ $window.FindName('btnRestoreSnapshotGUI').Add_Click({
         }
     }
 })
+
+# Botón Canónico en Cabecera: Revertir al Estado Inicial en 1 Clic (PLAN-0161)
+$btnRestoreInit = $window.FindName('btnRestoreInitialState')
+if ($btnRestoreInit) {
+    $btnRestoreInit.Add_Click({
+        $res = [System.Windows.MessageBox]::Show(
+            "¿Desea revertir el sistema al Estado Inicial en 1 Clic?`r`n`r`nSe restaurará de forma automática la última instantánea de seguridad previa, restableciendo directivas de registro, servicios del sistema y parámetros originales.",
+            "romanOS Control Center — Reversibilidad en 1 Clic (Snapshot)",
+            [System.Windows.MessageBoxButton]::YesNo,
+            [System.Windows.MessageBoxImage]::Question
+        )
+        if ($res -eq [System.Windows.MessageBoxResult]::Yes) {
+            $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
+            if ($tool) {
+                Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Restore -Force -Unattended" -TaskTitle "Revertir al Estado Inicial (Snapshot)"
+                $script:hasCreatedSessionSnapshot = $false
+            } else {
+                Write-CCLog "Error: No se pudo localizar Manage-SystemSnapshots.ps1." "ERROR"
+                [System.Windows.MessageBox]::Show("No se pudo localizar Manage-SystemSnapshots.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+            }
+        }
+    })
+}
 
 $window.FindName('btnRefreshSnapshots').Add_Click({
     Refresh-CCSnapshotsComboBox

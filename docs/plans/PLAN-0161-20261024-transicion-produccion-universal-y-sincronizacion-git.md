@@ -82,13 +82,14 @@ Auditados los 187 scripts del repositorio contra las 22 reglas de gobernanza:
   - [x] Integrar y validar aserciones de regresión en `Test-FunctionalContracts.ps1` (CTR-49).
 * **Criterio de Aceptación:** Ejecución exitosa de `Lanzar-romanOS.cmd` y `Lanzar-romanOS.ps1 -WhatIf` con ExitCode 0 en Windows PowerShell 5.1. 112/112 aserciones PASS (100%).
 
-### Fase 3: Snapshot de Seguridad Obligatorio en la GUI
+### Fase 3: Snapshot de Seguridad Obligatorio en la GUI [COMPLETADA]
 * **Objetivo:** Cumplir el principio de Cero Daño garantizando reversibilidad en 1 clic antes de cualquier modificación.
 * **Tareas Específicas:**
-  - [ ] Integrar en `scripts/GUI/romanOS-ControlCenter.ps1`:
-    - Disparo automático o confirmación de snapshot preventivo (`Manage-SystemSnapshots.ps1 -Action Create -Name "Pre-Optimizacion-romanOS" -IncludeVSS`) antes de ejecutar optimizaciones masivas.
-    - Botón canónico permanente en cabecera: **"↩ Revertir al Estado Inicial en 1 Clic"** que invoca `Manage-SystemSnapshots.ps1 -Action Restore`.
-* **Criterio de Aceptación:** `Test-GuiIntegrityAndFunctionality.ps1` certifica 121/121 botones cableados y 0 dead buttons.
+  - [x] Integrar en `scripts/GUI/romanOS-ControlCenter.ps1`:
+    - Disparo automático de snapshot preventivo (`Ensure-PreOptimizationSnapshot` -> `Manage-SystemSnapshots.ps1 -Action Create -Name "Pre-Optimizacion-..." -IncludeVSS`) antes de ejecutar optimizaciones masivas.
+    - Botón canónico permanente en cabecera: **"↩ Revertir al Estado Inicial en 1 Clic"** (`btnRestoreInitialState`) que invoca `Manage-SystemSnapshots.ps1 -Action Restore -Force -Unattended`.
+  - [x] Actualizar `scripts/Modules/Manage-SystemSnapshots.ps1` para resolver automáticamente el snapshot más reciente si se omite `-SnapshotId` o se especifica `'Latest'`.
+* **Criterio de Aceptación:** `Test-GuiIntegrityAndFunctionality.ps1` certifica 122/122 botones cableados y 0 dead buttons (100% PASS). 112/112 aserciones en `Test-FunctionalContracts.ps1` PASS (100%).
 
 ### Fase 4: Script Empaquetador de Distribución (`Build-ProductionPackage.ps1`)
 * **Objetivo:** Ensamblar el producto final portátil para USB y GitHub Releases sin contaminar el repositorio Git (Regla 6).
