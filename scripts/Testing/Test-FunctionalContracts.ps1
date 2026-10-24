@@ -1496,6 +1496,32 @@ if ((Test-Path $ccPsPath) -and (Test-Path $studioPsPath) -and (Test-Path $toolki
     Assert-Contract "Assert: Clean-DriverStore ejecuta simulación sin requerir elevación" {
         return ($null -ne $cleanRes -and $cleanRes.Success -eq $true)
     } -ExpectedState "Success=True con simulación no destructiva" -DetailMessage "RemovedCount: $($cleanRes.RemovedCount)"
+
+    # 4. Validación del Punto de Entrada Universal Tri-Modal (PLAN-0161)
+    $universalPs  = Join-Path $workspaceRoot "Lanzar-romanOS.ps1"
+    $universalCmd = Join-Path $workspaceRoot "Lanzar-romanOS.cmd"
+
+    Assert-Contract "Assert: Lanzar-romanOS.ps1 existe, codificado en UTF-8 con BOM y sin errores AST (PLAN-0161)" {
+        if (-not (Test-Path $universalPs)) { return $false }
+        $b = [System.IO.File]::ReadAllBytes($universalPs)
+        $hasBom = ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)
+        $tokens = $null; $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($universalPs, [ref]$tokens, [ref]$errors)
+        return ($hasBom -and $errors.Count -eq 0)
+    } -ExpectedState "Lanzar-romanOS.ps1 UTF-8 BOM y 0 errores AST" -DetailMessage "BOM: True"
+
+    Assert-Contract "Assert: Lanzar-romanOS.cmd existe, es No-BOM y contiene soporte -STA (PLAN-0161)" {
+        if (-not (Test-Path $universalCmd)) { return $false }
+        $cmdB = [System.IO.File]::ReadAllBytes($universalCmd)
+        $hasBom = ($cmdB.Length -ge 3 -and $cmdB[0] -eq 0xEF -and $cmdB[1] -eq 0xBB -and $cmdB[2] -eq 0xBF)
+        $content = Get-Content -LiteralPath $universalCmd -Raw
+        return (-not $hasBom -and ($content -match '-STA'))
+    } -ExpectedState "Lanzar-romanOS.cmd No-BOM y con flag -STA" -DetailMessage "No-BOM: True"
+
+    Assert-Contract "Assert: Lanzar-romanOS.ps1 ejecuta diagnóstico pre-vuelo en modo simulado (-WhatIf -PassThru)" {
+        $diag = & $universalPs -WhatIf -PassThru -SkipElevation
+        return ($null -ne $diag -and $diag.Status -eq 'PASS' -and $diag.Mode -match 'Local-USB')
+    } -ExpectedState "Status=PASS y Mode=Local-USB-Offline" -DetailMessage "Status: PASS"
 } else {
     Assert-Contract "Existencia de módulos del Lote 4 en scripts/GUI y scripts/Drivers" { return $false }
 }

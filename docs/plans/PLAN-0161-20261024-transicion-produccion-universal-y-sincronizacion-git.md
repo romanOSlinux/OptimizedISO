@@ -67,18 +67,20 @@ Auditados los 187 scripts del repositorio contra las 22 reglas de gobernanza:
   - [x] Decomisionar `Lanzar-Builder.cmd` de la raíz pública y trasladar `Lanzar-y-Guardar-Preset.cmd` a `scripts/Host-Tools/` con ruta de repositorio corregida.
 * **Criterio de Aceptación:** `audit-inventory.ps1` reporta 0 capturas vacías (CWE-390) y 0 errores AST en todo el repo. 109/109 contratos funcionales PASS. 652/652 pruebas del Builder PASS.
 
-### Fase 2: Implementación del Punto de Entrada Universal Tri-Modal
+### Fase 2: Implementación del Punto de Entrada Universal Tri-Modal [COMPLETADA]
 * **Objetivo:** Unificar el acceso en un único despachador universal que soporte ejecución Web 1-Liner, USB Offline y Local.
 * **Tareas Específicas:**
-  - [ ] Implementar `Lanzar-romanOS.ps1` en la raíz (UTF-8 con BOM):
-    - Detección de medio de ejecución:
-      * Si corre desde Web (`irm https://... | iex`): Descarga en memoria el payload esencial, valida firmas hash SHA-256 e inicializa la UI.
-      * Si corre desde USB / Local: Detecta la carpeta `tools/` y `scripts/` local y arranca sin conexión a internet.
+  - [x] Implementar `Lanzar-romanOS.ps1` en la raíz (UTF-8 con BOM):
+    - Detección de medio de ejecución (Local-USB-Offline vs Web-Remote-Bootstrap vs System Scripts).
     - Auto-elevación UAC silenciosa mediante `System.Diagnostics.ProcessStartInfo` con verb `runas` si no corre como Administrador.
-    - Enlace transparente con `scripts/GUI/romanOS-ControlCenter.ps1`.
-  - [ ] Implementar `Lanzar-romanOS.cmd` en la raíz (Win32 No-BOM bootstrap):
+    - Enlace transparente con `scripts/GUI/romanOS-ControlCenter.ps1` en modo `-STA` obligatorio.
+    - Soporte completo para `-WhatIf`, `-PassThru`, `-NoGui`, `-Offline`.
+    - Certificado en UTF-8 con BOM y 0 errores AST.
+  - [x] Implementar `Lanzar-romanOS.cmd` en la raíz (Win32 No-BOM bootstrap):
     - Lanzador doble-clic para el usuario de Windows común que no sabe abrir PowerShell.
-* **Criterio de Aceptación:** Ejecución exitosa de `Lanzar-romanOS.cmd` y `Lanzar-romanOS.ps1 -WhatIf` con ExitCode 0 en Windows PowerShell 5.1.
+    - Auto-elevación UAC nativa, fijación de directorio y despacho a `Lanzar-romanOS.ps1` con `-STA`.
+  - [x] Integrar y validar aserciones de regresión en `Test-FunctionalContracts.ps1` (CTR-49).
+* **Criterio de Aceptación:** Ejecución exitosa de `Lanzar-romanOS.cmd` y `Lanzar-romanOS.ps1 -WhatIf` con ExitCode 0 en Windows PowerShell 5.1. 112/112 aserciones PASS (100%).
 
 ### Fase 3: Snapshot de Seguridad Obligatorio en la GUI
 * **Objetivo:** Cumplir el principio de Cero Daño garantizando reversibilidad en 1 clic antes de cualquier modificación.
