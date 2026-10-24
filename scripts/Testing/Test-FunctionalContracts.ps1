@@ -1522,6 +1522,32 @@ if ((Test-Path $ccPsPath) -and (Test-Path $studioPsPath) -and (Test-Path $toolki
         $diag = & $universalPs -WhatIf -PassThru -SkipElevation
         return ($null -ne $diag -and $diag.Status -eq 'PASS' -and $diag.Mode -match 'Local-USB')
     } -ExpectedState "Status=PASS y Mode=Local-USB-Offline" -DetailMessage "Status: PASS"
+
+    # 5. Validación del Empaquetador de Distribución Portable (PLAN-0161 Fase 4)
+    $pkgBuilderPs  = Join-Path $workspaceRoot "scripts\Builder\Build-ProductionPackage.ps1"
+    $pkgBuilderCmd = Join-Path $workspaceRoot "scripts\Builder\Build-ProductionPackage.cmd"
+
+    Assert-Contract "Assert: Build-ProductionPackage.ps1 existe, codificado en UTF-8 con BOM y sin errores AST (PLAN-0161)" {
+        if (-not (Test-Path $pkgBuilderPs)) { return $false }
+        $b = [System.IO.File]::ReadAllBytes($pkgBuilderPs)
+        $hasBom = ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)
+        $tokens = $null; $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($pkgBuilderPs, [ref]$tokens, [ref]$errors)
+        return ($hasBom -and $errors.Count -eq 0)
+    } -ExpectedState "Build-ProductionPackage.ps1 UTF-8 BOM y 0 errores AST" -DetailMessage "BOM: True"
+
+    Assert-Contract "Assert: Build-ProductionPackage.cmd existe, es No-BOM y contiene soporte -STA (PLAN-0161)" {
+        if (-not (Test-Path $pkgBuilderCmd)) { return $false }
+        $cmdB = [System.IO.File]::ReadAllBytes($pkgBuilderCmd)
+        $hasBom = ($cmdB.Length -ge 3 -and $cmdB[0] -eq 0xEF -and $cmdB[1] -eq 0xBB -and $cmdB[2] -eq 0xBF)
+        $content = Get-Content -LiteralPath $pkgBuilderCmd -Raw
+        return (-not $hasBom -and ($content -match '-STA'))
+    } -ExpectedState "Build-ProductionPackage.cmd No-BOM y con flag -STA" -DetailMessage "No-BOM: True"
+
+    Assert-Contract "Assert: Build-ProductionPackage.ps1 ejecuta simulación diagnóstica (-WhatIf -PassThru) con éxito" {
+        $simPkg = & $pkgBuilderPs -WhatIf -PassThru
+        return ($null -ne $simPkg -and $simPkg.Success -eq $true -and $simPkg.FilesCopied -gt 100)
+    } -ExpectedState "Success=True y FilesCopied > 100" -DetailMessage "Success: True"
 } else {
     Assert-Contract "Existencia de módulos del Lote 4 en scripts/GUI y scripts/Drivers" { return $false }
 }

@@ -91,18 +91,20 @@ Auditados los 187 scripts del repositorio contra las 22 reglas de gobernanza:
   - [x] Actualizar `scripts/Modules/Manage-SystemSnapshots.ps1` para resolver automáticamente el snapshot más reciente si se omite `-SnapshotId` o se especifica `'Latest'`.
 * **Criterio de Aceptación:** `Test-GuiIntegrityAndFunctionality.ps1` certifica 122/122 botones cableados y 0 dead buttons (100% PASS). 112/112 aserciones en `Test-FunctionalContracts.ps1` PASS (100%).
 
-### Fase 4: Script Empaquetador de Distribución (`Build-ProductionPackage.ps1`)
+### Fase 4: Script Empaquetador de Distribución (`Build-ProductionPackage.ps1`) [COMPLETADA]
 * **Objetivo:** Ensamblar el producto final portátil para USB y GitHub Releases sin contaminar el repositorio Git (Regla 6).
 * **Tareas Específicas:**
-  - [ ] Crear `scripts/Builder/Build-ProductionPackage.ps1`:
-    - Ensambla la carpeta `dist/romanOS-USB-Portable/` incluyendo:
-      * `Lanzar-romanOS.cmd` y `Lanzar-romanOS.ps1`
-      * `scripts/Core/`, `scripts/GUI/`, `scripts/Modules/`, `scripts/Drivers/`, `scripts/Desktop-Helpers/`, `scripts/Host-Tools/`
-      * Presets universales (`Preset_Gaming_Universal.json`, `Preset_Workstation_Universal.json`)
-      * Copia verificada de `tools/` (`wimlib-imagex.exe`, `Coreinfo64.exe`, `sigcheck64.exe`, `es.exe`)
+  - [x] Crear `scripts/Builder/Build-ProductionPackage.ps1` (UTF-8 con BOM):
+    - Ensambla la carpeta `dist/romanOS-USB-Portable/` (177 archivos, 6.96 MB) incluyendo:
+      * `Lanzar-romanOS.cmd`, `Lanzar-romanOS.ps1` y `LEAME-PRIMERO.txt`
+      * `scripts/Core/`, `scripts/GUI/`, `scripts/Modules/`, `scripts/Drivers/`, `scripts/Desktop-Helpers/`, `scripts/Host-Tools/`, `scripts/Builder/`
+      * Presets universales (`Preset_Gaming_Universal.json`, `Preset_Workstation_Universal.json`, `Preset_romanOS_Studio.json`)
+      * Copia verificada de `tools/` (`wimlib/`, `sysinternals/`, `everything/`)
     - Exclusión estricta de `scripts/Testing/`, `.agents/`, `.git/`, logs y basuras.
-    - Genera el archivo comprimido `dist/romanOS-Universal-v3.0.0.zip`.
-* **Criterio de Aceptación:** El ZIP generado se descomprime y ejecuta de forma autónoma en modo simulado sin fallos de dependencias.
+    - Genera el archivo comprimido `dist/romanOS-Universal-v3.0.0.zip` (2.72 MB) y manifiesto criptográfico SHA-256 (`.sha256`).
+  - [x] Crear `scripts/Builder/Build-ProductionPackage.cmd` (Win32 No-BOM con soporte `-STA` y auto-elevación).
+  - [x] Integrar aserciones de regresión en `Test-FunctionalContracts.ps1` (CTR-49: 115/115 PASS).
+* **Criterio de Aceptación:** El ZIP generado se descomprime y ejecuta de forma autónoma en modo simulado sin fallos de dependencias (probado empíricamente en `scratch/test_portable_unpack`: 177 archivos, Status: PASS).
 
 ### Fase 5: Certificación Repo-Wide y Salida Oficial a Git
 * **Objetivo:** Promover el ecosistema validado hacia la rama `main` y publicar la versión oficial.

@@ -51,3 +51,7 @@ Runtimes/
 # Herramientas y utilidades locales portables (wimlib, parsers)
 tools/
 bin/
+
+# Distribución empaquetada y artefactos portables (Regla 6)
+dist/
+*.zip
