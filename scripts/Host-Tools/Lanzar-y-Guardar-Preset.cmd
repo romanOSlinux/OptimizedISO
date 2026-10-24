@@ -1,5 +1,5 @@
 @echo off
-:: Lanzador con Elevacion Automatica de Privilegios para romanOS Builder
+:: Lanzador para grabar opciones interactivas en un archivo JSON (Preset)
 :: Regla 4: Soporte Grafico STA Obligatorio
 echo.
 echo =======================================================
@@ -15,14 +15,14 @@ if %errorLevel% == 0 (
 )
 
 :RunScript
-echo Privilegios obtenidos. Iniciando New-OptimizedWindowsISO-v2.ps1...
-cd /d "%~dp0"
-:: Lanzar con STA, ExecutionPolicy Bypass en una ventana visible
-powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File ".\scripts\Builder\New-OptimizedWindowsISO-v2.ps1"
+echo Privilegios obtenidos. Iniciando Builder en modo Grabacion de Preset...
+cd /d "%~dp0..\.."
+:: Lanzar con STA, ExecutionPolicy Bypass en una ventana visible y con el parametro -SavePreset
+powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File ".\scripts\Builder\New-OptimizedWindowsISO-v2.ps1" -SavePreset
 
 echo.
 echo =======================================================
-echo   El proceso de creacion de ISO ha finalizado.
+echo   Proceso finalizado. Revisa la carpeta en busqueda del JSON.
 echo =======================================================
 pause
 
