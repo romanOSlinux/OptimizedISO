@@ -82,6 +82,11 @@ if ($env:WINDIR) {
 }
 $baseDirs += "C:\Windows\Setup\Scripts"
 $baseDirs += (Get-Location).Path
+$baseDirs += "C:\OptimizedISO"
+$baseDirs += "D:\OptimizedISO"
+if ($env:SystemDrive) {
+    $baseDirs += (Join-Path $env:SystemDrive "OptimizedISO")
+}
 
 $controlCenterScript = $null
 $policyEngineScript = $null
@@ -134,12 +139,22 @@ if ($executionMode -eq "Web-Remote-Bootstrap") {
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13
         $tempDir = Join-Path $env:TEMP "romanOS_Universal"
         if (-not (Test-Path $tempDir)) { New-Item -Path $tempDir -ItemType Directory -Force | Out-Null }
+        $coreDir = Join-Path $tempDir "Core"
+        if (-not (Test-Path $coreDir)) { New-Item -Path $coreDir -ItemType Directory -Force | Out-Null }
+        $modulesDir = Join-Path $tempDir "Modules"
+        if (-not (Test-Path $modulesDir)) { New-Item -Path $modulesDir -ItemType Directory -Force | Out-Null }
 
         $filesToFetch = @(
             @{ Remote = "$RepoUrl/scripts/Core/Policy-Engine.ps1"; Local = (Join-Path $tempDir "Policy-Engine.ps1") },
+            @{ Remote = "$RepoUrl/scripts/Core/Policy-Engine.ps1"; Local = (Join-Path $coreDir "Policy-Engine.ps1") },
             @{ Remote = "$RepoUrl/scripts/Core/Hardware-Engine.ps1"; Local = (Join-Path $tempDir "Hardware-Engine.ps1") },
+            @{ Remote = "$RepoUrl/scripts/Core/Hardware-Engine.ps1"; Local = (Join-Path $coreDir "Hardware-Engine.ps1") },
             @{ Remote = "$RepoUrl/scripts/Core/UI-Engine.ps1"; Local = (Join-Path $tempDir "UI-Engine.ps1") },
-            @{ Remote = "$RepoUrl/scripts/GUI/romanOS-ControlCenter.ps1"; Local = (Join-Path $tempDir "romanOS-ControlCenter.ps1") }
+            @{ Remote = "$RepoUrl/scripts/Core/UI-Engine.ps1"; Local = (Join-Path $coreDir "UI-Engine.ps1") },
+            @{ Remote = "$RepoUrl/scripts/GUI/romanOS-ControlCenter.ps1"; Local = (Join-Path $tempDir "romanOS-ControlCenter.ps1") },
+            @{ Remote = "$RepoUrl/scripts/Modules/Desktop-Helpers.ps1"; Local = (Join-Path $modulesDir "Desktop-Helpers.ps1") },
+            @{ Remote = "$RepoUrl/scripts/Modules/Win11-Network-Diagnostics-Optimizer.ps1"; Local = (Join-Path $modulesDir "Win11-Network-Diagnostics-Optimizer.ps1") },
+            @{ Remote = "$RepoUrl/scripts/Modules/Deploy-AppProfiles.ps1"; Local = (Join-Path $modulesDir "Deploy-AppProfiles.ps1") }
         )
 
         foreach ($item in $filesToFetch) {

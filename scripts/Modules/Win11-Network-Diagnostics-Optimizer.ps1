@@ -435,8 +435,8 @@ if ($FlushDNSOnly) {
     Exit 0
 }
 
-# Si fue invocado mediante dot-sourcing (como modulo de funciones), finalizar aqui exportando las funciones
-if ($MyInvocation.InvocationName -eq '.') {
+# Si fue invocado mediante dot-sourcing o con switch -Quiet (precarga de funciones), finalizar aqui exportando las funciones
+if ($Quiet -or $MyInvocation.InvocationName -eq '.') {
     return
 }
 
