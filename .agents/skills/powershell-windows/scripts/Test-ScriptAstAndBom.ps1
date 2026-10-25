@@ -36,8 +36,21 @@ foreach ($file in $targetFiles) {
     $resolved = $file.FullName
     $bytes = [System.IO.File]::ReadAllBytes($resolved)
     
-    # 1. Validar UTF-8 BOM (0xEF, 0xBB, 0xBF)
+    # 1. Validar Codificacion segun proposito arquitectonico
+    # Scripts estandar de PowerShell en disco requieren UTF-8 con BOM (Regla 4).
+    # EXCEPCION ARQUITECTONICA: Bootstrappers Web 1-Liner (Lanzar-romanOS.ps1) consumidos via
+    # 'irm | iex' DEBEN ser estrictamente UTF-8 No-BOM (puro ASCII). En PowerShell 5.1,
+    # 'irm' preserva el BOM como [char]0xFEFF, provocando que 'iex' colapse sintacticamente ("Token inesperado").
+    $isWebBootstrapper = ($file.Name -ieq "Lanzar-romanOS.ps1")
     $hasBOM = ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)
+    
+    $bomValid = if ($isWebBootstrapper) {
+        $isPureAscii = $true
+        foreach ($b in $bytes) { if ($b -gt 127) { $isPureAscii = $false; break } }
+        (-not $hasBOM -and $isPureAscii)
+    } else {
+        $hasBOM
+    }
     
     # 2. Validar AST Parser
     $content = [System.IO.File]::ReadAllText($resolved, [System.Text.Encoding]::UTF8)
@@ -46,10 +59,14 @@ foreach ($file in $targetFiles) {
     $ast = [System.Management.Automation.Language.Parser]::ParseInput($content, [ref]$tokens, [ref]$errors)
     
     $relPath = $resolved.Replace("c:\OptimizedISO\", "")
-    $statusBOM = if ($hasBOM) { "[BOM OK]" } else { "[NO BOM ❌]" }
+    $statusBOM = if ($isWebBootstrapper) {
+        if ($bomValid) { "[NO-BOM ASCII OK]" } else { "[BOM / NON-ASCII ❌]" }
+    } else {
+        if ($hasBOM) { "[BOM OK]" } else { "[NO BOM ❌]" }
+    }
     $statusAST = if ($errors.Count -eq 0) { "[AST 0 ERR]" } else { "[AST $($errors.Count) ERR ❌]" }
     
-    if ($hasBOM -and $errors.Count -eq 0) {
+    if ($bomValid -and $errors.Count -eq 0) {
         Write-Host "  ✅ PASS | $statusBOM $statusAST | $relPath" -ForegroundColor Green
         $passCount++
     } else {

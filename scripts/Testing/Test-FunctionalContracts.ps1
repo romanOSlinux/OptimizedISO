@@ -1501,14 +1501,16 @@ if ((Test-Path $ccPsPath) -and (Test-Path $studioPsPath) -and (Test-Path $toolki
     $universalPs  = Join-Path $workspaceRoot "Lanzar-romanOS.ps1"
     $universalCmd = Join-Path $workspaceRoot "Lanzar-romanOS.cmd"
 
-    Assert-Contract "Assert: Lanzar-romanOS.ps1 existe, codificado en UTF-8 con BOM y sin errores AST (PLAN-0161)" {
+    Assert-Contract "Assert: Lanzar-romanOS.ps1 existe, es UTF-8 No-BOM (Web 1-Liner ASCII) y sin errores AST (PLAN-0161)" {
         if (-not (Test-Path $universalPs)) { return $false }
         $b = [System.IO.File]::ReadAllBytes($universalPs)
         $hasBom = ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)
+        $isPureAscii = $true
+        foreach ($byte in $b) { if ($byte -gt 127) { $isPureAscii = $false; break } }
         $tokens = $null; $errors = $null
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($universalPs, [ref]$tokens, [ref]$errors)
-        return ($hasBom -and $errors.Count -eq 0)
-    } -ExpectedState "Lanzar-romanOS.ps1 UTF-8 BOM y 0 errores AST" -DetailMessage "BOM: True"
+        return (-not $hasBom -and $isPureAscii -and $errors.Count -eq 0)
+    } -ExpectedState "Lanzar-romanOS.ps1 UTF-8 No-BOM ASCII y 0 errores AST" -DetailMessage "No-BOM: True"
 
     Assert-Contract "Assert: Lanzar-romanOS.cmd existe, es No-BOM y contiene soporte -STA (PLAN-0161)" {
         if (-not (Test-Path $universalCmd)) { return $false }

@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Lanzador Universal Tri-Modal para el ecosistema romanOS (Windows 11).
 .DESCRIPTION
@@ -41,7 +41,7 @@ param(
 #  romanOS - Lanzador Universal Tri-Modal (PLAN-0161)
 # ==============================================================================
 
-$isSimulated = ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf') -or $WhatIfPreference)
+$isSimulated = ($null -ne $PSCmdlet -and $PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf')) -or [bool]$WhatIfPreference
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 # ------------------------------------------------------------------------------
@@ -58,7 +58,7 @@ if (-not $isAdmin -and -not $SkipElevation -and -not $isSimulated) {
             exit 0
         } else {
             # Modo Web en memoria (iex)
-            $webCmd = "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13; irm '$RepoUrl/Lanzar-romanOS.ps1' | iex"
+            $webCmd = "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13; `$r = irm '$RepoUrl/Lanzar-romanOS.ps1'; iex (`$r.TrimStart([char]0xFEFF))"
             Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -Command `"$webCmd`"" -Verb RunAs
             exit 0
         }
