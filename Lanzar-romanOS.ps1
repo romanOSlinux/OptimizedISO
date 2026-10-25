@@ -143,6 +143,12 @@ if ($executionMode -eq "Web-Remote-Bootstrap") {
         if (-not (Test-Path $coreDir)) { New-Item -Path $coreDir -ItemType Directory -Force | Out-Null }
         $modulesDir = Join-Path $tempDir "Modules"
         if (-not (Test-Path $modulesDir)) { New-Item -Path $modulesDir -ItemType Directory -Force | Out-Null }
+        $helpersDir = Join-Path $tempDir "Desktop-Helpers"
+        if (-not (Test-Path $helpersDir)) { New-Item -Path $helpersDir -ItemType Directory -Force | Out-Null }
+        $driversDir = Join-Path $tempDir "Drivers"
+        if (-not (Test-Path $driversDir)) { New-Item -Path $driversDir -ItemType Directory -Force | Out-Null }
+        $testingDir = Join-Path $tempDir "Testing"
+        if (-not (Test-Path $testingDir)) { New-Item -Path $testingDir -ItemType Directory -Force | Out-Null }
 
         $filesToFetch = @(
             @{ Remote = "$RepoUrl/scripts/Core/Policy-Engine.ps1"; Local = (Join-Path $tempDir "Policy-Engine.ps1") },
@@ -160,6 +166,55 @@ if ($executionMode -eq "Web-Remote-Bootstrap") {
         foreach ($item in $filesToFetch) {
             if (-not (Test-Path $item.Local) -or (Get-Item $item.Local).Length -eq 0) {
                 Invoke-WebRequest -Uri $item.Remote -OutFile $item.Local -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
+            }
+        }
+
+        $additionalModules = @(
+            @{ Sub = "Desktop-Helpers"; Name = "Toggle-WindowsUpdate.ps1" },
+            @{ Sub = "Desktop-Helpers"; Name = "Toggle-Defender.ps1" },
+            @{ Sub = "Desktop-Helpers"; Name = "Toggle-Bluetooth.ps1" },
+            @{ Sub = "Desktop-Helpers"; Name = "Toggle-Printing.ps1" },
+            @{ Sub = "Desktop-Helpers"; Name = "Toggle-FileSharing.ps1" },
+            @{ Sub = "Desktop-Helpers"; Name = "Toggle-VBS-CoreIsolation.ps1" },
+            @{ Sub = "Desktop-Helpers"; Name = "Toggle-Recall.ps1" },
+            @{ Sub = "Desktop-Helpers"; Name = "Set-FeatureUpdateDeferral.ps1" },
+            @{ Sub = "Desktop-Helpers"; Name = "Purge-PendingWindowsUpdate.ps1" },
+            @{ Sub = "Modules"; Name = "Win11-Debloat-v3-Adaptive.ps1" },
+            @{ Sub = "Modules"; Name = "Optimize-GamingAndApps.ps1" },
+            @{ Sub = "Modules"; Name = "Optimize-ProcessMemory.ps1" },
+            @{ Sub = "Modules"; Name = "Invoke-WindowsMaintenance.ps1" },
+            @{ Sub = "Modules"; Name = "Audit-SystemOptimization.ps1" },
+            @{ Sub = "Modules"; Name = "Trace-SystemLatency.ps1" },
+            @{ Sub = "Modules"; Name = "Test-StorageStackBypassIO.ps1" },
+            @{ Sub = "Modules"; Name = "Test-NetworkOffloadsAndRSS.ps1" },
+            @{ Sub = "Modules"; Name = "Optimize-InterruptAffinity.ps1" },
+            @{ Sub = "Modules"; Name = "Audit-FreshInstallFootprint.ps1" },
+            @{ Sub = "Modules"; Name = "Switch-GameDevMode.ps1" },
+            @{ Sub = "Modules"; Name = "Monitor-ThermalEnergy.ps1" },
+            @{ Sub = "Modules"; Name = "Optimize-CpuSilicon.ps1" },
+            @{ Sub = "Modules"; Name = "Optimize-StartupEcosystem.ps1" },
+            @{ Sub = "Modules"; Name = "Add-OptimizedContextMenus.ps1" },
+            @{ Sub = "Modules"; Name = "Manage-SystemSnapshots.ps1" },
+            @{ Sub = "Modules"; Name = "Watchdog-ServiceDrift.ps1" },
+            @{ Sub = "Modules"; Name = "Optimize-WebBrowsers.ps1" },
+            @{ Sub = "Modules"; Name = "Invoke-WindowsSecurityHardening.ps1" },
+            @{ Sub = "Modules"; Name = "PostInstall-Diagnostics.ps1" },
+            @{ Sub = "Modules"; Name = "Invoke-LiveSandbox.ps1" },
+            @{ Sub = "Modules"; Name = "Migrar-Usuario-W11.ps1" },
+            @{ Sub = "Drivers"; Name = "Backup-HardwareDrivers.ps1" },
+            @{ Sub = "Drivers"; Name = "Clean-DriverStore.ps1" },
+            @{ Sub = "Drivers"; Name = "Get-CriticalDrivers.ps1" },
+            @{ Sub = "Testing"; Name = "Test-UnattendXml.ps1" }
+        )
+
+        foreach ($mod in $additionalModules) {
+            $dest = Join-Path $tempDir "$($mod.Sub)\$($mod.Name)"
+            if (-not (Test-Path $dest) -or (Get-Item $dest).Length -eq 0) {
+                try {
+                    Invoke-WebRequest -Uri "$RepoUrl/scripts/$($mod.Sub)/$($mod.Name)" -OutFile $dest -UseBasicParsing -TimeoutSec 10 -ErrorAction SilentlyContinue
+                } catch {
+                    # Resolucion diferida on-demand al presionar el boton correspondiente
+                }
             }
         }
         $controlCenterScript = Join-Path $tempDir "romanOS-ControlCenter.ps1"

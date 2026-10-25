@@ -198,6 +198,14 @@ if ($desktopHelpersModule -and (Test-Path $desktopHelpersModule)) {
 }
 if ($scriptRoot -and (Test-Path $scriptRoot)) {
     $script:searchDirs += $scriptRoot
+    $script:searchDirs += @(
+        (Join-Path $scriptRoot "Modules"),
+        (Join-Path $scriptRoot "Desktop-Helpers"),
+        (Join-Path $scriptRoot "Drivers"),
+        (Join-Path $scriptRoot "Core"),
+        (Join-Path $scriptRoot "Testing"),
+        (Join-Path $scriptRoot "Host-Tools")
+    )
 }
 $script:searchDirs += @(
     "$env:WINDIR\Setup\Scripts",
@@ -212,8 +220,39 @@ $script:searchDirs += @(
     "C:\Windows\Setup\Scripts\Drivers",
     "C:\Windows\Setup\Scripts\Builder",
     "C:\Windows\Setup\Scripts\DesktopHelpers",
-    $(if ($env:PUBLIC) { "$env:PUBLIC\Desktop\romanOS Helpers" } else { "C:\Users\Public\Desktop\romanOS Helpers" })
+    $(if ($env:PUBLIC) { "$env:PUBLIC\Desktop\romanOS Helpers" } else { "C:\Users\Public\Desktop\romanOS Helpers" }),
+    "C:\OptimizedISO\scripts",
+    "C:\OptimizedISO\scripts\Modules",
+    "C:\OptimizedISO\scripts\Desktop-Helpers",
+    "C:\OptimizedISO\scripts\Drivers",
+    "C:\OptimizedISO\scripts\Core",
+    "C:\OptimizedISO\scripts\Testing",
+    "C:\OptimizedISO\scripts\Host-Tools",
+    "C:\OptimizedISO\scripts\GUI",
+    "D:\OptimizedISO\scripts",
+    "D:\OptimizedISO\scripts\Modules",
+    "D:\OptimizedISO\scripts\Desktop-Helpers",
+    "D:\OptimizedISO\scripts\Drivers",
+    "D:\OptimizedISO\scripts\Core",
+    "D:\OptimizedISO\scripts\Testing",
+    "D:\OptimizedISO\scripts\Host-Tools",
+    "D:\OptimizedISO\scripts\GUI",
+    (Join-Path $env:TEMP "romanOS_Universal"),
+    (Join-Path $env:TEMP "romanOS_Universal\Modules"),
+    (Join-Path $env:TEMP "romanOS_Universal\Desktop-Helpers"),
+    (Join-Path $env:TEMP "romanOS_Universal\Drivers"),
+    (Join-Path $env:TEMP "romanOS_Universal\Core"),
+    (Join-Path $env:TEMP "romanOS_Universal\Testing")
 )
+if ($env:SystemDrive) {
+    $script:searchDirs += @(
+        (Join-Path $env:SystemDrive "OptimizedISO\scripts"),
+        (Join-Path $env:SystemDrive "OptimizedISO\scripts\Modules"),
+        (Join-Path $env:SystemDrive "OptimizedISO\scripts\Desktop-Helpers"),
+        (Join-Path $env:SystemDrive "OptimizedISO\scripts\Drivers"),
+        (Join-Path $env:SystemDrive "OptimizedISO\scripts\Core")
+    )
+}
 if ($repoScriptsRoot -and (Test-Path $repoScriptsRoot)) {
     $script:searchDirs += @(
         (Join-Path $repoScriptsRoot "Modules"),
@@ -226,8 +265,53 @@ if ($repoScriptsRoot -and (Test-Path $repoScriptsRoot)) {
     )
 }
 
+$script:ToolCategoryMap = @{
+    "Optimize-ProcessMemory.ps1"               = "Modules"
+    "Invoke-WindowsMaintenance.ps1"            = "Modules"
+    "Audit-SystemOptimization.ps1"             = "Modules"
+    "Trace-SystemLatency.ps1"                  = "Modules"
+    "Test-StorageStackBypassIO.ps1"            = "Modules"
+    "Test-NetworkOffloadsAndRSS.ps1"           = "Modules"
+    "Optimize-InterruptAffinity.ps1"           = "Modules"
+    "Audit-FreshInstallFootprint.ps1"          = "Modules"
+    "Switch-GameDevMode.ps1"                   = "Modules"
+    "Win11-Debloat-v3-Adaptive.ps1"           = "Modules"
+    "Optimize-GamingAndApps.ps1"               = "Modules"
+    "Monitor-ThermalEnergy.ps1"                = "Modules"
+    "Optimize-CpuSilicon.ps1"                  = "Modules"
+    "Optimize-StartupEcosystem.ps1"            = "Modules"
+    "Add-OptimizedContextMenus.ps1"            = "Modules"
+    "Manage-SystemSnapshots.ps1"               = "Modules"
+    "Watchdog-ServiceDrift.ps1"                = "Modules"
+    "Optimize-WebBrowsers.ps1"                 = "Modules"
+    "Invoke-WindowsSecurityHardening.ps1"      = "Modules"
+    "PostInstall-Diagnostics.ps1"              = "Modules"
+    "Invoke-LiveSandbox.ps1"                   = "Modules"
+    "Migrar-Usuario-W11.ps1"                   = "Modules"
+    "Deploy-AppProfiles.ps1"                   = "Modules"
+    "Win11-Network-Diagnostics-Optimizer.ps1"  = "Modules"
+    "Desktop-Helpers.ps1"                      = "Modules"
+    "Toggle-WindowsUpdate.ps1"                 = "Desktop-Helpers"
+    "Toggle-Defender.ps1"                      = "Desktop-Helpers"
+    "Toggle-Bluetooth.ps1"                     = "Desktop-Helpers"
+    "Toggle-Printing.ps1"                      = "Desktop-Helpers"
+    "Toggle-FileSharing.ps1"                   = "Desktop-Helpers"
+    "Toggle-VBS-CoreIsolation.ps1"             = "Desktop-Helpers"
+    "Toggle-Recall.ps1"                        = "Desktop-Helpers"
+    "Set-FeatureUpdateDeferral.ps1"            = "Desktop-Helpers"
+    "Purge-PendingWindowsUpdate.ps1"           = "Desktop-Helpers"
+    "Backup-HardwareDrivers.ps1"               = "Drivers"
+    "Clean-DriverStore.ps1"                    = "Drivers"
+    "Get-CriticalDrivers.ps1"                  = "Drivers"
+    "Policy-Engine.ps1"                        = "Core"
+    "Hardware-Engine.ps1"                      = "Core"
+    "UI-Engine.ps1"                            = "Core"
+    "Test-UnattendXml.ps1"                     = "Testing"
+}
+
 function Resolve-ToolScript {
     param([string]$ScriptName)
+    # 1. Busqueda local en todas las rutas registradas
     foreach ($dir in $script:searchDirs) {
         if ($dir -and (Test-Path $dir)) {
             $candidate = Join-Path $dir $ScriptName
@@ -236,6 +320,26 @@ function Resolve-ToolScript {
             }
         }
     }
+
+    # 2. Descarga on-demand desde GitHub si no existe localmente
+    $category = if ($script:ToolCategoryMap.ContainsKey($ScriptName)) { $script:ToolCategoryMap[$ScriptName] } else { "Modules" }
+    $remoteRepo = "https://raw.githubusercontent.com/romanOSlinux/OptimizedISO/main"
+    $remoteUrl = "$remoteRepo/scripts/$category/$ScriptName"
+    $cacheDir = Join-Path $env:TEMP "romanOS_Universal\$category"
+    try {
+        if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+        $localCacheTarget = Join-Path $cacheDir $ScriptName
+        Write-CCLog "Intentando resolucion remota on-demand de: $ScriptName..."
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13
+        Invoke-WebRequest -Uri $remoteUrl -OutFile $localCacheTarget -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+        if ((Test-Path $localCacheTarget) -and (Get-Item $localCacheTarget).Length -gt 0) {
+            Write-CCLog "[OK] Modulo descargado exitosamente en cache efimera: $localCacheTarget"
+            return $localCacheTarget
+        }
+    } catch {
+        Write-CCLog "Aviso: No se pudo resolver '$ScriptName' remotamente: $($_.Exception.Message)" "WARN"
+    }
+
     return $null
 }
 
@@ -1724,6 +1828,41 @@ function Start-ControlCenterTask {
     $timer.Start()
 }
 
+function Invoke-ControlCenterTool {
+    param(
+        [Parameter(Mandatory=$true)][string]$ScriptName,
+        [string]$Arguments = "",
+        [Parameter(Mandatory=$true)][string]$TaskTitle,
+        [switch]$UseSTA
+    )
+    $tool = Resolve-ToolScript $ScriptName
+    if ($tool -and (Test-Path $tool)) {
+        $staFlag = if ($UseSTA) { "-STA " } else { "" }
+        Start-ControlCenterTask -CommandLine "$staFlag-NoProfile -ExecutionPolicy Bypass -File `"$tool`" $Arguments" -TaskTitle $TaskTitle
+    } else {
+        $msg = "No se pudo localizar ni descargar la herramienta requerida: '$ScriptName'.`r`n`r`nVerifique su conexion a Internet o ejecute romanOS desde la carpeta del repositorio."
+        Write-CCLog "[ERROR] $msg" -Level "ERROR"
+        $txtConsole = $window.FindName('txtConsole')
+        if ($txtConsole) {
+            $txtConsole.AppendText("`r`n════════════════════════════════════════════════════════════════`r`n")
+            $txtConsole.AppendText("[ERROR CRITICO] $msg`r`n")
+            $txtConsole.AppendText("════════════════════════════════════════════════════════════════`r`n")
+            $txtConsole.ScrollToEnd()
+        }
+        $tabControl = $window.FindName('tabControlMain')
+        $tabLogs = $window.FindName('tabItemLogs')
+        if ($tabControl -and $tabLogs) {
+            $tabControl.SelectedItem = $tabLogs
+        }
+        [System.Windows.MessageBox]::Show(
+            $msg,
+            "romanOS Control Center — Herramienta no disponible",
+            [System.Windows.MessageBoxButton]::OK,
+            [System.Windows.MessageBoxImage]::Warning
+        )
+    }
+}
+
 # -----------------------------------------------------------------------------
 # 5. ENLACE DE EVENTOS UI Y ACCIONES
 # -----------------------------------------------------------------------------
@@ -1806,8 +1945,7 @@ if ($btnExportProf) {
 
 # --- Pestaña 1: Acciones Rapidas ---
 $window.FindName('btnQuickTrim').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-ProcessMemory.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Poda de Memoria RAM (Working Set)" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-ProcessMemory.ps1" -Arguments "-Unattended" -TaskTitle "Poda de Memoria RAM (Working Set)"
 })
 
 $window.FindName('btnQuickFlushDns').Add_Click({
@@ -1835,43 +1973,35 @@ $window.FindName('btnQuickSfc').Add_Click({
 })
 
 $window.FindName('btnQuickShaders').Add_Click({
-    $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ShadersOnly -Unattended" -TaskTitle "Purga de Shaders GPU" }
+    Invoke-ControlCenterTool -ScriptName "Invoke-WindowsMaintenance.ps1" -Arguments "-ShadersOnly -Unattended" -TaskTitle "Purga de Shaders GPU"
 })
 
 $window.FindName('btnQuickTrimSSD').Add_Click({
-    $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -TrimOnly -Unattended" -TaskTitle "SSD TRIM en Unidades" }
+    Invoke-ControlCenterTool -ScriptName "Invoke-WindowsMaintenance.ps1" -Arguments "-TrimOnly -Unattended" -TaskTitle "SSD TRIM en Unidades"
 })
 
 $window.FindName('btnQuickAudit').Add_Click({
-    $tool = Resolve-ToolScript "Audit-SystemOptimization.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Auditoria Universal de Optimizacion" }
+    Invoke-ControlCenterTool -ScriptName "Audit-SystemOptimization.ps1" -TaskTitle "Auditoria Universal de Optimizacion"
 })
 
 $window.FindName('btnQuickLatency').Add_Click({
-    $tool = Resolve-ToolScript "Trace-SystemLatency.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -DurationSeconds 5" -TaskTitle "Test Forense de Latencia DPC/ISR (5 segundos)" }
+    Invoke-ControlCenterTool -ScriptName "Trace-SystemLatency.ps1" -Arguments "-DurationSeconds 5" -TaskTitle "Test Forense de Latencia DPC/ISR (5 segundos)" -UseSTA
 })
 
 $window.FindName('btnQuickStorageAudit').Add_Click({
-    $tool = Resolve-ToolScript "Test-StorageStackBypassIO.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Auditoria Forense de Storage y BypassIO" }
+    Invoke-ControlCenterTool -ScriptName "Test-StorageStackBypassIO.ps1" -TaskTitle "Auditoria Forense de Storage y BypassIO" -UseSTA
 })
 
 $window.FindName('btnQuickNetAudit').Add_Click({
-    $tool = Resolve-ToolScript "Test-NetworkOffloadsAndRSS.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Auditoria Forense de Red NDIS y UDP RSC" }
+    Invoke-ControlCenterTool -ScriptName "Test-NetworkOffloadsAndRSS.ps1" -TaskTitle "Auditoria Forense de Red NDIS y UDP RSC" -UseSTA
 })
 
 $window.FindName('btnQuickAffinity').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status -Unattended" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-InterruptAffinity.ps1" -Arguments "-Action Status -Unattended" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" -UseSTA
 })
 
 $window.FindName('btnQuickFootprint').Add_Click({
-    $tool = Resolve-ToolScript "Audit-FreshInstallFootprint.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Auditoria Forense de Huella en Reposo (RAM / Procesos)" }
+    Invoke-ControlCenterTool -ScriptName "Audit-FreshInstallFootprint.ps1" -TaskTitle "Auditoria Forense de Huella en Reposo (RAM / Procesos)" -UseSTA
 })
 
 $window.FindName('btnQuickRestoreServices').Add_Click({
@@ -2037,18 +2167,15 @@ $window.FindName('btnOpenHelpersFolder').Add_Click({
 
 # --- Pestaña 2: Gaming & Rendimiento Adaptativo ---
 $window.FindName('btnGameAggressive').Add_Click({
-    $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Game -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Juego Adaptativo (Hardware-Aware)" }
+    Invoke-ControlCenterTool -ScriptName "Switch-GameDevMode.ps1" -Arguments "-Mode Game -Unattended -SkipElevation" -TaskTitle "Conmutador: Modo Juego Adaptativo (Hardware-Aware)"
 })
 
 $window.FindName('btnGameLight').Add_Click({
-    $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Status -Unattended -SkipElevation" -TaskTitle "Conmutador: Auditoria de Estado y Silicio" }
+    Invoke-ControlCenterTool -ScriptName "Switch-GameDevMode.ps1" -Arguments "-Mode Status -Unattended -SkipElevation" -TaskTitle "Conmutador: Auditoria de Estado y Silicio"
 })
 
 $window.FindName('btnDevMode').Add_Click({
-    $tool = Resolve-ToolScript "Switch-GameDevMode.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Mode Normal -Unattended -SkipElevation" -TaskTitle "Conmutador: Restaurar Modo Normal (Estandar Windows)" }
+    Invoke-ControlCenterTool -ScriptName "Switch-GameDevMode.ps1" -Arguments "-Mode Normal -Unattended -SkipElevation" -TaskTitle "Conmutador: Restaurar Modo Normal (Estandar Windows)"
 })
 
 $window.FindName('btnToggleHypervisor').Add_Click({
@@ -2064,8 +2191,7 @@ $window.FindName('btnToggleHypervisor').Add_Click({
 })
 
 $window.FindName('btnAuditDebloat').Add_Click({
-    $tool = Resolve-ToolScript "Win11-Debloat-v3-Adaptive.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -AuditOnly" -TaskTitle "Auditoría de Bloatware (Solo Lectura - Cero Modificaciones)" }
+    Invoke-ControlCenterTool -ScriptName "Win11-Debloat-v3-Adaptive.ps1" -Arguments "-AuditOnly" -TaskTitle "Auditoría de Bloatware (Solo Lectura - Cero Modificaciones)" -UseSTA
 })
 
 $window.FindName('btnRunDebloatInteractive').Add_Click({
@@ -2081,126 +2207,106 @@ $window.FindName('btnRunDebloatInteractive').Add_Click({
             Write-CCLog "Iniciando Debloat Adaptativo en ventana interactiva con selección visual..."
             Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`""
         }
+    } else {
+        [System.Windows.MessageBox]::Show("No se pudo localizar el script Win11-Debloat-v3-Adaptive.ps1.", "romanOS Control Center — Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
     }
 })
 
 $window.FindName('btnRunGamingApps').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-GamingAndApps.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended -SkipElevation" -TaskTitle "Optimizacion de Juegos, Apps Electron y VRAM" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-GamingAndApps.ps1" -Arguments "-Unattended -SkipElevation" -TaskTitle "Optimizacion de Juegos, Apps Electron y VRAM" -UseSTA
 })
 
 $window.FindName('btnRunLatencyProfiler').Add_Click({
-    $tool = Resolve-ToolScript "Trace-SystemLatency.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -DurationSeconds 5" -TaskTitle "Profiler Forense de Latencia DPC/ISR en Vivo" }
+    Invoke-ControlCenterTool -ScriptName "Trace-SystemLatency.ps1" -Arguments "-DurationSeconds 5" -TaskTitle "Profiler Forense de Latencia DPC/ISR en Vivo" -UseSTA
 })
 
 $btnShaders = $window.FindName('btnPurgeGpuShaders')
 if ($btnShaders) {
     $btnShaders.Add_Click({
-        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
-        if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ShadersOnly -Unattended" -TaskTitle "Purgado de Shaders GPU (DirectX, Vulkan, NVIDIA, AMD)" }
+        Invoke-ControlCenterTool -ScriptName "Invoke-WindowsMaintenance.ps1" -Arguments "-ShadersOnly -Unattended" -TaskTitle "Purgado de Shaders GPU (DirectX, Vulkan, NVIDIA, AMD)"
     })
 }
 
 # Thermal & Energy Profiler Handlers
 $window.FindName('btnAuditThermal').Add_Click({
-    $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status -SkipElevation" -TaskTitle "Auditoria Termica y de Throttling" }
+    Invoke-ControlCenterTool -ScriptName "Monitor-ThermalEnergy.ps1" -Arguments "-Action Status -SkipElevation" -TaskTitle "Auditoria Termica y de Throttling" -UseSTA
 })
 
 $window.FindName('btnLiveThermalMonitor').Add_Click({
-    $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Monitor -SampleDurationSec 5 -SkipElevation" -TaskTitle "Monitoreo Termico en Vivo (5s)" }
+    Invoke-ControlCenterTool -ScriptName "Monitor-ThermalEnergy.ps1" -Arguments "-Action Monitor -SampleDurationSec 5 -SkipElevation" -TaskTitle "Monitoreo Termico en Vivo (5s)" -UseSTA
 })
 
 $window.FindName('btnCalibrateUltimateEnergy').Add_Click({
-    $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action CalibrateEnergy -EnergyProfile Ultimate -Unattended" -TaskTitle "Calibracion Energetica & Core Unparking" }
+    Invoke-ControlCenterTool -ScriptName "Monitor-ThermalEnergy.ps1" -Arguments "-Action CalibrateEnergy -EnergyProfile Ultimate -Unattended" -TaskTitle "Calibracion Energetica & Core Unparking" -UseSTA
 })
 
 $btnAdaptCpu = $window.FindName('btnAdaptiveCpuOptimizer')
 if ($btnAdaptCpu) {
     $btnAdaptCpu.Add_Click({
-        $tool = Resolve-ToolScript "Optimize-CpuSilicon.ps1"
-        if ($tool) {
-            Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Optimize -Unattended" -TaskTitle "Optimizacion Polimorfica de CPU por Arquitectura (PLAN-0150)"
-        } else {
-            Write-CCLog "No se encontro Optimize-CpuSilicon.ps1 en rutas conocidas" -Level "WARN"
-        }
+        Invoke-ControlCenterTool -ScriptName "Optimize-CpuSilicon.ps1" -Arguments "-Action Optimize -Unattended" -TaskTitle "Optimizacion Polimorfica de CPU por Arquitectura (PLAN-0150)" -UseSTA
     })
 }
 
 $btnAudWake = $window.FindName('btnAuditWakeTimers')
 if ($btnAudWake) {
     $btnAudWake.Add_Click({
-        $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
-        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action AuditWakeTimers -SkipElevation" -TaskTitle "Auditoria de Wake Timers y Reposo S0ix" }
+        Invoke-ControlCenterTool -ScriptName "Monitor-ThermalEnergy.ps1" -Arguments "-Action AuditWakeTimers -SkipElevation" -TaskTitle "Auditoria de Wake Timers y Reposo S0ix" -UseSTA
     })
 }
 
 $btnDisWake = $window.FindName('btnDisableWakeTimers')
 if ($btnDisWake) {
     $btnDisWake.Add_Click({
-        $tool = Resolve-ToolScript "Monitor-ThermalEnergy.ps1"
-        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action DisableWakeTimers -Unattended" -TaskTitle "Neutralizacion de Wake Timers Parasitos & Blindaje S0ix" }
+        Invoke-ControlCenterTool -ScriptName "Monitor-ThermalEnergy.ps1" -Arguments "-Action DisableWakeTimers -Unattended" -TaskTitle "Neutralizacion de Wake Timers Parasitos & Blindaje S0ix" -UseSTA
     })
 }
 
 # PCIe Interrupt Affinity & IRQ Priority Handlers
 $window.FindName('btnAuditAffinityGUI').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status -Unattended" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-InterruptAffinity.ps1" -Arguments "-Action Status -Unattended" -TaskTitle "Auditoria de Topologia PCIe y Afinidad IRQ" -UseSTA
 })
 
 $window.FindName('btnOptimizeAffinityGUI').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Optimize -Unattended" -TaskTitle "Calibracion de Afinidad PCIe y DPC Steering" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-InterruptAffinity.ps1" -Arguments "-Action Optimize -Unattended" -TaskTitle "Calibracion de Afinidad PCIe y DPC Steering" -UseSTA
 })
 
 $window.FindName('btnResetAffinityGUI').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-InterruptAffinity.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Reset -Unattended" -TaskTitle "Restauracion de Politicas IRQ de Hardware" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-InterruptAffinity.ps1" -Arguments "-Action Reset -Unattended" -TaskTitle "Restauracion de Politicas IRQ de Hardware" -UseSTA
 })
 
 # Handlers: Gobernanza Integral de Inicio y Servicios a Demanda (PLAN-0159)
 $btnAuditStartup = $window.FindName('btnAuditStartupGUI')
 if ($btnAuditStartup) {
     $btnAuditStartup.Add_Click({
-        $tool = Resolve-ToolScript "Optimize-StartupEcosystem.ps1"
-        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status -Unattended" -TaskTitle "Auditoria de Ecosistema de Inicio y Servicios" }
+        Invoke-ControlCenterTool -ScriptName "Optimize-StartupEcosystem.ps1" -Arguments "-Action Status -Unattended" -TaskTitle "Auditoria de Ecosistema de Inicio y Servicios" -UseSTA
     })
 }
 
 $btnOptStartup = $window.FindName('btnOptimizeStartupGUI')
 if ($btnOptStartup) {
     $btnOptStartup.Add_Click({
-        $tool = Resolve-ToolScript "Optimize-StartupEcosystem.ps1"
-        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Optimize -Unattended" -TaskTitle "Gobernanza de Inicio y Servicios a Demanda" }
+        Invoke-ControlCenterTool -ScriptName "Optimize-StartupEcosystem.ps1" -Arguments "-Action Optimize -Unattended" -TaskTitle "Gobernanza de Inicio y Servicios a Demanda" -UseSTA
     })
 }
 
 $btnRestStartup = $window.FindName('btnRestoreStartupGUI')
 if ($btnRestStartup) {
     $btnRestStartup.Add_Click({
-        $tool = Resolve-ToolScript "Optimize-StartupEcosystem.ps1"
-        if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Restore -Unattended" -TaskTitle "Restauracion de Inicio y Servicios" }
+        Invoke-ControlCenterTool -ScriptName "Optimize-StartupEcosystem.ps1" -Arguments "-Action Restore -Unattended" -TaskTitle "Restauracion de Inicio y Servicios" -UseSTA
     })
 }
 
 # Handlers: Menus Contextuales Optimizados
 $window.FindName('btnEnableClassicMenu').Add_Click({
-    $tool = Resolve-ToolScript "Add-OptimizedContextMenus.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -EnableClassicMenu -RestartExplorer" -TaskTitle "Habilitar Menu Contextual Clasico (1-Clic)" }
+    Invoke-ControlCenterTool -ScriptName "Add-OptimizedContextMenus.ps1" -Arguments "-EnableClassicMenu -RestartExplorer" -TaskTitle "Habilitar Menu Contextual Clasico (1-Clic)" -UseSTA
 })
 
 $window.FindName('btnApplyFullContextMenu').Add_Click({
-    $tool = Resolve-ToolScript "Add-OptimizedContextMenus.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Apply -RestartExplorer" -TaskTitle "Aplicar Suite Completa Gamer & Power-User" }
+    Invoke-ControlCenterTool -ScriptName "Add-OptimizedContextMenus.ps1" -Arguments "-Apply -RestartExplorer" -TaskTitle "Aplicar Suite Completa Gamer & Power-User" -UseSTA
 })
 
 $window.FindName('btnRestoreModernMenu').Add_Click({
-    $tool = Resolve-ToolScript "Add-OptimizedContextMenus.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -RestoreModernMenu -RestartExplorer" -TaskTitle "Restaurar Menu Moderno Windows 11" }
+    Invoke-ControlCenterTool -ScriptName "Add-OptimizedContextMenus.ps1" -Arguments "-RestoreModernMenu -RestartExplorer" -TaskTitle "Restaurar Menu Moderno Windows 11" -UseSTA
 })
 
 # --- Pestaña 3: Mantenimiento ---
@@ -2216,30 +2322,21 @@ if ($btnRefreshDisk) {
 $btnAuditSpace = $window.FindName('btnAuditInvisibleSpace')
 if ($btnAuditSpace) {
     $btnAuditSpace.Add_Click({
-        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
-        if ($tool) {
-            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -AuditStorage -Unattended" -TaskTitle "Auditoria Forense de Espacio Oculto y Residuos"
-        }
+        Invoke-ControlCenterTool -ScriptName "Invoke-WindowsMaintenance.ps1" -Arguments "-AuditStorage -Unattended" -TaskTitle "Auditoria Forense de Espacio Oculto y Residuos"
     })
 }
 
 $btnAnalyzeSxS = $window.FindName('btnAnalyzeWinSxS')
 if ($btnAnalyzeSxS) {
     $btnAnalyzeSxS.Add_Click({
-        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
-        if ($tool) {
-            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -AnalyzeOnly -Unattended" -TaskTitle "Auditoria de Componentes WinSxS (DISM)"
-        }
+        Invoke-ControlCenterTool -ScriptName "Invoke-WindowsMaintenance.ps1" -Arguments "-AnalyzeOnly -Unattended" -TaskTitle "Auditoria de Componentes WinSxS (DISM)"
     })
 }
 
 $btnTrim = $window.FindName('btnRunDiskTrim')
 if ($btnTrim) {
     $btnTrim.Add_Click({
-        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
-        if ($tool) {
-            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -IncludeTrim -Unattended" -TaskTitle "Optimizacion de Almacenamiento SSD (TRIM)"
-        }
+        Invoke-ControlCenterTool -ScriptName "Invoke-WindowsMaintenance.ps1" -Arguments "-IncludeTrim -Unattended" -TaskTitle "Optimizacion de Almacenamiento SSD (TRIM)"
     })
 }
 
@@ -2295,6 +2392,8 @@ if ($btnMaintBatch) {
 
             $argsStr = if ($argsList.Count -gt 0) { $argsList -join " " } else { "-DeepClean -ResetBase" }
             Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" $argsStr -Unattended" -TaskTitle "Higiene y Limpieza Profunda del Sistema Operativo"
+        } else {
+            Invoke-ControlCenterTool -ScriptName "Invoke-WindowsMaintenance.ps1" -Arguments "-DeepClean -ResetBase -Unattended" -TaskTitle "Higiene y Limpieza Profunda del Sistema Operativo"
         }
     })
 }
@@ -2302,10 +2401,7 @@ if ($btnMaintBatch) {
 $btnExpress = $window.FindName('btnRunMaintenanceExpress')
 if ($btnExpress) {
     $btnExpress.Add_Click({
-        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
-        if ($tool) {
-            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Express -Unattended" -TaskTitle "Saneamiento Rapido Express de Sistema"
-        }
+        Invoke-ControlCenterTool -ScriptName "Invoke-WindowsMaintenance.ps1" -Arguments "-Express -Unattended" -TaskTitle "Saneamiento Rapido Express de Sistema"
     })
 }
 
@@ -2313,10 +2409,7 @@ if ($btnExpress) {
 $btnSysRepair = $window.FindName('btnRunSystemRepair')
 if ($btnSysRepair) {
     $btnSysRepair.Add_Click({
-        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
-        if ($tool) {
-            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -IncludeRepair -Unattended" -TaskTitle "Reparacion Integral de Archivos Protegidos (SFC + DISM)"
-        }
+        Invoke-ControlCenterTool -ScriptName "Invoke-WindowsMaintenance.ps1" -Arguments "-IncludeRepair -Unattended" -TaskTitle "Reparacion Integral de Archivos Protegidos (SFC + DISM)"
     })
 }
 
@@ -2331,10 +2424,7 @@ if ($btnWmiNtfs) {
 $btnNgen = $window.FindName('btnRunNgenCompile')
 if ($btnNgen) {
     $btnNgen.Add_Click({
-        $tool = Resolve-ToolScript "Invoke-WindowsMaintenance.ps1"
-        if ($tool) {
-            Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -IncludeNgen -Unattended" -TaskTitle "Precompilacion Nativa de Ensamblados .NET (ngen.exe)"
-        }
+        Invoke-ControlCenterTool -ScriptName "Invoke-WindowsMaintenance.ps1" -Arguments "-IncludeNgen -Unattended" -TaskTitle "Precompilacion Nativa de Ensamblados .NET (ngen.exe)"
     })
 }
 
@@ -2359,24 +2449,15 @@ function Refresh-CCSnapshotsComboBox {
 }
 
 $window.FindName('btnQuickSnapshot').Add_Click({
-    $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
-    if ($tool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Create -Name `"QuickSnapshot`" -Unattended" -TaskTitle "Creacion de Instantanea de Seguridad"
-    }
+    Invoke-ControlCenterTool -ScriptName "Manage-SystemSnapshots.ps1" -Arguments "-Action Create -Name `"QuickSnapshot`" -Unattended" -TaskTitle "Creacion de Instantanea de Seguridad" -UseSTA
 })
 
 $window.FindName('btnCreateSnapshotGUI').Add_Click({
-    $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
-    if ($tool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Create -Name `"ControlCenterSnapshot`" -Unattended" -TaskTitle "Creacion de Instantanea de Seguridad"
-    }
+    Invoke-ControlCenterTool -ScriptName "Manage-SystemSnapshots.ps1" -Arguments "-Action Create -Name `"ControlCenterSnapshot`" -Unattended" -TaskTitle "Creacion de Instantanea de Seguridad" -UseSTA
 })
 
 $window.FindName('btnCreateVssPoint').Add_Click({
-    $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
-    if ($tool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action CreateVSS -Name `"ControlCenterVSS`" -Unattended" -TaskTitle "Creacion de Punto de Restauracion VSS"
-    }
+    Invoke-ControlCenterTool -ScriptName "Manage-SystemSnapshots.ps1" -Arguments "-Action CreateVSS -Name `"ControlCenterVSS`" -Unattended" -TaskTitle "Creacion de Punto de Restauracion VSS" -UseSTA
 })
 
 $window.FindName('btnRestoreSnapshotGUI').Add_Click({
@@ -2388,10 +2469,7 @@ $window.FindName('btnRestoreSnapshotGUI').Add_Click({
     }
     $res = [System.Windows.MessageBox]::Show("¿Esta seguro de que desea restaurar la configuracion del snapshot '$selectedSnap'?`r`n`r`nEsto revertira el estado del registro, servicios y red.", "romanOS Control Center - Confirmar Reversion", [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Question)
     if ($res -eq [System.Windows.MessageBoxResult]::Yes) {
-        $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
-        if ($tool) {
-            Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Restore -SnapshotId `"$selectedSnap`" -Force" -TaskTitle "Restauracion Atomica de Snapshot"
-        }
+        Invoke-ControlCenterTool -ScriptName "Manage-SystemSnapshots.ps1" -Arguments "-Action Restore -SnapshotId `"$selectedSnap`" -Force" -TaskTitle "Restauracion Atomica de Snapshot" -UseSTA
     }
 })
 
@@ -2423,10 +2501,7 @@ $window.FindName('btnRefreshSnapshots').Add_Click({
 })
 
 $window.FindName('btnListSnapshotsCLI').Add_Click({
-    $tool = Resolve-ToolScript "Manage-SystemSnapshots.ps1"
-    if ($tool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action List" -TaskTitle "Catalogo de Snapshots romanOS"
-    }
+    Invoke-ControlCenterTool -ScriptName "Manage-SystemSnapshots.ps1" -Arguments "-Action List" -TaskTitle "Catalogo de Snapshots romanOS" -UseSTA
 })
 
 # Inicializar combo de snapshots
@@ -2434,24 +2509,15 @@ Refresh-CCSnapshotsComboBox
 
 # Manejadores de Eventos: romanOS Service Drift Watchdog
 $window.FindName('btnAuditDriftGUI').Add_Click({
-    $tool = Resolve-ToolScript "Watchdog-ServiceDrift.ps1"
-    if ($tool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Audit -SkipElevation" -TaskTitle "Auditoria de Desvio Anti-Drift"
-    }
+    Invoke-ControlCenterTool -ScriptName "Watchdog-ServiceDrift.ps1" -Arguments "-Action Audit -SkipElevation" -TaskTitle "Auditoria de Desvio Anti-Drift" -UseSTA
 })
 
 $window.FindName('btnRemediateDriftGUI').Add_Click({
-    $tool = Resolve-ToolScript "Watchdog-ServiceDrift.ps1"
-    if ($tool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Remediate -SkipElevation" -TaskTitle "Remediacion de Desvio Anti-Drift"
-    }
+    Invoke-ControlCenterTool -ScriptName "Watchdog-ServiceDrift.ps1" -Arguments "-Action Remediate -SkipElevation" -TaskTitle "Remediacion de Desvio Anti-Drift" -UseSTA
 })
 
 $window.FindName('btnInstallDriftTaskGUI').Add_Click({
-    $tool = Resolve-ToolScript "Watchdog-ServiceDrift.ps1"
-    if ($tool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action InstallTask -SkipElevation" -TaskTitle "Instalacion de Tarea Programada Watchdog"
-    }
+    Invoke-ControlCenterTool -ScriptName "Watchdog-ServiceDrift.ps1" -Arguments "-Action InstallTask -SkipElevation" -TaskTitle "Instalacion de Tarea Programada Watchdog" -UseSTA
 })
 
 # --- Pestaña 4: Red ---
@@ -2580,54 +2646,44 @@ $window.FindName('btnResetDnsDhcp').Add_Click({
 
 # Handlers: Optimizacion de Pila de Red y Latencia TCP
 $window.FindName('btnOptimizeNetworkNagle').Add_Click({
-    $tool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -NagleOnly -Unattended" -TaskTitle "Optimizacion de Latencia TCP / Nagle (TCP No-Delay)" }
+    Invoke-ControlCenterTool -ScriptName "Win11-Network-Diagnostics-Optimizer.ps1" -Arguments "-NagleOnly -Unattended" -TaskTitle "Optimizacion de Latencia TCP / Nagle (TCP No-Delay)" -UseSTA
 })
 
 $window.FindName('btnFullNetworkDiag').Add_Click({
-    $tool = Resolve-ToolScript "Win11-Network-Diagnostics-Optimizer.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Unattended" -TaskTitle "Diagnostico Completo de Red y Latencia" }
+    Invoke-ControlCenterTool -ScriptName "Win11-Network-Diagnostics-Optimizer.ps1" -Arguments "-Unattended" -TaskTitle "Diagnostico Completo de Red y Latencia" -UseSTA
 })
 
 # --- Pestaña 5: Seguridad & Navegadores ---
 $window.FindName('btnOptAllBrowsers').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser All -Unattended" -TaskTitle "Optimizacion Oficial de Navegadores" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-WebBrowsers.ps1" -Arguments "-Browser All -Unattended" -TaskTitle "Optimizacion Oficial de Navegadores"
 })
 
 $window.FindName('btnOptEdge').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Edge -Unattended" -TaskTitle "Optimizar Microsoft Edge" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-WebBrowsers.ps1" -Arguments "-Browser Edge -Unattended" -TaskTitle "Optimizar Microsoft Edge"
 })
 
 $window.FindName('btnOptChrome').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Chrome -Unattended" -TaskTitle "Optimizar Google Chrome" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-WebBrowsers.ps1" -Arguments "-Browser Chrome -Unattended" -TaskTitle "Optimizar Google Chrome"
 })
 
 $window.FindName('btnOptBrave').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Brave -Unattended" -TaskTitle "Optimizar Brave Browser" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-WebBrowsers.ps1" -Arguments "-Browser Brave -Unattended" -TaskTitle "Optimizar Brave Browser"
 })
 
 $window.FindName('btnOptFirefox').Add_Click({
-    $tool = Resolve-ToolScript "Optimize-WebBrowsers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Browser Firefox -Unattended" -TaskTitle "Optimizar Mozilla Firefox" }
+    Invoke-ControlCenterTool -ScriptName "Optimize-WebBrowsers.ps1" -Arguments "-Browser Firefox -Unattended" -TaskTitle "Optimizar Mozilla Firefox"
 })
 
 $window.FindName('btnSecurityAudit').Add_Click({
-    $tool = Resolve-ToolScript "Invoke-WindowsSecurityHardening.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ShowReport -NonInteractive" -TaskTitle "Auditoria de Seguridad y Hardening" }
+    Invoke-ControlCenterTool -ScriptName "Invoke-WindowsSecurityHardening.ps1" -Arguments "-ShowReport -NonInteractive" -TaskTitle "Auditoria de Seguridad y Hardening"
 })
 
 $window.FindName('btnApplySafeHardening').Add_Click({
-    $tool = Resolve-ToolScript "Invoke-WindowsSecurityHardening.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ApplySafeHardening -NonInteractive" -TaskTitle "Hardening de Seguridad Seguro (Gaming-Safe)" }
+    Invoke-ControlCenterTool -ScriptName "Invoke-WindowsSecurityHardening.ps1" -Arguments "-ApplySafeHardening -NonInteractive" -TaskTitle "Hardening de Seguridad Seguro (Gaming-Safe)"
 })
 
 $window.FindName('btnGenerateDiagReport').Add_Click({
-    $tool = Resolve-ToolScript "PostInstall-Diagnostics.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -DesktopOutput" -TaskTitle "Generar Informe Post-Instalacion (HTML)" }
+    Invoke-ControlCenterTool -ScriptName "PostInstall-Diagnostics.ps1" -Arguments "-DesktopOutput" -TaskTitle "Generar Informe Post-Instalacion (HTML)" -UseSTA
 })
 
 $window.FindName('btnOpenHtmlDashboards').Add_Click({
@@ -2637,42 +2693,37 @@ $window.FindName('btnOpenHtmlDashboards').Add_Click({
     }
     $diagHtml = Join-Path $desktopPath "INFORME_INSTALACION.html"
     $secHtml  = Join-Path $desktopPath "INFORME_SEGURIDAD.html"
-    if (Test-Path $diagHtml) { Start-Process -FilePath $diagHtml }
-    if (Test-Path $secHtml)  { Start-Process -FilePath $secHtml }
+    $found = $false
+    if (Test-Path $diagHtml) { Start-Process -FilePath $diagHtml; $found = $true }
+    if (Test-Path $secHtml)  { Start-Process -FilePath $secHtml; $found = $true }
+    if (-not $found) {
+        [System.Windows.MessageBox]::Show("Aun no se han generado los informes HTML en el Escritorio.`r`n`r`nEjecute 'Generar Informe Post-Instalacion' o 'Auditoria de Seguridad' primero.", "romanOS Control Center — Informes", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+    }
 })
 
 $window.FindName('btnCheckSandbox').Add_Click({
-    $tool = Resolve-ToolScript "Invoke-LiveSandbox.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Status" -TaskTitle "Diagnostico romanOS Live Sandbox" }
+    Invoke-ControlCenterTool -ScriptName "Invoke-LiveSandbox.ps1" -Arguments "-Action Status" -TaskTitle "Diagnostico romanOS Live Sandbox"
 })
 
 $window.FindName('btnLaunchSandbox').Add_Click({
-    $tool = Resolve-ToolScript "Invoke-LiveSandbox.ps1"
-    if ($tool) {
-        $presetIdx = $window.FindName('cmbSandboxPreset').SelectedIndex
-        $preset = switch ($presetIdx) { 1 { "GameModding" } 2 { "DisposableBrowser" } default { "SafeAnalysis" } }
-        Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action Launch -Preset $preset" -TaskTitle "Lanzar Live Sandbox ($preset)"
-    }
+    $presetIdx = $window.FindName('cmbSandboxPreset').SelectedIndex
+    $preset = switch ($presetIdx) { 1 { "GameModding" } 2 { "DisposableBrowser" } default { "SafeAnalysis" } }
+    Invoke-ControlCenterTool -ScriptName "Invoke-LiveSandbox.ps1" -Arguments "-Action Launch -Preset $preset" -TaskTitle "Lanzar Live Sandbox ($preset)"
 })
 
 $window.FindName('btnGenerateSandboxWsb').Add_Click({
-    $tool = Resolve-ToolScript "Invoke-LiveSandbox.ps1"
-    if ($tool) {
-        $presetIdx = $window.FindName('cmbSandboxPreset').SelectedIndex
-        $preset = switch ($presetIdx) { 1 { "GameModding" } 2 { "DisposableBrowser" } default { "SafeAnalysis" } }
-        Start-ControlCenterTask -CommandLine "-NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Action GenerateConfig -Preset $preset" -TaskTitle "Generar Perfil WSB ($preset)"
-    }
+    $presetIdx = $window.FindName('cmbSandboxPreset').SelectedIndex
+    $preset = switch ($presetIdx) { 1 { "GameModding" } 2 { "DisposableBrowser" } default { "SafeAnalysis" } }
+    Invoke-ControlCenterTool -ScriptName "Invoke-LiveSandbox.ps1" -Arguments "-Action GenerateConfig -Preset $preset" -TaskTitle "Generar Perfil WSB ($preset)"
 })
 
 # --- Pestaña 6: Drivers & Herramientas ---
 $window.FindName('btnBackupDrivers').Add_Click({
-    $tool = Resolve-ToolScript "Backup-HardwareDrivers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Respaldo de Controladores del Host" }
+    Invoke-ControlCenterTool -ScriptName "Backup-HardwareDrivers.ps1" -TaskTitle "Respaldo de Controladores del Host" -UseSTA
 })
 
 $window.FindName('btnAuditDriverStore').Add_Click({
-    $tool = Resolve-ToolScript "Clean-DriverStore.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -WhatIf" -TaskTitle "Auditoría de DriverStore (Solo Lectura - WhatIf)" }
+    Invoke-ControlCenterTool -ScriptName "Clean-DriverStore.ps1" -Arguments "-WhatIf" -TaskTitle "Auditoría de DriverStore (Solo Lectura - WhatIf)" -UseSTA
 })
 
 $window.FindName('btnCleanDriverStore').Add_Click({
@@ -2688,12 +2739,13 @@ $window.FindName('btnCleanDriverStore').Add_Click({
             Write-CCLog "Iniciando depuración interactiva de DriverStore..."
             Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`""
         }
+    } else {
+        Invoke-ControlCenterTool -ScriptName "Clean-DriverStore.ps1" -TaskTitle "Mantenimiento DriverStore" -UseSTA
     }
 })
 
 $window.FindName('btnGetCriticalDrivers').Add_Click({
-    $tool = Resolve-ToolScript "Get-CriticalDrivers.ps1"
-    if ($tool) { Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`"" -TaskTitle "Descarga de Drivers Criticos (VMD / VirtIO)" }
+    Invoke-ControlCenterTool -ScriptName "Get-CriticalDrivers.ps1" -TaskTitle "Descarga de Drivers Criticos (VMD / VirtIO)" -UseSTA
 })
 
 $window.FindName('btnMigrateUser').Add_Click({
@@ -2701,6 +2753,8 @@ $window.FindName('btnMigrateUser').Add_Click({
     if ($tool) {
         Write-CCLog "Iniciando Asistente de Migracion de Usuario en ventana interactiva..."
         Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`""
+    } else {
+        Invoke-ControlCenterTool -ScriptName "Migrar-Usuario-W11.ps1" -TaskTitle "Migración de Usuario" -UseSTA
     }
 })
 
@@ -2712,13 +2766,10 @@ $window.FindName('btnDeployProfileGUI').Add_Click({
     $autoHw = $window.FindName('chkAutoDetectHw').IsChecked
     $incRt = $window.FindName('chkIncludeRuntimes').IsChecked
 
-    $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
-    if ($tool) {
-        $cmd = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Profile $profileTag -Unattended"
-        if ($autoHw) { $cmd += " -AutoDetectHardware" }
-        if (-not $incRt) { $cmd += " -IncludeRuntimes:`$false" }
-        Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Despliegue de Perfil: $profileTag"
-    }
+    $cmd = "-Profile $profileTag -Unattended"
+    if ($autoHw) { $cmd += " -AutoDetectHardware" }
+    if (-not $incRt) { $cmd += " -IncludeRuntimes:`$false" }
+    Invoke-ControlCenterTool -ScriptName "Deploy-AppProfiles.ps1" -Arguments $cmd -TaskTitle "Despliegue de Perfil: $profileTag" -UseSTA
 })
 
 $btnDeployCat = $window.FindName('btnDeployCategoryGUI')
@@ -2729,23 +2780,17 @@ if ($btnDeployCat) {
         $catTag = if ($selectedCat -and $selectedCat.Tag) { $selectedCat.Tag } else { 'Browsers' }
         $incRt = $window.FindName('chkIncludeRuntimes').IsChecked
 
-        $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
-        if ($tool) {
-            $catsArg = if ($catTag -eq 'All') { "Browsers,Gaming,Development,Utilities" } else { $catTag }
-            $cmd = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Categories $catsArg -Unattended"
-            if (-not $incRt) { $cmd += " -IncludeRuntimes:`$false" }
-            Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Despliegue WinGet: Categoria $catTag"
-        }
+        $catsArg = if ($catTag -eq 'All') { "Browsers,Gaming,Development,Utilities" } else { $catTag }
+        $cmd = "-Categories $catsArg -Unattended"
+        if (-not $incRt) { $cmd += " -IncludeRuntimes:`$false" }
+        Invoke-ControlCenterTool -ScriptName "Deploy-AppProfiles.ps1" -Arguments $cmd -TaskTitle "Despliegue WinGet: Categoria $catTag" -UseSTA
     })
 }
 
 $btnListCat = $window.FindName('btnListCatalogGUI')
 if ($btnListCat) {
     $btnListCat.Add_Click({
-        $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
-        if ($tool) {
-            Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -ListCatalog -SkipElevation" -TaskTitle "Explorar Catalogo Curado de Software WinGet"
-        }
+        Invoke-ControlCenterTool -ScriptName "Deploy-AppProfiles.ps1" -Arguments "-ListCatalog -SkipElevation" -TaskTitle "Explorar Catalogo Curado de Software WinGet" -UseSTA
     })
 }
 
@@ -2758,20 +2803,14 @@ $window.FindName('btnSimulateProfileGUI').Add_Click({
     $catTag = if ($selectedCat -and $selectedCat.Tag) { $selectedCat.Tag } else { 'Browsers' }
     $autoHw = $window.FindName('chkAutoDetectHw').IsChecked
 
-    $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
-    if ($tool) {
-        $catsArg = if ($catTag -eq 'All') { "Browsers,Gaming,Development,Utilities" } else { $catTag }
-        $cmd = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -Profile $profileTag -Categories $catsArg -WhatIf -SkipElevation"
-        if ($autoHw) { $cmd += " -AutoDetectHardware" }
-        Start-ControlCenterTask -CommandLine $cmd -TaskTitle "Simulacion de Perfil y Categoria: $profileTag / $catTag"
-    }
+    $catsArg = if ($catTag -eq 'All') { "Browsers,Gaming,Development,Utilities" } else { $catTag }
+    $cmd = "-Profile $profileTag -Categories $catsArg -WhatIf -SkipElevation"
+    if ($autoHw) { $cmd += " -AutoDetectHardware" }
+    Invoke-ControlCenterTool -ScriptName "Deploy-AppProfiles.ps1" -Arguments $cmd -TaskTitle "Simulacion de Perfil y Categoria: $profileTag / $catTag" -UseSTA
 })
 
 $window.FindName('btnInstallRuntimesGUI').Add_Click({
-    $tool = Resolve-ToolScript "Deploy-AppProfiles.ps1"
-    if ($tool) {
-        Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$tool`" -InstallRuntimesOnly -Unattended" -TaskTitle "Instalacion de Runtimes del Sistema"
-    }
+    Invoke-ControlCenterTool -ScriptName "Deploy-AppProfiles.ps1" -Arguments "-InstallRuntimesOnly -Unattended" -TaskTitle "Instalacion de Runtimes del Sistema" -UseSTA
 })
 
 # -----------------------------------------------------------------------------
@@ -2891,6 +2930,8 @@ if ($btnValGui) {
             $validator = Resolve-ToolScript "Test-UnattendXml.ps1"
             if ($validator) {
                 Start-ControlCenterTask -CommandLine "-STA -NoProfile -ExecutionPolicy Bypass -File `"$validator`" -Path `"$tempXml`"" -TaskTitle "Validación y Certificación de autounattend.xml"
+            } else {
+                Invoke-ControlCenterTool -ScriptName "Test-UnattendXml.ps1" -Arguments "-Path `"$tempXml`"" -TaskTitle "Validación y Certificación de autounattend.xml" -UseSTA
             }
         } catch {
             Write-CCLog "Error en validacion de autounattend.xml: $($_.Exception.Message)" -Level "WARN"
